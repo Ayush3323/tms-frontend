@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useLogin } from '../auth/tenstack';
+import { useLogin } from '../queries/loginQuery';
 import { useNavigate } from 'react-router-dom';
 import banner from '../../../assets/banner.avif';
 

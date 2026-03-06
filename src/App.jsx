@@ -1,13 +1,13 @@
 
-import './App.css'
-import Router from "./app/router";
+// import './App.css'
+import Router from "./app/router/Router";
 
 function App() {
-  
+
   return (
-    
-      <Router />
-  
+
+    <Router />
+
   )
 }
 

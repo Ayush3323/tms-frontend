@@ -1,6 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import axiosInstance from "../api/axiosInstance";
-import endpoint from "../api/endpoints";
+import { loginEndpoint } from "../api/loginEndpoint";
 
 /**
  * Hook for login mutation using TanStack Query.
@@ -8,11 +7,7 @@ import endpoint from "../api/endpoints";
  */
 export const useLogin = () => {
     return useMutation({
-        mutationFn: async (credentials) => {
-            // credentials should be an object like { username: '...', password: '...' }
-            const response = await axiosInstance.post(endpoint.login, credentials);
-            return response.data;
-        },
+        mutationFn: loginEndpoint,
         onSuccess: (data) => {
             // Store both access and refresh tokens
             const accessToken = data?.access || data?.token;

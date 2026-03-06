@@ -1,5 +1,5 @@
 import axios from "axios";
-import endpoint from "./endpoints";
+import {refreshEndpoint} from "./loginEndpoint";
 
 const axiosInstance = axios.create({
     baseURL: "http://192.168.1.36",
@@ -34,9 +34,7 @@ axiosInstance.interceptors.response.use(
                 if (refreshToken) {
                     // Attempt to refresh the token
                     // We use axios directly to avoid infinite loop with the instance
-                    const response = await axios.post(`${axiosInstance.defaults.baseURL}/${endpoint.refresh}`, {
-                        refresh: refreshToken
-                    });
+                    const response = await refreshEndpoint({refresh: refreshToken});    
 
                     const { access } = response.data;
 
