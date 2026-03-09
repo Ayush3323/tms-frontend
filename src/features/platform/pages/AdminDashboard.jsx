@@ -1,8 +1,8 @@
 import React from 'react';
+import { Outlet } from 'react-router-dom';
 // Importing from src/features/platform/components/
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
-import Body from '../components/Body';
 
 const AdminDashboard = () => {
   return (
@@ -14,10 +14,10 @@ const AdminDashboard = () => {
       <div className="flex-1 flex flex-col">
         {/* Top Header */}
         <Header />
-        
+
         {/* Main Body Content */}
         <div className="flex-1 overflow-y-auto">
-          <Body />
+          <Outlet />
         </div>
       </div>
     </div>

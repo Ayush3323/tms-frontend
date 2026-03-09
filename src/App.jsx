@@ -1,12 +1,12 @@
-// import './App.css'
-import AdminDashboard from "./features/platform/pages/AdminDashboard";
+import Router from "./app/router/Router";
 
 function App() {
   return (
     <div className="App">
-      <AdminDashboard />
+      <Router />
     </div>
   );
 }
 
 export default App;
+
