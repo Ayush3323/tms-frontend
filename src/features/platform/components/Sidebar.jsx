@@ -1,11 +1,12 @@
 import React from 'react';
-import { LayoutGrid, Users, Globe, ChevronRight } from 'lucide-react';
+import { LayoutGrid, Users, Globe } from 'lucide-react';
+import { NavLink } from 'react-router-dom';
 
 const Sidebar = () => {
   const menuItems = [
-    { name: 'Tenants', icon: <LayoutGrid size={18} />, count: 2, active: true },
-    { name: 'Admins', icon: <Users size={18} />, active: false },
-    { name: 'Domains', icon: <Globe size={18} />, active: false },
+    { name: 'Tenants', icon: <LayoutGrid size={18} />, path: '/admin/dashboard/tenants' },
+    { name: 'Admins', icon: <Users size={18} />, path: '/admin/dashboard/admins' },
+    { name: 'Domains', icon: <Globe size={18} />, path: '/admin/dashboard/domains' },
   ];
 
   return (
@@ -27,26 +28,25 @@ const Sidebar = () => {
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-2 mb-2">Main</p>
           <nav className="space-y-1">
             {menuItems.map((item) => (
-              <button
+              <NavLink
                 key={item.name}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${
-                  item.active 
-                    ? 'bg-[#EBF3FF] text-[#0052CC] border border-[#D0E2FF]' 
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
+                to={item.path}
+                className={({ isActive }) =>
+                  `w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all border ${isActive
+                    ? 'bg-[#EBF3FF] text-[#0052CC] border-[#D0E2FF]'
+                    : 'text-gray-600 hover:bg-gray-100 border-transparent'
+                  }`
+                }
               >
-                <div className="flex items-center gap-3">
-                  <span className={item.active ? 'text-[#0052CC]' : 'text-gray-400'}>
-                    {item.icon}
-                  </span>
-                  <span className="text-sm font-semibold">{item.name}</span>
-                </div>
-                {item.count && (
-                  <span className="bg-[#FFAB00] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                    {item.count}
-                  </span>
+                {({ isActive }) => (
+                  <div className="flex items-center gap-3">
+                    <span className={isActive ? 'text-[#0052CC]' : 'text-gray-400'}>
+                      {item.icon}
+                    </span>
+                    <span className="text-sm font-semibold">{item.name}</span>
+                  </div>
                 )}
-              </button>
+              </NavLink>
             ))}
           </nav>
         </div>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Search, RotateCcw, Plus, Eye, UserX, UserCheck, ShieldAlert } from 'lucide-react';
 
-const Body = () => {
+const TenantDetail = () => {
   const stats = [
     { label: "TOTAL TENANTS", value: 6, sub: "All registered", border: "border-gray-100" },
     { label: "ACTIVE", value: 4, sub: "Currently running", border: "border-green-100", textColor: "text-green-600" },
@@ -95,7 +95,7 @@ const Body = () => {
                   <td className="px-6 py-4 text-gray-400 font-medium">{row.date}</td>
                   <td className="px-6 py-4">
                     <div className="flex gap-2">
-                      <button className="p-1.5 hover:bg-gray-100 rounded text-gray-400 border border-gray-200"><Eye size={14}/></button>
+                      <button className="p-1.5 hover:bg-gray-100 rounded text-gray-400 border border-gray-200"><Eye size={14} /></button>
                       <button className="px-3 py-1 bg-[#FFAB00]/10 text-[#FFAB00] text-[10px] font-bold rounded border border-[#FFAB00]/20">Suspend</button>
                     </div>
                   </td>
@@ -109,4 +109,4 @@ const Body = () => {
   );
 };
 
-export default Body;
+export default TenantDetail;
