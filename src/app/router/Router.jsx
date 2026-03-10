@@ -5,6 +5,7 @@ import AdminDashboard from "../../features/platform/pages/AdminDashboard";
 import AdminDetail from "../../features/platform/components/AdminDetail";
 import TenantDetail  from "../../features/platform/components/TenantDetail";
 import DomainDetail from "../../features/platform/components/DomainDetail";
+import TenantCreate from "../../features/platform/components/TenantCreate";
 
 function Router() {
   return (
@@ -26,7 +27,11 @@ function Router() {
           <Route index element={<Navigate to="tenants" replace />} />
           <Route path="tenants" element={<TenantDetail />} />
           <Route path="admins" element={<AdminDetail />} />     
-          <Route path="domains" element={<DomainDetail />} />         
+          <Route path="domains" element={<DomainDetail />} /> 
+          <Route path="tenants/new" element={<TenantCreate />}  />
+          <Route path="tenants/:id" element={<TenantCreate />} />
+            
+          
         </Route>
       </Routes>
     </BrowserRouter>
