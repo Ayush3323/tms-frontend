@@ -20,6 +20,19 @@ const Header = () => {
 
       {/* Right Side Actions */}
       <div className="flex items-center gap-4">
+<<<<<<< Updated upstream
+=======
+        {/* Sample Data Button
+        <button className="flex items-center gap-2 px-3 py-1.5 border border-[#FFAB00] text-[#FFAB00] rounded text-xs font-bold hover:bg-orange-50 transition-colors">
+          <span className="text-[10px]">📄</span> Sample Data
+        </button> */}
+
+        {/* Localhost Indicator */}
+        {/* <div className="flex items-center gap-2 px-3 py-1.5 bg-[#F4F5F7] rounded text-[#42526E] text-xs font-medium border border-gray-200">
+          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+          localhost:8000
+        </div> */}
+>>>>>>> Stashed changes
 
         {/* Vertical Divider */}
         <div className="w-px h-6 bg-gray-200 mx-1"></div>
