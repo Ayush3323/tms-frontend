@@ -53,7 +53,7 @@ const Sidebar = () => {
       </div>
 
       {/* Footer Profile Section */}
-      <div className="bg-white border border-gray-100 rounded-xl p-3 shadow-sm flex items-center gap-3">
+      {/* <div className="bg-white border border-gray-100 rounded-xl p-3 shadow-sm flex items-center gap-3">
         <div className="w-10 h-10 bg-[#4C9AFF] rounded flex items-center justify-center text-white font-bold text-xs uppercase">
           PA
         </div>
@@ -61,7 +61,7 @@ const Sidebar = () => {
           <p className="text-xs font-bold text-[#172B4D] truncate">Platform Admin</p>
           <p className="text-[10px] text-gray-400 truncate">Super Admin</p>
         </div>
-      </div>
+      </div> */}
     </aside>
   );
 };
