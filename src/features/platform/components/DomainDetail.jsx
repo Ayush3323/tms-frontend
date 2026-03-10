@@ -45,7 +45,8 @@ function PrimaryBadge({ domain }) {
    DOMAIN ROW
 ══════════════════════════════════════════════ */
 function DomainRow({ domain, tenantMap }) {
-  const tenantName = tenantMap[domain.tenant] || domain.tenant?.slice(0, 8) + '…';
+  const tenantName = tenantMap[domain.tenant];
+  const isDeleted  = !tenantName; // tenant nahi mila → deleted
 
   return (
     <tr className="hover:bg-gray-50 transition-colors group">
@@ -59,17 +60,25 @@ function DomainRow({ domain, tenantMap }) {
 
       {/* Tenant */}
       <td className="px-6 py-4">
-        <span className="text-sm text-gray-500 font-medium">{tenantName}</span>
+        {isDeleted ? (
+          // Deleted tenant → red badge
+          <span className="px-2 py-1 rounded-full text-[10px] font-bold
+                           bg-red-50 text-red-500 border border-red-100">
+             Deleted Tenant
+          </span>
+        ) : (
+          // Normal tenant → simple text
+          <span className="text-sm text-gray-500 font-medium">
+            {tenantName}
+          </span>
+        )}
       </td>
 
       {/* Primary */}
       <td className="px-6 py-4">
         <PrimaryBadge domain={domain} />
       </td>
-
-      {/* Actions — sirf View */}
-      
-    </tr>
+      </tr>
   );
 }
 
