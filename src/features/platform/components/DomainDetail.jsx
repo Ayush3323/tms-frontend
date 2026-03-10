@@ -9,7 +9,7 @@ import { useTenants } from '../queries/tenantQuery';
 function SkeletonRow() {
   return (
     <tr>
-      {[200, 120, 80].map((w, i) => (
+      {[200, 120, 80, 80, 80].map((w, i) => (
         <td key={i} className="py-3 px-6 border-b border-gray-50">
           <div
             className="h-3.5 bg-gray-100 rounded-md animate-pulse"
@@ -46,7 +46,7 @@ function PrimaryBadge({ domain }) {
 ══════════════════════════════════════════════ */
 function DomainRow({ domain, tenantMap }) {
   const tenantName = tenantMap[domain.tenant];
-  const isDeleted  = !tenantName; // tenant nahi mila → deleted
+  const isDeleted  = !tenantName;
 
   return (
     <tr className="hover:bg-gray-50 transition-colors group">
@@ -61,15 +61,28 @@ function DomainRow({ domain, tenantMap }) {
       {/* Tenant */}
       <td className="px-6 py-4">
         {isDeleted ? (
-          // Deleted tenant → red badge
           <span className="px-2 py-1 rounded-full text-[10px] font-bold
                            bg-red-50 text-red-500 border border-red-100">
-             Deleted Tenant
+            🗑 Deleted Tenant
           </span>
         ) : (
-          // Normal tenant → simple text
           <span className="text-sm text-gray-500 font-medium">
             {tenantName}
+          </span>
+        )}
+      </td>
+
+      {/* Status */}
+      <td className="px-6 py-4">
+        {isDeleted ? (
+          <span className="px-3 py-1 rounded-full text-[10px] font-bold
+                           bg-red-100 text-red-700">
+            INACTIVE
+          </span>
+        ) : (
+          <span className="px-3 py-1 rounded-full text-[10px] font-bold
+                           bg-green-100 text-green-700">
+            ACTIVE
           </span>
         )}
       </td>
@@ -78,7 +91,8 @@ function DomainRow({ domain, tenantMap }) {
       <td className="px-6 py-4">
         <PrimaryBadge domain={domain} />
       </td>
-      </tr>
+
+    </tr>
   );
 }
 
@@ -138,7 +152,6 @@ export default function DomainDetail() {
               : `${totalCount} domain${totalCount !== 1 ? 's' : ''} found`}
           </p>
         </div>
-        {/* Add Domain button hataya ✅ */}
       </div>
 
       {/* ── Table Container ── */}
@@ -195,8 +208,8 @@ export default function DomainDetail() {
               <tr className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
                 <th className="px-6 py-4">Domain</th>
                 <th className="px-6 py-4">Tenant</th>
+                <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4">Primary</th>
-                
               </tr>
             </thead>
 
