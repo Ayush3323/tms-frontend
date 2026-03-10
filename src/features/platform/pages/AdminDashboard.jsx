@@ -6,7 +6,7 @@ import Header from '../components/Header';
 
 const AdminDashboard = () => {
   return (
-    <div className="flex min-h-screen w-full bg-[#F4F5F7]">
+    <div className="flex max-h-screen  w-full bg-[#F4F5F7]">
       {/* 1. Left Sidebar */}
       <Sidebar />
 

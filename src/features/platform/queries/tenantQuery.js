@@ -1,10 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { tenantsApi } from '../api/tenant.api'
+import { tenantsApi } from '../api/tenantEndpoint'
 
 
 /* =========================
    COMMON ERROR HANDLER
 ========================= */
+console.log('✅ tenantQuery loaded')
 
 const getErrorMessage = (error) => {
   return (
@@ -25,7 +26,7 @@ export const useTenants = (params) =>
     queryKey: ['tenants', params],
     queryFn: () => tenantsApi.list(params),
     placeholderData: (prev) => prev,
-    staleTime: 30 * 1000,
+    staleTime: 0,
     retry: 2,
 
     onError: (error) => {
@@ -43,7 +44,7 @@ export const useTenant = (id) =>
     queryKey: ['tenant', id],
     queryFn: () => tenantsApi.get(id),
     enabled: !!id,
-    staleTime: 60 * 1000,
+    staleTime: 0,
     retry: 2,
 
     onError: (error) => {
@@ -60,7 +61,7 @@ export const useTenantStats = () =>
   useQuery({
     queryKey: ['tenant-stats'],
     queryFn: tenantsApi.statistics,
-    staleTime: 60 * 1000,
+    staleTime: 0,
     retry: 2,
 
     select: (data) => ({
@@ -88,8 +89,8 @@ export const useCreateTenant = () => {
     retry: 1,
 
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['tenants'] })
-      qc.invalidateQueries({ queryKey: ['tenant-stats'] })
+      qc.refetchQueries({ queryKey: ['tenants'],      type: 'active' })
+      qc.refetchQueries({ queryKey: ['tenant-stats'], type: 'active' })
     },
 
     onError: (error) => {
@@ -112,8 +113,8 @@ export const useUpdateTenant = () => {
     retry: 1,
 
     onSuccess: (_, variables) => {
-      qc.invalidateQueries({ queryKey: ['tenant', variables.id] })
-      qc.invalidateQueries({ queryKey: ['tenants'] })
+      qc.refetchQueries({ queryKey: ['tenant', variables.id], type: 'active' })
+      qc.refetchQueries({ queryKey: ['tenants'],              type: 'active' })
     },
 
     onError: (error) => {
@@ -136,8 +137,8 @@ export const useDeleteTenant = () => {
     retry: 1,
 
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['tenants'] })
-      qc.invalidateQueries({ queryKey: ['tenant-stats'] })
+      qc.refetchQueries({ queryKey: ['tenants'],      type: 'active' })
+      qc.refetchQueries({ queryKey: ['tenant-stats'], type: 'active' })
     },
 
     onError: (error) => {
@@ -160,8 +161,9 @@ export const useSuspendTenant = () => {
     retry: 1,
 
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['tenants'] })
-      qc.invalidateQueries({ queryKey: ['tenant-stats'] })
+      // ✅ refetchQueries forces immediate API call, not just cache invalidation
+      qc.refetchQueries({ queryKey: ['tenants'],      type: 'active' })
+      qc.refetchQueries({ queryKey: ['tenant-stats'], type: 'active' })
     },
 
     onError: (error) => {
@@ -184,8 +186,9 @@ export const useActivateTenant = () => {
     retry: 1,
 
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['tenants'] })
-      qc.invalidateQueries({ queryKey: ['tenant-stats'] })
+      // ✅ refetchQueries forces immediate API call, not just cache invalidation
+      qc.refetchQueries({ queryKey: ['tenants'],      type: 'active' })
+      qc.refetchQueries({ queryKey: ['tenant-stats'], type: 'active' })
     },
 
     onError: (error) => {
@@ -208,8 +211,8 @@ export const useVerifyTenant = () => {
     retry: 1,
 
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['tenants'] })
-      qc.invalidateQueries({ queryKey: ['tenant-stats'] })
+      qc.refetchQueries({ queryKey: ['tenants'],      type: 'active' })
+      qc.refetchQueries({ queryKey: ['tenant-stats'], type: 'active' })
     },
 
     onError: (error) => {
