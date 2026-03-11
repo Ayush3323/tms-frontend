@@ -1,9 +1,9 @@
-import Router from "./app/router/Router";
+import Routing from "./features/tenant/Router/Routing";
 
 function App() {
   return (
     <div className="App">
-      <Router />
+      <Routing />
     </div>
   );
 }
