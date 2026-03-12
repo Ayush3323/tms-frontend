@@ -5,7 +5,7 @@ const axiosInstance = axios.create({
     baseURL: "http://192.168.1.34",
     headers: {
         "Content-Type": "application/json",
-        "X-Tenant-ID": "3fcf7c96-a1b6-48b8-b5c3-52c8e5c210fd",
+        "X-Tenant-ID": "52890cbb-27eb-4e4a-8f53-79f7befb564e",
     },
 });
 
