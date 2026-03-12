@@ -7,6 +7,7 @@ import Userdetail from '../components/Userdetail'
 import Vehicles from '../components/Vehicles'
 import Drivers from '../components/Drivers'
 
+
 const Routing = () => {
   return (
     <BrowserRouter>
@@ -22,6 +23,8 @@ const Routing = () => {
           <Route path="users" element={<Userdetail />} />
           <Route path="vehicles" element={<Vehicles />} />
           <Route path="drivers" element={<Drivers />} />  
+          
+          
         </Route>
       </Routes>
     </BrowserRouter>
