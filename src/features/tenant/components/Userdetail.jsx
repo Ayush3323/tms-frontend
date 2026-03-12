@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Search, RotateCcw, Plus, Trash2, Edit, X, User as UserIcon, Mail, Lock, Phone, Activity, Shield, Clock, Power, ShieldAlert, Monitor } from 'lucide-react';
 import { 
-  useUsers, useDeleteUser, useUpdateUser, useCreateUser, 
   useLockUser, useUnlockUser, useUserSessions, useUserActivityLog, useAssignRoles
 } from '../queries/users/userActionQuery';
+import {useUsers, useDeleteUser, useUpdateUser, useCreateUser } from '../queries/users/userQuery';
 import { useRoles } from '../queries/users/rolesPermissionsQuery';
 import { useRevokeSession } from '../queries/users/sessionsQuery';
 
