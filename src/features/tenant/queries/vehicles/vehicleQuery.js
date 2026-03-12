@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { vehiclesApi } from '../api/vehicleEndpoints'
+import { vehiclesApi } from '../../api/vehicles/vehicleEndpoint'
 import { toast } from 'react-hot-toast'
 
 // Error parser
