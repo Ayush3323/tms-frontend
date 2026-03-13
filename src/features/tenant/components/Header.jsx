@@ -1,12 +1,15 @@
 import React from 'react';
-import { ChevronRight, LogOut, LayoutGrid, Users, Globe, ChevronDown } from 'lucide-react';
+import { ChevronRight, LogOut, LayoutGrid, Users, Globe, ChevronDown, Settings } from 'lucide-react';
 import { useLogout } from '../queries/logoutQuery';
 import { useLocation } from 'react-router-dom';
 import { useCurrentUser } from '../queries/users/userActionQuery';
+import SettingsModal from './Header/SettingsModal';
+import { useState } from 'react';
 
 const Header = () => {
   const logoutMutation = useLogout();
   const location = useLocation();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const { data: currentUser } = useCurrentUser();
 
   const handleLogout = () => {
@@ -43,6 +46,15 @@ const Header = () => {
         {/* Search or other actions could go here */}
 
         <div className="flex items-center gap-4">
+          {/* Settings Button */}
+          <button
+            onClick={() => setIsSettingsOpen(true)}
+            className="p-2 transition-all duration-300 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-[#0052CC] hover:rotate-45"
+            title="Settings"
+          >
+            <Settings size={20} />
+          </button>
+
           {/* Vertical Divider */}
           <div className="w-px h-6 bg-gray-200"></div>
 
@@ -68,6 +80,11 @@ const Header = () => {
           </button>
         </div>
       </div>
+      <SettingsModal 
+        isOpen={isSettingsOpen} 
+        onClose={() => setIsSettingsOpen(false)} 
+        userEmail={currentUser?.email}
+      />
     </header>
   );
 };
