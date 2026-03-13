@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, RotateCcw, Plus, Trash2, Edit, X, User as UserIcon, Mail, Lock, Phone, Activity, Shield, Clock, Power, ShieldAlert, Monitor } from 'lucide-react';
+import { Search, RotateCcw, Plus, Trash2, Edit, X, User as UserIcon, Mail, Lock, Unlock, Phone, Activity, Shield, Clock, Power, ShieldAlert, Monitor, UserPlus } from 'lucide-react';
 import { 
   useLockUser, useUnlockUser, useUserSessions, useUserActivityLog, useAssignRoles
 } from '../queries/users/userActionQuery';
@@ -88,7 +88,7 @@ const Userdetail = () => {
     last_name: '',
     password: '',
     phone: '',
-    role: ''
+    account_type: 'Employee'
   });
 
   const stats = [
@@ -123,6 +123,11 @@ const Userdetail = () => {
         phone: '',
         role: ''
       });
+    } else if (type === 'assignRole' && user) {
+      setFormData(prev => ({
+        ...prev,
+        role: user.roles?.[0]?.id || ''
+      }));
     }
     setFormErrors({});
     setIsModalOpen(true);
@@ -155,6 +160,20 @@ const Userdetail = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    if (modalType === 'assignRole') {
+      if (!formData.role) {
+        setFormErrors({ role: "Please select a role to assign" });
+        return;
+      }
+      assignRoleMutation.mutate({ id: selectedUser.id, role_ids: [formData.role] }, { 
+        onSuccess: () => {
+          handleCloseModal();
+        } 
+      });
+      return;
+    }
+
     if (!validateForm()) return;
     
     if (modalType === 'create') {
@@ -189,7 +208,9 @@ const Userdetail = () => {
     }
   };
   const handleDelete = (id) => {
-    if (window.confirm("Are you sure you want to delete this user?")) {
+    // Enhanced delete confirmation as requested
+    alert("Warning: You are about to delete this user!");
+    if (window.confirm("Are you sure you want to delete this user? This action cannot be undone.")) {
       deleteMutation.mutate(id);
     }
   };
@@ -317,7 +338,14 @@ const Userdetail = () => {
                           onClick={() => handleToggleLock(user)}
                           className={`p-1.5 rounded border transition-colors ${user.is_locked ? 'text-green-600 border-green-200 hover:bg-green-50' : 'text-orange-500 border-orange-200 hover:bg-orange-50'}`}
                         >
-                          <Power size={14} />
+                          {user.is_locked ? <Unlock size={14} /> : <Lock size={14} />}
+                        </button>
+                        <button
+                          title="Assign Role"
+                          onClick={() => handleOpenModal('assignRole', user)}
+                          className="p-1.5 hover:bg-blue-50 rounded text-[#0052CC] border border-blue-100 transition-colors"
+                        >
+                          <UserPlus size={14} />
                         </button>
                         <button
                           onClick={() => handleOpenModal('edit', user)}
@@ -407,8 +435,41 @@ const Userdetail = () => {
                     {activeTab === 'activities' && <UserActivityTab userId={selectedUser?.id} />}
                   </div>
                 </div>
-              ) : (
-                <form id="adminForm" onSubmit={handleSubmit} className="p-6 space-y-5 bg-white m-4 rounded-xl shadow-sm border border-gray-100">
+                ) : modalType === 'assignRole' ? (
+                  <div className="p-8 space-y-6 bg-white m-4 rounded-xl shadow-sm border border-gray-100">
+                    <div className="text-center space-y-2">
+                      <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center text-[#0052CC] mx-auto">
+                        <UserPlus size={32} />
+                      </div>
+                      <h4 className="text-lg font-bold text-[#172B4D]">Assign Role to {selectedUser?.first_name}</h4>
+                      <p className="text-sm text-gray-500 px-8">Select a role from the list below to update the access permissions for this user.</p>
+                    </div>
+
+                    <form id="adminForm" onSubmit={handleSubmit} className="space-y-4">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-[#172B4D]">Available Roles</label>
+                        <select
+                          name="role"
+                          required
+                          value={formData.role}
+                          onChange={handleInputChange}
+                          className={`w-full px-4 py-3 bg-gray-50 border ${formErrors.role ? 'border-red-500' : 'border-gray-200'} rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0052CC] cursor-pointer appearance-none outline-none`}
+                        >
+                          <option value="">Select a role to assign...</option>
+                          {roles.map(r => (
+                            <option key={r.id} value={r.id}>{r.name}</option>
+                          ))}
+                        </select>
+                        {formErrors.role && <p className="text-[10px] text-red-500 font-bold mt-1">{formErrors.role}</p>}
+                      </div>
+                      <div className="bg-blue-50/50 p-4 rounded-lg flex gap-3 border border-blue-100/50">
+                        <ShieldAlert className="text-blue-600 shrink-0" size={18} />
+                        <p className="text-xs text-blue-800 leading-relaxed font-medium">Assigning a new role will override any previous roles assigned to this user. This might affect their access to certain features.</p>
+                      </div>
+                    </form>
+                  </div>
+                ) : (
+                  <form id="adminForm" onSubmit={handleSubmit} className="p-6 space-y-5 bg-white m-4 rounded-xl shadow-sm border border-gray-100">
                   <div className="grid grid-cols-2 gap-5">
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-[#172B4D]">First Name</label>
@@ -539,8 +600,8 @@ const Userdetail = () => {
                   disabled={createMutation.isPending || updateMutation.isPending}
                   className="bg-[#0052CC] text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-[#0747A6] transition-all shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  {(createMutation.isPending || updateMutation.isPending) && <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>}
-                  {modalType === 'create' ? 'Create User' : 'Save Changes'}
+                  {(createMutation.isPending || updateMutation.isPending || assignRoleMutation.isPending) && <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>}
+                  {modalType === 'create' ? 'Create User' : modalType === 'assignRole' ? 'Update Role' : 'Save Changes'}
                 </button>
               )}
             </div>

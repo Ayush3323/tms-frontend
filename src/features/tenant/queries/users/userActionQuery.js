@@ -68,6 +68,7 @@ export const useAssignRoles = () => {
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["userPermissions", variables.id] });
       queryClient.invalidateQueries({ queryKey: ["user", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
     },
     onError: (error) => {
       console.error("Failed to assign roles:", error.message);
