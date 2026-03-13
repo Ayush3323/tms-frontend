@@ -6,7 +6,24 @@ import { useEffect } from 'react';
 
 const UserDetail = () => {
   const [currentPage, setCurrentPage] = useState(1);
-  const { data: usersData, isLoading, isError, error } = useUsers({ page: currentPage, page_size: 10 });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  // Search Debouncing
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setCurrentPage(1); // Reset to first page on search
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  const { data: usersData, isLoading, isError, error } = useUsers({ 
+    page: currentPage, 
+    page_size: 10,
+    search: debouncedSearch 
+  });
   const deleteMutation = useDeleteUser();
   const updateMutation = useUpdateUser();
   const createMutation = useCreateUser();
@@ -17,6 +34,11 @@ const UserDetail = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState(null); // 'create', 'edit', 'view'
   const [selectedUser, setSelectedUser] = useState(null);
+  const [isLockModalOpen, setIsLockModalOpen] = useState(false);
+  const [lockFormData, setLockFormData] = useState({
+    reason: 'Account locked by administrator',
+    duration_minutes: 30
+  });
   
   // Fetch full user details when a user is selected
   const { data: fullUserData, isLoading: isUserLoading } = useUser(selectedUser?.id);
@@ -248,15 +270,37 @@ const UserDetail = () => {
 
   const handleToggleLock = (user) => {
     const isLocked = user.status === 'SUSPENDED' || user.status === 'LOCKED';
+    setSelectedUser(user);
+    
     if (isLocked) {
       if (window.confirm(`Are you sure you want to unlock ${user.first_name}?`)) {
         unlockMutation.mutate(user.id);
       }
     } else {
-      if (window.confirm(`Are you sure you want to lock ${user.first_name}? This will prevent them from logging in.`)) {
-        lockMutation.mutate({ id: user.id });
-      }
+      setLockFormData({
+        reason: 'Account locked by administrator',
+        duration_minutes: 30
+      });
+      setIsLockModalOpen(true);
     }
+  };
+
+  const handleLockSubmit = (e) => {
+    e.preventDefault();
+    if (!selectedUser) return;
+
+    lockMutation.mutate({ 
+      id: selectedUser.id, 
+      payload: {
+        reason: lockFormData.reason,
+        duration_minutes: parseInt(lockFormData.duration_minutes)
+      }
+    }, {
+      onSuccess: () => {
+        setIsLockModalOpen(false);
+        setSelectedUser(null);
+      }
+    });
   };
 
   // Shimmer Components
@@ -317,10 +361,19 @@ const UserDetail = () => {
           <div className="flex gap-3 items-center">
             <div className="relative">
               <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
-              <input type="text" placeholder="Search users by name, email..." className="pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-100" />
+              <input 
+                type="text" 
+                placeholder="Search users by name, email..." 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-100" 
+              />
             </div>
           </div>
-          <button className="text-gray-500 hover:text-gray-700 text-sm flex items-center gap-2 font-medium">
+          <button 
+            onClick={() => { setSearchTerm(''); setCurrentPage(1); }}
+            className="text-gray-500 hover:text-gray-700 text-sm flex items-center gap-2 font-medium"
+          >
             <RotateCcw size={16} /> Reset
           </button>
         </div>
@@ -729,6 +782,75 @@ const UserDetail = () => {
                 </button>
               )}
             </div>
+          </div>
+        </div>
+      )}
+      {/* Lock User Modal */}
+      {isLockModalOpen && (
+        <div className="fixed inset-0 z-110 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm transition-all">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white">
+              <h3 className="text-xl font-bold text-[#172B4D]">Lock User Account</h3>
+              <button
+                onClick={() => setIsLockModalOpen(false)}
+                className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleLockSubmit} className="p-6 space-y-4">
+              <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3">
+                <ShieldAlert className="text-red-500 shrink-0 mt-0.5" size={20} />
+                <div>
+                  <p className="text-sm font-bold text-red-800">You are locking {selectedUser?.first_name}'s account</p>
+                  <p className="text-xs text-red-600 mt-1">This user will be unable to log in until the lock period expires or they are manually unlocked.</p>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Lock Duration (Minutes)</label>
+                <input
+                  type="number"
+                  required
+                  min="1"
+                  value={lockFormData.duration_minutes}
+                  onChange={(e) => setLockFormData(prev => ({ ...prev, duration_minutes: e.target.value }))}
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-100 focus:border-red-500"
+                />
+                <p className="text-[10px] text-gray-400">Common values: 30, 60, 1440 (1 day), 10080 (1 week)</p>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Reason for Locking</label>
+                <textarea
+                  required
+                  rows="3"
+                  value={lockFormData.reason}
+                  onChange={(e) => setLockFormData(prev => ({ ...prev, reason: e.target.value }))}
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-100 focus:border-red-500 resize-none"
+                  placeholder="e.g. Suspicious activity detected"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsLockModalOpen(false)}
+                  className="flex-1 px-4 py-2.5 text-sm font-bold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={lockMutation.isPending}
+                  className="flex-1 bg-red-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-red-700 transition-all shadow-md shadow-red-100 disabled:bg-gray-400 flex items-center justify-center gap-2"
+                >
+                  {lockMutation.isPending && <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>}
+                  Lock Account
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
