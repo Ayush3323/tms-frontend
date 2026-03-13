@@ -8,16 +8,17 @@ const BASE_URL = "/api/v1/users/users/";
  */
 const handleApiError = (error) => {
   if (error.response) {
-    // The request was made and the server responded with a status code
+    // If it's a validation error (400), we want the structured data
+    if (error.response.status === 400) {
+      throw error.response.data;
+    }
     const message = error.response.data?.message || error.response.data?.detail || "An error occurred on the server";
     console.error(`[API Error] ${error.config?.url}:`, message);
     throw new Error(message);
   } else if (error.request) {
-    // The request was made but no response was received
     console.error(`[Network Error] ${error.config?.url}: No response received`);
     throw new Error("No response received from server. Please check your network connection.");
   } else {
-    // Something happened in setting up the request that triggered an Error
     console.error(`[Request Setup Error]:`, error.message);
     throw new Error(error.message || "An unexpected error occurred while setting up the request");
   }
