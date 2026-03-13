@@ -4,7 +4,10 @@ import Login from "../pages/Login";
 import TenantDashboard from "../pages/TenantDashboard";
 import { ProtectedRoute, PublicRoute } from "../Router/AuthGuards";
 import Userdetail from '../components/Userdetail'
-import Vehicles from '../components/Vehicles'
+import Vehicles from '../components/Vehicles/Vehicles'
+import VehicleTypes from '../components/Vehicles/VehiclesType';
+import VehiclesDocument from '../components/Vehicles/VehiclesDocument';
+
 import Drivers from '../components/Drivers'
 
 
@@ -23,6 +26,9 @@ const Routing = () => {
           <Route path="users" element={<Userdetail />} />
           <Route path="vehicles" element={<Vehicles />} />
           <Route path="drivers" element={<Drivers />} />  
+          <Route path="vehicles/types" element={<VehicleTypes />} />
+          <Route path="vehicles/documents" element={<VehiclesDocument />} />
+         
           
           
         </Route>
