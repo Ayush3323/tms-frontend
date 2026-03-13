@@ -28,9 +28,6 @@ const Routing = () => {
           <Route path="drivers" element={<Drivers />} />  
           <Route path="vehicles/types" element={<VehicleTypes />} />
           <Route path="vehicles/documents" element={<VehiclesDocument />} />
-         
-          
-          
         </Route>
       </Routes>
     </BrowserRouter>
