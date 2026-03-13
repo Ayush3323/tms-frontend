@@ -10,7 +10,7 @@ import {
   vehicleAccessoriesApi,
   vehicleTollTagsApi,
   vehicleOwnershipApi
-} from '../api/vehicleEndpoints'
+} from '../../api/vehicles/vehicleEndpoint'
 
 import { toast } from 'react-hot-toast'
 
