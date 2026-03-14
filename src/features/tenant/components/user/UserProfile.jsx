@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useUser, useUpdateUser, useDeleteUser } from '../../queries/users/userQuery';
 import { useRoles } from '../../queries/users/rolesPermissionsQuery';
-import { useAssignRoles } from '../../queries/users/userActionQuery';
-import { X, User, Mail, Phone, Calendar, UserCircle2, ShieldAlert, Trash2, Users, ChevronDown, ChevronUp, Check } from 'lucide-react';
+import { useRevokeSession } from '../../queries/users/sessionsQuery';
+import { useAssignRoles, useUserSessions, useUserActivityLog } from '../../queries/users/userActionQuery';
+import { X, User, Mail, Phone, Calendar, UserCircle2, ShieldAlert, Trash2, Users, ChevronDown, ChevronUp, Check, Monitor, Smartphone, History, Activity } from 'lucide-react';
 
 const UserProfile = () => {
   const { userid } = useParams();
@@ -14,6 +16,23 @@ const UserProfile = () => {
   const updateMutation = useUpdateUser();
   const deleteMutation = useDeleteUser();
   const assignRolesMutation = useAssignRoles();
+  const revokeSessionMutation = useRevokeSession();
+  const queryClient = useQueryClient();
+  
+  const handleRevokeSession = (sessionId) => {
+    if (window.confirm("Are you sure you want to revoke this session?")) {
+      revokeSessionMutation.mutate(sessionId, {
+        onSuccess: (data) => {
+          queryClient.invalidateQueries({ queryKey: ["userSessions", userid] });
+          window.alert(data?.message || "Session revoked successfully");
+        }
+      });
+    }
+  };
+
+  const { data: sessions, isLoading: sessionsLoading } = useUserSessions(userid);
+  const { data: activityData, isLoading: activityLoading } = useUserActivityLog(userid, { page_size: 5 });
+  const activityLogs = activityData?.results || [];
 
   const { data: rolesData } = useRoles({ page_size: 100 });
   const roles = Array.isArray(rolesData) ? rolesData : (rolesData?.results || []);
@@ -38,6 +57,7 @@ const UserProfile = () => {
     is_verified: false,
     role_id: []
   });
+  const [showAllSessions, setShowAllSessions] = useState(false);
 
   const handleOpenModal = (type) => {
     setModalType(type);
@@ -525,43 +545,154 @@ const UserProfile = () => {
               </div>
             </div>
 
-            {/* Recent Logins Table */}
-            <div className="card" data-purpose="login-history">
-              <h3 className="font-bold text-gray-800 mb-4">Recent Logins</h3>
+            {/* User Sessions Card */}
+            <div className="card" data-purpose="user-sessions">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-gray-800">User Sessions</h3>
+                {sessions?.length > 0 && (
+                  <span className="bg-blue-50 text-blue-600 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
+                    {sessions.length} Active
+                  </span>
+                )}
+              </div>
               <div className="table-container">
-                <table className="custom-table" id="recent-logins-table">
+                <table className="custom-table" id="user-sessions-table">
                   <thead>
                     <tr>
                       <th>Login Time</th>
-                      <th>Device</th>
+                      <th>Device / Type</th>
                       <th>IP Address</th>
-                      <th>Status</th>
+                      <th>Action</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td className="whitespace-nowrap">Oct 24, 2023, 09:45 AM</td>
-                      <td>Chrome / Windows</td>
-                      <td>192.168.1.45</td>
-                      <td><span className="text-green-600 font-semibold">Success</span></td>
-                    </tr>
-                    <tr>
-                      <td className="whitespace-nowrap">Oct 23, 2023, 02:20 PM</td>
-                      <td>Mobile App / iOS</td>
-                      <td>103.44.21.10</td>
-                      <td><span className="text-green-600 font-semibold">Success</span></td>
-                    </tr>
-                    <tr>
-                      <td className="whitespace-nowrap">Oct 21, 2023, 11:15 AM</td>
-                      <td>Safari / MacOS</td>
-                      <td>103.44.21.10</td>
-                      <td><span className="text-red-600 font-semibold">Failed</span></td>
-                    </tr>
+                    {sessionsLoading ? (
+                      <tr>
+                        <td colSpan="4" className="text-center py-8">
+                          <div className="w-6 h-6 border-2 border-blue-100 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
+                        </td>
+                      </tr>
+                    ) : sessions?.length === 0 ? (
+                      <tr>
+                        <td colSpan="4" className="text-center py-8 text-gray-400 italic">No active sessions found</td>
+                      </tr>
+                    ) : (
+                      (showAllSessions ? sessions : sessions.slice(0, 5)).map(session => (
+                        <tr key={session.id}>
+                          <td className="whitespace-nowrap">
+                            <div className="flex flex-col">
+                              <span className="font-medium text-gray-900">
+                                {new Date(session.login_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </span>
+                              <span className="text-[10px] text-gray-400">
+                                {new Date(session.login_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                          </td>
+                          <td>
+                            <div className="flex items-center gap-2">
+                              {session.device_type === 'DESKTOP' ? <Monitor size={14} className="text-gray-400" /> : <Smartphone size={14} className="text-gray-400" />}
+                              <div className="flex flex-col">
+                                <span className="text-sm font-medium">{session.device_type || 'Unknown'}</span>
+                                <span className="text-[10px] text-gray-400">{session.session_type || 'N/A'}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="text-gray-500 font-mono text-xs">{session.ip_address || '0.0.0.0'}</td>
+                          <td>
+                            <button
+                              disabled={revokeSessionMutation.isPending}
+                              onClick={() => handleRevokeSession(session.id)}
+                              className="px-3 py-1.5 bg-red-400 text-white rounded-lg text-[10px] font-bold hover:bg-red-500 transition-all flex items-center gap-2 mx-auto shadow-md active:scale-95 disabled:bg-gray-400"
+                            >
+                              {revokeSessionMutation.isPending ? (
+                                <div className="w-2.5 h-2.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                              ) : (
+                                <X size={12} />
+                              )}
+                              Revoke Session
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
-              <div className="mt-4 text-center">
-                <button className="text-blue-600 text-sm font-medium hover:underline">View All Activities</button>
+              {sessions?.length > 5 && (
+                <div className="mt-4 text-center border-t border-gray-50 pt-3">
+                  <button 
+                    onClick={() => setShowAllSessions(!showAllSessions)}
+                    className="text-blue-600 text-sm font-bold hover:underline"
+                  >
+                    {showAllSessions ? 'Show Less' : `View All (${sessions.length})`}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Activity Logs Card */}
+            <div className="card" data-purpose="activity-logs">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                  <History size={18} className="text-gray-400" />
+                  Activity Logs
+                </h3>
+              </div>
+              <div className="space-y-4">
+                {activityLoading ? (
+                  <div className="text-center py-8">
+                    <div className="w-6 h-6 border-2 border-blue-100 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
+                  </div>
+                ) : activityLogs.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400 italic bg-gray-50 rounded-lg">No recent activity recorded</div>
+                ) : (
+                  <div className="flow-root">
+                    <ul role="list" className="-mb-8">
+                      {activityLogs.map((activity, idx) => (
+                        <li key={activity.id}>
+                          <div className="relative pb-8">
+                            {idx !== activityLogs.length - 1 ? (
+                              <span className="absolute left-4 top-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true" />
+                            ) : null}
+                            <div className="relative flex space-x-3">
+                              <div>
+                                <span className={`h-8 w-8 rounded-full flex items-center justify-center ring-6 ring-white ${
+                                  activity.activity_type === 'LOGIN' ? 'bg-green-100' :
+                                  activity.activity_type === 'LOGOUT' ? 'bg-gray-100' :
+                                  'bg-blue-100'
+                                }`}>
+                                  {activity.activity_type === 'LOGIN' ? <Check size={14} className="text-green-600" /> :
+                                   <Activity size={14} className="text-blue-600" />}
+                                </span>
+                              </div>
+                              <div className="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
+                                <div>
+                                  <p className="text-sm text-gray-900 font-medium">
+                                    {activity.description}
+                                  </p>
+                                  <p className="text-xs text-gray-400 flex items-center gap-2 mt-0.5">
+                                    <span>{activity.ip_address}</span>
+                                    <span>&bull;</span>
+                                    <span className="truncate max-w-[200px]">{activity.user_agent}</span>
+                                  </p>
+                                </div>
+                                <div className="whitespace-nowrap text-right text-xs text-gray-400">
+                                  <time dateTime={activity.created_at}>
+                                    {new Date(activity.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                  </time>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+              <div className="mt-6 text-center border-t border-gray-50 pt-4">
+                <button className="text-blue-600 text-sm font-bold hover:underline">View Full Activity History</button>
               </div>
             </div>
           </section>
