@@ -8,6 +8,10 @@ const BASE = "/api/v1/users/users/";
 
 const handleApiError = (error) => {
   if (error.response) {
+    // If it's a validation error (400), we want the structured data for field-specific errors
+    if (error.response.status === 400) {
+      throw error.response.data;
+    }
     const message =
       error.response.data?.message ||
       error.response.data?.detail ||
@@ -52,11 +56,11 @@ export const resetPassword = async (payload) => {
   }
 };
 
-export const assignRoles = async ({ id, role_ids }) => {
+export const assignRoles = async ({ id, role_id }) => {
   if (!id) throw new Error("User ID is required for role assignment");
   try {
     const response = await axiosInstance.post(`${BASE}${id}/assign-roles/`, {
-      role_ids,
+      role_id,
     });
     return response.data;
   } catch (error) {
