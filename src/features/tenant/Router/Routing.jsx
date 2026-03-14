@@ -4,7 +4,7 @@ import Login from "../pages/Login";
 import TenantDashboard from "../pages/TenantDashboard";
 import { ProtectedRoute, PublicRoute } from "../Router/AuthGuards";
 import Userdetail from '../components/Userdetail'
-import UserProfile from '../components/UserProfile'
+import UserProfile from '../components/user/UserProfile'
 import Vehicles from '../components/Vehicles/Vehicles'
 import VehicleDetail from '../components/Vehicles/VehicleDetail';
 import VehicleTypes from '../components/Vehicles/VehiclesType';
