@@ -5,10 +5,12 @@ import TenantDashboard from "../pages/TenantDashboard";
 import { ProtectedRoute, PublicRoute } from "../Router/AuthGuards";
 import Userdetail from '../components/Userdetail'
 import Vehicles from '../components/Vehicles/Vehicles'
+import VehicleDetail from '../components/Vehicles/VehicleDetail';
 import VehicleTypes from '../components/Vehicles/VehiclesType';
 import VehiclesDocument from '../components/Vehicles/VehiclesDocument';
-
+import VehicleInsurance from '../components/Vehicles/vehiclesInsurance';
 import Drivers from '../components/Drivers'
+
 
 
 const Routing = () => {
@@ -27,7 +29,10 @@ const Routing = () => {
           <Route path="vehicles" element={<Vehicles />} />
           <Route path="drivers" element={<Drivers />} />  
           <Route path="vehicles/types" element={<VehicleTypes />} />
-          <Route path="vehicles/documents" element={<VehiclesDocument />} />
+          <Route path="vehicles/documents" element={<VehiclesDocument />} />le
+          <Route path="vehicles/:id" element={<VehicleDetail/>}/>
+          <Route path= "vehicles/insurance" element={<VehicleInsurance />} />
+          <Route path="vehicles/:id/edit" element={<VehicleDetail/>}/>
         </Route>
       </Routes>
     </BrowserRouter>
