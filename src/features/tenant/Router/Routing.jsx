@@ -10,7 +10,8 @@ import VehicleDetail from '../components/Vehicles/VehicleDetail';
 import VehicleTypes from '../components/Vehicles/VehiclesType';
 import VehiclesDocument from '../components/Vehicles/VehiclesDocument';
 import VehicleInsurance from '../components/Vehicles/vehiclesInsurance';
-import Drivers from '../components/Drivers'
+import DriversList from '../components/Drivers/DriversList'
+import DriverDetail from '../components/Drivers/DriverDetail'
 
 
 
@@ -29,7 +30,8 @@ const Routing = () => {
           <Route path="users" element={<Userdetail />} />
           <Route path="users/:userid" element={<UserProfile />} />
           <Route path="vehicles" element={<Vehicles />} />
-          <Route path="drivers" element={<Drivers />} />  
+          <Route path="drivers" element={<DriversList />} />
+          <Route path="drivers/:id" element={<DriverDetail />} /> 
           <Route path="vehicles/types" element={<VehicleTypes />} />
           <Route path="vehicles/documents" element={<VehiclesDocument />} />le
           <Route path="vehicles/:id" element={<VehicleDetail/>}/>
