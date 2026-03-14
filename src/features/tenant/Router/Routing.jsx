@@ -33,7 +33,7 @@ const Routing = () => {
           <Route path="drivers" element={<DriversList />} />
           <Route path="drivers/:id" element={<DriverDetail />} /> 
           <Route path="vehicles/types" element={<VehicleTypes />} />
-          <Route path="vehicles/documents" element={<VehiclesDocument />} />le
+          <Route path="vehicles/documents" element={<VehiclesDocument />} />
           <Route path="vehicles/:id" element={<VehicleDetail/>}/>
           <Route path= "vehicles/insurance" element={<VehicleInsurance />} />
           <Route path="vehicles/:id/edit" element={<VehicleDetail/>}/>
