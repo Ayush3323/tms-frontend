@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, RotateCcw, Plus, User, Mail, Lock, Phone, X, Edit, Trash2, Calendar, UserCircle2, ShieldAlert, CheckCircle2, Unlock } from 'lucide-react';
-import { useUsers, useDeleteUser, useUpdateUser, useCreateUser, useUser } from '../queries/users/userQuery';
+import { Search, RotateCcw, Plus, User, Mail, Lock, Phone, X, Edit, Calendar, UserCircle2, ShieldAlert, CheckCircle2, Unlock } from 'lucide-react';
+import { useUsers, useUpdateUser, useCreateUser, useUser } from '../queries/users/userQuery';
 import { useLockUser, useUnlockUser } from '../queries/users/userActionQuery';
 import { useEffect } from 'react';
 
@@ -26,7 +26,6 @@ const UserDetail = () => {
     page_size: 10,
     search: debouncedSearch 
   });
-  const deleteMutation = useDeleteUser();
   const updateMutation = useUpdateUser();
   const createMutation = useCreateUser();
   const lockMutation = useLockUser();
@@ -264,12 +263,6 @@ const UserDetail = () => {
     }
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm("Are you sure you want to delete this user?")) {
-      deleteMutation.mutate(id);
-    }
-  };
-
   const handleToggleLock = (user) => {
     const isLocked = user.status === 'SUSPENDED' || user.status === 'LOCKED';
     setSelectedUser(user);
@@ -442,12 +435,6 @@ const UserDetail = () => {
                           className="p-1.5 hover:bg-gray-100 rounded text-gray-400 border border-gray-200 transition-colors"
                         >
                           <Edit size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(user.id)}
-                          className="p-1.5 hover:bg-red-50 rounded text-red-500 border border-red-100 transition-colors"
-                        >
-                          <Trash2 size={14} />
                         </button>
                       </div>
                     </td>

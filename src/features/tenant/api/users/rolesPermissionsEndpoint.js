@@ -2,7 +2,7 @@
 
 import axiosInstance from "../axiosInstance";
 
-const ROLES_BASE = "/api/v1/users/roles/";
+const ROLES_BASE = "/api/v1/roles/roles/";
 const PERMISSIONS_BASE = "/api/v1/users/permissions/";
 
 /* ---------------- ERROR HANDLER ---------------- */
