@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, RotateCcw, Plus, User, Mail, Lock, Phone, X, Edit, Trash2, Calendar, UserCircle2, ShieldAlert, CheckCircle2, Unlock } from 'lucide-react';
 import { useUsers, useDeleteUser, useUpdateUser, useCreateUser, useUser } from '../queries/users/userQuery';
 import { useLockUser, useUnlockUser } from '../queries/users/userActionQuery';
 import { useEffect } from 'react';
 
 const UserDetail = () => {
+  const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -770,6 +772,17 @@ const UserDetail = () => {
               >
                 Cancel
               </button>
+              {modalType === 'view' && (
+                <button
+                  onClick={() => {
+                    handleCloseModal();
+                    navigate(`/tenant/dashboard/users/${(fullUserData || selectedUser)?.id}`);
+                  }}
+                  className="bg-[#0052CC] text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-[#0747A6] transition-all shadow-md"
+                >
+                  View Profile
+                </button>
+              )}
               {modalType !== 'view' && (
                 <button
                   type="submit"

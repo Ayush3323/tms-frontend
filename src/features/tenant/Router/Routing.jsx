@@ -4,6 +4,7 @@ import Login from "../pages/Login";
 import TenantDashboard from "../pages/TenantDashboard";
 import { ProtectedRoute, PublicRoute } from "../Router/AuthGuards";
 import Userdetail from '../components/Userdetail'
+import UserProfile from '../components/UserProfile'
 import Vehicles from '../components/Vehicles/Vehicles'
 import VehicleDetail from '../components/Vehicles/VehicleDetail';
 import VehicleTypes from '../components/Vehicles/VehiclesType';
@@ -26,6 +27,7 @@ const Routing = () => {
           {/* Default child route */}
           <Route index element={<Navigate to="users" replace />} />
           <Route path="users" element={<Userdetail />} />
+          <Route path="users/:userid" element={<UserProfile />} />
           <Route path="vehicles" element={<Vehicles />} />
           <Route path="drivers" element={<Drivers />} />  
           <Route path="vehicles/types" element={<VehicleTypes />} />
