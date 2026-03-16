@@ -122,12 +122,12 @@ export const useRegisterDriver = () => {
 };
 
 // ─── 4. useUpdateDriver ───────────────────────────────────
-export const useUpdateDriver = (id) => {
+export const useUpdateDriver = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data) => driverApi.updateDriver(id, data),
-    onSuccess: () => {
+    mutationFn: ({id, data}) => driverApi.updateDriver(id, data),
+    onSuccess: (_, {id}) => {
       // Refresh both detail and list to reflect updated data
       queryClient.invalidateQueries({ queryKey: driverKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: driverKeys.lists() });

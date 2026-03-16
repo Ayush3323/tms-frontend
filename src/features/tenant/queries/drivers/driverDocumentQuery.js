@@ -45,7 +45,7 @@ export const useDocuments = (params = {}) => {
     queryKey: documentKeys.list(params),
     queryFn:  async () => {
       try {
-        const response = await driverApi.getDocumnets(params);
+        const response = await driverApi.getDocuments(params);
         return response.data;
         // { count, next, previous, results: [...] }
       } catch (error) {
@@ -65,7 +65,7 @@ export const useDriverDocuments = (driverId, params = {}) => {
     queryKey: documentKeys.byDriver(driverId),
     queryFn:  async () => {
       try {
-        const response = await driverApi.getDocumnets({
+        const response = await driverApi.getDocuments({
           driver: driverId, // ← filter param se driver ke documents
           ...params,
         });
