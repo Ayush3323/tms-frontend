@@ -1,14 +1,19 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Search, Plus, Download, RefreshCw, Eye,
-  PauseCircle, PlayCircle, ChevronDown,
-  Loader2, AlertCircle, UserCheck, Users,
-  UserX, UserMinus, IdCard,
+  Search, Plus, Download, RefreshCw, Eye, EyeOff,
+  ChevronDown, Loader2, AlertCircle,
+  UserCheck, Users, UserX, UserMinus,
+  IdCard, ArrowUpDown, ArrowUp, ArrowDown,
+  X, User, Car,
 } from 'lucide-react';
-import { useDrivers, useUpdateDriver } from '../../queries/drivers/driverCoreQuery';
+import { useDrivers, useRegisterDriver } from '../../queries/drivers/driverCoreQuery';
 
-// ── Style Maps ────────────────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────────────────
+const LICENSE_TYPES  = ['HMV','LMV','MMV','TRANSPORT','LEARNER','INTERNATIONAL'];
+const DRIVER_TYPES   = ['PERMANENT','CONTRACT','TEMPORARY','PART_TIME'];
+const DRIVER_STATUS  = ['ACTIVE','INACTIVE','ON_LEAVE'];
+const GENDER_OPTIONS = ['MALE','FEMALE','OTHER','PREFER_NOT_TO_SAY'];
 
 const STATUS_STYLES = {
   ACTIVE:     { dot: 'bg-green-500',  text: 'text-green-700',  bg: 'bg-green-50 border border-green-200' },
@@ -34,33 +39,211 @@ const DRIVER_TYPE_COLORS = {
   PART_TIME: 'bg-gray-50 text-gray-600 border border-gray-200',
 };
 
-// ── Expiry Color Helper ───────────────────────────────────────────────
 const getExpiryColor = (dateStr) => {
   if (!dateStr) return 'text-gray-400';
-  const today = new Date();
-  const expiry = new Date(dateStr);
-  const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
-  if (diffDays < 0)   return 'text-red-600 font-semibold';   // expired
-  if (diffDays < 90)  return 'text-orange-500 font-semibold'; // expiring soon
-  return 'text-green-600 font-semibold';                      // ok
+  const diffDays = Math.ceil((new Date(dateStr) - new Date()) / (1000 * 60 * 60 * 24));
+  if (diffDays < 0)  return 'text-red-600 font-semibold';
+  if (diffDays < 90) return 'text-orange-500 font-semibold';
+  return 'text-green-600 font-semibold';
 };
 
-// ── Driver Name Helper ────────────────────────────────────────────────
-// Jab backend first_name/last_name add kare → auto show hoga
 const getDriverName = (driver) => {
-  if (driver.first_name && driver.last_name) {
+  if (driver.first_name && driver.last_name)
     return `${driver.first_name} ${driver.last_name}`;
-  }
-  return driver.employee_id; // fallback jab tak naam nahi aata
+  return driver.employee_id;
 };
+
+const SortIcon = ({ field, ordering }) => {
+  if (ordering === field)        return <ArrowUp   size={12} className="text-[#0052CC]" />;
+  if (ordering === `-${field}`)  return <ArrowDown size={12} className="text-[#0052CC]" />;
+  return <ArrowUpDown size={12} className="text-gray-300" />;
+};
+
+// ── Reusable Form Components ─────────────────────────────────────────
+const Label = ({ children, required }) => (
+  <label className="block text-xs font-bold text-gray-600 mb-1">
+    {children}{required && <span className="text-red-500 ml-0.5">*</span>}
+  </label>
+);
+
+const FInput = (props) => (
+  <input {...props}
+    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50
+      focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC]
+      placeholder:text-gray-300 transition-all"
+  />
+);
+
+const FSel = ({ children, ...props }) => (
+  <div className="relative">
+    <select {...props}
+      className="w-full appearance-none px-3 pr-8 py-2 text-sm border border-gray-200
+        rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20
+        focus:border-[#0052CC] cursor-pointer transition-all">
+      {children}
+    </select>
+    <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+  </div>
+);
+
+// eslint-disable-next-line no-unused-vars
+const SectionTitle = ({ Icon, title, subtitle }) => (
+  <div className="flex items-center gap-2 mb-4">
+    <div className="w-7 h-7 rounded-lg bg-[#0052CC]/10 flex items-center justify-center">
+      <Icon size={14} className="text-[#0052CC]" />
+    </div>
+    <div>
+      <p className="text-sm font-black text-[#172B4D]">{title}</p>
+      {subtitle && <p className="text-[11px] text-gray-400">{subtitle}</p>}
+    </div>
+  </div>
+);
+
+// ─────────────────────────────────────────────────────────────────────
+// ── ADD DRIVER MODAL START ────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────
+const AddDriverModal = ({ onClose }) => {
+  const [userForm, setUserForm] = useState({
+    first_name: '', last_name: '', email: '', password: '',
+    phone: '', middle_name: '', date_of_birth: '', gender: '',
+  });
+  const [driverForm, setDriverForm] = useState({
+    license_number: '', license_type: '', license_expiry: '',
+    license_issuing_authority: '', driver_type: 'PERMANENT',
+    years_of_experience: '', joined_date: '', status: 'ACTIVE',
+  });
+  const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const registerDriver = useRegisterDriver();
+  const setUser   = (f) => (e) => setUserForm(p => ({ ...p, [f]: e.target.value }));
+  const setDriver = (f) => (e) => setDriverForm(p => ({ ...p, [f]: e.target.value }));
+
+  const handleSubmit = () => {
+    setError('');
+    if (!userForm.first_name)       return setError('First name is required.');
+    if (!userForm.last_name)        return setError('Last name is required.');
+    if (!userForm.email)            return setError('Email is required.');
+    if (!userForm.password)         return setError('Password is required.');
+    if (!driverForm.license_number) return setError('License number is required.');
+    if (!driverForm.license_type)   return setError('License type is required.');
+    if (!driverForm.license_expiry) return setError('License expiry is required.');
+    if (!driverForm.joined_date)    return setError('Joined date is required.');
+
+    const cleanUser   = Object.fromEntries(Object.entries(userForm).map(([k, v]) => [k, v === '' ? null : v]));
+    const cleanDriver = Object.fromEntries(Object.entries(driverForm).map(([k, v]) => [k, v === '' ? null : v]));
+
+    registerDriver.mutate({ user: cleanUser, driver: cleanDriver }, {
+      onSuccess: onClose,
+      onError: (err) => setError(err.message || 'Failed to register driver.'),
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div>
+            <h2 className="text-lg font-black text-[#172B4D]">Register New Driver</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Creates user account + driver profile in one step</p>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100"><X size={18} /></button>
+        </div>
+        {/* Body */}
+        <div className="overflow-y-auto flex-1 px-6 py-5 space-y-6">
+          {error && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium">{error}</div>}
+          {/* User Info */}
+          <div>
+            <SectionTitle Icon={User} title="User Information" subtitle="Login credentials and personal details" />
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label required>First Name</Label><FInput placeholder="e.g. John" value={userForm.first_name} onChange={setUser('first_name')} /></div>
+              <div><Label required>Last Name</Label><FInput placeholder="e.g. Driver" value={userForm.last_name} onChange={setUser('last_name')} /></div>
+              <div><Label>Middle Name</Label><FInput placeholder="e.g. Kumar" value={userForm.middle_name} onChange={setUser('middle_name')} /></div>
+              <div><Label required>Email</Label><FInput type="email" placeholder="e.g. john@company.com" value={userForm.email} onChange={setUser('email')} /></div>
+              <div><Label required>Password</Label>
+                <div className="relative">
+                  <FInput
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Min 8 characters"
+                    value={userForm.password}
+                    onChange={setUser('password')}
+                    className="w-full px-3 pr-9 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50
+                      focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC]
+                      placeholder:text-gray-300 transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(p => !p)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+              </div>
+              <div><Label>Phone</Label><FInput placeholder="+91-9876543210" value={userForm.phone} onChange={setUser('phone')} /></div>
+              <div><Label>Date of Birth</Label><FInput type="date" value={userForm.date_of_birth} onChange={setUser('date_of_birth')} /></div>
+              <div><Label>Gender</Label>
+                <FSel value={userForm.gender} onChange={setUser('gender')}>
+                  <option value="">Select gender</option>
+                  {GENDER_OPTIONS.map(g => <option key={g} value={g}>{g.replaceAll('_', ' ')}</option>)}
+                </FSel>
+              </div>
+            </div>
+          </div>
+          <div className="border-t border-gray-100" />
+          {/* Driver Info */}
+          <div>
+            <SectionTitle Icon={Car} title="Driver Information" subtitle="License and employment details" />
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label required>License Number</Label><FInput placeholder="e.g. MH-01-20200012345" value={driverForm.license_number} onChange={setDriver('license_number')} /></div>
+              <div><Label required>License Type</Label>
+                <FSel value={driverForm.license_type} onChange={setDriver('license_type')}>
+                  <option value="">Select type</option>
+                  {LICENSE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                </FSel>
+              </div>
+              <div><Label required>License Expiry</Label><FInput type="date" value={driverForm.license_expiry} onChange={setDriver('license_expiry')} /></div>
+              <div><Label>Issuing Authority</Label><FInput placeholder="e.g. RTO Mumbai" value={driverForm.license_issuing_authority} onChange={setDriver('license_issuing_authority')} /></div>
+              <div><Label>Driver Type</Label>
+                <FSel value={driverForm.driver_type} onChange={setDriver('driver_type')}>
+                  {DRIVER_TYPES.map(t => <option key={t} value={t}>{t.replaceAll('_', ' ')}</option>)}
+                </FSel>
+              </div>
+              <div><Label>Years of Experience</Label><FInput type="number" min="0" placeholder="e.g. 5" value={driverForm.years_of_experience} onChange={setDriver('years_of_experience')} /></div>
+              <div><Label required>Joined Date</Label><FInput type="date" value={driverForm.joined_date} onChange={setDriver('joined_date')} /></div>
+              <div><Label>Status</Label>
+                <FSel value={driverForm.status} onChange={setDriver('status')}>
+                  {DRIVER_STATUS.map(s => <option key={s} value={s}>{s.replaceAll('_', ' ')}</option>)}
+                </FSel>
+              </div>
+            </div>
+          </div>
+        </div>
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/50">
+          <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
+          <button onClick={handleSubmit} disabled={registerDriver.isPending}
+            className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed">
+            {registerDriver.isPending ? <><Loader2 size={14} className="animate-spin" /> Registering...</> : <><Plus size={14} /> Register Driver</>}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+// ─────────────────────────────────────────────────────────────────────
+// ── ADD DRIVER MODAL END ──────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────
 
 // ── Stat Card ─────────────────────────────────────────────────────────
-const StatCard = ({ label, value, color, icon: Icon, loading }) => (
+// eslint-disable-next-line no-unused-vars
+const StatCard = ({ label, value, color, IconComponent, loading }) => (
   <div className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-2">
     <div className="flex items-center justify-between">
       <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{label}</span>
       <span className={`w-8 h-8 rounded-lg flex items-center justify-center ${color.iconBg}`}>
-        <Icon size={15} className={color.iconText} />
+        <IconComponent size={15} className={color.iconText} />
       </span>
     </div>
     {loading
@@ -72,48 +255,61 @@ const StatCard = ({ label, value, color, icon: Icon, loading }) => (
 
 // ── Main Component ────────────────────────────────────────────────────
 const DriversList = () => {
-  const [search,      setSearch]      = useState('');
+  const [search,       setSearch]     = useState('');
   const [statusFilter, setStatus]     = useState('');
   const [typeFilter,   setType]       = useState('');
   const [licFilter,    setLic]        = useState('');
+  const [joinedFrom,   setJoinedFrom] = useState('');
+  const [joinedTo,     setJoinedTo]   = useState('');
+  const [ordering,     setOrdering]   = useState('');
+  const [addOpen,      setAddOpen]    = useState(false);  // ← Add Driver modal
   const navigate = useNavigate();
 
   const { data, isLoading, isError, error, refetch } = useDrivers({
-    ...(statusFilter && { status: statusFilter }),
-    ...(typeFilter   && { driver_type: typeFilter }),
-    ...(licFilter    && { license_type: licFilter }),
+    ...(statusFilter && { status:           statusFilter }),
+    ...(typeFilter   && { driver_type:      typeFilter }),
+    ...(licFilter    && { license_type:     licFilter }),
     ...(search       && { search }),
+    ...(joinedFrom   && { joined_date__gte: joinedFrom }),
+    ...(joinedTo     && { joined_date__lte: joinedTo }),
+    ...(ordering     && { ordering }),
   });
 
-  const updateDriver = useUpdateDriver();
+  const drivers   = data?.results ?? [];
+  const total     = data?.count ?? drivers.length;
+  const active    = drivers.filter(d => d.status === 'ACTIVE').length;
+  const inactive  = drivers.filter(d => d.status === 'INACTIVE').length;
+  const suspended = drivers.filter(d => d.status === 'SUSPENDED').length;
 
-  const drivers    = data?.results ?? [];
-  const total      = data?.count ?? drivers.length;
-  const active     = drivers.filter(d => d.status === 'ACTIVE').length;
-  const inactive   = drivers.filter(d => d.status === 'INACTIVE').length;
-  const suspended  = drivers.filter(d => d.status === 'SUSPENDED').length;
-
-  const handleStatusToggle = (driver) => {
-    const newStatus = driver.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
-    updateDriver.mutate({ id: driver.id, data: { status: newStatus } });
+  const handleSort = (field) => {
+    setOrdering(prev => prev === field ? `-${field}` : field);
   };
 
   const resetFilters = () => {
     setSearch(''); setStatus(''); setType(''); setLic('');
+    setJoinedFrom(''); setJoinedTo(''); setOrdering('');
   };
 
-  // ── Table Columns ─────────────────────────────────────────────────
+  const SortableTH = ({ label, field }) => (
+    <th
+      onClick={() => handleSort(field)}
+      className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap cursor-pointer hover:text-[#0052CC] select-none"
+    >
+      <div className="flex items-center gap-1">
+        {label}
+        <SortIcon field={field} ordering={ordering} />
+      </div>
+    </th>
+  );
+
   const COLUMNS = [
     {
       header: 'Driver',
+      sortField: 'employee_id',
       render: d => (
         <div>
-          <span className="font-bold text-[#172B4D] text-[13px]">
-            {getDriverName(d)}
-          </span>
-          <div className="text-[11px] text-gray-400 font-mono mt-0.5">
-            {d.employee_id}
-          </div>
+          <span className="font-bold text-[#172B4D] text-[13px]">{getDriverName(d)}</span>
+          <div className="text-[11px] text-gray-400 font-mono mt-0.5">{d.employee_id}</div>
         </div>
       ),
     },
@@ -142,7 +338,7 @@ const DriversList = () => {
       ),
     },
     {
-      header: 'Expiry',
+      header: 'License Expiry',
       render: d => (
         <span className={`text-[12px] font-mono ${getExpiryColor(d.license_expiry)}`}>
           {d.license_expiry ?? '—'}
@@ -155,6 +351,13 @@ const DriversList = () => {
         <span className="text-gray-600 text-[12px]">
           {d.years_of_experience != null ? `${d.years_of_experience} yrs` : '—'}
         </span>
+      ),
+    },
+    {
+      header: 'Joined',
+      sortField: 'joined_date',
+      render: d => (
+        <span className="text-gray-600 text-[12px]">{d.joined_date ?? '—'}</span>
       ),
     },
     {
@@ -171,43 +374,24 @@ const DriversList = () => {
     },
     {
       header: 'Actions',
-      render: d => {
-        const isActive    = d.status === 'ACTIVE';
-        const isSuspended = d.status === 'SUSPENDED';
-        return (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => navigate(`/tenant/dashboard/drivers/${d.id}`)}
-              className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all"
-            >
-              <Eye size={12} /> View
-            </button>
-            {isActive && (
-              <button
-                onClick={() => handleStatusToggle(d)}
-                disabled={updateDriver.isPending}
-                className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-all disabled:opacity-50"
-              >
-                <PauseCircle size={12} /> Suspend
-              </button>
-            )}
-            {isSuspended && (
-              <button
-                onClick={() => handleStatusToggle(d)}
-                disabled={updateDriver.isPending}
-                className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-all disabled:opacity-50"
-              >
-                <PlayCircle size={12} /> Activate
-              </button>
-            )}
-          </div>
-        );
-      },
+      render: d => (
+        <button
+          onClick={() => navigate(`/tenant/dashboard/drivers/${d.id}`)}
+          className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all"
+        >
+          <Eye size={12} /> View
+        </button>
+      ),
     },
   ];
 
   return (
     <div className="p-6 space-y-6 bg-[#F8FAFC] min-h-screen">
+
+      {/* ── Add Driver Modal ── */}
+      {addOpen && (
+        <AddDriverModal onClose={() => setAddOpen(false)} />
+      )}
 
       {/* ── Header ── */}
       <div className="flex items-start justify-between">
@@ -228,18 +412,15 @@ const DriversList = () => {
           <button className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all">
             <Download size={14} /> Export
           </button>
-          <button className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all shadow-sm">
-            <Plus size={15} /> Add Driver
-          </button>
         </div>
       </div>
 
       {/* ── Stat Cards ── */}
       <div className="grid grid-cols-4 gap-4">
-        <StatCard loading={isLoading} label="Total Drivers" value={total}     icon={Users}      color={{ value: 'text-[#172B4D]', iconBg: 'bg-blue-50',   iconText: 'text-blue-500' }} />
-        <StatCard loading={isLoading} label="Active"        value={active}    icon={UserCheck}  color={{ value: 'text-green-600',  iconBg: 'bg-green-50',  iconText: 'text-green-500' }} />
-        <StatCard loading={isLoading} label="Inactive"      value={inactive}  icon={UserMinus}  color={{ value: 'text-orange-500', iconBg: 'bg-orange-50', iconText: 'text-orange-500' }} />
-        <StatCard loading={isLoading} label="Suspended"     value={suspended} icon={UserX}      color={{ value: 'text-red-500',    iconBg: 'bg-red-50',    iconText: 'text-red-400' }} />
+        <StatCard loading={isLoading} label="Total Drivers" value={total}     IconComponent={Users}     color={{ value: 'text-[#172B4D]',  iconBg: 'bg-blue-50',   iconText: 'text-blue-500' }} />
+        <StatCard loading={isLoading} label="Active"        value={active}    IconComponent={UserCheck} color={{ value: 'text-green-600',  iconBg: 'bg-green-50',  iconText: 'text-green-500' }} />
+        <StatCard loading={isLoading} label="Inactive"      value={inactive}  IconComponent={UserMinus} color={{ value: 'text-orange-500', iconBg: 'bg-orange-50', iconText: 'text-orange-500' }} />
+        <StatCard loading={isLoading} label="Suspended"     value={suspended} IconComponent={UserX}     color={{ value: 'text-red-500',    iconBg: 'bg-red-50',    iconText: 'text-red-400' }} />
       </div>
 
       {/* ── Table Card ── */}
@@ -248,17 +429,20 @@ const DriversList = () => {
         {/* Table Header */}
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
-            <h2 className="font-bold text-[#172B4D]">🧑‍✈️ Driver Registry</h2>
+            <h2 className="font-bold text-[#172B4D]">🧑‍✈️ Drivers List</h2>
             <p className="text-xs text-gray-400 mt-0.5">Click View to see complete driver profile</p>
           </div>
-          <button className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all">
+          <button
+            onClick={() => setAddOpen(true)}
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all"
+          >
             <Plus size={14} /> Add Driver
           </button>
         </div>
 
-        {/* Filters */}
+        {/* ── Filters Row 1 ── */}
         <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-3 flex-wrap">
-          <div className="relative flex-1 min-w-[200px]">
+          <div className="relative flex-1 min-w-50">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
@@ -268,23 +452,10 @@ const DriversList = () => {
               className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] bg-gray-50"
             />
           </div>
-
           {[
-            {
-              val: statusFilter, set: setStatus,
-              opts: ['ACTIVE','INACTIVE','ON_LEAVE','SUSPENDED','TERMINATED'],
-              ph: 'All Status',
-            },
-            {
-              val: typeFilter, set: setType,
-              opts: ['PERMANENT','CONTRACT','TEMPORARY','PART_TIME'],
-              ph: 'All Types',
-            },
-            {
-              val: licFilter, set: setLic,
-              opts: ['HMV','LMV','MMV','TRANSPORT','LEARNER','INTERNATIONAL'],
-              ph: 'All Licenses',
-            },
+            { val: statusFilter, set: setStatus, opts: ['ACTIVE','INACTIVE','ON_LEAVE','SUSPENDED','TERMINATED'], ph: 'All Status' },
+            { val: typeFilter,   set: setType,   opts: ['PERMANENT','CONTRACT','TEMPORARY','PART_TIME'],          ph: 'All Types' },
+            { val: licFilter,    set: setLic,    opts: ['HMV','LMV','MMV','TRANSPORT','LEARNER','INTERNATIONAL'], ph: 'All Licenses' },
           ].map(({ val, set, opts, ph }) => (
             <div key={ph} className="relative">
               <select
@@ -298,7 +469,6 @@ const DriversList = () => {
               <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             </div>
           ))}
-
           <button
             onClick={resetFilters}
             className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-500 border border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100 transition-all"
@@ -307,7 +477,43 @@ const DriversList = () => {
           </button>
         </div>
 
-        {/* Loading State */}
+        {/* ── Filters Row 2 — Joined Date ── */}
+        <div className="px-5 py-2.5 border-b border-gray-100 flex items-center gap-3 flex-wrap bg-gray-50/50">
+          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Joined Date:</span>
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={joinedFrom}
+              onChange={e => setJoinedFrom(e.target.value)}
+              className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC]"
+            />
+            <span className="text-gray-400 text-xs">to</span>
+            <input
+              type="date"
+              value={joinedTo}
+              onChange={e => setJoinedTo(e.target.value)}
+              className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC]"
+            />
+          </div>
+          {(joinedFrom || joinedTo) && (
+            <button
+              onClick={() => { setJoinedFrom(''); setJoinedTo(''); }}
+              className="text-xs text-red-400 hover:text-red-600 font-medium"
+            >
+              ✕ Clear dates
+            </button>
+          )}
+          {ordering && (
+            <span className="ml-auto text-[11px] text-gray-400">
+              Sorted by: <span className="font-semibold text-[#0052CC]">
+                {ordering.replace('-', '')} {ordering.startsWith('-') ? '↓' : '↑'}
+              </span>
+              <button onClick={() => setOrdering('')} className="ml-2 text-red-400 hover:text-red-600">✕</button>
+            </span>
+          )}
+        </div>
+
+        {/* Loading */}
         {isLoading && (
           <div className="flex items-center justify-center py-16 gap-3 text-gray-400">
             <Loader2 size={20} className="animate-spin text-[#0052CC]" />
@@ -315,16 +521,13 @@ const DriversList = () => {
           </div>
         )}
 
-        {/* Error State */}
+        {/* Error */}
         {isError && (
           <div className="flex flex-col items-center justify-center py-16 gap-3 text-red-400">
             <AlertCircle size={32} />
             <p className="text-sm font-medium">Failed to load drivers</p>
             <p className="text-xs text-gray-400">{error?.response?.data?.detail || error?.message}</p>
-            <button
-              onClick={() => refetch()}
-              className="px-4 py-2 text-sm font-semibold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8]"
-            >
+            <button onClick={() => refetch()} className="px-4 py-2 text-sm font-semibold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8]">
               Try Again
             </button>
           </div>
@@ -337,12 +540,9 @@ const DriversList = () => {
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
                   {COLUMNS.map(c => (
-                    <th
-                      key={c.header}
-                      className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap"
-                    >
-                      {c.header}
-                    </th>
+                    c.sortField
+                      ? <SortableTH key={c.header} label={c.header} field={c.sortField} />
+                      : <th key={c.header} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{c.header}</th>
                   ))}
                 </tr>
               </thead>
@@ -356,8 +556,6 @@ const DriversList = () => {
                     ))}
                   </tr>
                 ))}
-
-                {/* Empty State */}
                 {drivers.length === 0 && (
                   <tr>
                     <td colSpan={COLUMNS.length} className="px-4 py-16 text-center text-gray-400">
@@ -375,12 +573,10 @@ const DriversList = () => {
         {!isLoading && !isError && (
           <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
             <span>
-              Showing{' '}
-              <span className="font-bold text-gray-600">{drivers.length}</span>
+              Showing <span className="font-bold text-gray-600">{drivers.length}</span>
               {data?.count && data.count !== drivers.length && (
                 <> of <span className="font-bold text-gray-600">{data.count}</span></>
-              )}{' '}
-              drivers
+              )}{' '}drivers
             </span>
             <span className="text-[11px]">Fleet Management System</span>
           </div>
