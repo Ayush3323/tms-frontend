@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, RotateCcw, Plus, User, Mail, Lock, Phone, X, Edit, Calendar, UserCircle2, ShieldAlert, CheckCircle2, Unlock } from 'lucide-react';
-import { useUsers, useUpdateUser, useCreateUser, useUser } from '../queries/users/userQuery';
-import { useLockUser, useUnlockUser } from '../queries/users/userActionQuery';
+import { useUsers, useUpdateUser, useCreateUser, useUser } from '../../queries/users/userQuery';
+import { useLockUser, useUnlockUser } from '../../queries/users/userActionQuery';
 import { useEffect } from 'react';
 
 const UserDetail = () => {
@@ -45,6 +45,7 @@ const UserDetail = () => {
   const { data: fullUserData, isLoading: isUserLoading } = useUser(selectedUser?.id);
   
   const [formErrors, setFormErrors] = useState({});
+  const [lastSyncedId, setLastSyncedId] = useState(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -71,6 +72,7 @@ const UserDetail = () => {
   ];
 
   const handleOpenModal = (type, user = null) => {
+    setLastSyncedId(null); // Reset sync tracker
     setModalType(type);
     setSelectedUser(user);
     if (type === 'edit' && user) {
@@ -109,23 +111,23 @@ const UserDetail = () => {
   };
 
   // Update form data when full user data loads (for Edit mode)
-  useEffect(() => {
-    if (modalType === 'edit' && fullUserData && fullUserData.id === selectedUser?.id) {
-      setFormData(prev => ({
-        ...prev,
-        username: fullUserData.username || prev.username,
-        middle_name: fullUserData.middle_name || prev.middle_name,
-        date_of_birth: fullUserData.date_of_birth || prev.date_of_birth,
-        gender: fullUserData.gender || prev.gender,
-        phone: fullUserData.phone || prev.phone,
-        email: fullUserData.email || prev.email,
-        first_name: fullUserData.first_name || prev.first_name,
-        last_name: fullUserData.last_name || prev.last_name,
-        account_type: fullUserData.account_type || prev.account_type,
-        status: fullUserData.status || prev.status
-      }));
-    }
-  }, [fullUserData, modalType, selectedUser]);
+  // We do this during render to avoid the "cascading renders" warning from useEffect
+  if (modalType === 'edit' && fullUserData && fullUserData.id === selectedUser?.id && lastSyncedId !== fullUserData.id) {
+    setLastSyncedId(fullUserData.id);
+    setFormData(prev => ({
+      ...prev,
+      username: fullUserData.username || prev.username,
+      middle_name: fullUserData.middle_name || prev.middle_name,
+      date_of_birth: fullUserData.date_of_birth || prev.date_of_birth,
+      gender: fullUserData.gender || prev.gender,
+      phone: fullUserData.phone || prev.phone,
+      email: fullUserData.email || prev.email,
+      first_name: fullUserData.first_name || prev.first_name,
+      last_name: fullUserData.last_name || prev.last_name,
+      account_type: fullUserData.account_type || prev.account_type,
+      status: fullUserData.status || prev.status
+    }));
+  }
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
