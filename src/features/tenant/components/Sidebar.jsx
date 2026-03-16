@@ -34,13 +34,19 @@ const driverSubItems = [
   { name: 'Salary Structures',   icon: <Banknote size={13} />,      path: '/tenant/dashboard/drivers/salary',              badge: null },
 ];
 
+const userSubItems = [
+  { name: 'All Users',   icon: <Users size={13} />,  path: '/tenant/dashboard/users',             badge: null },
+  { name: 'Roles',       icon: <Shield size={13} />, path: '/tenant/dashboard/users/roles',       badge: null },
+  { name: 'Permissions', icon: <Shield size={13} />, path: '/tenant/dashboard/users/permission', badge: null },
+];
+
 const SubMenu = ({ items }) => (
   <div className="ml-5 pl-3 border-l-2 border-gray-200 mt-1 mb-1 space-y-0.5">
     {items.map((item) => (
       <NavLink
         key={item.name}
         to={item.path}
-        end={item.path === '/tenant/dashboard/vehicles' || item.path === '/tenant/dashboard/drivers'}
+        end={item.path === '/tenant/dashboard/vehicles' || item.path === '/tenant/dashboard/drivers' || item.path === '/tenant/dashboard/users'}
         className={({ isActive }) =>
           `flex items-center gap-2 px-2.5 py-[6px] rounded-md text-[12.5px] transition-all border ${
             isActive
@@ -68,9 +74,11 @@ const Sidebar = () => {
 
   const isVehiclePath = location.pathname.startsWith('/tenant/dashboard/vehicles');
   const isDriverPath  = location.pathname.startsWith('/tenant/dashboard/drivers');
+  const isUserPath    = location.pathname.startsWith('/tenant/dashboard/users');
 
   const [vehiclesOpen, setVehiclesOpen] = useState(isVehiclePath);
   const [driversOpen,  setDriversOpen]  = useState(isDriverPath);
+  const [usersOpen,    setUsersOpen]    = useState(isUserPath);
 
   return (
     <aside className="w-64 h-screen bg-[#F8FAFC] border-r border-gray-200 flex flex-col justify-between p-4 sticky top-0 z-50 overflow-y-auto">
@@ -91,25 +99,26 @@ const Sidebar = () => {
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-2 mb-2">Main</p>
           <nav className="space-y-1">
 
-            {/* Users */}
-            <NavLink
-              to="/tenant/dashboard/users"
-              className={({ isActive }) =>
-                `w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all border ${isActive
-                  ? 'bg-[#EBF3FF] text-[#0052CC] border-[#D0E2FF]'
-                  : 'text-gray-600 hover:bg-gray-100 border-transparent'
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <div className="flex items-center gap-3">
-                  <span className={isActive ? 'text-[#0052CC]' : 'text-gray-400'}>
-                    <LayoutGrid size={18} />
-                  </span>
-                  <span className="text-sm font-semibold">Users</span>
-                </div>
-              )}
-            </NavLink>
+            {/* Users Dropdown */}
+            <div>
+              <button
+                onClick={() => setUsersOpen((o) => !o)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all border ${
+                  isUserPath
+                    ? 'bg-[#EBF3FF] text-[#0052CC] border-[#D0E2FF]'
+                    : 'text-gray-600 hover:bg-gray-100 border-transparent'
+                }`}
+              >
+                <span className={isUserPath ? 'text-[#0052CC]' : 'text-gray-400'}>
+                  <Users size={18} />
+                </span>
+                <span className="text-sm font-semibold flex-1 text-left">Users</span>
+                <ChevronDown size={15} className={`transition-transform duration-200 ${usersOpen ? 'rotate-180' : 'rotate-0'} ${isUserPath ? 'text-[#0052CC]' : 'text-gray-400'}`} />
+              </button>
+              <div className={`overflow-hidden transition-all duration-300 ease-in-out ${usersOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                <SubMenu items={userSubItems} />
+              </div>
+            </div>
 
             {/* Vehicles Dropdown */}
             <div>

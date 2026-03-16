@@ -3,7 +3,7 @@ import { Routes, Route, Navigate, BrowserRouter } from "react-router-dom";
 import Login from "../pages/Login";
 import TenantDashboard from "../pages/TenantDashboard";
 import { ProtectedRoute, PublicRoute } from "../Router/AuthGuards";
-import Userdetail from '../components/Userdetail'
+import Userdetail from '../components/user/Userdetail'
 import UserProfile from '../components/user/UserProfile'
 import Vehicles from '../components/Vehicles/Vehicles'
 import VehicleDetail from '../components/Vehicles/VehicleDetail';
@@ -13,6 +13,8 @@ import VehicleInsurance from '../components/Vehicles/vehiclesInsurance';
 import MaintenanceSchedules from '../components/Vehicles/VehiclesMaintenanceSchedules'
 import DriversList from '../components/Drivers/DriversList'
 import DriverDetail from '../components/Drivers/DriverDetail'
+import Roles from '../components/user/Roles'
+import Permission from '../components/user/Permission'
 
 
 
@@ -30,6 +32,8 @@ const Routing = () => {
           <Route index element={<Navigate to="users" replace />} />
           <Route path="users" element={<Userdetail />} />
           <Route path="users/:userid" element={<UserProfile />} />
+          <Route path="users/roles" element={<Roles />} />
+          <Route path="users/permission" element={<Permission />} />
           <Route path="vehicles" element={<Vehicles />} />
           <Route path="drivers" element={<DriversList />} />
           <Route path="drivers/:id" element={<DriverDetail />} /> 
