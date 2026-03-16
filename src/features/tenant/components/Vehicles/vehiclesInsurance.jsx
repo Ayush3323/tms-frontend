@@ -13,13 +13,20 @@ import {
 import { useVehicles } from '../../queries/vehicles/vehicleQuery';
 
 // ── Constants ─────────────────────────────────────────────────────────
-const POLICY_TYPES = ['COMPREHENSIVE', 'THIRD_PARTY', 'FIRE_THEFT', 'COMMERCIAL'];
+const POLICY_TYPES = ['COMPREHENSIVE', 'THIRD_PARTY', 'FIRE_THEFT'];
+const STATUS_OPTIONS = ['ACTIVE','EXPIRED', 'CANCELLED'];
 
 const TYPE_COLORS = {
   COMPREHENSIVE: 'bg-blue-50 text-blue-600 border-blue-200',
   THIRD_PARTY:   'bg-purple-50 text-purple-600 border-purple-200',
   FIRE_THEFT:    'bg-orange-50 text-orange-600 border-orange-200',
-  COMMERCIAL:    'bg-teal-50 text-teal-600 border-teal-200',
+};
+
+const STATUS_COLORS = {
+  ACTIVE:    'bg-green-50 text-green-600 border-green-200',
+  INACTIVE:  'bg-gray-50 text-gray-500 border-gray-200',
+  EXPIRED:   'bg-red-50 text-red-600 border-red-200',
+  CANCELLED: 'bg-yellow-50 text-yellow-600 border-yellow-200',
 };
 
 const EMPTY_FORM = {
@@ -31,6 +38,7 @@ const EMPTY_FORM = {
   coverage_amount:   '',
   issue_date:        '',
   expiry_date:       '',
+  status:            'ACTIVE',
   notes:             '',
 };
 
@@ -41,9 +49,9 @@ const getExpiryStatus = (expiryDate) => {
   const expiry   = new Date(expiryDate);
   const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
 
-  if (diffDays < 0)   return { label: 'Expired',     color: 'bg-red-50 text-red-600 border-red-200',           dot: 'bg-red-500' };
-  if (diffDays <= 30) return { label: `${diffDays}d`, color: 'bg-orange-50 text-orange-600 border-orange-200', dot: 'bg-orange-500' };
-  return               { label: 'Active',             color: 'bg-green-50 text-green-600 border-green-200',    dot: 'bg-green-500' };
+  if (diffDays < 0)   return { label: 'Expired',      color: 'bg-red-50 text-red-600 border-red-200',           dot: 'bg-red-500' };
+  if (diffDays <= 30) return { label: `${diffDays}d`, color: 'bg-orange-50 text-orange-600 border-orange-200',  dot: 'bg-orange-500' };
+  return               { label: 'Active',              color: 'bg-green-50 text-green-600 border-green-200',    dot: 'bg-green-500' };
 };
 
 // ── Field components ──────────────────────────────────────────────────
@@ -83,7 +91,7 @@ const VehicleSelect = ({ value, onChange }) => {
   const vehicles = query
     ? allVehicles.filter(v =>
         v.registration_number?.toLowerCase().includes(query.toLowerCase()) ||
-        v.name?.toLowerCase().includes(query.toLowerCase())
+        v.make?.toLowerCase().includes(query.toLowerCase())
       )
     : allVehicles;
 
@@ -101,7 +109,7 @@ const VehicleSelect = ({ value, onChange }) => {
         className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50
           cursor-pointer flex items-center justify-between gap-2 transition-all hover:border-[#0052CC]/40">
         <span className={`font-mono truncate ${selected ? 'text-[#172B4D] font-bold' : 'text-gray-300'}`}>
-          {selected ? `${selected.registration_number}${selected.name ? ` — ${selected.name}` : ''}` : 'Select vehicle...'}
+          {selected ? `${selected.registration_number} — ${selected.make ?? ''} ${selected.model ?? ''}`.trim() : 'Select vehicle...'}
         </span>
         <ChevronDown size={13} className={`text-gray-400 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </div>
@@ -132,7 +140,7 @@ const VehicleSelect = ({ value, onChange }) => {
                 className={`px-4 py-2.5 cursor-pointer hover:bg-blue-50 transition-colors
                   flex items-center justify-between gap-2 ${v.id === value ? 'bg-blue-50' : ''}`}>
                 <span className="font-mono font-bold text-[#172B4D] text-sm">{v.registration_number}</span>
-                <span className="text-xs text-gray-400 truncate">{v.name ?? v.vehicle_type ?? ''}</span>
+                <span className="text-xs text-gray-400">{v.make} {v.model}</span>
               </li>
             ))}
           </ul>
@@ -144,10 +152,12 @@ const VehicleSelect = ({ value, onChange }) => {
 
 // ── Add / Edit Modal ──────────────────────────────────────────────────
 const InsuranceModal = ({ initial, onClose }) => {
+  const isEdit = !!initial?.id;
+
   const [form, setForm] = useState(
     initial
       ? {
-          vehicle:           initial.vehicle           ?? '',
+          vehicle:           typeof initial.vehicle === 'object' ? (initial.vehicle?.id ?? '') : (initial.vehicle ?? ''),
           policy_number:     initial.policy_number     ?? '',
           policy_type:       initial.policy_type       ?? '',
           insurance_company: initial.insurance_company ?? '',
@@ -155,22 +165,25 @@ const InsuranceModal = ({ initial, onClose }) => {
           coverage_amount:   initial.coverage_amount   ?? '',
           issue_date:        initial.issue_date        ?? '',
           expiry_date:       initial.expiry_date       ?? '',
+          status:            initial.status            ?? 'ACTIVE',
           notes:             initial.notes             ?? '',
         }
       : EMPTY_FORM
   );
 
-  const isEdit    = !!initial?.id;
   const create    = useCreateVehicleInsurance();
   const update    = useUpdateVehicleInsurance();
   const isPending = create.isPending || update.isPending;
   const set       = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
 
   const handleSubmit = () => {
+    const clean = Object.fromEntries(
+      Object.entries(form).map(([k, v]) => [k, v === '' ? null : v])
+    );
     if (isEdit) {
-      update.mutate({ id: initial.id, data: form }, { onSuccess: onClose });
+      update.mutate({ id: initial.id, data: clean }, { onSuccess: onClose });
     } else {
-      create.mutate(form, { onSuccess: onClose });
+      create.mutate(clean, { onSuccess: onClose });
     }
   };
 
@@ -184,7 +197,7 @@ const InsuranceModal = ({ initial, onClose }) => {
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div>
             <h2 className="text-lg font-black text-[#172B4D]">{isEdit ? 'Edit Insurance' : 'Add Insurance'}</h2>
-            <p className="text-xs text-gray-400 mt-0.5">{isEdit ? 'Update insurance details' : 'Fill in the insurance details'}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{isEdit ? `Editing ${initial.policy_number}` : 'Fill in the insurance details'}</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-all">
             <X size={18} />
@@ -207,7 +220,7 @@ const InsuranceModal = ({ initial, onClose }) => {
               <Label required>Policy Type</Label>
               <Sel value={form.policy_type} onChange={set('policy_type')}>
                 <option value="">Select type</option>
-                {POLICY_TYPES.map(t => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
+                {POLICY_TYPES.map(t => <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>)}
               </Sel>
             </div>
           </div>
@@ -239,9 +252,19 @@ const InsuranceModal = ({ initial, onClose }) => {
             </div>
           </div>
 
+          {/* ── Status field ── */}
+          <div>
+            <Label>Status</Label>
+            <Sel value={form.status} onChange={set('status')}>
+              {STATUS_OPTIONS.map(s => (
+                <option key={s} value={s}>{s.charAt(0) + s.slice(1).toLowerCase()}</option>
+              ))}
+            </Sel>
+          </div>
+
           <div>
             <Label>Notes</Label>
-            <textarea value={form.notes} onChange={set('notes')} rows={3}
+            <textarea value={form.notes ?? ''} onChange={set('notes')} rows={3}
               placeholder="Any additional notes..."
               className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50
                 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC]
@@ -332,10 +355,7 @@ const VehicleInsurance = () => {
   const insurances = data?.results ?? data ?? [];
   const total      = data?.count   ?? insurances.length;
   const active     = insurances.filter(i => i.status === 'ACTIVE').length;
-  const expiring   = insurances.filter(i => {
-    const s = getExpiryStatus(i.expiry_date);
-    return s && s.label !== 'Active' && s.label !== 'Expired';
-  }).length;
+  const cancelled = insurances.filter(i => i.status === 'CANCELLED').length;
   const expired    = insurances.filter(i => i.status === 'EXPIRED').length;
 
   return (
@@ -370,7 +390,7 @@ const VehicleInsurance = () => {
       <div className="grid grid-cols-4 gap-4">
         <StatCard loading={isLoading} label="Total"    value={total}    icon={Shield}      color={{ value: 'text-[#172B4D]', iconBg: 'bg-blue-50',   iconText: 'text-blue-500' }} />
         <StatCard loading={isLoading} label="Active"   value={active}   icon={ShieldCheck} color={{ value: 'text-green-600',  iconBg: 'bg-green-50',  iconText: 'text-green-500' }} />
-        <StatCard loading={isLoading} label="Expiring" value={expiring} icon={ShieldAlert} color={{ value: 'text-orange-500', iconBg: 'bg-orange-50', iconText: 'text-orange-500' }} />
+        <StatCard loading={isLoading} label="Cancelled" value={cancelled} icon={ShieldAlert} color={{ value: 'text-orange-500', iconBg: 'bg-orange-50', iconText: 'text-orange-500' }} />
         <StatCard loading={isLoading} label="Expired"  value={expired}  icon={ShieldOff}   color={{ value: 'text-red-500',    iconBg: 'bg-red-50',    iconText: 'text-red-400' }} />
       </div>
 
@@ -400,7 +420,7 @@ const VehicleInsurance = () => {
             <select value={typeFilter} onChange={e => setType(e.target.value)}
               className="appearance-none pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none cursor-pointer">
               <option value="">All Types</option>
-              {POLICY_TYPES.map(t => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
+              {POLICY_TYPES.map(t => <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>)}
             </select>
             <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           </div>
@@ -434,7 +454,7 @@ const VehicleInsurance = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
-                  {['Vehicle','Policy Number', 'Policy Type', 'Insurance Company', 'Premium', 'Coverage', 'Issue Date', 'Expiry Date', 'Status', 'Actions'].map(h => (
+                  {['Vehicle','Policy Number','Policy Type','Insurance Company','Premium','Coverage','Issue Date','Expiry Date','Status','Actions'].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -442,17 +462,26 @@ const VehicleInsurance = () => {
               <tbody className="divide-y divide-gray-50">
                 {insurances.map(ins => {
                   const expiryStatus = getExpiryStatus(ins.expiry_date);
-                  const statusColor  = expiryStatus?.color ?? 'bg-green-50 text-green-600 border-green-200';
-                  const statusDot    = expiryStatus?.dot   ?? 'bg-green-500';
-                  const statusLabel  = ins.status_display  ?? expiryStatus?.label ?? '—';
+                  // Use API status first, fallback to expiry calculation
+                  const statusColor = STATUS_COLORS[ins.status] ?? expiryStatus?.color ?? 'bg-green-50 text-green-600 border-green-200';
+                  const statusDot   = ins.status === 'ACTIVE'   ? 'bg-green-500'
+                                    : ins.status === 'EXPIRED'  ? 'bg-red-500'
+                                    : ins.status === 'INACTIVE' ? 'bg-gray-400'
+                                    : ins.status === 'CANCELLED'? 'bg-yellow-500'
+                                    : (expiryStatus?.dot ?? 'bg-green-500');
+                  const statusLabel = ins.status_display ?? ins.status ?? expiryStatus?.label ?? '—';
 
                   return (
                     <tr key={ins.id} className="hover:bg-blue-50/30 transition-colors">
-                        <td className="px-4 py-3 whitespace-nowrap">
-  <span className="font-bold text-[#172B4D] font-mono text-[13px]">
-    {ins.vehicle?.registration_number ?? ins.vehicle_registration ?? ins.vehicle ?? '—'}
-  </span>
-</td>
+
+                      {/* Vehicle */}
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className="font-bold text-[#172B4D] font-mono text-[13px]">
+                          {typeof ins.vehicle === 'object'
+                            ? (ins.vehicle?.registration_number ?? '—')
+                            : (ins.vehicle_registration ?? ins.vehicle ?? '—')}
+                        </span>
+                      </td>
 
                       {/* Policy Number */}
                       <td className="px-4 py-3 whitespace-nowrap">
@@ -462,7 +491,7 @@ const VehicleInsurance = () => {
                       {/* Policy Type */}
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold border ${TYPE_COLORS[ins.policy_type] ?? 'bg-gray-50 text-gray-600 border-gray-200'}`}>
-                          {ins.policy_type_display ?? ins.policy_type?.replace('_', ' ') ?? '—'}
+                          {ins.policy_type_display ?? ins.policy_type?.replace(/_/g, ' ') ?? '—'}
                         </span>
                       </td>
 
@@ -536,7 +565,7 @@ const VehicleInsurance = () => {
 
                 {insurances.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="px-4 py-16 text-center text-gray-400">
+                    <td colSpan={10} className="px-4 py-16 text-center text-gray-400">
                       <Shield size={32} className="mx-auto mb-2 opacity-30" />
                       <p className="text-sm">No insurance records found</p>
                     </td>
@@ -554,7 +583,6 @@ const VehicleInsurance = () => {
                 <> of <span className="font-bold text-gray-600">{data.count}</span></>
               } records
             </span>
-            
           </div>
         )}
       </div>
