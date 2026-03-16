@@ -12,6 +12,8 @@ import {
   unlockUser,
   getUserSessions,
   getUserActivityLog,
+  userRoles,
+  removeUserRole
 } from "../../api/users/userActionEndpoint";
 
 
@@ -38,7 +40,7 @@ export const useChangePassword = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: changePassword,
-    onSuccess: (data, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["currentUser"] });
     },
     onError: (error) => {
@@ -51,7 +53,7 @@ export const useResetPassword = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: resetPassword,
-    onSuccess: (data, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["currentUser"] });
     },
     onError: (error) => {
@@ -67,11 +69,39 @@ export const useAssignRoles = () => {
     mutationFn: assignRoles,
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["userPermissions", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["userRoles", variables.id] });
       queryClient.invalidateQueries({ queryKey: ["user", variables.id] });
       queryClient.invalidateQueries({ queryKey: ["users"] });
     },
     onError: (error) => {
       console.error("Failed to assign roles:", error.message);
+    },
+  });
+};
+
+export const useUserRoles = (id) =>
+  useQuery({
+    queryKey: ["userRoles", id],
+    queryFn: () => userRoles(id),
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+    onError: (error) => {
+      console.error(`Failed to fetch user roles for id ${id}:`, error.message);
+    },
+  });
+
+export const useRemoveUserRole = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: removeUserRole,
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["userRoles", variables.userId] });
+      queryClient.invalidateQueries({ queryKey: ["userPermissions", variables.userId] });
+      queryClient.invalidateQueries({ queryKey: ["user", variables.userId] });
+    },
+    onError: (error) => {
+      console.error("Failed to remove user role:", error.message);
     },
   });
 };

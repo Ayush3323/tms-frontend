@@ -246,19 +246,26 @@ const UserDetail = () => {
     e.preventDefault();
     if (!validateForm()) return;
 
+    // Prepare data by removing empty optional fields to prevent backend validation errors
+    const submissionData = { ...formData };
+    ['date_of_birth', 'phone', 'middle_name'].forEach(field => {
+      if (submissionData[field] === '') {
+        delete submissionData[field];
+      }
+    });
+
     if (modalType === 'create') {
-      createMutation.mutate(formData, {
+      createMutation.mutate(submissionData, {
         onSuccess: () => handleCloseModal(),
         onError: (err) => handleErrorResponse(err)
       });
     } else if (modalType === 'edit') {
-      const updateData = { ...formData };
-      if (!updateData.password) {
-        delete updateData.password;
-        delete updateData.password_confirm;
+      if (!submissionData.password) {
+        delete submissionData.password;
+        delete submissionData.password_confirm;
       }
       
-      updateMutation.mutate({ id: selectedUser.id, data: updateData }, {
+      updateMutation.mutate({ id: selectedUser.id, data: submissionData }, {
         onSuccess: () => handleCloseModal(),
         onError: (err) => handleErrorResponse(err)
       });

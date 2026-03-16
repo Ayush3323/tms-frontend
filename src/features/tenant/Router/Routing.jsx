@@ -15,6 +15,7 @@ import DriversList from '../components/Drivers/DriversList'
 import DriverDetail from '../components/Drivers/DriverDetail'
 import Roles from '../components/user/Roles'
 import Permission from '../components/user/Permission'
+import Activities from '../components/user/Activities'
 
 
 
@@ -34,14 +35,15 @@ const Routing = () => {
           <Route path="users/:userid" element={<UserProfile />} />
           <Route path="users/roles" element={<Roles />} />
           <Route path="users/permission" element={<Permission />} />
+          <Route path="users/activities" element={<Activities />} />
           <Route path="vehicles" element={<Vehicles />} />
           <Route path="drivers" element={<DriversList />} />
-          <Route path="drivers/:id" element={<DriverDetail />} /> 
+          <Route path="drivers/:id" element={<DriverDetail />} />
           <Route path="vehicles/types" element={<VehicleTypes />} />
           <Route path="vehicles/documents" element={<VehiclesDocument />} />
-          <Route path="vehicles/:id" element={<VehicleDetail/>}/>
-          <Route path= "vehicles/insurance" element={<VehicleInsurance />} />
-          <Route path="vehicles/:id/edit" element={<VehicleDetail/>}/>
+          <Route path="vehicles/:id" element={<VehicleDetail />} />
+          <Route path="vehicles/insurance" element={<VehicleInsurance />} />
+          <Route path="vehicles/:id/edit" element={<VehicleDetail />} />
           <Route path="vehicles/maintenance" element={<MaintenanceSchedules />} />
         </Route>
       </Routes>
