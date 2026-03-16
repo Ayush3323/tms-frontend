@@ -3,9 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   Search, Plus, Download, RefreshCw, Eye, PauseCircle,
   PlayCircle, Truck, CheckCircle, Wrench, ArchiveX,
-  ChevronDown, Loader2, AlertCircle, X, IndianRupee,
-  Pencil, Shield, Calendar, Gauge, Package, Tag,
-  FileText, Settings, ClipboardList, AlertTriangle
+  ChevronDown, Loader2, AlertCircle, X,
+  Pencil
 } from 'lucide-react';
 import { useVehicles, useVehicle, useUpdateVehicle, useCreateVehicle } from '../../queries/vehicles/vehicleQuery';
 import { useVehicleTypes } from '../../queries/vehicles/vehicletypeQuery';
@@ -146,22 +145,22 @@ const VehicleFormModal = ({ initial, onClose }) => {
   const isEdit = !!initial?.id;
   const [form, setForm] = useState(
     initial ? {
-      registration_number:           initial.registration_number           ?? '',
-      vehicle_identification_number: initial.vehicle_identification_number ?? '',
-      make:                          initial.make                          ?? '',
-      model:                         initial.model                         ?? '',
-      year:                          initial.year                          ?? '',
-      vehicle_type:                  initial.vehicle_type?.id ?? initial.vehicle_type ?? '',
-      capacity_tonnage:              initial.capacity_tonnage              ?? '',
-      capacity_volume:               initial.capacity_volume               ?? '',
-      fuel_type:                     initial.fuel_type                     ?? '',
-      transmission_type:             initial.transmission_type             ?? '',
-      color:                         initial.color                         ?? '',
-      purchase_date:                 initial.purchase_date                 ?? '',
-      purchase_price:                initial.purchase_price                ?? '',
-      ownership_type:                initial.ownership_type                ?? '',
-      current_odometer:              initial.current_odometer              ?? '0',
-      status:                        initial.status                        ?? 'ACTIVE',
+      registration_number:           initial.registration_number                          ?? '',
+      vehicle_identification_number: initial.vehicle_identification_number                ?? '',
+      make:                          initial.make                                         ?? '',
+      model:                         initial.model                                        ?? '',
+      year:                          initial.year != null ? String(initial.year)          : '',
+      vehicle_type:                  initial.vehicle_type?.id ?? initial.vehicle_type     ?? '',
+      capacity_tonnage:              initial.capacity_tonnage != null ? String(parseFloat(initial.capacity_tonnage)) : '',
+      capacity_volume:               initial.capacity_volume  != null ? String(parseFloat(initial.capacity_volume))  : '',
+      fuel_type:                     initial.fuel_type                                    ?? '',
+      transmission_type:             initial.transmission_type                            ?? '',
+      color:                         initial.color                                        ?? '',
+      purchase_date:                 initial.purchase_date                                ?? '',
+      purchase_price:                initial.purchase_price != null ? String(parseFloat(initial.purchase_price)) : '',
+      ownership_type:                initial.ownership_type                               ?? '',
+      current_odometer:              initial.current_odometer != null ? String(parseFloat(initial.current_odometer)) : '0',
+      status:                        initial.status                                       ?? 'ACTIVE',
     } : EMPTY_FORM
   );
 
@@ -171,7 +170,6 @@ const VehicleFormModal = ({ initial, onClose }) => {
   const set           = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
 
   const handleSubmit = () => {
-    // Clean empty strings → null for date/number fields so API doesn't reject them
     const clean = Object.fromEntries(
       Object.entries(form).map(([k, v]) => [k, v === '' ? null : v])
     );
@@ -265,253 +263,28 @@ const VehicleFormModal = ({ initial, onClose }) => {
   );
 };
 
-// ── Detail Row ────────────────────────────────────────────────────────
-const DR = ({ label, value }) => (
-  <div className="flex flex-col gap-0.5">
-    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{label}</span>
-    <span className="text-sm font-semibold text-[#172B4D]">{value ?? '—'}</span>
-  </div>
-);
+// ── Edit Button with full data fetch ─────────────────────────────────
+const EditVehicleButton = ({ vehicleId, onEdit }) => {
+  const [shouldFetch, setShouldFetch] = useState(false);
+  const { data, isLoading } = useVehicle(vehicleId, { enabled: shouldFetch });
 
-// ── Section Header in Drawer ──────────────────────────────────────────
-const DrawerSection = ({ icon: Icon, title, count }) => (
-  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-    <Icon size={12} /> {title}{count != null ? ` (${count})` : ''}
-  </p>
-);
+  useEffect(() => {
+    if (data && shouldFetch) {
+      setShouldFetch(false);
+      onEdit(data);
+    }
+  }, [data, shouldFetch]);
 
-// ── Vehicle Detail Drawer ─────────────────────────────────────────────
-const VehicleDrawer = ({ vehicleId, onClose, onEdit }) => {
-  const { data: v, isLoading } = useVehicle(vehicleId);
-  const st = v ? (STATUS_STYLES[v.status] ?? STATUS_STYLES.RETIRED) : null;
+  const handleClick = () => setShouldFetch(true);
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-2xl bg-white h-full flex flex-col shadow-2xl">
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
-          <div>
-            <h2 className="text-lg font-black text-[#172B4D]">{v?.registration_number ?? 'Vehicle Details'}</h2>
-            <p className="text-xs text-gray-400 mt-0.5">{v?.make} {v?.model}{v?.year ? ` · ${v.year}` : ''}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            {v && (
-              <button onClick={() => { onClose(); onEdit(v); }}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all">
-                <Pencil size={13} /> Edit
-              </button>
-            )}
-            <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-all">
-              <X size={18} />
-            </button>
-          </div>
-        </div>
-
-        {isLoading && (
-          <div className="flex-1 flex items-center justify-center">
-            <Loader2 size={24} className="animate-spin text-[#0052CC]" />
-          </div>
-        )}
-
-        {v && (
-          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-
-            {/* Badges */}
-            <div className="flex flex-wrap items-center gap-2">
-              <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${st.bg} ${st.text}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />{v.status_display ?? v.status}
-              </span>
-              <span className={`px-2 py-1 rounded-md text-xs font-bold border ${OWNERSHIP_COLORS[v.ownership_type] ?? 'bg-gray-50 text-gray-600 border-gray-200'}`}>
-                {v.ownership_type_display ?? v.ownership_type}
-              </span>
-              {v.fuel_type && (
-                <span className={`px-2 py-1 rounded-md text-xs font-bold ${FUEL_COLORS[v.fuel_type] ?? 'bg-gray-100 text-gray-600'}`}>
-                  {v.fuel_type_display ?? v.fuel_type}
-                </span>
-              )}
-              {v.vehicle_type?.type_name && (
-                <span className="px-2 py-1 rounded-md text-xs font-bold bg-gray-100 text-gray-600 border border-gray-200">
-                  {v.vehicle_type.type_name}
-                </span>
-              )}
-            </div>
-
-            {/* Identity */}
-            <div>
-              <DrawerSection icon={FileText} title="Identity" />
-              <div className="grid grid-cols-2 gap-4 bg-gray-50 rounded-xl p-4">
-                <DR label="Registration" value={v.registration_number} />
-                <DR label="VIN / Chassis" value={v.vehicle_identification_number} />
-                <DR label="Make" value={v.make} />
-                <DR label="Model" value={v.model} />
-                <DR label="Year" value={v.year} />
-                <DR label="Color" value={v.color} />
-                <DR label="Transmission" value={v.transmission_type_display ?? v.transmission_type} />
-                <DR label="Assigned Driver" value={v.assigned_driver ?? null} />
-              </div>
-            </div>
-
-            {/* Capacity & Odometer */}
-            <div>
-              <DrawerSection icon={Gauge} title="Capacity & Odometer" />
-              <div className="grid grid-cols-3 gap-4 bg-gray-50 rounded-xl p-4">
-                <DR label="Tonnage" value={v.capacity_tonnage ? `${v.capacity_tonnage} T` : null} />
-                <DR label="Volume" value={v.capacity_volume ? `${v.capacity_volume} m³` : null} />
-                <DR label="Odometer" value={v.current_odometer ? `${Number(v.current_odometer).toLocaleString()} km` : null} />
-              </div>
-            </div>
-
-            {/* Purchase */}
-            <div>
-              <DrawerSection icon={IndianRupee} title="Purchase" />
-              <div className="grid grid-cols-2 gap-4 bg-gray-50 rounded-xl p-4">
-                <DR label="Purchase Date" value={v.purchase_date} />
-                <DR label="Purchase Price" value={v.purchase_price ? `₹${Number(v.purchase_price).toLocaleString('en-IN')}` : null} />
-              </div>
-            </div>
-
-            {/* Insurance */}
-            {v.insurance_policies?.length > 0 && (
-              <div>
-                <DrawerSection icon={Shield} title="Insurance" count={v.insurance_policies.length} />
-                <div className="space-y-2">
-                  {v.insurance_policies.map(p => (
-                    <div key={p.id} className="bg-gray-50 rounded-xl p-4 grid grid-cols-3 gap-3">
-                      <DR label="Policy No." value={p.policy_number} />
-                      <DR label="Company" value={p.insurance_company} />
-                      <DR label="Type" value={p.policy_type_display} />
-                      <DR label="Premium" value={p.premium_amount ? `₹${Number(p.premium_amount).toLocaleString('en-IN')}` : null} />
-                      <DR label="Coverage" value={p.coverage_amount ? `₹${Number(p.coverage_amount).toLocaleString('en-IN')}` : null} />
-                      <DR label="Expiry" value={p.expiry_date} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Maintenance Schedules */}
-            {v.maintenance_schedules?.length > 0 && (
-              <div>
-                <DrawerSection icon={Wrench} title="Maintenance Schedules" count={v.maintenance_schedules.length} />
-                <div className="space-y-2">
-                  {v.maintenance_schedules.map(m => (
-                    <div key={m.id} className="bg-gray-50 rounded-xl p-4 grid grid-cols-3 gap-3">
-                      <DR label="Type" value={m.maintenance_type_display} />
-                      <DR label="Scheduled" value={m.scheduled_date} />
-                      <DR label="Status" value={m.status_display} />
-                      <DR label="Next Due" value={m.next_due_date} />
-                      <DR label="Interval" value={m.service_interval_km ? `${m.service_interval_km} km` : null} />
-                      <DR label="Description" value={m.description} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Maintenance Records */}
-            {v.maintenance_records?.length > 0 && (
-              <div>
-                <DrawerSection icon={ClipboardList} title="Maintenance Records" count={v.maintenance_records.length} />
-                <div className="space-y-2">
-                  {v.maintenance_records.map(r => (
-                    <div key={r.id} className="bg-gray-50 rounded-xl p-4 grid grid-cols-3 gap-3">
-                      <DR label="Service" value={r.service_type} />
-                      <DR label="Provider" value={r.service_provider} />
-                      <DR label="Date" value={r.service_date} />
-                      <DR label="Total Cost" value={r.total_cost ? `₹${Number(r.total_cost).toLocaleString('en-IN')}` : null} />
-                      <DR label="Labor Hrs" value={r.labor_hours ? `${r.labor_hours} hrs` : null} />
-                      <DR label="Next Service" value={r.next_service_due} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Inspections */}
-            {v.inspections?.length > 0 && (
-              <div>
-                <DrawerSection icon={AlertTriangle} title="Inspections" count={v.inspections.length} />
-                <div className="space-y-2">
-                  {v.inspections.map(i => (
-                    <div key={i.id} className="bg-gray-50 rounded-xl p-4 grid grid-cols-3 gap-3">
-                      <DR label="Type" value={i.inspection_type_display} />
-                      <DR label="Date" value={i.inspection_date ? new Date(i.inspection_date).toLocaleDateString('en-IN') : null} />
-                      <DR label="Result" value={i.overall_status} />
-                      <DR label="Inspector" value={i.inspector_signature} />
-                      <DR label="Odometer" value={i.odometer_reading ? `${Number(i.odometer_reading).toLocaleString()} km` : null} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Tires */}
-            {v.tires?.length > 0 && (
-              <div>
-                <DrawerSection icon={Settings} title="Tires" count={v.tires.length} />
-                <div className="space-y-2">
-                  {v.tires.map(t => (
-                    <div key={t.id} className="bg-gray-50 rounded-xl p-4 grid grid-cols-3 gap-3">
-                      <DR label="Brand" value={t.tire_brand} />
-                      <DR label="Position" value={t.tire_position_display} />
-                      <DR label="Serial" value={t.tire_serial_number} />
-                      <DR label="Status" value={t.status_display} />
-                      <DR label="Tread Depth" value={t.tread_depth ? `${t.tread_depth} mm` : null} />
-                      <DR label="Installed" value={t.installation_date} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Accessories */}
-            {v.accessories?.length > 0 && (
-              <div>
-                <DrawerSection icon={Package} title="Accessories" count={v.accessories.length} />
-                <div className="space-y-2">
-                  {v.accessories.map(a => (
-                    <div key={a.id} className="bg-gray-50 rounded-xl p-4 grid grid-cols-3 gap-3">
-                      <DR label="Name" value={a.accessory_name} />
-                      <DR label="Type" value={a.accessory_type_display} />
-                      <DR label="Serial" value={a.serial_number} />
-                      <DR label="Status" value={a.status} />
-                      <DR label="Installed" value={a.installation_date} />
-                      <DR label="Warranty" value={a.warranty_expiry} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Toll Tags */}
-            {v.toll_tags?.length > 0 && (
-              <div>
-                <DrawerSection icon={Tag} title="Toll Tags" count={v.toll_tags.length} />
-                <div className="space-y-2">
-                  {v.toll_tags.map(t => (
-                    <div key={t.id} className="bg-gray-50 rounded-xl p-4 grid grid-cols-3 gap-3">
-                      <DR label="Tag Number" value={t.tag_number} />
-                      <DR label="Provider" value={t.tag_provider} />
-                      <DR label="Balance" value={t.recharge_balance ? `₹${Number(t.recharge_balance).toLocaleString('en-IN')}` : null} />
-                      <DR label="Expiry" value={t.expiry_date} />
-                      <DR label="Active" value={t.is_active ? 'Yes' : 'No'} />
-                      <DR label="Bank A/C" value={t.linked_bank_account} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-          </div>
-        )}
-      </div>
-    </div>
+    <button onClick={handleClick} disabled={isLoading}
+      className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-all disabled:opacity-50">
+      {isLoading ? <Loader2 size={12} className="animate-spin" /> : <Pencil size={12} />}
+      Edit
+    </button>
   );
 };
-
-// ── Stat Card ─────────────────────────────────────────────────────────
 const StatCard = ({ label, value, color, icon: Icon, loading }) => (
   <div className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-2">
     <div className="flex items-center justify-between">
@@ -533,8 +306,8 @@ const Vehicles = () => {
   const [statusFilter, setStatus] = useState('');
   const [fuelFilter, setFuel]     = useState('');
   const [ownerFilter, setOwner]   = useState('');
-  const navigate      = useNavigate();
-  const [formModal, setFormModal] = useState(null);  // null | 'add' | vehicleObj
+  const [formModal, setFormModal] = useState(null);
+  const navigate                  = useNavigate();
 
   const { data, isLoading, isError, error, refetch } = useVehicles({
     ...(statusFilter && { status: statusFilter }),
@@ -561,7 +334,7 @@ const Vehicles = () => {
       render: v => (
         <div>
           <span className="font-bold text-[#172B4D] font-mono text-[13px]">{v.registration_number ?? '—'}</span>
-          <div className="text-[11px] text-gray-400">{v.vehicle_identification_number ?? ''}</div>
+          {v.year && <div className="text-[11px] text-gray-400">{v.year}</div>}
         </div>
       ),
     },
@@ -574,26 +347,20 @@ const Vehicles = () => {
         </div>
       ),
     },
-    { header: 'Year', render: v => <span className="text-gray-600">{v.year ?? '—'}</span> },
     {
-      header: 'Fuel / Trans',
+      header: 'Vehicle Type',
       render: v => (
-        <div className="flex flex-col gap-1">
-          <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold w-fit ${FUEL_COLORS[v.fuel_type] ?? 'bg-gray-100 text-gray-600'}`}>
-            {v.fuel_type_display ?? v.fuel_type ?? '—'}
-          </span>
-          {v.transmission_type && <span className="text-[11px] text-gray-400">{v.transmission_type_display ?? v.transmission_type}</span>}
-        </div>
+        <span className="text-[12px] font-semibold text-gray-700">
+          {v.vehicle_type_name ?? v.vehicle_type?.type_name ?? '—'}
+        </span>
       ),
     },
     {
-      header: 'Capacity',
+      header: 'Fuel Type',
       render: v => (
-        <div className="text-[12px] text-gray-600 space-y-0.5">
-          {v.capacity_tonnage && <div>⚖️ {v.capacity_tonnage}T</div>}
-          {v.capacity_volume  && <div>📦 {v.capacity_volume}m³</div>}
-          {!v.capacity_tonnage && !v.capacity_volume && '—'}
-        </div>
+        <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold w-fit ${FUEL_COLORS[v.fuel_type] ?? 'bg-gray-100 text-gray-600'}`}>
+          {v.fuel_type_display ?? v.fuel_type ?? '—'}
+        </span>
       ),
     },
     {
@@ -610,20 +377,6 @@ const Vehicles = () => {
         <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold border ${OWNERSHIP_COLORS[v.ownership_type] ?? 'bg-gray-50 text-gray-600 border-gray-200'}`}>
           {v.ownership_type_display ?? v.ownership_type ?? '—'}
         </span>
-      ),
-    },
-    {
-      header: 'Purchase',
-      render: v => (
-        <div className="text-[12px] text-gray-600 space-y-0.5">
-          {v.purchase_date && <div>{v.purchase_date}</div>}
-          {v.purchase_price &&
-            <div className="flex items-center gap-0.5 text-green-600 font-semibold">
-              <IndianRupee size={11} />{Number(v.purchase_price).toLocaleString('en-IN')}
-            </div>
-          }
-          {!v.purchase_date && !v.purchase_price && '—'}
-        </div>
       ),
     },
     {
@@ -649,10 +402,7 @@ const Vehicles = () => {
               className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all">
               <Eye size={12} /> View
             </button>
-            <button onClick={() => setFormModal(v)}
-              className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-all">
-              <Pencil size={12} /> Edit
-            </button>
+            <EditVehicleButton vehicleId={v.id} onEdit={(fullVehicle) => setFormModal(fullVehicle)} />
             {isActive && (
               <button onClick={() => handleStatusToggle(v)} disabled={updateVehicle.isPending}
                 className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-all disabled:opacity-50">
@@ -680,7 +430,6 @@ const Vehicles = () => {
           onClose={() => setFormModal(null)}
         />
       )}
-
 
       {/* Header */}
       <div className="flex items-start justify-between">
