@@ -56,12 +56,22 @@ export const resetPassword = async (payload) => {
   }
 };
 
-export const assignRoles = async ({ id, role_id }) => {
+export const assignRoles = async ({ id, role_ids }) => {
   if (!id) throw new Error("User ID is required for role assignment");
   try {
     const response = await axiosInstance.post(`${BASE}${id}/assign-roles/`, {
-      role_id,
+      role_ids,
     });
+    return response.data;
+  } catch (error) {
+    handleApiError(error);
+  }
+};
+
+export const removeUserRole = async ({ userId, roleId }) => {
+  if (!userId || !roleId) throw new Error("User ID and Role ID are required to remove role");
+  try {
+    const response = await axiosInstance.delete(`${BASE}${userId}/roles/${roleId}/`);
     return response.data;
   } catch (error) {
     handleApiError(error);
@@ -72,6 +82,16 @@ export const getUserPermissions = async (id) => {
   if (!id) throw new Error("User ID is required to fetch permissions");
   try {
     const response = await axiosInstance.get(`${BASE}${id}/permissions/`);
+    return response.data;
+  } catch (error) {
+    handleApiError(error);
+  }
+};
+
+export const userRoles = async (id) => {
+  if (!id) throw new Error("User ID is required to fetch roles");
+  try {
+    const response = await axiosInstance.get(`${BASE}${id}/roles/`);
     return response.data;
   } catch (error) {
     handleApiError(error);
