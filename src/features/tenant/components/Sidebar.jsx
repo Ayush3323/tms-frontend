@@ -39,6 +39,7 @@ const userSubItems = [
   { name: 'Roles', icon: <Shield size={13} />, path: '/tenant/dashboard/users/roles', badge: null },
   { name: 'Permissions', icon: <Shield size={13} />, path: '/tenant/dashboard/users/permission', badge: null },
   { name: 'Activities', icon: <Shield size={13} />, path: '/tenant/dashboard/users/activities', badge: null },
+  { name: 'Session', icon: <Shield size={13} />, path: '/tenant/dashboard/users/session', badge: null },
 ];
 
 const SubMenu = ({ items }) => (
@@ -104,8 +105,8 @@ const Sidebar = () => {
               <button
                 onClick={() => setUsersOpen((o) => !o)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all border ${isUserPath
-                    ? 'bg-[#EBF3FF] text-[#0052CC] border-[#D0E2FF]'
-                    : 'text-gray-600 hover:bg-gray-100 border-transparent'
+                  ? 'bg-[#EBF3FF] text-[#0052CC] border-[#D0E2FF]'
+                  : 'text-gray-600 hover:bg-gray-100 border-transparent'
                   }`}
               >
                 <span className={isUserPath ? 'text-[#0052CC]' : 'text-gray-400'}>
@@ -124,8 +125,8 @@ const Sidebar = () => {
               <button
                 onClick={() => setVehiclesOpen((o) => !o)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all border ${isVehiclePath
-                    ? 'bg-[#EBF3FF] text-[#0052CC] border-[#D0E2FF]'
-                    : 'text-gray-600 hover:bg-gray-100 border-transparent'
+                  ? 'bg-[#EBF3FF] text-[#0052CC] border-[#D0E2FF]'
+                  : 'text-gray-600 hover:bg-gray-100 border-transparent'
                   }`}
               >
                 <span className={isVehiclePath ? 'text-[#0052CC]' : 'text-gray-400'}>
@@ -144,8 +145,8 @@ const Sidebar = () => {
               <button
                 onClick={() => setDriversOpen((o) => !o)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all border ${isDriverPath
-                    ? 'bg-[#EBF3FF] text-[#0052CC] border-[#D0E2FF]'
-                    : 'text-gray-600 hover:bg-gray-100 border-transparent'
+                  ? 'bg-[#EBF3FF] text-[#0052CC] border-[#D0E2FF]'
+                  : 'text-gray-600 hover:bg-gray-100 border-transparent'
                   }`}
               >
                 <span className={isDriverPath ? 'text-[#0052CC]' : 'text-gray-400'}>
