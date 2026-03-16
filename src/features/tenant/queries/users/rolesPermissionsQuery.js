@@ -1,6 +1,6 @@
 // src/features/tenant/queries/users/rolesPermissionsQueries.js
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import {
   getRoles,
@@ -8,6 +8,9 @@ import {
   getRolePermissions,
   getPermissions,
   getPermissionById,
+  createRole,
+  deleteRole,
+  assignPermission
 } from "../../api/users/rolesPermissionsEndpoint";
 
 /* ---------------- ROLES ---------------- */
@@ -47,6 +50,32 @@ export const useRolePermissions = (id) =>
     },
   });
 
+export const useCreateRole = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createRole,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["roles"] });
+    },
+    onError: (error) => {
+      console.error("Failed to create role:", error.message);
+    },
+  });
+};
+
+export const useDeleteRole = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteRole,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["roles"] });
+    },
+    onError: (error) => {
+      console.error("Failed to delete role:", error.message);
+    },
+  });
+};
+
 /* ---------------- PERMISSIONS ---------------- */
 
 export const usePermissions = (params) =>
@@ -71,3 +100,18 @@ export const usePermission = (id) =>
       console.error(`Failed to fetch permission with id ${id}:`, error.message);
     },
   });
+
+export const useAssignPermissions = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }) => assignPermission(id, data),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["rolePermissions", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["role", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["roles"] });
+    },
+    onError: (error) => {
+      console.error("Failed to assign permissions:", error.message);
+    },
+  });
+};

@@ -3,6 +3,7 @@
 import axiosInstance from "../axiosInstance";
 
 const ROLES_BASE = "/api/v1/roles/roles/";
+const ROLES_CREATE = "/api/v1/users/roles/";
 const PERMISSIONS_BASE = "/api/v1/users/permissions/";
 
 /* ---------------- ERROR HANDLER ---------------- */
@@ -54,6 +55,37 @@ export const getRolePermissions = async (id) => {
     handleApiError(error);
   }
 };
+
+export const createRole = async (data)=>{
+  if(!data) throw new Error("Role data is required");
+  try {
+    const response = await axiosInstance.post(ROLES_CREATE, data);
+    return response.data;
+  } catch (error) {
+    handleApiError(error);
+  }
+}
+
+export const assignPermission = async (id, data)=>{
+  if(!id) throw new Error("Role ID is required");
+  if(!data) throw new Error("Permission data is required");
+  try {
+    const response = await axiosInstance.post(`/api/v1/users/roles/${id}/assign-permissions/`, data);
+    return response.data;
+  } catch (error) {
+    handleApiError(error);
+  }
+}
+
+export const deleteRole = async (id)=>{
+  if(!id) throw new Error("Role ID is required");
+  try {
+    const response = await axiosInstance.delete(`${ROLES_CREATE}${id}/`);
+    return response.data;
+  } catch (error) {
+    handleApiError(error);
+  }
+}
 
 /* ---------------- PERMISSION APIs ---------------- */
 
