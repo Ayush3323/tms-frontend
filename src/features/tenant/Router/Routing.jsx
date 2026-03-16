@@ -16,6 +16,7 @@ import DriverDetail from '../components/Drivers/DriverDetail'
 import Roles from '../components/user/Roles'
 import Permission from '../components/user/Permission'
 import Activities from '../components/user/Activities'
+import Session from '../components/user/Session'
 
 
 
@@ -36,6 +37,7 @@ const Routing = () => {
           <Route path="users/roles" element={<Roles />} />
           <Route path="users/permission" element={<Permission />} />
           <Route path="users/activities" element={<Activities />} />
+          <Route path="users/session" element={<Session />} />
           <Route path="vehicles" element={<Vehicles />} />
           <Route path="drivers" element={<DriversList />} />
           <Route path="drivers/:id" element={<DriverDetail />} />
