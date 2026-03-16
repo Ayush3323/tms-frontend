@@ -12,7 +12,7 @@ import VehiclesDocument from '../components/Vehicles/VehiclesDocument';
 import VehicleInsurance from '../components/Vehicles/vehiclesInsurance';
 import MaintenanceSchedules from '../components/Vehicles/VehiclesMaintenanceSchedules'
 import DriversList from '../components/Drivers/DriversList'
-import DriverDetail from '../components/Drivers/DriverDetail'
+import DriverDetail from '../components/Drivers/detail/DriverDetail'
 import Roles from '../components/user/Roles'
 import Permission from '../components/user/Permission'
 import Activities from '../components/user/Activities'
