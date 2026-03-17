@@ -10,7 +10,7 @@ const SettingsModal = ({ isOpen, onClose, userEmail }) => {
   const [changeFormData, setChangeFormData] = useState({
     old_password: '',
     new_password: '',
-    confirm_password: ''
+    new_password_confirm: ''
   });
 
   const [resetFormData, setResetFormData] = useState({
@@ -41,8 +41,8 @@ const SettingsModal = ({ isOpen, onClose, userEmail }) => {
     if (!changeFormData.old_password) newErrors.old_password = 'Old password is required';
     if (!changeFormData.new_password) newErrors.new_password = 'New password is required';
     if (changeFormData.new_password.length < 8) newErrors.new_password = 'Password must be at least 8 characters';
-    if (changeFormData.new_password !== changeFormData.confirm_password) {
-      newErrors.confirm_password = 'Passwords do not match';
+    if (changeFormData.new_password !== changeFormData.new_password_confirm) {
+      newErrors.new_password_confirm = 'Passwords do not match';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -52,18 +52,28 @@ const SettingsModal = ({ isOpen, onClose, userEmail }) => {
 
     changePasswordMutation.mutate({
       old_password: changeFormData.old_password,
-      new_password: changeFormData.new_password
+      new_password: changeFormData.new_password,
+      new_password_confirm: changeFormData.new_password_confirm
     }, {
       onSuccess: () => {
         setSuccessMessage('Password changed successfully!');
-        setChangeFormData({ old_password: '', new_password: '', confirm_password: '' });
+        setChangeFormData({ old_password: '', new_password: '', new_password_confirm: '' });
         setTimeout(() => {
           setSuccessMessage('');
           onClose();
         }, 2000);
       },
       onError: (err) => {
-        setErrors({ non_field_errors: err?.response?.data?.message || err.message || 'Failed to change password' });
+        // Extract field-specific errors from backend structure if available
+        if (err?.error?.details) {
+          const detailErrors = {};
+          Object.entries(err.error.details).forEach(([key, value]) => {
+            detailErrors[key] = Array.isArray(value) ? value[0] : value;
+          });
+          setErrors(detailErrors);
+        } else {
+          setErrors({ non_field_errors: err?.message || err?.error?.message || 'Failed to change password' });
+        }
       }
     });
   };
@@ -180,14 +190,14 @@ const SettingsModal = ({ isOpen, onClose, userEmail }) => {
                   <CheckCircle2 className="absolute left-3 top-2.5 text-gray-400" size={16} />
                   <input
                     type="password"
-                    name="confirm_password"
-                    value={changeFormData.confirm_password}
+                    name="new_password_confirm"
+                    value={changeFormData.new_password_confirm}
                     onChange={handleChangeInput}
-                    className={`w-full pl-10 pr-4 py-2 bg-gray-50 border ${errors.confirm_password ? 'border-red-500' : 'border-gray-200'} rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0052CC] transition-all`}
+                    className={`w-full pl-10 pr-4 py-2 bg-gray-50 border ${errors.new_password_confirm ? 'border-red-500' : 'border-gray-200'} rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0052CC] transition-all`}
                     placeholder="••••••••"
                   />
                 </div>
-                {errors.confirm_password && <p className="text-[10px] text-red-500 font-bold ml-1">{errors.confirm_password}</p>}
+                {errors.new_password_confirm && <p className="text-[10px] text-red-500 font-bold ml-1">{errors.new_password_confirm}</p>}
               </div>
 
               <button
