@@ -37,16 +37,14 @@ const invalidate = (qc, key) =>
 export const useVehicleDocuments = (params) =>
   useQuery({
     queryKey: ['vehicleDocuments', params],
-    queryFn: () => vehicleDocumentsApi.list(params),
-    onError: (e) => toast.error(parseError(e))
+    queryFn: () => vehicleDocumentsApi.list(params)
   })
 
 export const useVehicleDocument = (id) =>
   useQuery({
     queryKey: ['vehicleDocument', id],
     queryFn: () => vehicleDocumentsApi.get(id),
-    enabled: !!id,
-    onError: (e) => toast.error(parseError(e))
+    enabled: !!id
   })
 
 export const useCreateVehicleDocument = () => {
@@ -104,8 +102,7 @@ export const useDeleteVehicleDocument = () => {
 export const useVehicleInsurances = (params) =>
   useQuery({
     queryKey: ['vehicleInsurances', params],
-    queryFn: () => vehicleInsurancesApi.list(params),
-    onError: (e) => toast.error(parseError(e))
+    queryFn: () => vehicleInsurancesApi.list(params)
   })
 
 export const useVehicleInsurance = (id) =>
@@ -429,8 +426,7 @@ export const useDeleteFuelLog = () => {
 export const useVehicleTires = (params) =>
   useQuery({
     queryKey: ['vehicleTires', params],
-    queryFn: () => vehicleTiresApi.list(params),
-    onError: (e) => toast.error(parseError(e))
+    queryFn: () => vehicleTiresApi.list(params)
   })
 
 export const useVehicleTire = (id) =>
@@ -495,8 +491,7 @@ export const useDeleteVehicleTire = () => {
 export const useVehicleAccessories = (params) =>
   useQuery({
     queryKey: ['vehicleAccessories', params],
-    queryFn: () => vehicleAccessoriesApi.list(params),
-    onError: (e) => toast.error(parseError(e))
+    queryFn: () => vehicleAccessoriesApi.list(params)
   })
 
 export const useVehicleAccessory = (id) =>
@@ -513,7 +508,7 @@ export const useCreateVehicleAccessory = () => {
     mutationFn: vehicleAccessoriesApi.create,
 
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['vehicleAccessories'] })
+      invalidate(qc, 'vehicleAccessories')
       toast.success("Accessory created")
     },
 
@@ -528,8 +523,9 @@ export const useUpdateVehicleAccessory = () => {
     mutationFn: ({ id, data }) =>
       vehicleAccessoriesApi.update(id, data),
 
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['vehicleAccessories'] })
+    onSuccess: (_, { id }) => {
+      invalidate(qc, 'vehicleAccessories')
+      qc.invalidateQueries({ queryKey: ['vehicleAccessory', id] })
       toast.success("Accessory updated")
     },
 
@@ -543,8 +539,9 @@ export const useDeleteVehicleAccessory = () => {
   return useMutation({
     mutationFn: vehicleAccessoriesApi.delete,
 
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['vehicleAccessories'] })
+    onSuccess: (_, id) => {
+      invalidate(qc, 'vehicleAccessories')
+      qc.invalidateQueries({ queryKey: ['vehicleAccessory', id] })
       toast.success("Accessory deleted")
     },
 
@@ -561,8 +558,7 @@ export const useDeleteVehicleAccessory = () => {
 export const useVehicleTollTags = (params) =>
   useQuery({
     queryKey: ['vehicleTollTags', params],
-    queryFn: () => vehicleTollTagsApi.list(params),
-    onError: (e) => toast.error(parseError(e))
+    queryFn: () => vehicleTollTagsApi.list(params)
   })
 
 export const useVehicleTollTag = (id) =>
@@ -627,8 +623,7 @@ export const useDeleteVehicleTollTag = () => {
 export const useVehicleOwnership = (params) =>
   useQuery({
     queryKey: ['vehicleOwnership', params],
-    queryFn: () => vehicleOwnershipApi.list(params),
-    onError: (e) => toast.error(parseError(e))
+    queryFn: () => vehicleOwnershipApi.list(params)
   })
 
 export const useVehicleOwnershipItem = (id) =>

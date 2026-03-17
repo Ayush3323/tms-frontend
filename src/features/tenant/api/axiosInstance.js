@@ -1,21 +1,21 @@
 import axios from "axios";
 import {refreshEndpoint} from "./loginEndpoint";
 
-// const axiosInstance = axios.create({
-//     baseURL: "http://192.168.1.34",
-//     headers: {
-//         "Content-Type": "application/json",
-//         "X-Tenant-ID": "3fcf7c96-a1b6-48b8-b5c3-52c8e5c210fd",
-//     },
-// });
-
 const axiosInstance = axios.create({
-    baseURL: "http://192.168.1.36",
+    baseURL: "http://192.168.1.34",
     headers: {
         "Content-Type": "application/json",
-        "X-Tenant-ID": "a5d6ca21-8eff-4986-afb4-f536e6431bce",
+        "X-Tenant-ID": "3fcf7c96-a1b6-48b8-b5c3-52c8e5c210fd",
     },
 });
+
+// const axiosInstance = axios.create({
+//     baseURL: "http://192.168.1.36",
+//     headers: {
+//         "Content-Type": "application/json",
+//         "X-Tenant-ID": "a5d6ca21-8eff-4986-afb4-f536e6431bce",
+//     },
+// });
 
 
 // Request interceptor to attach access token
