@@ -1,3 +1,4 @@
+// Forced rebuild to resolve possible HMR/Caching issues
 import React, { useState } from 'react';
 import {
   Plus, RefreshCw, Loader2, AlertCircle, X,
@@ -9,7 +10,11 @@ import {
   useCreateVehicleType,
   useUpdateVehicleType,
   useDeleteVehicleType,
-} from '../../queries/vehicles/vehicletypeQuery';
+} from '../../../queries/vehicles/vehicletypeQuery';
+import { 
+  Badge, InfoCard, SectionHeader, EmptyState, Modal, DeleteConfirm, ItemActions,
+  Label, Input, Sel, Section, Field, StatCard, Textarea
+} from '../Common/VehicleCommon';
 
 const CATEGORIES = ['Truck', 'LCV', 'HCV', 'Pickup', 'Tanker', 'Bus', 'Trailer', 'Container', 'Other'];
 
@@ -33,33 +38,57 @@ const EMPTY_FORM = {
   is_active:                true,
 };
 
-const Label = ({ children, required }) => (
-  <label className="block text-xs font-bold text-gray-600 mb-1">
-    {children}{required && <span className="text-red-500 ml-0.5">*</span>}
-  </label>
-);
 
-const Input = (props) => (
-  <input {...props}
-    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50
-      focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC]
-      placeholder:text-gray-300 transition-all" />
-);
+// ─── Detail View ─────────────────────────────────────────────────────────────
+const TypeDetailView = ({ data, onClose }) => {
+  const catColor = CATEGORY_COLORS[data.category] ?? CATEGORY_COLORS.Other;
 
-const Sel = ({ children, ...props }) => (
-  <div className="relative">
-    <select {...props}
-      className="w-full appearance-none px-3 pr-8 py-2 text-sm border border-gray-200
-        rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20
-        focus:border-[#0052CC] cursor-pointer transition-all">
-      {children}
-    </select>
-    <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-  </div>
-);
+  return (
+    <div className="space-y-6 text-left">
+      <div className="grid grid-cols-2 gap-6">
+        <div>
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Type Code</p>
+          <p className="text-[14px] font-bold text-[#172B4D] font-mono">{data.type_code}</p>
+        </div>
+        <div>
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Status</p>
+          <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold w-fit
+            ${data.is_active ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-gray-100 text-gray-500 border border-gray-200'}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${data.is_active ? 'bg-green-500' : 'bg-gray-400'}`} />
+            {data.is_active ? 'Active' : 'Inactive'}
+          </span>
+        </div>
+      </div>
 
-// ── Add / Edit Modal ──────────────────────────────────────────────────
-const TypeModal = ({ initial, onClose }) => {
+      <div className="grid grid-cols-2 gap-6">
+        <div>
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Type Name</p>
+          <p className="text-sm font-bold text-[#172B4D]">{data.type_name}</p>
+        </div>
+        <div>
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Category</p>
+          <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold border ${catColor}`}>{data.category}</span>
+        </div>
+      </div>
+
+      <div>
+        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Typical Capacity</p>
+        <span className="flex items-center gap-2 text-sm text-gray-700 font-bold">
+          <Weight size={15} className="text-gray-400" />
+          {data.typical_capacity_tonnage ? `${parseFloat(data.typical_capacity_tonnage)} Tons` : '—'}
+        </span>
+      </div>
+
+      <div className="pt-4 border-t border-gray-100 flex justify-end gap-3">
+        <button onClick={onClose} className="px-4 py-2 text-sm font-bold text-[#0052CC] bg-blue-50 rounded-xl hover:bg-blue-100 transition-all">
+          Close
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const TypeModal = ({ initial, onClose, isView }) => {
   const [form, setForm] = useState(
     initial ? {
       type_code:                initial.type_code                ?? '',
@@ -71,7 +100,7 @@ const TypeModal = ({ initial, onClose }) => {
     } : EMPTY_FORM
   );
 
-  const isEdit    = !!initial?.id;
+  const isEdit = !!initial?.id && !isView;
   const create    = useCreateVehicleType();
   const update    = useUpdateVehicleType();
   const isPending = create.isPending || update.isPending;
@@ -85,110 +114,58 @@ const TypeModal = ({ initial, onClose }) => {
     else        create.mutate(clean, { onSuccess: onClose });
   };
 
-  const canSubmit = form.type_code && form.type_name && form.category && !isPending;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
-
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <div>
-            <h2 className="text-lg font-black text-[#172B4D]">{isEdit ? 'Edit Vehicle Type' : 'Add Vehicle Type'}</h2>
-            <p className="text-xs text-gray-400 mt-0.5">{isEdit ? 'Update type details' : 'Fill in the details below'}</p>
-          </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100"><X size={18} /></button>
-        </div>
-
-        <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div><Label required>Type Code</Label><Input placeholder="e.g. TRUCK_10T" value={form.type_code} onChange={set('type_code')} /></div>
-            <div><Label required>Type Name</Label><Input placeholder="e.g. 10 Ton Truck" value={form.type_name} onChange={set('type_name')} /></div>
-          </div>
-
-          <div>
-            <Label required>Category</Label>
-            <Sel value={form.category} onChange={set('category')}>
-              <option value="">Select category</option>
-              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-            </Sel>
-          </div>
-
-          <div>
-            <Label>Typical Capacity (Tonnage)</Label>
-            <Input type="number" step="0.01" placeholder="e.g. 10"
-              value={form.typical_capacity_tonnage} onChange={set('typical_capacity_tonnage')} />
-          </div>
-
-          {/* Active toggle */}
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
-            <div>
-              <p className="text-sm font-semibold text-gray-700">Active Status</p>
-              <p className="text-xs text-gray-400">Inactive types won't appear in vehicle creation</p>
+    <Modal 
+      title={isView ? 'Type Details' : isEdit ? 'Edit Vehicle Type' : 'Add Vehicle Type'}
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      submitting={isPending}
+      isView={isView}
+      maxWidth="max-w-md"
+    >
+      <div className="space-y-4">
+        {isView ? (
+          <TypeDetailView data={initial} onClose={onClose} />
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Type Code" required><Input placeholder="e.g. TRUCK_10T" value={form.type_code} onChange={set('type_code')} /></Field>
+              <Field label="Type Name" required><Input placeholder="e.g. 10 Ton Truck" value={form.type_name} onChange={set('type_name')} /></Field>
             </div>
-            <button onClick={() => setForm(p => ({ ...p, is_active: !p.is_active }))}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
-                form.is_active
-                  ? 'bg-green-50 text-green-600 border-green-200'
-                  : 'bg-gray-100 text-gray-400 border-gray-200'
-              }`}>
-              {form.is_active ? <><ToggleRight size={16} /> Active</> : <><ToggleLeft size={16} /> Inactive</>}
-            </button>
-          </div>
-        </div>
 
-        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-end gap-3 bg-gray-50/50">
-          <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-          <button onClick={handleSubmit} disabled={!canSubmit}
-            className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
-            {isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Plus size={14} /> {isEdit ? 'Update Type' : 'Add Type'}</>}
-          </button>
-        </div>
+            <Field label="Category" required>
+              <Sel value={form.category} onChange={set('category')}>
+                <option value="">Select category</option>
+                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </Sel>
+            </Field>
+
+            <Field label="Typical Capacity (Tonnage)">
+              <Input type="number" step="0.01" placeholder="e.g. 10"
+                value={form.typical_capacity_tonnage} onChange={set('typical_capacity_tonnage')} />
+            </Field>
+
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+              <div>
+                <p className="text-sm font-semibold text-gray-700">Active Status</p>
+                <p className="text-xs text-gray-400">Inactive types won't appear in vehicle creation</p>
+              </div>
+              <button onClick={() => setForm(p => ({ ...p, is_active: !p.is_active }))}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                  form.is_active
+                    ? 'bg-green-50 text-green-600 border-green-200'
+                    : 'bg-gray-100 text-gray-400 border-gray-200'
+                }`}>
+                {form.is_active ? <><ToggleRight size={16} /> Active</> : <><ToggleLeft size={16} /> Inactive</>}
+              </button>
+            </div>
+          </>
+        )}
       </div>
-    </div>
+    </Modal>
   );
 };
 
-// ── Delete Modal ──────────────────────────────────────────────────────
-const DeleteModal = ({ type, onClose }) => {
-  const del = useDeleteVehicleType();
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-4">
-        <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center mx-auto">
-          <Trash2 size={22} className="text-red-500" />
-        </div>
-        <div className="text-center">
-          <h2 className="text-base font-black text-[#172B4D]">Delete Vehicle Type?</h2>
-          <p className="text-sm text-gray-400 mt-1">
-            <span className="font-semibold text-gray-700">{type.type_name}</span> ({type.type_code}) will be permanently deleted.
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-          <button onClick={() => del.mutate(type.id, { onSuccess: onClose })} disabled={del.isPending}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-bold text-white bg-red-500 rounded-lg hover:bg-red-600 disabled:opacity-50">
-            {del.isPending ? <><Loader2 size={14} className="animate-spin" /> Deleting...</> : <><Trash2 size={14} /> Delete</>}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ── Stat Card ─────────────────────────────────────────────────────────
-const StatCard = ({ label, value, icon: Icon, color, loading }) => (
-  <div className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-2">
-    <div className="flex items-center justify-between">
-      <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{label}</span>
-      <span className={`w-8 h-8 rounded-lg flex items-center justify-center ${color.iconBg}`}>
-        <Icon size={15} className={color.iconText} />
-      </span>
-    </div>
-    {loading ? <div className="h-9 w-12 bg-gray-100 rounded animate-pulse" /> : <span className={`text-3xl font-black ${color.value}`}>{value}</span>}
-  </div>
-);
 
 // ── Main Page ─────────────────────────────────────────────────────────
 const VehicleTypes = () => {
@@ -196,7 +173,10 @@ const VehicleTypes = () => {
   const [catFilter, setCat]       = useState('');
   const [activeFilter, setActive] = useState('');
   const [modal, setModal]         = useState(null);
-  const [deleteTarget, setDelete] = useState(null);
+  const [viewModal, setViewModal]     = useState(null);
+  const [deleteTarget, setDelete]     = useState(null);
+
+  const del = useDeleteVehicleType();
 
   const { data, isLoading, isError, error, refetch } = useVehicleTypes({
     ...(catFilter    && { category: catFilter }),
@@ -216,7 +196,14 @@ const VehicleTypes = () => {
       {(modal === 'add' || (modal && modal !== 'add')) && (
         <TypeModal initial={modal === 'add' ? null : modal} onClose={() => setModal(null)} />
       )}
-      {deleteTarget && <DeleteModal type={deleteTarget} onClose={() => setDelete(null)} />}
+      {viewModal && (
+        <TypeModal initial={viewModal} isView onClose={() => setViewModal(null)} />
+      )}
+      {deleteTarget && (
+        <DeleteConfirm label="Vehicle Type" onClose={() => setDelete(null)}
+          onConfirm={() => del.mutate(deleteTarget.id, { onSuccess: () => setDelete(null) })}
+          deleting={del.isPending} />
+      )}
 
       {/* Header */}
       <div className="flex items-start justify-between">
@@ -238,10 +225,10 @@ const VehicleTypes = () => {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-4 gap-4">
-        <StatCard loading={isLoading} label="Total Types" value={total}    icon={Truck}       color={{ value: 'text-[#172B4D]', iconBg: 'bg-blue-50',   iconText: 'text-blue-500' }} />
-        <StatCard loading={isLoading} label="Active"      value={active}   icon={ToggleRight} color={{ value: 'text-green-600',  iconBg: 'bg-green-50',  iconText: 'text-green-500' }} />
-        <StatCard loading={isLoading} label="Inactive"    value={inactive} icon={ToggleLeft}  color={{ value: 'text-gray-500',   iconBg: 'bg-gray-100',  iconText: 'text-gray-400' }} />
-        <StatCard loading={isLoading} label="Categories"  value={cats}     icon={Package}     color={{ value: 'text-purple-600', iconBg: 'bg-purple-50', iconText: 'text-purple-500' }} />
+        <StatCard loading={isLoading} label="Total Types" value={total}    icon={Truck}       color="blue" />
+        <StatCard loading={isLoading} label="Active"      value={active}   icon={ToggleRight} color="green" />
+        <StatCard loading={isLoading} label="Inactive"    value={inactive} icon={ToggleLeft}  color="gray" />
+        <StatCard loading={isLoading} label="Categories"  value={cats}     icon={Package}     color="purple" />
       </div>
 
       {/* Table Card */}
@@ -313,9 +300,12 @@ const VehicleTypes = () => {
                   const catColor = CATEGORY_COLORS[t.category] ?? CATEGORY_COLORS.Other;
                   return (
                     <tr key={t.id} className="hover:bg-blue-50/30 transition-colors">
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span className="font-bold text-[#172B4D] font-mono text-[13px]">{t.type_code}</span>
-                      </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-left">
+                      <button onClick={() => setViewModal(t)}
+                        className="font-bold text-[#172B4D] font-mono text-[13px] hover:text-[#0052CC] transition-all hover:scale-105 active:scale-95 text-left">
+                        {t.type_code}
+                      </button>
+                    </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span className="font-semibold text-gray-800">{t.type_name}</span>
                       </td>

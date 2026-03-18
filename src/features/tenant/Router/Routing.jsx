@@ -5,23 +5,23 @@ import TenantDashboard from "../pages/TenantDashboard";
 import { ProtectedRoute, PublicRoute } from "../Router/AuthGuards";
 import Userdetail from '../components/user/Userdetail'
 import UserProfile from '../components/user/UserProfile'
-import Vehicles from '../components/Vehicles/Vehicles'
-import VehicleDetail from '../components/Vehicles/VehicleDetail';
-import VehicleTypes from '../components/Vehicles/VehiclesType';
-import VehiclesDocument from '../components/Vehicles/VehiclesDocument';
-import VehicleInsurance from '../components/Vehicles/vehiclesInsurance';
-import MaintenanceSchedules from '../components/Vehicles/VehiclesMaintenanceSchedules'
-import VehicleInspections from '../components/Vehicles/VehicleInspection';
-import TiresDashboard from '../components/Vehicles/VehicleTire';
+import Vehicles from '../components/Vehicles/List/VehiclesList'
+import VehicleDetail from '../components/Vehicles/Details/VehicleDetail';
+import VehicleTypes from '../components/Vehicles/Features/VehicleTypes';
+import VehiclesDocument from '../components/Vehicles/Features/Documents';
+import VehicleInsurance from '../components/Vehicles/Features/Insurance';
+import MaintenanceSchedules from '../components/Vehicles/Features/Maintenance'
+import VehicleInspections from '../components/Vehicles/Features/Inspections';
+import TiresDashboard from '../components/Vehicles/Features/Tires';
 import DriversList from '../components/Drivers/DriversList'
 import DriverDetail from '../components/Drivers/detail/DriverDetail'
 import Roles from '../components/user/Roles'
 import Permission from '../components/user/Permission'
 import Activities from '../components/user/Activities'
 import Session from '../components/user/Session'
-import AccessoriesDashboard from '../components/Vehicles/VehicleAccessories';
-import VehicleTollTagsDashboard from '../components/Vehicles/VehicleTollTags';
-import VehicleOwnershipDashboard from '../components/Vehicles/VehicleOwnership';
+import AccessoriesDashboard from '../components/Vehicles/Features/Accessories';
+import VehicleTollTagsDashboard from '../components/Vehicles/Features/TollTags';
+import VehicleOwnershipDashboard from '../components/Vehicles/Features/Ownership';
 
 const Routing = () => {
   return (
