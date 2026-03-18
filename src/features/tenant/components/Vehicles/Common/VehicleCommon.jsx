@@ -1,0 +1,380 @@
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  X, Plus, Loader2, ChevronDown,
+  Trash2, Save, Info, AlertCircle, Search
+} from 'lucide-react';
+import { useVehicles } from '../../../queries/vehicles/vehicleQuery';
+import { useVehicleTypes } from '../../../queries/vehicles/vehicletypeQuery';
+
+// ── Generic Badge ─────────────────────────────────────────────────────
+export const Badge = ({ children, className = '' }) => (
+  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${className}`}>
+    {children}
+  </span>
+);
+
+// ── Style Maps ────────────────────────────────────────────────────────
+export const FUEL_COLORS = {
+  DIESEL:   'bg-orange-50 text-orange-700 border border-orange-200',
+  PETROL:   'bg-sky-50 text-sky-700 border border-sky-200',
+  CNG:      'bg-emerald-50 text-emerald-700 border border-emerald-200',
+  LPG:      'bg-yellow-50 text-yellow-700 border border-yellow-200',
+  ELECTRIC: 'bg-teal-50 text-teal-700 border border-teal-200',
+  HYBRID:   'bg-purple-50 text-purple-700 border border-purple-200',
+};
+
+export const STATUS_STYLES = {
+  ACTIVE:      { dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50 border border-emerald-200' },
+  MAINTENANCE: { dot: 'bg-orange-500', text: 'text-orange-700', bg: 'bg-orange-50 border border-orange-200' },
+  RETIRED:     { dot: 'bg-red-500',    text: 'text-red-700',    bg: 'bg-red-50 border border-red-200' },
+  SOLD:        { dot: 'bg-gray-400',   text: 'text-gray-600',   bg: 'bg-gray-50 border border-gray-200' },
+  SCRAPPED:    { dot: 'bg-gray-500',   text: 'text-gray-600',   bg: 'bg-gray-100 border border-gray-200' },
+};
+
+export const OWNERSHIP_COLORS = {
+  OWNED:  'bg-blue-50 text-blue-600 border border-blue-200',
+  LEASED: 'bg-purple-50 text-purple-600 border border-purple-200',
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────
+export const fmtDate = (iso) => {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleDateString('en-IN', { 
+      year: 'numeric', month: 'short', day: '2-digit' 
+    });
+  } catch (e) { return iso; }
+};
+
+export const fmtKm = (n) => 
+  n != null ? `${Number(n).toLocaleString('en-IN')} km` : '—';
+
+export const fmtINR = (n, decimals = 0) => 
+  n != null ? `₹${Number(n).toLocaleString('en-IN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}` : '—';
+
+export const driverName = (d) => {
+  if (!d) return '—';
+  if (typeof d === 'object') {
+    return d.full_name ?? d.name ?? d.user?.full_name ?? d.user?.name ?? 'Driver Assigned';
+  }
+  return d;
+};
+
+// ── Generic Badge ─────────────────────────────────────────────────────
+export const StatCard = ({ label, value, icon: Icon, color, loading }) => (
+  <div className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-2 shadow-sm hover:shadow-md transition-all">
+    <div className="flex items-center justify-between">
+      <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{label}</span>
+      <span className={`w-8 h-8 rounded-lg flex items-center justify-center ${color?.iconBg || 'bg-gray-50'}`}>
+        {Icon && <Icon size={15} className={color?.iconText || 'text-gray-400'} />}
+      </span>
+    </div>
+    {loading
+      ? <div className="h-9 w-12 bg-gray-100 rounded animate-pulse" />
+      : <span className={`text-3xl font-black ${color?.value || 'text-[#172B4D]'}`}>{value}</span>
+    }
+  </div>
+);
+
+// ── Info Card (for details view) ──────────────────────────────────────
+export const InfoCard = ({ label, value, icon: Icon, accent }) => (
+  <div className={`rounded-xl border p-4 flex flex-col gap-1.5 transition-all hover:shadow-sm
+    ${accent ? 'bg-[#0052CC]/5 border-[#0052CC]/20' : 'bg-white border-gray-100 hover:border-[#0052CC]/20'}`}>
+    <div className="flex items-center justify-between">
+      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{label}</span>
+      {Icon && <Icon size={13} className={accent ? 'text-[#0052CC]/40' : 'text-gray-200'} />}
+    </div>
+    <span className={`text-sm font-bold truncate ${accent ? 'text-[#0052CC]' : 'text-[#172B4D]'}`}>
+      {value ?? <span className="text-gray-300 font-normal">—</span>}
+    </span>
+  </div>
+);
+
+// ── Section Header (for tabs/subsections) ─────────────────────────────
+export const SectionHeader = ({ icon: Icon, title, count, onAdd, addLabel = 'Add' }) => (
+  <div className="flex items-center gap-2 mb-4">
+    <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center">
+      {Icon && <Icon size={14} className="text-gray-500" />}
+    </div>
+    <h3 className="text-sm font-black text-[#172B4D] uppercase tracking-wide">{title}</h3>
+    {count != null && (
+      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">{count}</span>
+    )}
+    {onAdd && (
+      <button onClick={onAdd}
+        className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all shadow-sm">
+        <Plus size={12} /> {addLabel}
+      </button>
+    )}
+  </div>
+);
+
+// ── Empty State ─────────────────────────────────────────────────────
+export const EmptyState = ({ icon: Icon, text, onAdd, addLabel }) => (
+  <div className="flex flex-col items-center justify-center py-16 gap-3">
+    <div className="w-14 h-14 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-300">
+      {Icon && <Icon size={24} />}
+    </div>
+    <p className="text-sm font-semibold text-gray-400">{text}</p>
+    {onAdd && (
+      <button onClick={onAdd}
+        className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-xl hover:bg-[#0043A8] transition-all mt-1">
+        <Plus size={14} /> {addLabel ?? 'Add New'}
+      </button>
+    )}
+  </div>
+);
+
+// ── Form Components ──────────────────────────────────────────────────
+export const Label = ({ children, required }) => (
+  <label className="block text-xs font-bold text-gray-600 mb-1">
+    {children}{required && <span className="text-red-500 ml-0.5">*</span>}
+  </label>
+);
+
+export const Input = ({ className = '', ...props }) => (
+  <input {...props}
+    className={`w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50
+      focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC]
+      placeholder:text-gray-300 transition-all ${className}`} />
+);
+
+export const Sel = ({ children, className = '', ...props }) => (
+  <div className="relative">
+    <select {...props}
+      className={`w-full appearance-none px-3 pr-8 py-2 text-sm border border-gray-200
+        rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20
+        focus:border-[#0052CC] cursor-pointer transition-all ${className}`}>
+      {children}
+    </select>
+    <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+  </div>
+);
+
+export const Section = ({ title, className = '' }) => (
+  <p className={`text-[11px] font-bold text-gray-400 uppercase tracking-widest pt-1 ${className}`}>{title}</p>
+);
+
+export const Textarea = ({ className = '', ...props }) => (
+  <textarea {...props} rows={props.rows || 3}
+    className={`w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50
+      focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC]
+      placeholder:text-gray-300 transition-all ${className}`} />
+);
+
+export const Field = ({ label, required, children, className = '' }) => (
+  <div className={`flex flex-col gap-1.5 ${className}`}>
+    {label && (
+      <label className="text-[11px] font-black text-gray-500 uppercase tracking-widest">
+        {label}{required && <span className="text-red-400 ml-0.5">*</span>}
+      </label>
+    )}
+    {children}
+  </div>
+);
+
+// ── Modal Component ──────────────────────────────────────────────────
+export const Modal = ({ title, onClose, onSubmit, submitting, isView, children, maxWidth = 'max-w-lg' }) => (
+  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+    <div className={`relative bg-white rounded-2xl shadow-2xl w-full ${maxWidth} max-h-[90vh] flex flex-col overflow-hidden`}>
+      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 text-left">
+        <h2 className="text-base font-black text-[#172B4D]">{title}</h2>
+        <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors">
+          <X size={16} className="text-gray-500" />
+        </button>
+      </div>
+      <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4 text-left">{children}</div>
+      {!isView && (
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/50">
+          <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all">
+            Cancel
+          </button>
+          <button onClick={onSubmit} disabled={submitting}
+            className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-xl hover:bg-[#0043A8] transition-all disabled:opacity-50 shadow-sm shadow-blue-200">
+            {submitting ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+            Save
+          </button>
+        </div>
+      )}
+    </div>
+  </div>
+);
+
+// ── Delete Confirmation ──────────────────────────────────────────────
+export const DeleteConfirm = ({ title, label, message, onClose, onConfirm, deleting }) => {
+  const displayTitle = title || (label ? `Delete ${label}?` : "Are you sure?");
+  const displayMessage = message || "This action cannot be undone.";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-4 text-left">
+        <div className="w-12 h-12 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center">
+          <Trash2 size={20} className="text-red-500" />
+        </div>
+        <div>
+          <h2 className="text-base font-black text-[#172B4D]">{displayTitle}</h2>
+          <p className="text-sm text-gray-400 mt-1">{displayMessage}</p>
+        </div>
+        <div className="flex gap-3">
+          <button onClick={onClose} className="flex-1 px-4 py-2 text-sm font-semibold border border-gray-200 rounded-xl hover:bg-gray-50 transition-all">Cancel</button>
+          <button onClick={onConfirm} disabled={deleting}
+            className="flex-1 px-4 py-2 text-sm font-bold text-white bg-red-500 rounded-xl hover:bg-red-600 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+            {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Item Actions (Edit/Delete) ────────────────────────────────────────
+export const ItemActions = ({ onEdit, onDelete, editLabel = "Edit", deleteLabel = "Delete" }) => (
+  <div className="flex items-center gap-2">
+    {onEdit && (
+      <button onClick={onEdit}
+        className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-[#0052CC] bg-blue-50 border border-blue-100 rounded-lg hover:bg-blue-100 transition-all">
+        <Loader2 size={11} className="hidden" /> {/* Spacer/Placeholder if needed */}
+        {editLabel}
+      </button>
+    )}
+    {onDelete && (
+      <button onClick={onDelete}
+        className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 border border-red-100 rounded-lg hover:bg-red-100 transition-all">
+        {deleteLabel}
+      </button>
+    )}
+  </div>
+);
+
+// ── Vehicle Searchable Dropdown ───────────────────────────────────────
+export const VehicleSelect = ({ value, onChange }) => {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  const { data: vData, isLoading } = useVehicles({}, { enabled: open });
+  const allVehicles = vData?.results ?? vData ?? [];
+  const vehicles = query
+    ? allVehicles.filter(v =>
+      v.registration_number?.toLowerCase().includes(query.toLowerCase()) ||
+      v.make?.toLowerCase().includes(query.toLowerCase())
+    )
+    : allVehicles;
+
+  useEffect(() => {
+    const fn = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', fn);
+    return () => document.removeEventListener('mousedown', fn);
+  }, []);
+
+  const selected = allVehicles.find(v => v.id === value);
+
+  return (
+    <div className="relative" ref={ref}>
+      <div onClick={() => setOpen(o => !o)}
+        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50
+          cursor-pointer flex items-center justify-between gap-2 transition-all hover:border-[#0052CC]/40">
+        <span className={`font-mono truncate ${selected ? 'text-[#172B4D] font-bold' : 'text-gray-300'}`}>
+          {selected ? `${selected.registration_number} — ${selected.make ?? ''} ${selected.model ?? ''}`.trim() : 'Select vehicle...'}
+        </span>
+        <ChevronDown size={13} className={`text-gray-400 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </div>
+
+      {open && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+          <div className="p-2 border-b border-gray-100">
+            <div className="relative">
+              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input autoFocus value={query} onChange={e => setQuery(e.target.value)}
+                placeholder="Search reg number..."
+                className="w-full pl-7 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-gray-50
+                  focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC]" />
+            </div>
+          </div>
+          <ul className="max-h-48 overflow-y-auto divide-y divide-gray-50">
+            {isLoading && (
+              <li className="px-4 py-3 flex items-center gap-2 text-xs text-gray-400">
+                <Loader2 size={12} className="animate-spin text-[#0052CC]" /> Loading...
+              </li>
+            )}
+            {!isLoading && vehicles.length === 0 && (
+              <li className="px-4 py-3 text-xs text-gray-400 text-center">No vehicles found</li>
+            )}
+            {vehicles.map(v => (
+              <li key={v.id}
+                onClick={() => { onChange(v.id); setOpen(false); setQuery(''); }}
+                className={`px-4 py-2.5 cursor-pointer hover:bg-blue-50 transition-colors
+                  flex items-center justify-between gap-2 ${v.id === value ? 'bg-blue-50' : ''}`}>
+                <span className="font-mono font-bold text-[#172B4D] text-sm">{v.registration_number}</span>
+                <span className="text-xs text-gray-400">{v.make} {v.model}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── Vehicle Type Searchable Dropdown ──────────────────────────────────
+export const VehicleTypeSelect = ({ value, onChange }) => {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  const { data: vtData, isLoading } = useVehicleTypes({}, { enabled: open });
+  const allTypes = vtData?.results ?? vtData ?? [];
+  const types = query
+    ? allTypes.filter(t => (t.type_name ?? t.name)?.toLowerCase().includes(query.toLowerCase()))
+    : allTypes;
+
+  useEffect(() => {
+    const fn = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', fn);
+    return () => document.removeEventListener('mousedown', fn);
+  }, []);
+
+  const selected = allTypes.find(t => t.id === value);
+
+  return (
+    <div className="relative" ref={ref}>
+      <div onClick={() => setOpen(o => !o)}
+        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50
+          cursor-pointer flex items-center justify-between gap-2 transition-all hover:border-[#0052CC]/40">
+        <span className={`truncate ${selected ? 'text-[#172B4D] font-semibold' : 'text-gray-300'}`}>
+          {selected ? (selected.type_name ?? selected.name) : 'Select vehicle type...'}
+        </span>
+        <ChevronDown size={13} className={`text-gray-400 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </div>
+      {open && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+          <div className="p-2 border-b border-gray-100">
+            <div className="relative">
+              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input autoFocus value={query} onChange={e => setQuery(e.target.value)}
+                placeholder="Search type name..."
+                className="w-full pl-7 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-gray-50
+                  focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC]" />
+            </div>
+          </div>
+          <ul className="max-h-48 overflow-y-auto divide-y divide-gray-50">
+            {isLoading && <li className="px-4 py-3 flex items-center gap-2 text-xs text-gray-400"><Loader2 size={12} className="animate-spin text-[#0052CC]" /> Loading...</li>}
+            {!isLoading && types.length === 0 && <li className="px-4 py-3 text-xs text-gray-400 text-center">No types found</li>}
+            {types.map(t => (
+              <li key={t.id}
+                onClick={() => { onChange(t.id); setOpen(false); setQuery(''); }}
+                className={`px-4 py-2.5 cursor-pointer hover:bg-blue-50 transition-colors
+                  flex items-center justify-between gap-2 ${t.id === value ? 'bg-blue-50' : ''}`}>
+                <span className="font-semibold text-[#172B4D] text-sm">{t.type_name ?? t.name}</span>
+                {t.category && <span className="text-[10px] text-gray-400 uppercase tracking-widest">{t.category}</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};

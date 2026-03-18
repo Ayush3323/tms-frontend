@@ -9,23 +9,23 @@ const parseError = (error) =>
 
 // ─────────────── GET ALL VEHICLES ───────────────
 
-export const useVehicles = (params) =>
+export const useVehicles = (params, options = {}) =>
   useQuery({
     queryKey: ['vehicles', params],
     queryFn: () => vehiclesApi.list(params),
-
+    ...options,
     onError: (error) => toast.error(parseError(error))
   })
 
 
 // ─────────────── GET SINGLE VEHICLE ───────────────
 
-export const useVehicle = (id) =>
+export const useVehicle = (id, options = {}) =>
   useQuery({
     queryKey: ['vehicle', id],
     queryFn: () => vehiclesApi.get(id),
-    enabled: !!id,
-
+    ...options,
+    enabled: (options.enabled !== undefined ? options.enabled : true) && !!id,
     onError: (error) => toast.error(parseError(error))
   })
 
@@ -87,35 +87,35 @@ export const useDeleteVehicle = () => {
 
 // ─────────────── VEHICLE DOCUMENTS ───────────────
 
-export const useVehicleDocuments = (id) =>
+export const useVehicleDocuments = (id, options = {}) =>
   useQuery({
     queryKey: ['vehicleDocuments', id],
     queryFn: () => vehiclesApi.getDocuments(id),
-    enabled: !!id,
-
+    ...options,
+    enabled: (options.enabled !== undefined ? options.enabled : true) && !!id,
     onError: (error) => toast.error(parseError(error))
   })
 
 
 // ─────────────── VEHICLE MAINTENANCE ───────────────
 
-export const useVehicleMaintenance = (id) =>
+export const useVehicleMaintenance = (id, options = {}) =>
   useQuery({
     queryKey: ['vehicleMaintenance', id],
     queryFn: () => vehiclesApi.getMaintenance(id),
-    enabled: !!id,
-
+    ...options,
+    enabled: (options.enabled !== undefined ? options.enabled : true) && !!id,
     onError: (error) => toast.error(parseError(error))
   })
 
 
 // ─────────────── VEHICLE FUEL LOGS ───────────────
 
-export const useVehicleFuelLogs = (id) =>
+export const useVehicleFuelLogs = (id, options = {}) =>
   useQuery({
     queryKey: ['vehicleFuelLogs', id],
     queryFn: () => vehiclesApi.getFuelLogs(id),
-    enabled: !!id,
-
+    ...options,
+    enabled: (options.enabled !== undefined ? options.enabled : true) && !!id,
     onError: (error) => toast.error(parseError(error))
   })
