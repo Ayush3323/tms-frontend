@@ -10,274 +10,215 @@ import {
   useUpdateVehicleDocument,
   useDeleteVehicleDocument,
 } from '../../queries/vehicles/vehicleInfoQuery';
-import { useVehicles } from '../../queries/vehicles/vehicleQuery';
+import {
+  Badge, InfoCard, SectionHeader, EmptyState, Modal, DeleteConfirm, ItemActions,
+  Label, Input, Sel, Section, Field, StatCard, Textarea, VehicleSelect
+} from './VehicleCommon';
 
 // ── Constants ─────────────────────────────────────────────────────────
 const DOC_TYPES = ['RC', 'INSURANCE', 'PUC', 'FITNESS', 'PERMIT', 'TAX'];
 
 const DOC_TYPE_COLORS = {
-  RC:        'bg-blue-50 text-blue-600 border-blue-200',
+  RC: 'bg-blue-50 text-blue-600 border-blue-200',
   INSURANCE: 'bg-purple-50 text-purple-600 border-purple-200',
-  PUC:       'bg-green-50 text-green-600 border-green-200',
-  FITNESS:   'bg-orange-50 text-orange-600 border-orange-200',
-  PERMIT:    'bg-teal-50 text-teal-600 border-teal-200',
-  TAX:       'bg-pink-50 text-pink-600 border-pink-200',
+  PUC: 'bg-green-50 text-green-600 border-green-200',
+  FITNESS: 'bg-orange-50 text-orange-600 border-orange-200',
+  PERMIT: 'bg-teal-50 text-teal-600 border-teal-200',
+  TAX: 'bg-pink-50 text-pink-600 border-pink-200',
 };
 
 // API returns status: VALID | EXPIRED | EXPIRING_SOON
 const STATUS_STYLES = {
-  VALID:         { label: 'Valid',    color: 'bg-green-50 text-green-600 border-green-200',   dot: 'bg-green-500' },
-  EXPIRED:       { label: 'Expired',  color: 'bg-red-50 text-red-600 border-red-200',         dot: 'bg-red-500' },
+  VALID: { label: 'Valid', color: 'bg-green-50 text-green-600 border-green-200', dot: 'bg-green-500' },
+  EXPIRED: { label: 'Expired', color: 'bg-red-50 text-red-600 border-red-200', dot: 'bg-red-500' },
   EXPIRING_SOON: { label: 'Expiring', color: 'bg-orange-50 text-orange-600 border-orange-200', dot: 'bg-orange-500' },
 };
 
 const EMPTY_FORM = {
-  vehicle:           '',
-  document_type:     '',
-  document_number:   '',
-  issue_date:        '',
-  expiry_date:       '',
+  vehicle: '',
+  document_type: '',
+  document_number: '',
+  issue_date: '',
+  expiry_date: '',
   issuing_authority: '',
-  notes:             '',
+  notes: '',
 };
 
 // ── Field components ──────────────────────────────────────────────────
-const Label = ({ children, required }) => (
-  <label className="block text-xs font-bold text-gray-600 mb-1">
-    {children}{required && <span className="text-red-500 ml-0.5">*</span>}
-  </label>
-);
-
-const Input = (props) => (
-  <input {...props}
-    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50
-      focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC]
-      placeholder:text-gray-300 transition-all" />
-);
-
-const Sel = ({ children, ...props }) => (
-  <div className="relative">
-    <select {...props}
-      className="w-full appearance-none px-3 pr-8 py-2 text-sm border border-gray-200
-        rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20
-        focus:border-[#0052CC] cursor-pointer transition-all">
-      {children}
-    </select>
-    <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-  </div>
-);
 
 // ── Vehicle Searchable Dropdown ───────────────────────────────────────
-const VehicleSelect = ({ value, onChange }) => {
-  const [query, setQuery] = useState('');
-  const [open, setOpen]   = useState(false);
-  const ref               = useRef(null);
+// ──────────────────────────────────────────────────────────────────────
 
-  const { data: vData, isLoading } = useVehicles();
-  const allVehicles = vData?.results ?? vData ?? [];
-  const vehicles = query
-    ? allVehicles.filter(v =>
-        v.registration_number?.toLowerCase().includes(query.toLowerCase()) ||
-        v.make?.toLowerCase().includes(query.toLowerCase()))
-    : allVehicles;
-
-  useEffect(() => {
-    const fn = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', fn);
-    return () => document.removeEventListener('mousedown', fn);
-  }, []);
-
-  // Find selected vehicle by id (works even if value is just a UUID string)
-  const selected = allVehicles.find(v => v.id === value);
-
+// ─── Detail View ─────────────────────────────────────────────────────────────
+const DocDetailView = ({ data, onClose }) => {
+  const st = STATUS_STYLES[data.status] ?? STATUS_STYLES.VALID;
   return (
-    <div className="relative" ref={ref}>
-      <div onClick={() => setOpen(o => !o)}
-        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50
-          cursor-pointer flex items-center justify-between gap-2 hover:border-[#0052CC]/40 transition-all">
-        <span className={`font-mono truncate ${selected ? 'text-[#172B4D] font-bold' : 'text-gray-300'}`}>
-          {selected ? `${selected.registration_number} — ${selected.make ?? ''} ${selected.model ?? ''}`.trim() : 'Select vehicle...'}
-        </span>
-        <ChevronDown size={13} className={`text-gray-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
-      </div>
-      {open && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
-          <div className="p-2 border-b border-gray-100">
-            <div className="relative">
-              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder="Search reg number..."
-                className="w-full pl-7 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none" />
-            </div>
-          </div>
-          <ul className="max-h-48 overflow-y-auto divide-y divide-gray-50">
-            {isLoading && <li className="px-4 py-3 text-xs text-gray-400 flex items-center gap-2"><Loader2 size={12} className="animate-spin" /> Loading...</li>}
-            {!isLoading && vehicles.length === 0 && <li className="px-4 py-3 text-xs text-gray-400 text-center">No vehicles found</li>}
-            {vehicles.map(v => (
-              <li key={v.id} onClick={() => { onChange(v.id); setOpen(false); setQuery(''); }}
-                className={`px-4 py-2.5 cursor-pointer hover:bg-blue-50 flex items-center justify-between gap-2 ${v.id === value ? 'bg-blue-50' : ''}`}>
-                <span className="font-mono font-bold text-[#172B4D] text-sm">{v.registration_number}</span>
-                <span className="text-xs text-gray-400">{v.make} {v.model}</span>
-              </li>
-            ))}
-          </ul>
+    <div className="space-y-6 text-left">
+      <div className="grid grid-cols-2 gap-6">
+        <div>
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Document Type</p>
+          <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold border ${DOC_TYPE_COLORS[data.document_type] ?? 'bg-gray-50 text-gray-600 border-gray-200'}`}>
+            {data.document_type}
+          </span>
+          {data.document_type_display && (
+            <div className="text-[11px] text-gray-400 mt-0.5">{data.document_type_display}</div>
+          )}
         </div>
-      )}
+        <div>
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Status</p>
+          <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold w-fit border ${st.color}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
+            {st.label}
+          </span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-6">
+        <div>
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Vehicle</p>
+          <p className="text-sm font-bold text-[#172B4D] font-mono">
+            {data.vehicle_registration ?? data.vehicle?.registration_number ?? '—'}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Document Number</p>
+          <p className="text-sm font-black text-[#172B4D] font-mono">{data.document_number || '—'}</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-6">
+        <div>
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Issue Date</p>
+          <p className="text-sm text-gray-600 font-semibold">{data.issue_date || '—'}</p>
+        </div>
+        <div>
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Expiry Date</p>
+          <p className="text-sm text-gray-600 font-semibold">{data.expiry_date || '—'}</p>
+        </div>
+      </div>
+
+      <div>
+        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Issuing Authority</p>
+        <p className="text-sm text-gray-600 font-medium">{data.issuing_authority || '—'}</p>
+      </div>
+
+      <div>
+        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Notes</p>
+        <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 min-h-[80px]">
+          <p className="text-sm text-gray-600 whitespace-pre-wrap">{data.notes || 'No extra notes provided.'}</p>
+        </div>
+      </div>
+
+      <div className="pt-4 border-t border-gray-100 flex justify-end gap-3">
+        <button onClick={onClose} className="px-4 py-2 text-sm font-bold text-[#0052CC] bg-blue-50 rounded-xl hover:bg-blue-100 transition-all">
+          Close
+        </button>
+      </div>
     </div>
   );
 };
 
 // ── Add / Edit Modal ──────────────────────────────────────────────────
-const DocModal = ({ initial, onClose }) => {
-  const isEdit = !!initial?.id;
-
-  // Fetch vehicles to resolve UUID → registration_number for pre-fill
-  const { data: vData } = useVehicles();
-  const allVehicles = vData?.results ?? vData ?? [];
+const DocModal = ({ initial, onClose, isView }) => {
+  const isEdit = !!initial?.id && !isView;
 
   // Resolve vehicle id from initial — could be UUID string or object
   const resolveVehicleId = () => {
     if (!initial?.vehicle) return '';
     if (typeof initial.vehicle === 'object') return initial.vehicle?.id ?? '';
-    // It's a UUID string — return as-is
     return initial.vehicle;
   };
 
   const [form, setForm] = useState(
     initial ? {
-      vehicle:           resolveVehicleId(),
-      document_type:     initial.document_type     ?? '',
-      document_number:   initial.document_number   ?? '',
-      issue_date:        initial.issue_date        ?? '',
-      expiry_date:       initial.expiry_date       ?? '',
+      vehicle: resolveVehicleId(),
+      document_type: initial.document_type ?? '',
+      document_number: initial.document_number ?? '',
+      issue_date: initial.issue_date ?? '',
+      expiry_date: initial.expiry_date ?? '',
       issuing_authority: initial.issuing_authority ?? '',
-      notes:             initial.notes             ?? '',
+      notes: initial.notes ?? '',
     } : EMPTY_FORM
   );
 
-  const create    = useCreateVehicleDocument();
-  const update    = useUpdateVehicleDocument();
+  const create = useCreateVehicleDocument();
+  const update = useUpdateVehicleDocument();
   const isPending = create.isPending || update.isPending;
-  const set       = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
+  const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
 
   const handleSubmit = () => {
     const clean = Object.fromEntries(Object.entries(form).map(([k, v]) => [k, v === '' ? null : v]));
     if (isEdit) update.mutate({ id: initial.id, data: clean }, { onSuccess: onClose });
-    else        create.mutate(clean, { onSuccess: onClose });
+    else create.mutate(clean, { onSuccess: onClose });
   };
 
-  const canSubmit = form.document_type && form.document_number && !isPending;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <div>
-            <h2 className="text-lg font-black text-[#172B4D]">{isEdit ? 'Edit Document' : 'Add Document'}</h2>
-            <p className="text-xs text-gray-400 mt-0.5">{isEdit ? 'Update document details' : 'Fill in the document details'}</p>
-          </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100"><X size={18} /></button>
-        </div>
-
-        <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
-          <div>
-            <Label required={!isEdit}>Vehicle</Label>
-            <VehicleSelect value={form.vehicle} onChange={(id) => setForm(p => ({ ...p, vehicle: id }))} />
-            {isEdit && !form.vehicle && (
-              <p className="text-[11px] text-orange-500 mt-1">⚠ Vehicle info not available in API — will be preserved on update</p>
-            )}
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label required>Document Type</Label>
-              <Sel value={form.document_type} onChange={set('document_type')}>
-                <option value="">Select type</option>
-                {DOC_TYPES.map(d => <option key={d} value={d}>{d}</option>)}
-              </Sel>
+    <Modal
+      title={isView ? 'Document Details' : isEdit ? 'Edit Document' : 'Add Document'}
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      submitting={isPending}
+      isView={isView}
+    >
+      <div className="space-y-4">
+        {isView ? (
+          <DocDetailView data={initial} onClose={onClose} />
+        ) : (
+          <>
+            <Field label="Vehicle" required={!isEdit}>
+              <VehicleSelect value={form.vehicle} onChange={(id) => setForm(p => ({ ...p, vehicle: id }))} />
+              {isEdit && !form.vehicle && (
+                <p className="text-[11px] text-orange-500 mt-1">⚠ Vehicle info not available in API — will be preserved on update</p>
+              )}
+            </Field>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Document Type" required>
+                <Sel value={form.document_type} onChange={set('document_type')}>
+                  <option value="">Select type</option>
+                  {DOC_TYPES.map(d => <option key={d} value={d}>{d}</option>)}
+                </Sel>
+              </Field>
+              <Field label="Document Number" required>
+                <Input placeholder="e.g. RCMH12AB1234" value={form.document_number} onChange={set('document_number')} />
+              </Field>
             </div>
-            <div><Label required>Document Number</Label><Input placeholder="e.g. RCMH12AB1234" value={form.document_number} onChange={set('document_number')} /></div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div><Label>Issue Date</Label><Input type="date" value={form.issue_date} onChange={set('issue_date')} /></div>
-            <div><Label>Expiry Date</Label><Input type="date" value={form.expiry_date} onChange={set('expiry_date')} /></div>
-          </div>
-          <div><Label>Issuing Authority</Label><Input placeholder="e.g. RTO Mumbai" value={form.issuing_authority} onChange={set('issuing_authority')} /></div>
-          <div>
-            <Label>Notes</Label>
-            <textarea value={form.notes ?? ''} onChange={set('notes')} rows={3} placeholder="Any additional notes..."
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] placeholder:text-gray-300 resize-none" />
-          </div>
-        </div>
-
-        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-end gap-3 bg-gray-50/50">
-          <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-          <button onClick={handleSubmit} disabled={!canSubmit}
-            className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
-            {isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Plus size={14} /> {isEdit ? 'Update' : 'Add Document'}</>}
-          </button>
-        </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Issue Date"><Input type="date" value={form.issue_date} onChange={set('issue_date')} /></Field>
+              <Field label="Expiry Date"><Input type="date" value={form.expiry_date} onChange={set('expiry_date')} /></Field>
+            </div>
+            <Field label="Issuing Authority"><Input placeholder="e.g. RTO Mumbai" value={form.issuing_authority} onChange={set('issuing_authority')} /></Field>
+            <Field label="Notes">
+              <Textarea value={form.notes ?? ''} onChange={set('notes')} rows={3} placeholder="Any additional notes..." />
+            </Field>
+          </>
+        )}
       </div>
-    </div>
+    </Modal>
   );
 };
 
-// ── Delete Modal ──────────────────────────────────────────────────────
-const DeleteModal = ({ doc, onClose }) => {
-  const del = useDeleteVehicleDocument();
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-4">
-        <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center mx-auto"><Trash2 size={22} className="text-red-500" /></div>
-        <div className="text-center">
-          <h2 className="text-base font-black text-[#172B4D]">Delete Document?</h2>
-          <p className="text-sm text-gray-400 mt-1">
-            <span className="font-semibold text-gray-700">{doc.document_type_display ?? doc.document_type}</span> — {doc.document_number} will be permanently deleted.
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-          <button onClick={() => del.mutate(doc.id, { onSuccess: onClose })} disabled={del.isPending}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-bold text-white bg-red-500 rounded-lg hover:bg-red-600 disabled:opacity-50">
-            {del.isPending ? <><Loader2 size={14} className="animate-spin" /> Deleting...</> : <><Trash2 size={14} /> Delete</>}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ── Stat Card ─────────────────────────────────────────────────────────
-const StatCard = ({ label, value, icon: Icon, color, loading }) => (
-  <div className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-2">
-    <div className="flex items-center justify-between">
-      <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{label}</span>
-      <span className={`w-8 h-8 rounded-lg flex items-center justify-center ${color.iconBg}`}>
-        <Icon size={15} className={color.iconText} />
-      </span>
-    </div>
-    {loading ? <div className="h-9 w-12 bg-gray-100 rounded animate-pulse" /> : <span className={`text-3xl font-black ${color.value}`}>{value}</span>}
-  </div>
-);
 
 // ── Main Page ─────────────────────────────────────────────────────────
 const VehicleDocuments = () => {
-  const [search, setSearch]       = useState('');
-  const [typeFilter, setType]     = useState('');
-  const [modal, setModal]         = useState(null);
+  const [search, setSearch] = useState('');
+  const [typeFilter, setType] = useState('');
+  const [modal, setModal] = useState(null);
+  const [viewTarget, setView] = useState(null);
   const [deleteTarget, setDelete] = useState(null);
+
+  const del = useDeleteVehicleDocument();
 
   const { data, isLoading, isError, error, refetch } = useVehicleDocuments({
     ...(typeFilter && { document_type: typeFilter }),
-    ...(search     && { search }),
+    ...(search && { search }),
   });
 
-  const docs     = data?.results ?? data ?? [];
-  const total    = data?.count   ?? docs.length;
+  const docs = data?.results ?? data ?? [];
+  const total = data?.count ?? docs.length;
   // Use API status field directly
-  const valid    = docs.filter(d => d.status === 'VALID').length;
+  const valid = docs.filter(d => d.status === 'VALID').length;
   const expiring = docs.filter(d => d.status === 'EXPIRING_SOON').length;
-  const expired  = docs.filter(d => d.status === 'EXPIRED').length;
+  const expired = docs.filter(d => d.status === 'EXPIRED').length;
 
   return (
     <div className="p-6 space-y-6 bg-[#F8FAFC] min-h-screen">
@@ -285,7 +226,14 @@ const VehicleDocuments = () => {
       {(modal === 'add' || (modal && modal !== 'add')) && (
         <DocModal initial={modal === 'add' ? null : modal} onClose={() => setModal(null)} />
       )}
-      {deleteTarget && <DeleteModal doc={deleteTarget} onClose={() => setDelete(null)} />}
+      {viewTarget && (
+        <DocModal initial={viewTarget} isView onClose={() => setView(null)} />
+      )}
+      {deleteTarget && (
+        <DeleteConfirm label="Document" onClose={() => setDelete(null)}
+          onConfirm={() => del.mutate(deleteTarget.id, { onSuccess: () => setDelete(null) })}
+          deleting={del.isPending} />
+      )}
 
       {/* Header */}
       <div className="flex items-start justify-between">
@@ -307,10 +255,10 @@ const VehicleDocuments = () => {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-4 gap-4">
-        <StatCard loading={isLoading} label="Total"    value={total}    icon={FileText}      color={{ value: 'text-[#172B4D]', iconBg: 'bg-blue-50',   iconText: 'text-blue-500' }} />
-        <StatCard loading={isLoading} label="Valid"    value={valid}    icon={CheckCircle}   color={{ value: 'text-green-600',  iconBg: 'bg-green-50',  iconText: 'text-green-500' }} />
-        <StatCard loading={isLoading} label="Expiring" value={expiring} icon={Clock}         color={{ value: 'text-orange-500', iconBg: 'bg-orange-50', iconText: 'text-orange-500' }} />
-        <StatCard loading={isLoading} label="Expired"  value={expired}  icon={AlertTriangle} color={{ value: 'text-red-500',    iconBg: 'bg-red-50',    iconText: 'text-red-400' }} />
+        <StatCard loading={isLoading} label="Total" value={total} icon={FileText} color="blue" />
+        <StatCard loading={isLoading} label="Valid" value={valid} icon={CheckCircle} color="green" />
+        <StatCard loading={isLoading} label="Expiring" value={expiring} icon={Clock} color="orange" />
+        <StatCard loading={isLoading} label="Expired" value={expired} icon={AlertTriangle} color="red" />
       </div>
 
       {/* Table Card */}
@@ -376,9 +324,10 @@ const VehicleDocuments = () => {
 
                       {/* Vehicle */}
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span className="font-bold text-[#172B4D] font-mono text-[13px]">
+                        <button onClick={() => setView(doc)}
+                          className="font-bold text-[#172B4D] font-mono text-[13px] hover:text-[#0052CC] transition-colors text-left uppercase">
                           {doc.vehicle_registration ?? doc.vehicle?.registration_number ?? '—'}
-                        </span>
+                        </button>
                       </td>
 
                       {/* Doc Type */}
@@ -419,10 +368,10 @@ const VehicleDocuments = () => {
 
                       {/* Status — from API directly */}
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold w-fit border ${st.color}`}>
+                        <Badge className={st.color}>
                           <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
                           {st.label}
-                        </span>
+                        </Badge>
                       </td>
 
                       {/* Actions */}
@@ -454,7 +403,6 @@ const VehicleDocuments = () => {
         {!isLoading && !isError && (
           <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
             <span>Showing <span className="font-bold text-gray-600">{docs.length}</span>{data?.count && data.count !== docs.length && <> of <span className="font-bold text-gray-600">{data.count}</span></>} documents</span>
-            <span className="text-[11px]">Fleet Management System</span>
           </div>
         )}
       </div>
