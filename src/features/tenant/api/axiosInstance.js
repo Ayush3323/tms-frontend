@@ -17,10 +17,48 @@ const axiosInstance = axios.create({
 //     },
 // });
 
+const ACCESS_TOKEN_KEY = "token";
+const REFRESH_TOKEN_KEY = "refresh_token";
+const PREFERRED_STORAGE_KEY = "auth_storage"; // "local" | "session"
+
+function getPreferredStorage() {
+    const pref = localStorage.getItem(PREFERRED_STORAGE_KEY);
+    if (pref === "session") return sessionStorage;
+    return localStorage;
+}
+
+function getAccessToken() {
+    return (
+        localStorage.getItem(ACCESS_TOKEN_KEY) ||
+        sessionStorage.getItem(ACCESS_TOKEN_KEY)
+    );
+}
+
+function getRefreshToken() {
+    return (
+        localStorage.getItem(REFRESH_TOKEN_KEY) ||
+        sessionStorage.getItem(REFRESH_TOKEN_KEY)
+    );
+}
+
+function clearTokens() {
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+    sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+}
+
+function setAccessToken(token) {
+    const storage = getPreferredStorage();
+    storage.setItem(ACCESS_TOKEN_KEY, token);
+}
+
+let refreshPromise = null;
+
 
 // Request interceptor to attach access token
 axiosInstance.interceptors.request.use((config) => {
-    const token = localStorage.getItem("token");
+    const token = getAccessToken();
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
@@ -40,26 +78,45 @@ axiosInstance.interceptors.response.use(
             originalRequest._retry = true;
 
             try {
-                const refreshToken = localStorage.getItem("refresh_token");
-                if (refreshToken) {
-                    // Attempt to refresh the token
-                    // We use axios directly to avoid infinite loop with the instance
-                    const response = await refreshEndpoint({refresh: refreshToken});    
-
-                    const { access } = response.data;
-
-                    // Update local storage with new access token
-                    localStorage.setItem("token", access);
-
-                    // Update the original request header and retry
-                    originalRequest.headers.Authorization = `Bearer ${access}`;
-                    return axiosInstance(originalRequest);
+                const refreshToken = getRefreshToken();
+                if (!refreshToken) {
+                    throw new Error("Missing refresh token");
                 }
+
+                // Single-flight refresh: if multiple requests 401 together, only refresh once.
+                if (!refreshPromise) {
+                    refreshPromise = axios
+                        .post(
+                            `${axiosInstance.defaults.baseURL}/api/v1/auth/refresh/`,
+                            { refresh: refreshToken },
+                            {
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    "X-Tenant-ID": axiosInstance.defaults.headers["X-Tenant-ID"],
+                                },
+                            }
+                        )
+                        .then((res) => res.data)
+                        .finally(() => {
+                            refreshPromise = null;
+                        });
+                }
+
+                const refreshed = await refreshPromise;
+                const access = refreshed?.access || refreshed?.token;
+                if (!access) {
+                    throw new Error("Refresh succeeded but no access token returned");
+                }
+
+                setAccessToken(access);
+
+                // Update the original request header and retry
+                originalRequest.headers.Authorization = `Bearer ${access}`;
+                return axiosInstance(originalRequest);
             } catch (refreshError) {
                 // If refresh fails, clear tokens and logout
                 console.error("Refresh token failed:", refreshError);
-                localStorage.removeItem("token");
-                localStorage.removeItem("refresh_token");
+                clearTokens();
                 window.location.href = "/tenant/login";
             }
         }

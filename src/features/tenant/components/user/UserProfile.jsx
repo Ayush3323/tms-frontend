@@ -67,6 +67,19 @@ const UserProfile = () => {
   });
   const reportingManagers = Array.isArray(reportingManagersData) ? reportingManagersData : (reportingManagersData?.results || []);
 
+  const reportingManagerLabel = React.useMemo(() => {
+    const rm = user?.reporting_manager_details;
+    if (rm?.full_name) return rm.full_name;
+    if (rm?.first_name || rm?.last_name) return `${rm.first_name || ''} ${rm.last_name || ''}`.trim();
+    if (rm?.email) return rm.email;
+
+    const reportingManagerId = user?.reporting_manager;
+    if (!reportingManagerId) return null;
+    const match = reportingManagers.find((m) => String(m?.id) === String(reportingManagerId));
+    if (!match) return null;
+    return match.full_name || `${match.first_name || ''} ${match.last_name || ''}`.trim() || match.email || null;
+  }, [user?.reporting_manager, user?.reporting_manager_details, reportingManagers]);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState(null); // 'edit_personal' or 'edit_account'
   const [formErrors, setFormErrors] = useState({});
@@ -597,7 +610,11 @@ const UserProfile = () => {
                 </div>
                 <div>
                   <p className="label-text">Reporting Manager</p>
-                  <p className="value-text text-gray-400 font-normal italic">Not assigned</p>
+                  {reportingManagerLabel ? (
+                    <p className="value-text">{reportingManagerLabel}</p>
+                  ) : (
+                    <p className="value-text text-gray-400 font-normal italic">Not assigned</p>
+                  )}
                 </div>
               </div>
             </div>

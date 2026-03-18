@@ -8,17 +8,23 @@ import { loginEndpoint } from "../api/loginEndpoint";
 export const useLogin = () => {
     return useMutation({
         mutationFn: loginEndpoint,
-        onSuccess: (data) => {
+        onSuccess: (data, variables) => {
             // Store both access and refresh tokens
             const accessToken = data?.access || data?.token;
             const refreshToken = data?.refresh;
-            
-            if (accessToken) {
-                localStorage.setItem("token", accessToken);
-            }
-            if (refreshToken) {
-                localStorage.setItem("refresh_token", refreshToken);
-            }
+
+            const rememberMe = Boolean(variables?.rememberMe);
+            // Store storage preference in localStorage so refresh can keep using the same choice.
+            localStorage.setItem("auth_storage", rememberMe ? "local" : "session");
+
+            const storage = rememberMe ? localStorage : sessionStorage;
+            if (accessToken) storage.setItem("token", accessToken);
+            if (refreshToken) storage.setItem("refresh_token", refreshToken);
+
+            // Remember email only (never store password)
+            const email = variables?.email;
+            if (rememberMe && email) localStorage.setItem("remembered_email", email);
+            if (!rememberMe) localStorage.removeItem("remembered_email");
         },
         onError: (error) => {
             // Handle error (e.g., show notification)
