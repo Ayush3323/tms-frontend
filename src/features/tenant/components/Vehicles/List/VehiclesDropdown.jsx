@@ -8,15 +8,18 @@
 import { useState } from "react";
 import {
   ChevronDown, Truck, LayoutGrid, FileText, Shield,
-  Wrench, Search, Fuel, Settings, Plug, Tag, ScrollText,
+  Wrench, Search, Fuel, Settings, Plug, Tag, ScrollText
 } from "lucide-react";
+import { 
+  Badge
+} from '../Common/VehicleCommon';
 
 const VEHICLE_SUB = [
   { key: "all",          label: "All Vehicles",  Icon: Truck,       path: "/tenant/dashboard/vehicles",             badge: null },
   { key: "types",        label: "Vehicle Types", Icon: LayoutGrid,  path: "/tenant/dashboard/vehicles/types",       badge: null },
-  { key: "documents",    label: "Documents",     Icon: FileText,    path: "/tenant/dashboard/vehicles/documents",   badge: 2,  badgeVariant: "danger" },
+  { key: "documents",    label: "Documents",     Icon: FileText,    path: "/tenant/dashboard/vehicles/documents",   badge: 2,  badgeVariant: "red" },
   { key: "insurance",    label: "Insurance",     Icon: Shield,      path: "/tenant/dashboard/vehicles/insurance",   badge: null },
-  { key: "maintenance",  label: "Maintenance",   Icon: Wrench,      path: "/tenant/dashboard/vehicles/maintenance", badge: 3,  badgeVariant: "warn" },
+  { key: "maintenance",  label: "Maintenance",   Icon: Wrench,      path: "/tenant/dashboard/vehicles/maintenance", badge: 3,  badgeVariant: "orange" },
   { key: "inspections",  label: "Inspections",   Icon: Search,      path: "/tenant/dashboard/vehicles/inspections", badge: null },
   { key: "fuel",         label: "Fuel Logs",     Icon: Fuel,        path: "/tenant/dashboard/vehicles/fuel",        badge: null },
   { key: "tires",        label: "Tires",         Icon: Settings,    path: "/tenant/dashboard/vehicles/tires",       badge: null },
@@ -31,6 +34,13 @@ export default function VehiclesDropdown({ currentPath = "", onNavigate }) {
 
   const isActive = (path) => currentPath === path;
   const go = (path) => { if (onNavigate) onNavigate(path); };
+
+  const BADGE_VARIANTS = {
+    red:    'bg-red-50 text-red-600 border-red-200',
+    orange: 'bg-orange-50 text-orange-600 border-orange-200',
+    blue:   'bg-blue-50 text-blue-600 border-blue-200',
+    green:  'bg-green-50 text-green-600 border-green-200',
+  };
 
   return (
     <div className="w-full">
@@ -90,14 +100,9 @@ export default function VehiclesDropdown({ currentPath = "", onNavigate }) {
 
                 {/* badge */}
                 {badge && (
-                  <span className={[
-                    "text-[10px] font-bold px-1.5 py-px rounded-full font-mono flex-shrink-0",
-                    badgeVariant === "danger"
-                      ? "bg-red-50 text-red-600 border border-red-200"
-                      : "bg-amber-50 text-amber-600 border border-amber-200",
-                  ].join(" ")}>
+                  <Badge className={`text-[10px] px-1.5 py-px font-mono ${BADGE_VARIANTS[badgeVariant] ?? BADGE_VARIANTS.blue}`}>
                     {badge}
-                  </span>
+                  </Badge>
                 )}
               </button>
             );

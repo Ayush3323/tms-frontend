@@ -34,17 +34,19 @@ const invalidate = (qc, key) =>
    VEHICLE DOCUMENTS
 ===================================================== */
 
-export const useVehicleDocuments = (params) =>
+export const useVehicleDocuments = (params, options = {}) =>
   useQuery({
     queryKey: ['vehicleDocuments', params],
-    queryFn: () => vehicleDocumentsApi.list(params)
+    queryFn: () => vehicleDocumentsApi.list(params),
+    ...options
   })
 
-export const useVehicleDocument = (id) =>
+export const useVehicleDocument = (id, options = {}) =>
   useQuery({
     queryKey: ['vehicleDocument', id],
     queryFn: () => vehicleDocumentsApi.get(id),
-    enabled: !!id
+    ...options,
+    enabled: (options.enabled !== undefined ? options.enabled : true) && !!id
   })
 
 export const useCreateVehicleDocument = () => {
@@ -99,17 +101,19 @@ export const useDeleteVehicleDocument = () => {
    VEHICLE INSURANCES
 ===================================================== */
 
-export const useVehicleInsurances = (params) =>
+export const useVehicleInsurances = (params, options = {}) =>
   useQuery({
     queryKey: ['vehicleInsurances', params],
-    queryFn: () => vehicleInsurancesApi.list(params)
+    queryFn: () => vehicleInsurancesApi.list(params),
+    ...options
   })
 
-export const useVehicleInsurance = (id) =>
+export const useVehicleInsurance = (id, options = {}) =>
   useQuery({
     queryKey: ['vehicleInsurance', id],
     queryFn: () => vehicleInsurancesApi.get(id),
-    enabled: !!id
+    ...options,
+    enabled: (options.enabled !== undefined ? options.enabled : true) && !!id
   })
 
 export const useCreateVehicleInsurance = () => {
@@ -164,17 +168,19 @@ export const useDeleteVehicleInsurance = () => {
    MAINTENANCE SCHEDULES
 ===================================================== */
 
-export const useMaintenanceSchedules = (params) =>
+export const useMaintenanceSchedules = (params, options = {}) =>
   useQuery({
     queryKey: ['maintenanceSchedules', params],
-    queryFn: () => maintenanceSchedulesApi.list(params)
+    queryFn: () => maintenanceSchedulesApi.list(params),
+    ...options
   })
 
-export const useMaintenanceSchedule = (id) =>
+export const useMaintenanceSchedule = (id, options = {}) =>
   useQuery({
     queryKey: ['maintenanceSchedule', id],
     queryFn: () => maintenanceSchedulesApi.get(id),
-    enabled: !!id
+    ...options,
+    enabled: (options.enabled !== undefined ? options.enabled : true) && !!id
   })
 
 export const useCreateMaintenanceSchedule = () => {
@@ -229,17 +235,19 @@ export const useDeleteMaintenanceSchedule = () => {
    MAINTENANCE RECORDS
 ===================================================== */
 
-export const useMaintenanceRecords = (params) =>
+export const useMaintenanceRecords = (params, options = {}) =>
   useQuery({
     queryKey: ['maintenanceRecords', params],
-    queryFn: () => maintenanceRecordsApi.list(params)
+    queryFn: () => maintenanceRecordsApi.list(params),
+    ...options
   })
 
-export const useMaintenanceRecord = (id) =>
+export const useMaintenanceRecord = (id, options = {}) =>
   useQuery({
     queryKey: ['maintenanceRecord', id],
     queryFn: () => maintenanceRecordsApi.get(id),
-    enabled: !!id
+    ...options,
+    enabled: (options.enabled !== undefined ? options.enabled : true) && !!id
   })
 
 export const useCreateMaintenanceRecord = () => {
@@ -294,17 +302,19 @@ export const useDeleteMaintenanceRecord = () => {
    VEHICLE INSPECTIONS
 ===================================================== */
 
-export const useVehicleInspections = (params) =>
+export const useVehicleInspections = (params, options = {}) =>
   useQuery({
     queryKey: ['vehicleInspections', params],
-    queryFn: () => vehicleInspectionsApi.list(params)
+    queryFn: () => vehicleInspectionsApi.list(params),
+    ...options
   })
 
-export const useVehicleInspection = (id) =>
+export const useVehicleInspection = (id, options = {}) =>
   useQuery({
     queryKey: ['vehicleInspection', id],
     queryFn: () => vehicleInspectionsApi.get(id),
-    enabled: !!id
+    ...options,
+    enabled: (options.enabled !== undefined ? options.enabled : true) && !!id
   })
 
 export const useCreateVehicleInspection = () => {
@@ -359,17 +369,19 @@ export const useDeleteVehicleInspection = () => {
    FUEL LOGS
 ===================================================== */
 
-export const useVehicleFuelLogs = (params) =>
+export const useVehicleFuelLogs = (params, options = {}) =>
   useQuery({
     queryKey: ['vehicleFuelLogs', params],
-    queryFn: () => vehicleFuelLogsApi.list(params)
+    queryFn: () => vehicleFuelLogsApi.list(params),
+    ...options
   })
 
-export const useVehicleFuelLog = (id) =>
+export const useVehicleFuelLog = (id, options = {}) =>
   useQuery({
     queryKey: ['vehicleFuelLog', id],
     queryFn: () => vehicleFuelLogsApi.get(id),
-    enabled: !!id
+    ...options,
+    enabled: (options.enabled !== undefined ? options.enabled : true) && !!id
   })
 
 export const useCreateFuelLog = () => {
@@ -423,17 +435,19 @@ export const useDeleteFuelLog = () => {
    VEHICLE TIRES
 ===================================================== */
 
-export const useVehicleTires = (params) =>
+export const useVehicleTires = (params, options = {}) =>
   useQuery({
     queryKey: ['vehicleTires', params],
-    queryFn: () => vehicleTiresApi.list(params)
+    queryFn: () => vehicleTiresApi.list(params),
+    ...options
   })
 
-export const useVehicleTire = (id) =>
+export const useVehicleTire = (id, options = {}) =>
   useQuery({
     queryKey: ['vehicleTire', id],
     queryFn: () => vehicleTiresApi.get(id),
-    enabled: !!id
+    ...options,
+    enabled: (options.enabled !== undefined ? options.enabled : true) && !!id
   })
 
 export const useCreateVehicleTire = () => {
@@ -488,17 +502,19 @@ export const useDeleteVehicleTire = () => {
    VEHICLE ACCESSORIES
 ===================================================== */
 
-export const useVehicleAccessories = (params) =>
+export const useVehicleAccessories = (params, options = {}) =>
   useQuery({
     queryKey: ['vehicleAccessories', params],
-    queryFn: () => vehicleAccessoriesApi.list(params)
+    queryFn: () => vehicleAccessoriesApi.list(params),
+    ...options
   })
 
-export const useVehicleAccessory = (id) =>
+export const useVehicleAccessory = (id, options = {}) =>
   useQuery({
     queryKey: ['vehicleAccessory', id],
     queryFn: () => vehicleAccessoriesApi.get(id),
-    enabled: !!id
+    ...options,
+    enabled: (options.enabled !== undefined ? options.enabled : true) && !!id
   })
 
 export const useCreateVehicleAccessory = () => {
@@ -555,17 +571,19 @@ export const useDeleteVehicleAccessory = () => {
    VEHICLE TOLL TAGS
 ===================================================== */
 
-export const useVehicleTollTags = (params) =>
+export const useVehicleTollTags = (params, options = {}) =>
   useQuery({
     queryKey: ['vehicleTollTags', params],
-    queryFn: () => vehicleTollTagsApi.list(params)
+    queryFn: () => vehicleTollTagsApi.list(params),
+    ...options
   })
 
-export const useVehicleTollTag = (id) =>
+export const useVehicleTollTag = (id, options = {}) =>
   useQuery({
     queryKey: ['vehicleTollTag', id],
     queryFn: () => vehicleTollTagsApi.get(id),
-    enabled: !!id
+    ...options,
+    enabled: (options.enabled !== undefined ? options.enabled : true) && !!id
   })
 
 export const useCreateVehicleTollTag = () => {
@@ -620,17 +638,19 @@ export const useDeleteVehicleTollTag = () => {
    VEHICLE OWNERSHIP HISTORY
 ===================================================== */
 
-export const useVehicleOwnership = (params) =>
+export const useVehicleOwnership = (params, options = {}) =>
   useQuery({
     queryKey: ['vehicleOwnership', params],
-    queryFn: () => vehicleOwnershipApi.list(params)
+    queryFn: () => vehicleOwnershipApi.list(params),
+    ...options
   })
 
-export const useVehicleOwnershipItem = (id) =>
+export const useVehicleOwnershipItem = (id, options = {}) =>
   useQuery({
     queryKey: ['vehicleOwnershipItem', id],
     queryFn: () => vehicleOwnershipApi.get(id),
-    enabled: !!id
+    ...options,
+    enabled: (options.enabled !== undefined ? options.enabled : true) && !!id
   })
 
 export const useCreateVehicleOwnership = () => {

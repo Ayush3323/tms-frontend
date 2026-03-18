@@ -6,21 +6,21 @@ const parseError = (error) =>
   error?.response?.data?.detail || 'Something went wrong'
 
 // LIST
-export const useVehicleTypes = (params) =>
+export const useVehicleTypes = (params, options = {}) =>
   useQuery({
     queryKey: ['vehicleTypes', params],
     queryFn: () => vehicleTypesApi.list(params),
-
+    ...options,
     onError: (error) => toast.error(parseError(error))
   })
 
 // GET SINGLE
-export const useVehicleType = (id) =>
+export const useVehicleType = (id, options = {}) =>
   useQuery({
     queryKey: ['vehicleTypes', id],
     queryFn: () => vehicleTypesApi.get(id),
-    enabled: !!id,
-
+    ...options,
+    enabled: (options.enabled !== undefined ? options.enabled : true) && !!id,
     onError: (error) => toast.error(parseError(error))
   })
 
