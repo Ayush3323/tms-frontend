@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLogin } from '../queries/loginQuery';
 import { useNavigate } from 'react-router-dom';
 import banner from '../../../assets/banner.avif';
@@ -7,14 +7,22 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const navigate = useNavigate();
 
   const { mutate: login, isPending, isError, error } = useLogin();
 
+  useEffect(() => {
+    const remembered = localStorage.getItem("remembered_email");
+    if (remembered) setEmail(remembered);
+    const pref = localStorage.getItem("auth_storage");
+    if (pref === "session") setRememberMe(false);
+  }, []);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     login(
-      { email, password },
+      { email, password, rememberMe },
       {
         onSuccess: () => {
           navigate('/tenant/dashboard');
@@ -24,54 +32,51 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f0a19] flex items-center justify-center p-4">
-      <div className="w-full max-w-300 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+    <div className="min-h-screen bg-[#F4F5F7] flex items-center justify-center p-4">
+      <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-10 items-stretch">
 
         {/* Left Side - Login Form */}
-        <div className="max-w-md w-full mx-auto lg:mx-0">
-          {/* Logo Section */}
-          <div className="mb-10">
-            <div className="bg-[#1e1b2e] w-16 h-16 rounded-md flex items-center justify-center mb-6 border border-gray-700">
-              <span className="text-purple-400 font-bold text-2xl">A</span>
+        <div className="w-full flex items-center">
+          <div className="w-full max-w-md mx-auto bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+            <div className="mb-8">
+              <div className="w-12 h-12 rounded-xl bg-violet-600 flex items-center justify-center text-white font-bold text-xl">
+                A
+              </div>
+              <h2 className="text-gray-500 text-xs font-semibold tracking-widest uppercase mt-6">Alpha Transport</h2>
+              <h1 className="text-gray-900 text-2xl font-bold mt-2">Tenant Login</h1>
+              <p className="text-gray-500 text-sm mt-2">Sign in to manage your fleet.</p>
             </div>
-            <h2 className="text-purple-400 text-sm font-semibold tracking-widest uppercase mb-1">Alpha Transport</h2>
-            <h1 className="text-white text-3xl font-bold mt-4">Tenant Login</h1>
-          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-5">
             {/* email Field */}
             <div>
-              <label className="block text-white text-sm font-medium mb-2">
-                email
-              </label>
+              <label className="block text-gray-700 text-sm font-medium mb-2">Email</label>
               <input
-                type="text"
+                type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
-                className="w-full px-4 py-3 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 placeholder:text-gray-400"
+                className="w-full px-4 py-3 rounded-lg bg-white text-gray-900 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 placeholder:text-gray-400"
                 required
               />
             </div>
 
             {/* Password Field */}
             <div>
-              <label className="block text-white text-sm font-medium mb-2">
-                Password
-              </label>
+              <label className="block text-gray-700 text-sm font-medium mb-2">Password</label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
-                  className="w-full px-4 py-3 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 placeholder:text-gray-400 pr-12"
+                  className="w-full px-4 py-3 rounded-lg bg-white text-gray-900 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 placeholder:text-gray-400 pr-12"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-purple-600 focus:outline-none"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-violet-700 focus:outline-none"
                 >
                   {showPassword ? (
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -87,6 +92,18 @@ const Login = () => {
               </div>
             </div>
 
+            <div className="flex items-center justify-between">
+              <label className="inline-flex items-center gap-2 text-sm text-gray-600 select-none">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500"
+                />
+                Remember me
+              </label>
+            </div>
+
             {/* Error Message */}
             {isError && (
               <div className="text-red-500 text-sm mt-2">
@@ -98,27 +115,27 @@ const Login = () => {
             <button
               type="submit"
               disabled={isPending}
-              className={`w-full py-3 rounded-lg text-white font-semibold text-lg transition-all duration-300
+              className={`w-full py-3 rounded-lg text-white font-semibold text-base transition-all duration-200
                 ${isPending
-                  ? 'bg-purple-400 cursor-not-allowed'
-                  : 'bg-[#b68ef5] hover:bg-[#a176e8] active:scale-[0.98]'
+                  ? 'bg-violet-300 cursor-not-allowed'
+                  : 'bg-violet-600 hover:bg-violet-700 active:scale-[0.98]'
                 }`}
             >
               {isPending ? 'Logging in...' : 'Login'}
             </button>
           </form>
+          </div>
         </div>
 
         {/* Right Side - Banner Image */}
         <div className="hidden lg:flex items-center justify-center p-4">
-          <div className="w-full relative rounded-3xl overflow-hidden shadow-2xl border border-purple-900/20">
+          <div className="w-full relative rounded-3xl overflow-hidden shadow-sm border border-gray-200 bg-white">
             <img
               src={banner}
               alt="Alpha Transport Banner"
-              className="w-full h-auto object-cover opacity-100"
+              className="w-full h-full object-cover"
             />
-            {/* Optional Overlay to match the dark aesthetic */}
-            <div className="absolute inset-0 bg-linear-to-tr from-[#0f0a19]/40 to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-tr from-violet-900/20 via-transparent to-transparent pointer-events-none" />
           </div>
         </div>
 
