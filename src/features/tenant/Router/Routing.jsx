@@ -14,7 +14,19 @@ import MaintenanceSchedules from '../components/Vehicles/Features/Maintenance'
 import VehicleInspections from '../components/Vehicles/Features/Inspections';
 import TiresDashboard from '../components/Vehicles/Features/Tires';
 import DriversList from '../components/Drivers/DriversList'
-import DriverDetail from '../components/Drivers/detail/DriverDetail'
+import DriverDetail from '../components/Drivers/DriverDetail'
+
+// Global Driver Views
+import AllDocuments from '../components/Drivers/all/AllDocuments';
+import AllContacts from '../components/Drivers/all/AllContacts';
+import AllTraining from '../components/Drivers/all/AllTraining';
+import AllMedical from '../components/Drivers/all/AllMedical';
+import AllPerformance from '../components/Drivers/all/AllPerformance';
+import AllIncidents from '../components/Drivers/all/AllIncidents';
+import AllAttendance from '../components/Drivers/all/AllAttendance';
+import AllAssignments from '../components/Drivers/all/AllAssignments';
+import AllSalaryStructures from '../components/Drivers/all/AllSalaryStructures';
+
 import Roles from '../components/user/Roles'
 import Permission from '../components/user/Permission'
 import Activities from '../components/user/Activities'
@@ -43,6 +55,19 @@ const Routing = () => {
           <Route path="users/session" element={<Session />} />
           <Route path="vehicles" element={<Vehicles />} />
           <Route path="drivers" element={<DriversList />} />
+          
+          {/* Global Driver Routes */}
+          <Route path="drivers/documents" element={<AllDocuments />} />
+          <Route path="drivers/emergency-contacts" element={<AllContacts />} />
+          <Route path="drivers/training" element={<AllTraining />} />
+          <Route path="drivers/medical" element={<AllMedical />} />
+          <Route path="drivers/performance" element={<AllPerformance />} />
+          <Route path="drivers/incidents" element={<AllIncidents />} />
+          <Route path="drivers/attendance" element={<AllAttendance />} />
+          <Route path="drivers/vehicle-assignments" element={<AllAssignments />} />
+          <Route path="drivers/salary" element={<AllSalaryStructures />} />
+
+          {/* Specific Driver Detail Route (Must be last to avoid catching sub-paths as IDs) */}
           <Route path="drivers/:id" element={<DriverDetail />} />
           <Route path="vehicles/types" element={<VehicleTypes />} />
           <Route path="vehicles/documents" element={<VehiclesDocument />} />

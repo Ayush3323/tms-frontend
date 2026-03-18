@@ -9,49 +9,27 @@ import {
 } from 'lucide-react';
 import { useDrivers, useRegisterDriver } from '../../queries/drivers/driverCoreQuery';
 
-// ── Constants ─────────────────────────────────────────────────────────
-const LICENSE_TYPES  = ['HMV','LMV','MMV','TRANSPORT','LEARNER','INTERNATIONAL'];
-const DRIVER_TYPES   = ['PERMANENT','CONTRACT','TEMPORARY','PART_TIME'];
-const DRIVER_STATUS  = ['ACTIVE','INACTIVE','ON_LEAVE'];
-const GENDER_OPTIONS = ['MALE','FEMALE','OTHER','PREFER_NOT_TO_SAY'];
+import Label from './common/Label';
+import Input from './common/Input';
+import Select from './common/Select';
+import ModalWrapper from './common/ModalWrapper';
+import StatusBadge from './common/StatusBadge';
+import { LoadingState, ErrorState, EmptyState } from './common/StateFeedback';
 
-const STATUS_STYLES = {
-  ACTIVE:     { dot: 'bg-green-500',  text: 'text-green-700',  bg: 'bg-green-50 border border-green-200' },
-  INACTIVE:   { dot: 'bg-gray-400',   text: 'text-gray-600',   bg: 'bg-gray-50 border border-gray-200' },
-  ON_LEAVE:   { dot: 'bg-blue-400',   text: 'text-blue-700',   bg: 'bg-blue-50 border border-blue-200' },
-  SUSPENDED:  { dot: 'bg-red-400',    text: 'text-red-700',    bg: 'bg-red-50 border border-red-200' },
-  TERMINATED: { dot: 'bg-gray-600',   text: 'text-gray-700',   bg: 'bg-gray-100 border border-gray-300' },
-};
+import {
+  LICENSE_TYPES,
+  DRIVER_TYPES,
+  DRIVER_STATUS_OPTIONS as DRIVER_STATUS,
+  GENDER_OPTIONS,
+  STATUS_STYLES,
+  LICENSE_COLORS,
+  DRIVER_TYPE_COLORS,
+} from './common/constants';
+import { getDriverName, cleanObject, getExpiryColor } from './common/utils';
 
-const LICENSE_COLORS = {
-  HMV:           'bg-purple-50 text-purple-700 border border-purple-200',
-  LMV:           'bg-blue-50 text-blue-700 border border-blue-200',
-  TRANSPORT:     'bg-orange-50 text-orange-700 border border-orange-200',
-  MMV:           'bg-teal-50 text-teal-700 border border-teal-200',
-  LEARNER:       'bg-yellow-50 text-yellow-700 border border-yellow-200',
-  INTERNATIONAL: 'bg-green-50 text-green-700 border border-green-200',
-};
+// ── Constants handled via centralized common/constants.js ─────────────
 
-const DRIVER_TYPE_COLORS = {
-  PERMANENT: 'bg-blue-50 text-blue-700 border border-blue-200',
-  CONTRACT:  'bg-orange-50 text-orange-700 border border-orange-200',
-  TEMPORARY: 'bg-yellow-50 text-yellow-700 border border-yellow-200',
-  PART_TIME: 'bg-gray-50 text-gray-600 border border-gray-200',
-};
-
-const getExpiryColor = (dateStr) => {
-  if (!dateStr) return 'text-gray-400';
-  const diffDays = Math.ceil((new Date(dateStr) - new Date()) / (1000 * 60 * 60 * 24));
-  if (diffDays < 0)  return 'text-red-600 font-semibold';
-  if (diffDays < 90) return 'text-orange-500 font-semibold';
-  return 'text-green-600 font-semibold';
-};
-
-const getDriverName = (driver) => {
-  if (driver.first_name && driver.last_name)
-    return `${driver.first_name} ${driver.last_name}`;
-  return driver.employee_id;
-};
+// getDriverName handled via common/utils.js
 
 const SortIcon = ({ field, ordering }) => {
   if (ordering === field)        return <ArrowUp   size={12} className="text-[#0052CC]" />;
@@ -59,34 +37,6 @@ const SortIcon = ({ field, ordering }) => {
   return <ArrowUpDown size={12} className="text-gray-300" />;
 };
 
-// ── Reusable Form Components ─────────────────────────────────────────
-const Label = ({ children, required }) => (
-  <label className="block text-xs font-bold text-gray-600 mb-1">
-    {children}{required && <span className="text-red-500 ml-0.5">*</span>}
-  </label>
-);
-
-const FInput = (props) => (
-  <input {...props}
-    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50
-      focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC]
-      placeholder:text-gray-300 transition-all"
-  />
-);
-
-const FSel = ({ children, ...props }) => (
-  <div className="relative">
-    <select {...props}
-      className="w-full appearance-none px-3 pr-8 py-2 text-sm border border-gray-200
-        rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20
-        focus:border-[#0052CC] cursor-pointer transition-all">
-      {children}
-    </select>
-    <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-  </div>
-);
-
-// eslint-disable-next-line no-unused-vars
 const SectionTitle = ({ Icon, title, subtitle }) => (
   <div className="flex items-center gap-2 mb-4">
     <div className="w-7 h-7 rounded-lg bg-[#0052CC]/10 flex items-center justify-center">
@@ -129,107 +79,98 @@ const AddDriverModal = ({ onClose }) => {
     if (!driverForm.license_expiry) return setError('License expiry is required.');
     if (!driverForm.joined_date)    return setError('Joined date is required.');
 
-    const cleanUser   = Object.fromEntries(Object.entries(userForm).map(([k, v]) => [k, v === '' ? null : v]));
-    const cleanDriver = Object.fromEntries(Object.entries(driverForm).map(([k, v]) => [k, v === '' ? null : v]));
-
-    registerDriver.mutate({ user: cleanUser, driver: cleanDriver }, {
+    registerDriver.mutate({
+      ...cleanObject(driverForm),
+      user: cleanObject(userForm),
+    }, {
       onSuccess: onClose,
       onError: (err) => setError(err.message || 'Failed to register driver.'),
     });
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <div>
-            <h2 className="text-lg font-black text-[#172B4D]">Register New Driver</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Creates user account + driver profile in one step</p>
-          </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100"><X size={18} /></button>
-        </div>
-        {/* Body */}
-        <div className="overflow-y-auto flex-1 px-6 py-5 space-y-6">
-          {error && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium">{error}</div>}
-          {/* User Info */}
-          <div>
-            <SectionTitle Icon={User} title="User Information" subtitle="Login credentials and personal details" />
-            <div className="grid grid-cols-2 gap-4">
-              <div><Label required>First Name</Label><FInput placeholder="e.g. John" value={userForm.first_name} onChange={setUser('first_name')} /></div>
-              <div><Label required>Last Name</Label><FInput placeholder="e.g. Driver" value={userForm.last_name} onChange={setUser('last_name')} /></div>
-              <div><Label>Middle Name</Label><FInput placeholder="e.g. Kumar" value={userForm.middle_name} onChange={setUser('middle_name')} /></div>
-              <div><Label required>Email</Label><FInput type="email" placeholder="e.g. john@company.com" value={userForm.email} onChange={setUser('email')} /></div>
-              <div><Label required>Password</Label>
-                <div className="relative">
-                  <FInput
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Min 8 characters"
-                    value={userForm.password}
-                    onChange={setUser('password')}
-                    className="w-full px-3 pr-9 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50
-                      focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC]
-                      placeholder:text-gray-300 transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(p => !p)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
-                </div>
-              </div>
-              <div><Label>Phone</Label><FInput placeholder="+91-9876543210" value={userForm.phone} onChange={setUser('phone')} /></div>
-              <div><Label>Date of Birth</Label><FInput type="date" value={userForm.date_of_birth} onChange={setUser('date_of_birth')} /></div>
-              <div><Label>Gender</Label>
-                <FSel value={userForm.gender} onChange={setUser('gender')}>
-                  <option value="">Select gender</option>
-                  {GENDER_OPTIONS.map(g => <option key={g} value={g}>{g.replaceAll('_', ' ')}</option>)}
-                </FSel>
-              </div>
-            </div>
-          </div>
-          <div className="border-t border-gray-100" />
-          {/* Driver Info */}
-          <div>
-            <SectionTitle Icon={Car} title="Driver Information" subtitle="License and employment details" />
-            <div className="grid grid-cols-2 gap-4">
-              <div><Label required>License Number</Label><FInput placeholder="e.g. MH-01-20200012345" value={driverForm.license_number} onChange={setDriver('license_number')} /></div>
-              <div><Label required>License Type</Label>
-                <FSel value={driverForm.license_type} onChange={setDriver('license_type')}>
-                  <option value="">Select type</option>
-                  {LICENSE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                </FSel>
-              </div>
-              <div><Label required>License Expiry</Label><FInput type="date" value={driverForm.license_expiry} onChange={setDriver('license_expiry')} /></div>
-              <div><Label>Issuing Authority</Label><FInput placeholder="e.g. RTO Mumbai" value={driverForm.license_issuing_authority} onChange={setDriver('license_issuing_authority')} /></div>
-              <div><Label>Driver Type</Label>
-                <FSel value={driverForm.driver_type} onChange={setDriver('driver_type')}>
-                  {DRIVER_TYPES.map(t => <option key={t} value={t}>{t.replaceAll('_', ' ')}</option>)}
-                </FSel>
-              </div>
-              <div><Label>Years of Experience</Label><FInput type="number" min="0" placeholder="e.g. 5" value={driverForm.years_of_experience} onChange={setDriver('years_of_experience')} /></div>
-              <div><Label required>Joined Date</Label><FInput type="date" value={driverForm.joined_date} onChange={setDriver('joined_date')} /></div>
-              <div><Label>Status</Label>
-                <FSel value={driverForm.status} onChange={setDriver('status')}>
-                  {DRIVER_STATUS.map(s => <option key={s} value={s}>{s.replaceAll('_', ' ')}</option>)}
-                </FSel>
-              </div>
-            </div>
-          </div>
-        </div>
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/50">
+    <ModalWrapper
+      title="Register New Driver"
+      description="Creates user account + driver profile in one step"
+      onClose={onClose}
+      className="max-w-2xl"
+      footer={
+        <>
           <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
           <button onClick={handleSubmit} disabled={registerDriver.isPending}
             className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed">
             {registerDriver.isPending ? <><Loader2 size={14} className="animate-spin" /> Registering...</> : <><Plus size={14} /> Register Driver</>}
           </button>
+        </>
+      }
+    >
+      <div className="space-y-6">
+        {error && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium">{error}</div>}
+        {/* User Info */}
+        <div>
+          <SectionTitle Icon={User} title="User Information" subtitle="Login credentials and personal details" />
+          <div className="grid grid-cols-2 gap-4">
+            <div><Label required>First Name</Label><Input placeholder="e.g. John" value={userForm.first_name} onChange={setUser('first_name')} /></div>
+            <div><Label required>Last Name</Label><Input placeholder="e.g. Driver" value={userForm.last_name} onChange={setUser('last_name')} /></div>
+            <div><Label>Middle Name</Label><Input placeholder="e.g. Kumar" value={userForm.middle_name} onChange={setUser('middle_name')} /></div>
+            <div><Label required>Email</Label><Input type="email" placeholder="e.g. john@company.com" value={userForm.email} onChange={setUser('email')} /></div>
+            <div><Label required>Password</Label>
+              <div className="relative">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Min 8 characters"
+                  value={userForm.password}
+                  onChange={setUser('password')}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(p => !p)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
+            </div>
+            <div><Label>Phone</Label><Input placeholder="+91-9876543210" value={userForm.phone} onChange={setUser('phone')} /></div>
+            <div><Label>Date of Birth</Label><Input type="date" value={userForm.date_of_birth} onChange={setUser('date_of_birth')} /></div>
+            <div><Label>Gender</Label>
+              <Select value={userForm.gender} onChange={setUser('gender')}>
+                <option value="">Select gender</option>
+                {GENDER_OPTIONS.map(g => <option key={g} value={g}>{g.replaceAll('_', ' ')}</option>)}
+              </Select>
+            </div>
+          </div>
+        </div>
+        <div className="border-t border-gray-100" />
+        {/* Driver Info */}
+        <div>
+          <SectionTitle Icon={Car} title="Driver Information" subtitle="License and employment details" />
+          <div className="grid grid-cols-2 gap-4">
+            <div><Label required>License Number</Label><Input placeholder="e.g. MH-01-20200012345" value={driverForm.license_number} onChange={setDriver('license_number')} /></div>
+            <div><Label required>License Type</Label>
+              <Select value={driverForm.license_type} onChange={setDriver('license_type')}>
+                <option value="">Select type</option>
+                {LICENSE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+              </Select>
+            </div>
+            <div><Label required>License Expiry</Label><Input type="date" value={driverForm.license_expiry} onChange={setDriver('license_expiry')} /></div>
+            <div><Label>Issuing Authority</Label><Input placeholder="e.g. RTO Mumbai" value={driverForm.license_issuing_authority} onChange={setDriver('license_issuing_authority')} /></div>
+            <div><Label>Driver Type</Label>
+              <Select value={driverForm.driver_type} onChange={setDriver('driver_type')}>
+                {DRIVER_TYPES.map(t => <option key={t} value={t}>{t.replaceAll('_', ' ')}</option>)}
+              </Select>
+            </div>
+            <div><Label>Years of Experience</Label><Input type="number" min="0" placeholder="e.g. 5" value={driverForm.years_of_experience} onChange={setDriver('years_of_experience')} /></div>
+            <div><Label required>Joined Date</Label><Input type="date" value={driverForm.joined_date} onChange={setDriver('joined_date')} /></div>
+            <div><Label>Status</Label>
+              <Select value={driverForm.status} onChange={setDriver('status')}>
+                {DRIVER_STATUS.map(s => <option key={s} value={s}>{s.replaceAll('_', ' ')}</option>)}
+              </Select>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </ModalWrapper>
   );
 };
 // ─────────────────────────────────────────────────────────────────────
@@ -362,15 +303,12 @@ const DriversList = () => {
     },
     {
       header: 'Status',
-      render: d => {
-        const st = STATUS_STYLES[d.status] ?? STATUS_STYLES.INACTIVE;
-        return (
-          <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold w-fit whitespace-nowrap ${st.bg} ${st.text}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
-            {d.status_display ?? d.status}
-          </span>
-        );
-      },
+      render: d => (
+        <StatusBadge
+          label={d.status_display ?? d.status}
+          styles={STATUS_STYLES[d.status]}
+        />
+      ),
     },
     {
       header: 'Actions',
@@ -453,9 +391,9 @@ const DriversList = () => {
             />
           </div>
           {[
-            { val: statusFilter, set: setStatus, opts: ['ACTIVE','INACTIVE','ON_LEAVE','SUSPENDED','TERMINATED'], ph: 'All Status' },
-            { val: typeFilter,   set: setType,   opts: ['PERMANENT','CONTRACT','TEMPORARY','PART_TIME'],          ph: 'All Types' },
-            { val: licFilter,    set: setLic,    opts: ['HMV','LMV','MMV','TRANSPORT','LEARNER','INTERNATIONAL'], ph: 'All Licenses' },
+            { val: statusFilter, set: setStatus, opts: DRIVER_STATUS, ph: 'All Status' },
+            { val: typeFilter,   set: setType,   opts: DRIVER_TYPES,  ph: 'All Types' },
+            { val: licFilter,    set: setLic,    opts: LICENSE_TYPES, ph: 'All Licenses' },
           ].map(({ val, set, opts, ph }) => (
             <div key={ph} className="relative">
               <select
@@ -464,7 +402,7 @@ const DriversList = () => {
                 className="appearance-none pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none cursor-pointer"
               >
                 <option value="">{ph}</option>
-                {opts.map(o => <option key={o} value={o}>{o}</option>)}
+                {opts.map(o => <option key={o} value={o}>{o.replaceAll('_', ' ')}</option>)}
               </select>
               <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             </div>
@@ -514,58 +452,50 @@ const DriversList = () => {
         </div>
 
         {/* Loading */}
-        {isLoading && (
-          <div className="flex items-center justify-center py-16 gap-3 text-gray-400">
-            <Loader2 size={20} className="animate-spin text-[#0052CC]" />
-            <span className="text-sm">Loading drivers...</span>
-          </div>
-        )}
+        {isLoading && <LoadingState message="Loading drivers..." />}
 
         {/* Error */}
         {isError && (
-          <div className="flex flex-col items-center justify-center py-16 gap-3 text-red-400">
-            <AlertCircle size={32} />
-            <p className="text-sm font-medium">Failed to load drivers</p>
-            <p className="text-xs text-gray-400">{error?.response?.data?.detail || error?.message}</p>
-            <button onClick={() => refetch()} className="px-4 py-2 text-sm font-semibold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8]">
-              Try Again
-            </button>
-          </div>
+          <ErrorState
+            message="Failed to load drivers"
+            error={error?.response?.data?.detail || error?.message}
+            onRetry={() => refetch()}
+          />
         )}
 
         {/* Table */}
         {!isLoading && !isError && (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
-                  {COLUMNS.map(c => (
-                    c.sortField
-                      ? <SortableTH key={c.header} label={c.header} field={c.sortField} />
-                      : <th key={c.header} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{c.header}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {drivers.map(d => (
-                  <tr key={d.id} className="hover:bg-blue-50/30 transition-colors">
+            {drivers.length > 0 ? (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100">
                     {COLUMNS.map(c => (
-                      <td key={c.header} className="px-4 py-3 whitespace-nowrap align-middle">
-                        {c.render(d)}
-                      </td>
+                      c.sortField
+                        ? <SortableTH key={c.header} label={c.header} field={c.sortField} />
+                        : <th key={c.header} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{c.header}</th>
                     ))}
                   </tr>
-                ))}
-                {drivers.length === 0 && (
-                  <tr>
-                    <td colSpan={COLUMNS.length} className="px-4 py-16 text-center text-gray-400">
-                      <IdCard size={32} className="mx-auto mb-2 opacity-30" />
-                      <p className="text-sm">No drivers found</p>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {drivers.map(d => (
+                    <tr key={d.id} className="hover:bg-blue-50/30 transition-colors">
+                      {COLUMNS.map(c => (
+                        <td key={c.header} className="px-4 py-3 whitespace-nowrap align-middle">
+                          {c.render(d)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <EmptyState
+                icon={IdCard}
+                title="No drivers found"
+                description="Click Add Driver to register a new one"
+              />
+            )}
           </div>
         )}
 
