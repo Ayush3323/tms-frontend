@@ -5,14 +5,16 @@ const BASE_URL = "/api/v1/users/users/";
 
 /**
  * Standard utility to handle and safely throw API errors.
+ * Supports TMS shape: { error: { code, message, details } } and plain { message/detail }.
  */
 const handleApiError = (error) => {
   if (error.response) {
-    // If it's a validation error (400), we want the structured data
+    const data = error.response.data;
     if (error.response.status === 400) {
-      throw error.response.data;
+      throw data;
     }
-    const message = error.response.data?.message || error.response.data?.detail || "An error occurred on the server";
+    const message =
+      data?.error?.message || data?.message || data?.detail || "An error occurred on the server";
     console.error(`[API Error] ${error.config?.url}:`, message);
     throw new Error(message);
   } else if (error.request) {
@@ -61,13 +63,47 @@ export const createUser = async (data) => {
   }
 };
 
+/** Fields allowed by PATCH /api/v1/users/users/{id}/ (UserUpdateSerializer) */
+const UPDATE_ALLOWED_FIELDS = [
+  "first_name", "middle_name", "last_name", "phone", "date_of_birth", "gender",
+  "profile_picture_url", "account_type", "status", "reporting_manager",
+  "is_staff", // Add this field to allow updates
+  "is_verified",
+];
+
+/** Normalize date string to YYYY-MM-DD for the API (backend expects this format). */
+function toISODate(value) {
+  if (value == null || value === "") return null;
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+  const d = new Date(trimmed);
+  if (Number.isNaN(d.getTime())) return value;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 /**
- * Update user
+ * Update user. Sends only allowed fields so nested/read-only data from GET are never sent.
+ * date_of_birth is normalized to YYYY-MM-DD for the API.
  */
 export const updateUser = async ({ id, data }) => {
   if (!id) throw new Error("User ID is required for updating");
+  const payload = {};
+  UPDATE_ALLOWED_FIELDS.forEach((key) => {
+    if (data[key] !== undefined) {
+      let value = data[key] === "" ? null : data[key];
+      if (key === "date_of_birth" && value != null) {
+        value = toISODate(value);
+      }
+      payload[key] = value;
+    }
+  });
   try {
-    const response = await axiosInstance.patch(`${BASE_URL}${id}/`, data);
+    const response = await axiosInstance.patch(`${BASE_URL}${id}/`, payload);
     return response.data;
   } catch (error) {
     handleApiError(error);
