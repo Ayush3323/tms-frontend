@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import driverApi from '../../api/drivers/driverEndpoint';
 
@@ -154,4 +155,20 @@ export const useDeleteDriver = () => {
       handleError(error);
     },
   });
+};
+
+// ─── 6. useDriverLookup (ID -> Name Map) ──────────────────
+export const useDriverLookup = () => {
+  const { data } = useDrivers({ page_size: 1000 }); 
+  
+  return useMemo(() => {
+    const map = {};
+    data?.results?.forEach(d => {
+      map[d.id] = {
+        name: `${d.user?.first_name || ''} ${d.user?.last_name || ''}`.trim() || 'System Driver',
+        employee_id: d.employee_id
+      };
+    });
+    return map;
+  }, [data]);
 };

@@ -82,7 +82,7 @@ const Sidebar = () => {
   const [usersOpen, setUsersOpen] = useState(isUserPath);
 
   return (
-    <aside className="w-64 h-screen bg-[#F8FAFC] border-r border-gray-200 flex flex-col justify-between p-4 sticky top-0 z-50 overflow-y-auto">
+    <aside className="w-64 h-screen bg-[#F8FAFC] border-r border-gray-200 flex flex-col justify-between p-4 sticky top-0 z-50 overflow-y-auto flex-shrink-0">
       <div>
         {/* Logo Section */}
         <div className="flex items-center gap-3 px-2 mb-10">
