@@ -59,8 +59,8 @@ const AllDocuments = () => {
     <div className="p-6 space-y-6">
       {/* ── Modals ── */}
       {addOpen && <AddDocumentModal driverId={null} onClose={() => setAddOpen(false)} />}
-      {editDoc && <EditDocumentModal document={editDoc} driverId={editDoc.driver} onClose={() => setEditDoc(null)} />}
-      {deleteDoc && <DeleteDocumentDialog document={deleteDoc} driverId={deleteDoc.driver} onClose={() => setDeleteDoc(null)} />}
+      {editDoc && <EditDocumentModal doc={editDoc} driverId={editDoc.driver} onClose={() => setEditDoc(null)} />}
+      {deleteDoc && <DeleteDocumentDialog doc={deleteDoc} driverId={deleteDoc.driver} onClose={() => setDeleteDoc(null)} />}
 
       {/* ── Header ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
