@@ -55,10 +55,10 @@ const FormSec = ({ title }) => (
   <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest pt-1">{title}</p>
 );
 
-const vehicleDisplay = (v) => {
+const vehicleDisplay = (v, item) => {
   if (!v) return '—';
   if (typeof v === 'object') return v.registration_number ?? '—';
-  return v;
+  return item?.vehicle_registration_number ?? item?.vehicle_registration ?? item?.vehicle_display ?? v;
 };
 
 const daysUntil = (date) => {
@@ -91,7 +91,7 @@ const ScheduleDetailView = ({ data, onClose }) => {
       <div className="grid grid-cols-2 gap-6">
         <div>
           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Vehicle</p>
-          <p className="text-sm font-bold text-[#172B4D] font-mono uppercase">{vehicleDisplay(data.vehicle)}</p>
+          <p className="text-sm font-bold text-[#172B4D] font-mono uppercase">{vehicleDisplay(data.vehicle, data)}</p>
         </div>
         <div>
           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Description</p>
@@ -163,7 +163,7 @@ const RecordDetailView = ({ data, onClose }) => {
       <div className="grid grid-cols-2 gap-6">
         <div>
           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Vehicle</p>
-          <p className="text-sm font-bold text-[#172B4D] font-mono uppercase">{vehicleDisplay(data.vehicle)}</p>
+          <p className="text-sm font-bold text-[#172B4D] font-mono uppercase">{vehicleDisplay(data.vehicle, data)}</p>
         </div>
         <div>
           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Service Date</p>
@@ -551,7 +551,7 @@ const SchedulesTab = ({ onEdit, onDelete, onView, vehicleId }) => {
                         <td className="px-4 py-3 whitespace-nowrap">
                           <button onClick={() => onView(row)}
                             className="font-bold text-[#172B4D] font-mono text-[13px] hover:text-[#0052CC] transition-colors text-left uppercase">
-                            {vehicleDisplay(row.vehicle)}
+                            {vehicleDisplay(row.vehicle, row)}
                           </button>
                         </td>
                       )}
@@ -680,7 +680,7 @@ const RecordsTab = ({ onEdit, onDelete, onView, vehicleId }) => {
                     <td className="px-4 py-3 whitespace-nowrap">
                       <button onClick={() => onView(r)}
                         className="font-bold text-[#172B4D] font-mono text-[13px] hover:text-[#0052CC] transition-colors text-left uppercase">
-                        {vehicleDisplay(r.vehicle)}
+                        {vehicleDisplay(r.vehicle, r)}
                       </button>
                     </td>
                   )}

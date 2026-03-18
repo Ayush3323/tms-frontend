@@ -339,8 +339,10 @@ const VehicleTires = ({ vehicleId, isTab }) => {
                       <p className="text-[10px] font-mono font-medium text-gray-400 mt-0.5">#{t.tire_serial_number}</p>
                     </td>
                     {!vehicleId && (
-                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-600">
-                        {t.vehicle_display || t.vehicle}
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className="font-bold text-[#172B4D] font-mono text-[13px] uppercase">
+                          {t.vehicle_registration_number ?? t.vehicle_registration ?? t.vehicle_display ?? t.vehicle ?? '—'}
+                        </span>
                       </td>
                     )}
                     <td className="px-4 py-3 whitespace-nowrap">

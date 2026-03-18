@@ -261,7 +261,9 @@ const VehicleOwnership = ({ vehicleId, isTab }) => {
                     </td>
                     {!vehicleId && (
                       <td className="px-5 py-4 text-sm font-medium text-gray-600 truncate max-w-[150px]">
-                        {h.vehicle_display ?? h.vehicle}
+                        <span className="font-bold text-[#172B4D] font-mono text-[13px] uppercase">
+                          {h.vehicle_registration_number ?? h.vehicle_registration ?? h.vehicle_display ?? h.vehicle ?? '—'}
+                        </span>
                       </td>
                     )}
                     <td className="px-5 py-4">

@@ -77,7 +77,9 @@ const DocDetailView = ({ data, onClose }) => {
         <div>
           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Vehicle</p>
           <p className="text-sm font-bold text-[#172B4D] font-mono">
-            {data.vehicle_registration ?? data.vehicle?.registration_number ?? '—'}
+            {typeof data.vehicle === 'object'
+              ? (data.vehicle?.registration_number ?? '—')
+              : (data.vehicle_registration_number ?? data.vehicle_registration ?? data.vehicle_display ?? data.vehicle ?? '—')}
           </p>
         </div>
         <div>
@@ -211,6 +213,7 @@ const VehicleDocuments = () => {
   const { data, isLoading, isError, error, refetch } = useVehicleDocuments({
     ...(typeFilter && { document_type: typeFilter }),
     ...(search && { search }),
+    expand: 'vehicle',
   });
 
   const docs = data?.results ?? data ?? [];
@@ -326,7 +329,9 @@ const VehicleDocuments = () => {
                       <td className="px-4 py-3 whitespace-nowrap">
                         <button onClick={() => setView(doc)}
                           className="font-bold text-[#172B4D] font-mono text-[13px] hover:text-[#0052CC] transition-colors text-left uppercase">
-                          {doc.vehicle_registration ?? doc.vehicle?.registration_number ?? '—'}
+                          {typeof doc.vehicle === 'object'
+                            ? (doc.vehicle?.registration_number ?? '—')
+                            : (doc.vehicle_registration_number ?? doc.vehicle_registration ?? doc.vehicle_display ?? doc.vehicle ?? '—')}
                         </button>
                       </td>
 
