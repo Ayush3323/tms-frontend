@@ -280,7 +280,9 @@ const VehicleAccessories = ({ vehicleId, isTab }) => {
                     </td>
                     {!vehicleId && (
                       <td className="px-5 py-4 text-sm font-medium text-gray-600 truncate max-w-[150px]">
-                        {a.vehicle_display ?? a.vehicle}
+                        <span className="font-bold text-[#172B4D] font-mono text-[13px] uppercase">
+                          {a.vehicle_registration_number ?? a.vehicle_registration ?? a.vehicle_display ?? a.vehicle ?? '—'}
+                        </span>
                       </td>
                     )}
                     <td className="px-5 py-4">
