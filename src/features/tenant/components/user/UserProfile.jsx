@@ -5,6 +5,7 @@ import { useUser, useUpdateUser, useDeleteUser } from '../../queries/users/userQ
 import { useRoles } from '../../queries/users/rolesPermissionsQuery';
 import { useRevokeSession } from '../../queries/users/sessionsQuery';
 import { useAssignRoles, useUserSessions, useUserActivityLog, useUserRoles, useRemoveUserRole, useUserPermissions } from '../../queries/users/userActionQuery';
+import { useReportingManagers } from '../../queries/users/reportingManagerQuery';
 import { X, User, Mail, Phone, Calendar, UserCircle2, ShieldAlert, Trash2, Users, ChevronDown, ChevronUp, Check, Monitor, Smartphone, History, Activity, ShieldCheck, Lock, Key, Layout, Settings } from 'lucide-react';
 
 const UserProfile = () => {
@@ -59,6 +60,13 @@ const UserProfile = () => {
   const { data: rolesData } = useRoles({ page_size: 100 });
   const roles = Array.isArray(rolesData) ? rolesData : (rolesData?.results || []);
 
+  // Reporting managers dropdown (Fleet Manager role users)
+  const { data: reportingManagersData, isLoading: reportingManagersLoading } = useReportingManagers({
+    role_code: 'FLEET_MANAGER',
+    page_size: 300,
+  });
+  const reportingManagers = Array.isArray(reportingManagersData) ? reportingManagersData : (reportingManagersData?.results || []);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState(null); // 'edit_personal' or 'edit_account'
   const [formErrors, setFormErrors] = useState({});
@@ -77,6 +85,7 @@ const UserProfile = () => {
     status: 'ACTIVE',
     is_staff: false,
     is_verified: false,
+    reporting_manager: '',
     role_ids: []
   });
 
@@ -123,7 +132,9 @@ const UserProfile = () => {
       account_type: user.account_type || 'EMPLOYEE',
       status: user.status || 'ACTIVE',
       is_staff: user.is_staff || false,
-      is_verified: user.is_verified || false,
+      // API provides email_verified and phone_verified; "verified" means both are verified.
+      is_verified: Boolean(user.email_verified && user.phone_verified),
+      reporting_manager: user.reporting_manager || '',
       role_ids: type === 'assign_roles' ? (userRoles?.map(r => r.id) || []) : []
     });
     setFormErrors({});
@@ -150,16 +161,15 @@ const UserProfile = () => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+
+    const newValue = type === 'checkbox' ? checked : value;
+
+    console.log("CHANGE:", name, newValue, typeof newValue); // 👈
+
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: newValue
     }));
-    if (formErrors[name]) {
-      setFormErrors(prev => ({ ...prev, [name]: '' }));
-    }
-    if (formErrors.non_field_errors) {
-      setFormErrors(prev => ({ ...prev, non_field_errors: null }));
-    }
   };
 
   const validateForm = () => {
@@ -283,6 +293,9 @@ const UserProfile = () => {
         delete submissionData[field];
       }
     });
+
+    // Ensure is_staff is a boolean
+    submissionData.is_staff = Boolean(submissionData.is_staff);
 
     updateMutation.mutate({ id: user.id, data: submissionData }, {
       onSuccess: () => handleCloseModal(),
@@ -478,7 +491,7 @@ const UserProfile = () => {
                 <div data-purpose="quick-info-item">
                   <p className="label-text">Verified Status</p>
                   <div className="flex items-center gap-2 mt-1">
-                    {user.is_verified ? (
+                    {Boolean(user.email_verified && user.phone_verified) ? (
                       <>
                         <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
@@ -1115,12 +1128,21 @@ const UserProfile = () => {
                       <div className="space-y-1">
                         <label className="text-xs font-bold text-gray-600">Reporting Manager</label>
                         <select
-                          disabled
-                          className="w-full px-4 py-2 bg-gray-100 border border-gray-200 rounded-lg text-sm disabled:cursor-not-allowed"
+                          name="reporting_manager"
+                          value={formData.reporting_manager || ''}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0052CC]"
                         >
-                          <option value="">Not assigned</option>
+                          <option value="">{reportingManagersLoading ? 'Loading...' : 'Not assigned'}</option>
+                          {reportingManagers
+                            .filter((m) => m?.id && m.id !== userid) // cannot be own manager
+                            .map((m) => (
+                              <option key={m.id} value={m.id}>
+                                {m.full_name || `${m.first_name || ''} ${m.last_name || ''}`.trim() || m.email}
+                              </option>
+                            ))}
                         </select>
-                        <p className="text-[10px] text-gray-400 ml-1">Manager assignment coming soon</p>
+                        <p className="text-[10px] text-gray-400 ml-1">Select a Fleet Manager role user</p>
                       </div>
                     </div>
                   </>
