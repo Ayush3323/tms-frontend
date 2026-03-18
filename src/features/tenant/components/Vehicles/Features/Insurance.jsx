@@ -94,7 +94,7 @@ const InsuranceDetailView = ({ data, onClose }) => {
           <p className="text-sm font-bold text-[#172B4D] font-mono uppercase">
             {typeof data.vehicle === 'object'
               ? (data.vehicle?.registration_number ?? '—')
-              : (data.vehicle_registration ?? data.vehicle ?? '—')}
+              : (data.vehicle_registration_number ?? data.vehicle_registration ?? data.vehicle_display ?? data.vehicle ?? '—')}
           </p>
         </Field>
         <Field label="Policy Number">
@@ -431,7 +431,7 @@ const VehicleInsurance = ({ vehicleId, isTab }) => {
                             className="font-bold text-[#172B4D] font-mono text-[13px] hover:text-[#0052CC] transition-colors text-left uppercase">
                             {typeof doc.vehicle === 'object'
                               ? (doc.vehicle?.registration_number ?? '—')
-                              : (doc.vehicle_registration ?? doc.vehicle ?? '—')}
+                              : (doc.vehicle_registration_number ?? doc.vehicle_registration ?? doc.vehicle_display ?? doc.vehicle ?? '—')}
                           </button>
                         </td>
                       )}

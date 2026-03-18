@@ -337,7 +337,7 @@ const VehicleInspections = ({ vehicleId, isTab }) => {
                     {!vehicleId && (
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span className="font-bold text-[#172B4D] font-mono text-[13px] uppercase">
-                          {i.vehicle_display ?? i.vehicle}
+                          {i.vehicle_registration_number ?? i.vehicle_registration ?? i.vehicle_display ?? i.vehicle ?? '—'}
                         </span>
                       </td>
                     )}

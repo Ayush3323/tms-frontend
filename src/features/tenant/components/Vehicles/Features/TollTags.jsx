@@ -275,7 +275,9 @@ const VehicleTollTags = ({ vehicleId, isTab }) => {
                     </td>
                     {!vehicleId && (
                       <td className="px-5 py-4 text-sm font-medium text-gray-600 truncate max-w-[150px]">
-                        {t.vehicle_display ?? t.vehicle}
+                        <span className="font-bold text-[#172B4D] font-mono text-[13px] uppercase">
+                          {t.vehicle_registration_number ?? t.vehicle_registration ?? t.vehicle_display ?? t.vehicle ?? '—'}
+                        </span>
                       </td>
                     )}
                     <td className="px-5 py-4">
