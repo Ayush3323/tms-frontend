@@ -4,7 +4,7 @@ import TableActions from '../../common/TableActions';
 import { STATUS_STYLES as VERIFICATION_STYLES } from '../../common/constants';
 import { getExpiryColor } from '../../common/utils';
 
-const DocumentTable = ({ documents, onEdit, showDriver = false, driverMap = {} }) => {
+const DocumentTable = ({ documents, onEdit, showDriver = false, driverMap = {}, userMap = {} }) => {
   return (
     <div className="overflow-x-auto rounded-xl border border-gray-200">
       <table className="w-full text-sm">
@@ -16,7 +16,11 @@ const DocumentTable = ({ documents, onEdit, showDriver = false, driverMap = {} }
                 <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Emp ID</th>
               </>
             )}
-            {['Document Type', 'Document Number', 'Issue Date', 'Expiry Date', 'Issuing Authority', 'Verification', 'File URL', 'Notes', 'Actions'].map(h => (
+            {[
+              'Document Type', 'Document Number', 'Issue Date', 'Expiry Date', 
+              'Issuing Authority', 'Verification', 'Verified By', 'Verified At', 
+              'File URL', 'Notes', 'Actions'
+            ].map(h => (
               <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
             ))}
           </tr>
@@ -54,6 +58,12 @@ const DocumentTable = ({ documents, onEdit, showDriver = false, driverMap = {} }
                   label={doc.verification_status_display ?? doc.verification_status}
                   styles={VERIFICATION_STYLES[doc.verification_status]}
                 />
+              </td>
+              <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600">
+                {userMap[doc.verified_by]?.name || doc.verified_by || '—'}
+              </td>
+              <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600">
+                {doc.verified_at ? new Date(doc.verified_at).toLocaleString() : '—'}
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-[12px]">
                 {doc.file_url 

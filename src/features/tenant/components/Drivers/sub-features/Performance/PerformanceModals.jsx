@@ -11,6 +11,7 @@ import {
   useUpdatePerformanceMetric,
   useDeletePerformanceMetric,
 } from '../../../../queries/drivers/performanceMetricsQuery';
+import DriverSelect from '../../common/DriverSelect';
 
 // Shared Form Fields for Performance
 const PerformanceFormFields = ({ form, setForm, error }) => {
@@ -21,10 +22,10 @@ const PerformanceFormFields = ({ form, setForm, error }) => {
         <div className="grid grid-cols-2 gap-4">
           <div><Label required>Period Start</Label><Input type="date" value={form.period_start} onChange={set('period_start')} /></div>
           <div><Label required>Period End</Label><Input type="date" value={form.period_end} onChange={set('period_end')} /></div>
-          <div><Label>Trips Completed</Label><Input type="number" placeholder="e.g. 45" min="0" value={form.trips_completed} onChange={set('trips_completed')} /></div>
-          <div><Label>Distance Covered (km)</Label><Input type="number" placeholder="e.g. 12500.50" min="0" step="0.01" value={form.distance_covered} onChange={set('distance_covered')} /></div>
+          <div><Label required>Trips Completed</Label><Input type="number" placeholder="e.g. 45" min="0" value={form.trips_completed} onChange={set('trips_completed')} /></div>
+          <div><Label required>Distance Covered (km)</Label><Input type="number" placeholder="e.g. 12500" min="0" step="0.01" value={form.distance_covered} onChange={set('distance_covered')} /></div>
           <div><Label>Fuel Efficiency (km/L)</Label><Input type="number" placeholder="e.g. 8.5" min="0" step="0.1" value={form.fuel_efficiency} onChange={set('fuel_efficiency')} /></div>
-          <div><Label>On-Time Delivery Rate (%)</Label><Input type="number" placeholder="e.g. 95.5" min="0" max="100" step="0.1" value={form.on_time_delivery_rate} onChange={set('on_time_delivery_rate')} /></div>
+          <div><Label required>On-Time Delivery Rate (%)</Label><Input type="number" placeholder="e.g. 95.5" min="0" max="100" step="0.1" value={form.on_time_delivery_rate} onChange={set('on_time_delivery_rate')} /></div>
           <div><Label>Safety Score (0-100)</Label><Input type="number" placeholder="e.g. 92.5" min="0" max="100" step="0.1" value={form.safety_score} onChange={set('safety_score')} /></div>
           <div><Label>Customer Rating (0-5)</Label><Input type="number" placeholder="e.g. 4.5" min="0" max="5" step="0.1" value={form.customer_rating} onChange={set('customer_rating')} /></div>
         </div>
@@ -36,7 +37,6 @@ const PerformanceFormFields = ({ form, setForm, error }) => {
       </div>
     );
 };
-import DriverSelect from '../../common/DriverSelect';
 
 export const AddPerformanceModal = ({ driverId, onClose }) => {
   const [targetDriverId, setTargetDriverId] = useState(driverId || '');
@@ -54,11 +54,40 @@ export const AddPerformanceModal = ({ driverId, onClose }) => {
   const [error, setError] = useState('');
   const createMetric = useCreatePerformanceMetric(targetDriverId);
 
+  const validate = () => {
+    if (!targetDriverId) return 'Please select a driver.';
+    if (!form.period_start) return 'Period start date is required.';
+    if (!form.period_end) return 'Period end date is required.';
+    if (form.period_start > form.period_end) return 'Period end cannot be before start date.';
+    
+    if (form.trips_completed === '') return 'Trips completed is required.';
+    if (Number(form.trips_completed) < 0) return 'Trips completed cannot be negative.';
+    
+    if (form.distance_covered === '') return 'Distance covered is required.';
+    if (Number(form.distance_covered) < 0) return 'Distance covered cannot be negative.';
+    
+    if (form.on_time_delivery_rate === '') return 'On-time delivery rate is required.';
+    const deliveryRate = Number(form.on_time_delivery_rate);
+    if (deliveryRate < 0 || deliveryRate > 100) return 'Delivery rate must be between 0 and 100.';
+    
+    if (form.safety_score !== '') {
+      const safety = Number(form.safety_score);
+      if (safety < 0 || safety > 100) return 'Safety score must be between 0 and 100.';
+    }
+    
+    if (form.customer_rating !== '') {
+      const rating = Number(form.customer_rating);
+      if (rating < 0 || rating > 5) return 'Customer rating must be between 0 and 5.';
+    }
+    
+    return null;
+  };
+
   const handleSubmit = () => {
     setError('');
-    if (!targetDriverId) return setError('Please select a driver.');
-    if (!form.period_start) return setError('Period start date is required.');
-    if (!form.period_end) return setError('Period end date is required.');
+    const validationError = validate();
+    if (validationError) return setError(validationError);
+
     createMetric.mutate(cleanObject(form), {
       onSuccess: onClose,
       onError: (err) => setError(err.message || 'Failed to add performance metric.'),
@@ -110,10 +139,39 @@ export const EditPerformanceModal = ({ metric, driverId, onClose }) => {
   const updateMetric = useUpdatePerformanceMetric(driverId, metric.id);
   const deleteMetric = useDeletePerformanceMetric(driverId);
 
+  const validate = () => {
+    if (!form.period_start) return 'Period start date is required.';
+    if (!form.period_end) return 'Period end date is required.';
+    if (form.period_start > form.period_end) return 'Period end cannot be before start date.';
+    
+    if (form.trips_completed === '') return 'Trips completed is required.';
+    if (Number(form.trips_completed) < 0) return 'Trips completed cannot be negative.';
+    
+    if (form.distance_covered === '') return 'Distance covered is required.';
+    if (Number(form.distance_covered) < 0) return 'Distance covered cannot be negative.';
+    
+    if (form.on_time_delivery_rate === '') return 'On-time delivery rate is required.';
+    const deliveryRate = Number(form.on_time_delivery_rate);
+    if (deliveryRate < 0 || deliveryRate > 100) return 'Delivery rate must be between 0 and 100.';
+    
+    if (form.safety_score !== '') {
+      const safety = Number(form.safety_score);
+      if (safety < 0 || safety > 100) return 'Safety score must be between 0 and 100.';
+    }
+    
+    if (form.customer_rating !== '') {
+      const rating = Number(form.customer_rating);
+      if (rating < 0 || rating > 5) return 'Customer rating must be between 0 and 5.';
+    }
+    
+    return null;
+  };
+
   const handleSubmit = () => {
     setError('');
-    if (!form.period_start) return setError('Period start date is required.');
-    if (!form.period_end) return setError('Period end date is required.');
+    const validationError = validate();
+    if (validationError) return setError(validationError);
+
     updateMetric.mutate(cleanObject(form), {
       onSuccess: onClose,
       onError: (err) => setError(err.message || 'Failed to update performance metric.'),

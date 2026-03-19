@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, FileText } from 'lucide-react';
+import { useUsers } from '../../../queries/users/userQuery';
 import { useDriverDocuments } from '../../../queries/drivers/driverDocumentQuery';
 
 import { LoadingState, ErrorState, EmptyState } from '../common/StateFeedback';
@@ -12,6 +13,18 @@ const DocumentsTab = ({ driverId }) => {
   const [deleteDoc, setDeleteDoc] = useState(null);
 
   const { data, isLoading, isError, error, refetch } = useDriverDocuments(driverId);
+  const { data: usersData } = useUsers();
+
+  const userMap = React.useMemo(() => {
+    return usersData?.results?.reduce((acc, u) => ({ 
+      ...acc, 
+      [u.id]: {
+        ...u,
+        name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username || 'System User'
+      }
+    }), {}) ?? {};
+  }, [usersData]);
+
   const documents = data?.results ?? [];
 
   if (isLoading) return <LoadingState message="Loading documents..." />;
@@ -21,7 +34,7 @@ const DocumentsTab = ({ driverId }) => {
     <>
       {/* ── Modals ── */}
       {addOpen    && <AddDocumentModal  driverId={driverId} onClose={() => setAddOpen(false)} />}
-      {editDoc    && <EditDocumentModal doc={editDoc} driverId={driverId} onClose={() => setEditDoc(null)} />}
+      {editDoc    && <EditDocumentModal doc={editDoc} driverId={driverId} onClose={() => setEditDoc(null)} userMap={userMap} />}
       {deleteDoc  && <DeleteDocumentDialog doc={deleteDoc} driverId={driverId} onClose={() => setDeleteDoc(null)} />}
 
       {/* ── Header ── */}
@@ -55,7 +68,8 @@ const DocumentsTab = ({ driverId }) => {
           documents={documents} 
           onEdit={setEditDoc} 
           onDelete={setDeleteDoc} 
-          showDriver={false} 
+          showDriver={false}
+          userMap={userMap}
         />
       )}
     </>

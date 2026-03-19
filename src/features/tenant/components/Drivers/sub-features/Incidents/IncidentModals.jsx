@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Loader2, Plus, Pencil } from 'lucide-react';
 import ModalWrapper from '../../common/ModalWrapper';
 import Label from '../../common/Label';
@@ -12,6 +12,8 @@ import {
   useDeleteIncident,
 } from '../../../../queries/drivers/incidentsAndAttendance';
 import { useVehiclesList } from '../../../../queries/drivers/vehicleAssignmentQuery';
+import { useUsers } from '../../../../queries/users/userQuery';
+import { useCurrentUser } from '../../../../queries/users/userActionQuery';
 import DriverSelect from '../../common/DriverSelect';
 import { INCIDENT_TYPES, SEVERITY_TYPES as SEVERITY_LIST, RESOLUTION_STATUS } from '../../common/constants';
 
@@ -56,7 +58,6 @@ export const AddIncidentModal = ({ driverId, onClose }) => {
     if (!targetDriverId) return setError('Please select a driver.');
     if (!form.incident_type) return setError('Incident type is required.');
     if (!form.incident_date) return setError('Incident date is required.');
-    if (!form.location) return setError('Location is required.');
     if (!form.description) return setError('Description is required.');
     if (!form.severity) return setError('Severity is required.');
 
@@ -126,18 +127,18 @@ export const AddIncidentModal = ({ driverId, onClose }) => {
             <Input type="datetime-local" value={form.incident_date} onChange={set('incident_date')} />
           </div>
           <div>
-            <Label required>Location</Label>
-            <Input placeholder="e.g. NH-44, near Agra" value={form.location} onChange={set('location')} />
+            <Label>Location</Label>
+            <Input placeholder="Location" value={form.location} onChange={set('location')} />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label>Police Report #</Label>
-            <Input placeholder="Police report #" value={form.police_report_number} onChange={set('police_report_number')} />
+            <Label>Police Report No</Label>
+            <Input placeholder="Police report no" value={form.police_report_number} onChange={set('police_report_number')} />
           </div>
           <div>
-            <Label>Insurance Claim #</Label>
-            <Input placeholder="Claim number" value={form.insurance_claim_number} onChange={set('insurance_claim_number')} />
+            <Label>Insurance No</Label>
+            <Input placeholder="Insurance no" value={form.insurance_claim_number} onChange={set('insurance_claim_number')} />
           </div>
         </div>
         <div>
@@ -175,7 +176,54 @@ export const EditIncidentModal = ({ incident, driverId, onClose }) => {
     police_report_number: incident.police_report_number ?? '',
     insurance_claim_number: incident.insurance_claim_number ?? '',
     resolution_notes: incident.resolution_notes ?? '',
+    resolved_by: incident.resolved_by ?? '',
+    resolved_at: incident.resolved_at ?? '',
   });
+  
+  const { data: currentUser } = useCurrentUser();
+  const { data: usersData } = useUsers({ page_size: 1000 });
+
+  const userMap = useMemo(() => {
+    const map = {};
+    usersData?.results?.forEach(u => {
+      map[u.id] = `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username || 'System User';
+    });
+    return map;
+  }, [usersData]);
+
+  const handleStatusChange = (e) => {
+    const newStatus = e.target.value;
+    const isResolved = newStatus === 'RESOLVED' || newStatus === 'CLOSED';
+    
+    setForm(p => {
+      const newState = { ...p, resolution_status: newStatus };
+      if (isResolved) {
+        // Only set if not already set to avoid overwriting original timestamp
+        if (!newState.resolved_at) newState.resolved_at = new Date().toISOString();
+        if (!newState.resolved_by) newState.resolved_by = currentUser?.id || '';
+      } else {
+        // Clear if not resolved
+        newState.resolved_by = '';
+        newState.resolved_at = '';
+      }
+      return newState;
+    });
+  };
+
+  // Safety: If status is resolved but fields are missing (e.g. late load or backend missing), fill them.
+  useEffect(() => {
+    const isResolved = form.resolution_status === 'RESOLVED' || form.resolution_status === 'CLOSED';
+    if (isResolved) {
+      const updates = {};
+      if (currentUser?.id && !form.resolved_by) updates.resolved_by = currentUser.id;
+      if (!form.resolved_at) updates.resolved_at = new Date().toISOString();
+      
+      if (Object.keys(updates).length > 0) {
+        setForm(p => ({ ...p, ...updates }));
+      }
+    }
+  }, [currentUser?.id, form.resolution_status, form.resolved_at, form.resolved_by]);
+
   const [error, setError] = useState('');
   const [showDelete, setShowDelete] = useState(false);
   const updateIncident = useUpdateIncident(driverId, incident.id);
@@ -186,10 +234,16 @@ export const EditIncidentModal = ({ incident, driverId, onClose }) => {
     setError('');
     if (!form.incident_type) return setError('Incident type is required.');
     if (!form.incident_date) return setError('Incident date is required.');
-    if (!form.location) return setError('Location is required.');
     if (!form.description) return setError('Description is required.');
 
-    updateIncident.mutate(cleanObject(form), {
+    const clean = Object.fromEntries(
+      Object.entries(form).map(([k, v]) => {
+        if (k === 'resolved_by' || k === 'resolved_at') return [k, v || null];
+        return [k, v === '' ? null : v];
+      })
+    );
+
+    updateIncident.mutate(clean, {
       onSuccess: onClose,
       onError: (err) => setError(err.message || 'Failed to update incident.'),
     });
@@ -262,18 +316,18 @@ export const EditIncidentModal = ({ incident, driverId, onClose }) => {
             <Input type="datetime-local" value={form.incident_date} onChange={set('incident_date')} />
           </div>
           <div>
-            <Label required>Location</Label>
-            <Input placeholder="e.g. NH-44, near Agra" value={form.location} onChange={set('location')} />
+            <Label>Location</Label>
+            <Input placeholder="Location" value={form.location} onChange={set('location')} />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label>Police Report #</Label>
-            <Input placeholder="Police report #" value={form.police_report_number} onChange={set('police_report_number')} />
+            <Label>Police Report No</Label>
+            <Input placeholder="Police report no" value={form.police_report_number} onChange={set('police_report_number')} />
           </div>
           <div>
-            <Label>Insurance Claim #</Label>
-            <Input placeholder="Claim number" value={form.insurance_claim_number} onChange={set('insurance_claim_number')} />
+            <Label>Insurance No</Label>
+            <Input placeholder="Insurance no" value={form.insurance_claim_number} onChange={set('insurance_claim_number')} />
           </div>
         </div>
         <div>
@@ -287,11 +341,27 @@ export const EditIncidentModal = ({ incident, driverId, onClose }) => {
         <div className="border-t border-gray-100 pt-4 mt-4">
           <Label>Resolution Status</Label>
           <div className="grid grid-cols-2 gap-4 mt-2">
-            <Select value={form.resolution_status} onChange={set('resolution_status')}>
+            <Select value={form.resolution_status} onChange={handleStatusChange}>
               {RESOLUTION_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
             </Select>
             <Input placeholder="Resolution notes..." value={form.resolution_notes} onChange={set('resolution_notes')} />
           </div>
+          {(form.resolved_by || form.resolved_at) && (
+            <div className="grid grid-cols-2 gap-4 mt-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
+              <div>
+                <Label>Resolved By</Label>
+                <div className="text-xs font-semibold text-gray-600 mt-1">
+                  {userMap[form.resolved_by] || form.resolved_by || '—'}
+                </div>
+              </div>
+              <div>
+                <Label>Resolved At</Label>
+                <div className="text-xs font-semibold text-gray-600 mt-1">
+                  {form.resolved_at ? new Date(form.resolved_at).toLocaleString() : '—'}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </ModalWrapper>

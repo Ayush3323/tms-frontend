@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Plus, AlertTriangle } from 'lucide-react';
 import { useDriverIncidents } from '../../../queries/drivers/incidentsAndAttendance';
+import { useUsers } from '../../../queries/users/userQuery';
 
 import { LoadingState, ErrorState, EmptyState } from '../common/StateFeedback';
 import IncidentTable from '../sub-features/Incidents/IncidentTable';
@@ -12,6 +13,16 @@ const IncidentsTab = ({ driverId }) => {
   const [deleteIncident, setDeleteIncident] = useState(null);
 
   const { data, isLoading, isError, error, refetch } = useDriverIncidents(driverId);
+  const { data: usersData } = useUsers({ page_size: 1000 });
+
+  const userMap = useMemo(() => {
+    const map = {};
+    usersData?.results?.forEach(u => {
+      map[u.id] = `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username || 'System User';
+    });
+    return map;
+  }, [usersData]);
+
   const incidents = data?.results ?? [];
 
   if (isLoading) return <LoadingState message="Loading incidents..." />;
@@ -52,6 +63,7 @@ const IncidentsTab = ({ driverId }) => {
           onEdit={setEditIncident} 
           onDelete={setDeleteIncident} 
           showDriver={false}
+          userMap={userMap}
         />
       )}
     </>

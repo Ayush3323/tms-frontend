@@ -6,9 +6,10 @@ import {
   FileText, ShieldAlert, GraduationCap,
   Stethoscope, BarChart2, AlertTriangle,
   CalendarCheck, Truck, Wallet, PauseCircle,
-  PlayCircle, Pencil, ChevronRight, X, ChevronDown, Save
+  PlayCircle, Pencil, ChevronRight, X, ChevronDown, Save, Trash2
 } from 'lucide-react';
-import { useDriverDetail, useUpdateDriver } from '../../queries/drivers/driverCoreQuery';
+import { useDriverDetail, useUpdateDriver, useDeleteDriver } from '../../queries/drivers/driverCoreQuery';
+import { useUpdateUser } from '../../queries/users/userQuery';
 import DocumentsTab from './tabs/DocumentsTab';
 import EmergencyTab from './tabs/EmergencyContactsTab';
 import TrainingTab from './tabs/TrainingRecordsTab';
@@ -24,6 +25,7 @@ import Input from './common/Input';
 import Select from './common/Select';
 import ModalWrapper from './common/ModalWrapper';
 import StatusBadge from './common/StatusBadge';
+import DeleteConfirmDialog from './common/DeleteConfirmDialog';
 import { LoadingState, ErrorState } from './common/StateFeedback';
 
 import {
@@ -41,6 +43,7 @@ import { getDriverName, cleanObject, getExpiryColor } from './common/utils';
 
 const EditDriverModal = ({ driver, onClose }) => {
   const updateDriver = useUpdateDriver();
+  const updateUser = useUpdateUser();
   const u = driver.user ?? {};
 
   const [form, setForm] = useState({
@@ -66,22 +69,62 @@ const EditDriverModal = ({ driver, onClose }) => {
 
   const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setError('');
+    const uId = driver.user?.id || driver.user_id;
+
+    // 1. Basic Required Fields
     if (!form.first_name || !form.last_name) return setError('First and last name are required.');
+    
+    // 2. Name Length Validation (Max 100)
+    if (form.first_name.length > 100) return setError('First name cannot exceed 100 characters.');
+    if (form.last_name.length > 100) return setError('Last name cannot exceed 100 characters.');
+    if (form.middle_name && form.middle_name.length > 100) return setError('Middle name cannot exceed 100 characters.');
+
+    // 3. Email Validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (form.email && !emailRegex.test(form.email)) return setError('Please enter a valid email address.');
+
+    // 4. Age Validation (18+)
+    if (form.date_of_birth) {
+      const birthDate = new Date(form.date_of_birth);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      if (age < 18) return setError('Driver must be at least 18 years old.');
+    }
+
+    if (!form.license_number) return setError('License number is required.');
+    if (!form.license_type) return setError('License type is required.');
+    if (!form.license_expiry) return setError('License expiry date is required.');
+    if (!form.license_issuing_authority) return setError('License issuing authority is required.');
+    if (!form.joined_date) return setError('Joined date is required.');
 
     const { first_name, middle_name, last_name, phone, email, date_of_birth, gender, ...driverFields } = form;
 
-    updateDriver.mutate({
-      id: driver.id,
-      data: {
-        ...cleanObject(driverFields),
-        user: cleanObject({ first_name, middle_name, last_name, phone, email, date_of_birth, gender }),
-      },
-    }, {
-      onSuccess: onClose,
-      onError: (err) => setError(err.message || 'Failed to update driver.'),
-    });
+    try {
+      // 1. Update User Details (wait for it to finish)
+      if (uId) {
+        await updateUser.mutateAsync({
+          id: uId,
+          data: cleanObject({ first_name, middle_name, last_name, phone, email, date_of_birth, gender }),
+        });
+      }
+
+      // 2. Update Driver Details
+      await updateDriver.mutateAsync({
+        id: driver.id,
+        data: cleanObject(driverFields),
+      });
+
+      onClose();
+    } catch (err) {
+      console.error('Update failure:', err);
+      setError(err?.message || 'Failed to update driver information.');
+    }
   };
 
   return (
@@ -93,9 +136,9 @@ const EditDriverModal = ({ driver, onClose }) => {
       footer={
         <>
           <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-          <button onClick={handleSubmit} disabled={updateDriver.isPending}
+          <button onClick={handleSubmit} disabled={updateDriver.isPending || updateUser.isPending}
             className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed">
-            {updateDriver.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Save size={14} /> Save Changes</>}
+            {(updateDriver.isPending || updateUser.isPending) ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Save size={14} /> Save Changes</>}
           </button>
         </>
       }
@@ -133,8 +176,8 @@ const EditDriverModal = ({ driver, onClose }) => {
                 {LICENSE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
               </Select>
             </div>
-            <div><Label>Expiry Date</Label><Input type="date" value={form.license_expiry} onChange={set('license_expiry')} /></div>
-            <div><Label>Issuing Authority</Label><Input value={form.license_issuing_authority} onChange={set('license_issuing_authority')} placeholder="e.g. RTO Delhi" /></div>
+            <div><Label required>Expiry Date</Label><Input type="date" value={form.license_expiry} onChange={set('license_expiry')} /></div>
+            <div><Label required>Issuing Authority</Label><Input value={form.license_issuing_authority} onChange={set('license_issuing_authority')} placeholder="e.g. RTO Delhi" /></div>
           </div>
         </div>
 
@@ -153,7 +196,7 @@ const EditDriverModal = ({ driver, onClose }) => {
                 {DRIVER_STATUSES.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
               </Select>
             </div>
-            <div><Label>Joined Date</Label><Input type="date" value={form.joined_date} onChange={set('joined_date')} /></div>
+            <div><Label required>Joined Date</Label><Input type="date" value={form.joined_date} onChange={set('joined_date')} /></div>
             <div><Label>Years of Experience</Label><Input type="number" min="0" step="1" value={form.years_of_experience} onChange={set('years_of_experience')} placeholder="e.g. 5" /></div>
           </div>
         </div>
@@ -264,13 +307,29 @@ const DriverDetail = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
   const [editOpen, setEditOpen] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   const { data: driver, isLoading, isError, error } = useDriverDetail(id);
   const updateDriver = useUpdateDriver();
+  const deleteMutation = useDeleteDriver();
 
   const handleStatusToggle = () => {
     const newStatus = driver.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
     updateDriver.mutate({ id: driver.id, data: { status: newStatus } });
+  };
+
+  const handleDelete = () => {
+    setDeleteError('');
+    deleteMutation.mutate(driver.id, {
+      onSuccess: () => {
+        setShowDelete(false);
+        navigate('/tenant/dashboard/drivers');
+      },
+      onError: (err) => {
+        setDeleteError(err.message || 'Failed to delete driver.');
+      }
+    });
   };
 
   if (isLoading) return <LoadingState message="Loading driver..." />;
@@ -361,6 +420,12 @@ const DriverDetail = () => {
                 <PlayCircle size={13} /> Activate
               </button>
             )}
+            <button
+              onClick={() => setShowDelete(true)}
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 rounded-lg transition-all"
+            >
+              <Trash2 size={13} /> Delete Driver
+            </button>
           </div>
         </div>
       </div>
@@ -400,6 +465,27 @@ const DriverDetail = () => {
         </div>
       </div>
 
+      {showDelete && (
+        <DeleteConfirmDialog
+          title="Delete Driver?"
+          description={
+            <div className="space-y-3">
+              <p>Are you sure you want to delete {getDriverName(driver)}? This will permanently remove the driver profile and all associated data.</p>
+              {deleteError && (
+                <div className="px-3 py-2 bg-red-50 border border-red-100 rounded-lg text-xs text-red-600 font-medium">
+                  {deleteError}
+                </div>
+              )}
+            </div>
+          }
+          onConfirm={handleDelete}
+          onCancel={() => {
+            setShowDelete(false);
+            setDeleteError('');
+          }}
+          isDeleting={deleteMutation.isPending}
+        />
+      )}
     </div>
   );
 };

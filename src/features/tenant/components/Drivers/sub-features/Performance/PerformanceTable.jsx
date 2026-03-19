@@ -15,7 +15,7 @@ const PerformanceTable = ({ metrics, onEdit, showDriver = false, driverMap = {} 
                 <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Emp ID</th>
               </>
             )}
-            {['Period', 'Trips', 'Distance', 'On-Time %', 'Fuel Eff.', 'Safety', 'Rating', 'Actions'].map(h => (
+            {['Period', 'Trips', 'Distance', 'On-Time %', 'Fuel Eff.', 'Safety', 'Rating', 'Notes', 'Actions'].map(h => (
               <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
             ))}
           </tr>
@@ -60,6 +60,9 @@ const PerformanceTable = ({ metrics, onEdit, showDriver = false, driverMap = {} 
                 <span className={`text-[12px] ${getScoreColor(m.customer_rating, 5)}`}>
                   {m.customer_rating != null ? `⭐ ${m.customer_rating}` : '—'}
                 </span>
+              </td>
+              <td className="px-4 py-3 text-[12px] text-gray-400 max-w-xs truncate italic" title={m.notes}>
+                {m.notes || '—'}
               </td>
               <td className="px-4 py-3 whitespace-nowrap">
                 <TableActions onEdit={() => onEdit(m)} />
