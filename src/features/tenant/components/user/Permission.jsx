@@ -1,13 +1,34 @@
-import React, { useState, useEffect } from 'react';
-import { Search, RotateCcw, Shield, ShieldCheck, ShieldAlert, X, Eye, Info, Lock, Key, Layout, Settings, FileText, Globe } from 'lucide-react';
-import { usePermissions, usePermission } from '../../queries/users/rolesPermissionsQuery';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Eye, Key, Layout, RotateCcw, Search, Settings, Shield, User, X } from 'lucide-react';
+import {
+  useCurrentUser,
+  usePermission,
+  usePermissions,
+  useUserPermissions,
+} from '../../queries/users/rolesPermissionsQuery';
+
+const PAGE_SIZE = 10;
+
+const normalizePermission = (permission, source = 'all') => ({
+  ...permission,
+  id: permission?.id || permission?.permission_code || permission?.code,
+  permission_name: permission?.permission_name || permission?.name || 'Unnamed Permission',
+  permission_code: permission?.permission_code || permission?.code || 'N/A',
+  resource_type: permission?.resource_type || permission?.resource || 'General',
+  action: permission?.action || 'ACCESS',
+  description: permission?.description || '',
+  granted_by_role: permission?.granted_by_role || null,
+  source,
+});
 
 const Permission = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [viewMode, setViewMode] = useState('mine');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedPermission, setSelectedPermission] = useState(null);
 
-  // Search Debouncing
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(searchTerm);
@@ -17,45 +38,120 @@ const Permission = () => {
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
-  const { data: permissionsData, isLoading, isError, error } = usePermissions({ 
-    page: currentPage, 
-    page_size: 10,
-    search: debouncedSearch 
-  });
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [viewMode]);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedPermissionId, setSelectedPermissionId] = useState(null);
-  
+  const { data: permissionsData, isLoading: isAllPermissionsLoading, isError: isAllPermissionsError, error: allPermissionsError } =
+    usePermissions({
+      page: currentPage,
+      page_size: PAGE_SIZE,
+      search: debouncedSearch,
+    });
+
+  const { data: currentUser, isLoading: isCurrentUserLoading, isError: isCurrentUserError, error: currentUserError } = useCurrentUser();
+  const {
+    data: userPermissionsData,
+    isLoading: isUserPermissionsLoading,
+    isError: isUserPermissionsError,
+    error: userPermissionsError,
+  } = useUserPermissions(currentUser?.id);
+
+  const selectedPermissionId =
+    selectedPermission?.source === 'all' && selectedPermission?.id ? selectedPermission.id : null;
   const { data: fullPermissionData, isLoading: isPermissionLoading } = usePermission(selectedPermissionId);
 
-  const permissions = permissionsData?.results || [];
+  const allPermissions = useMemo(
+    () => (permissionsData?.results || []).map((permission) => normalizePermission(permission, 'all')),
+    [permissionsData]
+  );
+
+  const myPermissions = useMemo(
+    () => (userPermissionsData?.permissions || []).map((permission) => normalizePermission(permission, 'mine')),
+    [userPermissionsData]
+  );
+
+  const filteredMyPermissions = useMemo(() => {
+    const normalizedSearch = debouncedSearch.trim().toLowerCase();
+
+    if (!normalizedSearch) return myPermissions;
+
+    return myPermissions.filter((permission) =>
+      [
+        permission.permission_name,
+        permission.permission_code,
+        permission.resource_type,
+        permission.action,
+        permission.granted_by_role,
+      ]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(normalizedSearch))
+    );
+  }, [debouncedSearch, myPermissions]);
+
+  const paginatedMyPermissions = useMemo(() => {
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    return filteredMyPermissions.slice(startIndex, startIndex + PAGE_SIZE);
+  }, [currentPage, filteredMyPermissions]);
+
+  const isShowingMine = viewMode === 'mine';
+  const visiblePermissions = isShowingMine ? paginatedMyPermissions : allPermissions;
+  const totalPermissionsCount = isShowingMine ? filteredMyPermissions.length : permissionsData?.count || 0;
+  const totalPages = Math.max(1, Math.ceil(totalPermissionsCount / PAGE_SIZE));
+  const resourceSource = isShowingMine ? filteredMyPermissions : allPermissions;
+
+  const isLoading = isShowingMine
+    ? isCurrentUserLoading || isUserPermissionsLoading
+    : isAllPermissionsLoading;
+  const isError = isShowingMine ? isCurrentUserError || isUserPermissionsError : isAllPermissionsError;
+  const error = isShowingMine ? currentUserError || userPermissionsError : allPermissionsError;
 
   const stats = [
-    { label: "TOTAL PERMISSIONS", value: permissionsData?.count || 0, sub: "All access capabilities", border: "border-gray-100" },
-    { label: "UNIQUE RESOURCES", value: new Set(permissions.map(p => p.resource_type)).size, sub: "System resource categories", border: "border-blue-100", textColor: "text-blue-500" },
+    {
+      label: isShowingMine ? 'MY PERMISSIONS' : 'TOTAL PERMISSIONS',
+      value: totalPermissionsCount,
+      sub: isShowingMine ? 'Effective access on your account' : 'All access capabilities',
+      border: 'border-gray-100',
+    },
+    {
+      label: 'UNIQUE RESOURCES',
+      value: new Set(resourceSource.map((permission) => permission.resource_type)).size,
+      sub: isShowingMine ? 'Modules you can access' : 'System resource categories',
+      border: 'border-blue-100',
+      textColor: 'text-blue-500',
+    },
   ];
 
+  const modalPermission = fullPermissionData
+    ? normalizePermission(fullPermissionData, 'all')
+    : selectedPermission;
+  const isMinePermissionModal = modalPermission?.source === 'mine';
+
   const handleOpenViewModal = (permission) => {
-    setSelectedPermissionId(permission.id);
+    setSelectedPermission(permission);
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    setSelectedPermissionId(null);
+    setSelectedPermission(null);
   };
 
   const getResourceIcon = (resource) => {
     switch (resource?.toLowerCase()) {
-      case 'user': return <Settings size={14} />;
-      case 'role': return <Shield size={14} />;
-      case 'tenant': return <Layout size={14} />;
-      case 'setting': return <Settings size={14} />;
-      default: return <Key size={14} />;
+      case 'user':
+        return <User size={14} />;
+      case 'role':
+        return <Shield size={14} />;
+      case 'tenant':
+        return <Layout size={14} />;
+      case 'setting':
+        return <Settings size={14} />;
+      default:
+        return <Key size={14} />;
     }
   };
 
-  // Shimmer Components
   const ShimmerRow = () => (
     <tr className="animate-pulse border-b border-gray-50">
       <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-48 mb-2"></div><div className="h-3 bg-gray-100 rounded w-32"></div></td>
@@ -75,95 +171,127 @@ const Permission = () => {
 
   return (
     <main className="p-8 bg-[#F4F5F7] min-h-screen relative">
-      {/* Page Title Section */}
-      <div className="flex justify-between items-start mb-8">
+      <div className="flex justify-between items-start mb-8 gap-4">
         <div>
           <h2 className="text-2xl font-bold text-[#172B4D]">System Permissions</h2>
-          <p className="text-gray-500 text-sm">Fine-grained access control capabilities</p>
+          <p className="text-gray-500 text-sm">Switch between your current access and the full permission catalog</p>
+        </div>
+
+        <div className="inline-flex bg-white border border-gray-200 rounded-xl p-1 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setViewMode('mine')}
+            className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
+              isShowingMine ? 'bg-[#0052CC] text-white shadow-sm' : 'text-gray-500 hover:text-[#172B4D]'
+            }`}
+          >
+            My Permissions
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('all')}
+            className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
+              !isShowingMine ? 'bg-[#0052CC] text-white shadow-sm' : 'text-gray-500 hover:text-[#172B4D]'
+            }`}
+          >
+            All Permissions
+          </button>
         </div>
       </div>
 
-      {/* Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {isLoading
-          ? Array(2).fill(0).map((_, i) => <ShimmerCard key={i} />)
-          : stats.map((stat, i) => (
-            <div key={i} className={`bg-white p-6 rounded-xl border-b-4 ${stat.border} shadow-sm transition-transform hover:scale-[1.02]`}>
+          ? Array(2).fill(0).map((_, index) => <ShimmerCard key={index} />)
+          : stats.map((stat, index) => (
+            <div key={index} className={`bg-white p-6 rounded-xl border-b-4 ${stat.border} shadow-sm transition-transform hover:scale-[1.02]`}>
               <p className="text-[10px] font-bold text-gray-400 tracking-wider mb-2 uppercase">{stat.label}</p>
               <div className="flex items-baseline gap-2">
                 <span className={`text-4xl font-bold ${stat.textColor || 'text-[#172B4D]'}`}>{stat.value}</span>
               </div>
               <p className="text-xs text-gray-500 mt-1">{stat.sub}</p>
             </div>
-          ))
-        }
+          ))}
       </div>
 
-      {/* Table Container */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        {/* Filters Bar */}
         <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-white">
           <div className="flex gap-3 items-center">
             <div className="relative">
               <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
-              <input 
-                type="text" 
-                placeholder="Search permissions..." 
+              <input
+                type="text"
+                placeholder={isShowingMine ? 'Search your permissions...' : 'Search all permissions...'}
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-100" 
+                onChange={(event) => setSearchTerm(event.target.value)}
+                className="pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-100"
               />
             </div>
           </div>
-          <button 
-            onClick={() => { setSearchTerm(''); setCurrentPage(1); }}
+          <button
+            onClick={() => {
+              setSearchTerm('');
+              setCurrentPage(1);
+            }}
             className="text-gray-500 hover:text-gray-700 text-sm flex items-center gap-2 font-medium"
           >
             <RotateCcw size={16} /> Reset
           </button>
         </div>
 
-        {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead className="bg-[#F8FAFC] border-b border-gray-100">
               <tr className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
                 <th className="px-6 py-4">Permission Name</th>
                 <th className="px-6 py-4">Resource</th>
-                <th className="px-6 py-4">Action Type</th>
+                <th className="px-6 py-4">{isShowingMine ? 'Granted By' : 'Action Type'}</th>
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 text-sm">
               {isLoading ? (
-                Array(10).fill(0).map((_, i) => <ShimmerRow key={i} />)
+                Array(PAGE_SIZE).fill(0).map((_, index) => <ShimmerRow key={index} />)
               ) : isError ? (
-                <tr><td colSpan="4" className="px-6 py-10 text-center text-red-500">Error: {error?.message || "Something went wrong"}</td></tr>
-              ) : permissions.length === 0 ? (
-                <tr><td colSpan="4" className="px-6 py-10 text-center text-gray-500 font-medium">No permissions found.</td></tr>
+                <tr>
+                  <td colSpan="4" className="px-6 py-10 text-center text-red-500">
+                    Error: {error?.message || 'Something went wrong'}
+                  </td>
+                </tr>
+              ) : visiblePermissions.length === 0 ? (
+                <tr>
+                  <td colSpan="4" className="px-6 py-10 text-center text-gray-500 font-medium">
+                    {isShowingMine ? 'No permissions are currently assigned to your account.' : 'No permissions found.'}
+                  </td>
+                </tr>
               ) : (
-                permissions.map((perm) => (
-                  <tr key={perm.id} className="hover:bg-gray-50 transition-colors group">
-                    <td className="px-6 py-4 cursor-pointer" onClick={() => handleOpenViewModal(perm)}>
-                      <p className="font-bold text-[#172B4D] group-hover:text-[#0052CC] transition-colors">{perm.permission_name || perm.name}</p>
-                      <p className="text-xs text-gray-400 font-mono uppercase tracking-tight">{perm.permission_code || perm.code}</p>
+                visiblePermissions.map((permission) => (
+                  <tr key={`${permission.source}-${permission.id}`} className="hover:bg-gray-50 transition-colors group">
+                    <td className="px-6 py-4 cursor-pointer" onClick={() => handleOpenViewModal(permission)}>
+                      <p className="font-bold text-[#172B4D] group-hover:text-[#0052CC] transition-colors">{permission.permission_name}</p>
+                      <p className="text-xs text-gray-400 font-mono uppercase tracking-tight">{permission.permission_code}</p>
                     </td>
                     <td className="px-6 py-4 text-xs font-bold text-gray-500">
-                        <span className="flex items-center gap-2 uppercase tracking-widest leading-none">
-                            <span className="p-1 bg-gray-100 rounded text-gray-400">
-                                {getResourceIcon(perm.resource_type)}
-                            </span>
-                            {perm.resource_type || 'General'}
+                      <span className="flex items-center gap-2 uppercase tracking-widest leading-none">
+                        <span className="p-1 bg-gray-100 rounded text-gray-400">
+                          {getResourceIcon(permission.resource_type)}
                         </span>
+                        {permission.resource_type}
+                      </span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border border-blue-100 bg-blue-50 text-blue-600 uppercase tracking-widest`}>
-                        {perm.action || 'ACCESS'}
-                      </span>
+                      {isShowingMine ? (
+                        <span className="text-[10px] font-black px-2.5 py-1 rounded-full border border-amber-100 bg-amber-50 text-amber-600 uppercase tracking-widest">
+                          {permission.granted_by_role || 'Direct Access'}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-black px-2.5 py-1 rounded-full border border-blue-100 bg-blue-50 text-blue-600 uppercase tracking-widest">
+                          {permission.action}
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <button
-                        onClick={() => handleOpenViewModal(perm)}
+                        onClick={() => handleOpenViewModal(permission)}
                         className="p-1.5 hover:bg-gray-100 rounded text-gray-400 border border-gray-200 transition-colors"
                         title="View Details"
                       >
@@ -177,15 +305,15 @@ const Permission = () => {
           </table>
         </div>
 
-        {/* Pagination Section */}
         <div className="flex items-center justify-between mt-6 px-4 py-4 border-t border-gray-50 bg-white">
           <div className="text-sm text-gray-500">
-            Showing <span className="font-bold text-[#172B4D]">{permissions.length}</span> of <span className="font-bold text-[#172B4D]">{permissionsData?.count || 0}</span> permissions
+            Showing <span className="font-bold text-[#172B4D]">{visiblePermissions.length}</span> of{' '}
+            <span className="font-bold text-[#172B4D]">{totalPermissionsCount}</span> permissions
           </div>
-          
+
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              onClick={() => setCurrentPage((previousPage) => Math.max(1, previousPage - 1))}
               disabled={currentPage === 1 || isLoading}
               className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
             >
@@ -195,8 +323,8 @@ const Permission = () => {
               {currentPage}
             </div>
             <button
-              onClick={() => setCurrentPage(prev => prev + 1)}
-              disabled={!permissionsData?.next || isLoading}
+              onClick={() => setCurrentPage((previousPage) => previousPage + 1)}
+              disabled={isShowingMine ? currentPage >= totalPages || isLoading : !permissionsData?.next || isLoading}
               className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
             >
               Next
@@ -205,11 +333,9 @@ const Permission = () => {
         </div>
       </div>
 
-      {/* View Detail Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-110 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm transition-all">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-            {/* Modal Header */}
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white">
               <h3 className="text-xl font-bold text-[#172B4D]">Permission Details</h3>
               <button
@@ -220,9 +346,8 @@ const Permission = () => {
               </button>
             </div>
 
-            {/* Modal Body */}
             <div className="px-6 py-8">
-              {isPermissionLoading ? (
+              {selectedPermissionId && isPermissionLoading ? (
                 <div className="flex flex-col items-center justify-center py-10 gap-4">
                   <div className="w-10 h-10 border-4 border-blue-100 border-t-[#0052CC] rounded-full animate-spin"></div>
                   <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Profiling Capability...</p>
@@ -234,8 +359,8 @@ const Permission = () => {
                       <Key size={32} />
                     </div>
                     <div>
-                      <h4 className="text-xl font-extrabold text-[#172B4D] leading-tight">{fullPermissionData?.permission_name || fullPermissionData?.name}</h4>
-                      <p className="text-xs text-gray-400 font-mono mt-1 font-bold tracking-widest uppercase">{fullPermissionData?.permission_code || fullPermissionData?.code}</p>
+                      <h4 className="text-xl font-extrabold text-[#172B4D] leading-tight">{modalPermission?.permission_name}</h4>
+                      <p className="text-xs text-gray-400 font-mono mt-1 font-bold tracking-widest uppercase">{modalPermission?.permission_code}</p>
                     </div>
                   </div>
 
@@ -244,15 +369,17 @@ const Permission = () => {
                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">Resource Type</label>
                       <div className="flex items-center gap-2 mt-2">
                         <div className="p-1.5 bg-gray-50 rounded-lg text-gray-500 border border-gray-100">
-                            {getResourceIcon(fullPermissionData?.resource_type)}
+                          {getResourceIcon(modalPermission?.resource_type)}
                         </div>
-                        <p className="text-sm font-black text-[#172B4D] uppercase">{fullPermissionData?.resource_type || 'General'}</p>
+                        <p className="text-sm font-black text-[#172B4D] uppercase">{modalPermission?.resource_type || 'General'}</p>
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">Action Allowed</label>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">
+                        {isMinePermissionModal ? 'Granted By' : 'Action Allowed'}
+                      </label>
                       <div className="mt-2 text-sm font-black text-blue-600 bg-blue-50/50 border border-blue-100 px-3 py-1 rounded-lg inline-block uppercase tracking-wider">
-                        {fullPermissionData?.action || 'Access'}
+                        {isMinePermissionModal ? modalPermission?.granted_by_role || 'Direct Access' : modalPermission?.action || 'Access'}
                       </div>
                     </div>
                   </div>
@@ -260,14 +387,14 @@ const Permission = () => {
                   <div className="space-y-2 pt-4 border-t border-gray-100">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">Definition</label>
                     <p className="text-sm text-gray-600 leading-relaxed font-medium">
-                      {fullPermissionData?.description || `Granting this permission allows the user to perform ${fullPermissionData?.action || 'actions'} within the ${fullPermissionData?.resource_type || 'specified system'} modules.`}
+                      {modalPermission?.description ||
+                        `Granting this permission allows the user to perform ${modalPermission?.action || 'actions'} within the ${modalPermission?.resource_type || 'specified system'} modules.`}
                     </p>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Modal Footer */}
             <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex items-center justify-end">
               <button
                 onClick={handleCloseModal}

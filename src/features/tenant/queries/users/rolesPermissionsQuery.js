@@ -6,8 +6,10 @@ import {
   getRoles,
   getRoleById,
   getRolePermissions,
+  getCurrentUser,
   getPermissions,
   getPermissionById,
+  getUserPermissions,
   createRole,
   deleteRole,
   assignPermission
@@ -86,6 +88,29 @@ export const usePermissions = (params) =>
     retry: 1,
     onError: (error) => {
       console.error("Failed to fetch permissions:", error.message);
+    },
+  });
+
+export const useCurrentUser = () =>
+  useQuery({
+    queryKey: ["currentUser"],
+    queryFn: getCurrentUser,
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+    onError: (error) => {
+      console.error("Failed to fetch current user:", error.message);
+    },
+  });
+
+export const useUserPermissions = (id) =>
+  useQuery({
+    queryKey: ["userPermissions", id],
+    queryFn: () => getUserPermissions(id),
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+    onError: (error) => {
+      console.error(`Failed to fetch permissions for user ${id}:`, error.message);
     },
   });
 
