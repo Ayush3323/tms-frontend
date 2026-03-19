@@ -1,23 +1,19 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import Login from "../../features/platform/pages/Login";
+import Login from "./pages/Login";
 import { ProtectedRoute, PublicRoute } from "./AuthGuards";
-import AdminDashboard from "../../features/platform/pages/AdminDashboard";
-import AdminDetail from "../../features/platform/components/AdminDetail";
-import TenantDetail  from "../../features/platform/components/TenantDetail";
-import DomainDetail from "../../features/platform/components/DomainDetail";
-import TenantCreate from "../../features/platform/components/TenantCreate";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminDetail from "./components/AdminDetail";
+import TenantDetail from "./components/TenantDetail";
+import DomainDetail from "./components/DomainDetail";
+import TenantCreate from "./components/TenantCreate";
 
-function Router() {
+function AdminRoutes() {
   return (
     <Routes>
       <Route path="login" element={<PublicRoute><Login /></PublicRoute>} />
       <Route
         path="dashboard"
-        element={
-          <ProtectedRoute>
-            <AdminDashboard />
-          </ProtectedRoute>
-        }
+        element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>}
       >
         <Route index element={<Navigate to="tenants" replace />} />
         <Route path="tenants" element={<TenantDetail />} />
@@ -26,9 +22,8 @@ function Router() {
         <Route path="tenants/new" element={<TenantCreate />} />
         <Route path="tenants/:id" element={<TenantCreate />} />
       </Route>
-      <Route path="*" element={<Navigate to="login" replace />} />
     </Routes>
   );
 }
 
-export default Router;
+export default AdminRoutes;
