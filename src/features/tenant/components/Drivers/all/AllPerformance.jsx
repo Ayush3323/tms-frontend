@@ -12,7 +12,6 @@ import Input from '../common/Input';
 const AllPerformance = () => {
   const [addOpen, setAddOpen] = useState(false);
   const [editMetric, setEditMetric] = useState(null);
-  const [deleteRecord, setDeleteRecord] = useState(null);
 
   const [filters, setFilters] = useState({
     driver: '',
@@ -36,7 +35,7 @@ const AllPerformance = () => {
     });
   };
 
-  if (isLoading) return <div className="p-6"><LoadingState message="Loading all performance metrics..." /></div>;
+  if (isLoading && !data) return <div className="p-6"><LoadingState message="Loading all performance metrics..." /></div>;
   if (isError) return <div className="p-6"><ErrorState message="Failed to load metrics" error={error?.message} onRetry={() => refetch()} /></div>;
 
   return (
@@ -44,7 +43,6 @@ const AllPerformance = () => {
       {/* ── Modals ── */}
       {addOpen && <AddPerformanceModal driverId={null} onClose={() => setAddOpen(false)} />}
       {editMetric && <EditPerformanceModal metric={editMetric} driverId={editMetric.driver} onClose={() => setEditMetric(null)} />}
-      {deleteRecord && <DeletePerformanceDialog metric={deleteRecord} driverId={deleteRecord.driver} onClose={() => setDeleteRecord(null)} />}
 
       {/* ── Header ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -94,7 +92,7 @@ const AllPerformance = () => {
           </div>
         ) : (
           <div className="p-4">
-            <PerformanceTable metrics={metrics} onEdit={setEditMetric} onDelete={setDeleteRecord} showDriver={true} driverMap={driverMap} />
+            <PerformanceTable metrics={metrics} onEdit={setEditMetric} showDriver={true} driverMap={driverMap} />
           </div>
         )}
       </div>

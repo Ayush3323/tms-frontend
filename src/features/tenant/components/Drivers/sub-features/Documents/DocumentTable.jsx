@@ -4,7 +4,7 @@ import TableActions from '../../common/TableActions';
 import { STATUS_STYLES as VERIFICATION_STYLES } from '../../common/constants';
 import { getExpiryColor } from '../../common/utils';
 
-const DocumentTable = ({ documents, onEdit, onDelete, showDriver = false, driverMap = {} }) => {
+const DocumentTable = ({ documents, onEdit, showDriver = false, driverMap = {} }) => {
   return (
     <div className="overflow-x-auto rounded-xl border border-gray-200">
       <table className="w-full text-sm">
@@ -67,7 +67,6 @@ const DocumentTable = ({ documents, onEdit, onDelete, showDriver = false, driver
               <td className="px-4 py-3 whitespace-nowrap">
                 <TableActions
                   onEdit={() => onEdit(doc)}
-                  onDelete={() => onDelete(doc)}
                 />
               </td>
             </tr>

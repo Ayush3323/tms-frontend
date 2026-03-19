@@ -106,7 +106,9 @@ export const EditPerformanceModal = ({ metric, driverId, onClose }) => {
     notes: metric.notes ?? '',
   });
   const [error, setError] = useState('');
+  const [showDelete, setShowDelete] = useState(false);
   const updateMetric = useUpdatePerformanceMetric(driverId, metric.id);
+  const deleteMetric = useDeletePerformanceMetric(driverId);
 
   const handleSubmit = () => {
     setError('');
@@ -124,15 +126,32 @@ export const EditPerformanceModal = ({ metric, driverId, onClose }) => {
       description={<span>Editing: <span className="font-semibold text-gray-600">{metric.period_start} → {metric.period_end}</span></span>}
       onClose={onClose}
       footer={
-        <>
-          <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-          <button onClick={handleSubmit} disabled={!form.period_start || !form.period_end || updateMetric.isPending}
-            className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed">
-            {updateMetric.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Pencil size={14} /> Update Metric</>}
+        <div className="flex items-center justify-between w-full">
+          <button 
+            onClick={() => setShowDelete(true)}
+            className="px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
+          >
+            Delete Metric
           </button>
-        </>
+          <div className="flex items-center gap-2">
+            <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
+            <button onClick={handleSubmit} disabled={!form.period_start || !form.period_end || updateMetric.isPending}
+              className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed">
+              {updateMetric.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Pencil size={14} /> Update Metric</>}
+            </button>
+          </div>
+        </div>
       }
     >
+      {showDelete && (
+        <DeleteConfirmDialog
+          title="Delete Performance Metric?"
+          description="This performance metric will be permanently removed. This action cannot be undone."
+          onConfirm={() => deleteMetric.mutate(metric.id, { onSuccess: onClose })}
+          onCancel={() => setShowDelete(false)}
+          isDeleting={deleteMetric.isPending}
+        />
+      )}
       <PerformanceFormFields form={form} setForm={setForm} error={error} />
     </ModalWrapper>
   );

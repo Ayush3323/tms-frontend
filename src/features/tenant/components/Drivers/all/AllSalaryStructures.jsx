@@ -13,7 +13,6 @@ import Input from '../common/Input';
 const AllSalaryStructures = () => {
   const [addOpen,      setAddOpen]      = useState(false);
   const [editSalary,   setEditSalary]   = useState(null);
-  const [deleteSalary, setDeleteSalary] = useState(null);
 
   const [filters, setFilters] = useState({
     driver: '',
@@ -39,7 +38,7 @@ const AllSalaryStructures = () => {
     });
   };
 
-  if (isLoading) return <div className="p-6"><LoadingState message="Loading all salary structures..." /></div>;
+  if (isLoading && !data) return <div className="p-6"><LoadingState message="Loading all salary structures..." /></div>;
   if (isError)   return <div className="p-6"><ErrorState message="Failed to load salary structures" error={error?.message} onRetry={() => refetch()} /></div>;
 
   return (
@@ -47,7 +46,6 @@ const AllSalaryStructures = () => {
       {/* ── Modals ── */}
       {addOpen      && <AddSalaryModal    driverId={null} onClose={() => setAddOpen(false)} />}
       {editSalary   && <EditSalaryModal   salary={editSalary} driverId={editSalary.driver} onClose={() => setEditSalary(null)} />}
-      {deleteSalary && <DeleteSalaryDialog salary={deleteSalary} driverId={deleteSalary.driver} onClose={() => setDeleteSalary(null)} />}
 
       {/* ── Header ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -104,7 +102,7 @@ const AllSalaryStructures = () => {
           </div>
         ) : (
           <div className="p-4">
-            <SalaryTable salaries={salaries} onEdit={setEditSalary} onDelete={setDeleteSalary} showDriver={true} driverMap={driverMap} />
+            <SalaryTable salaries={salaries} onEdit={setEditSalary} showDriver={true} driverMap={driverMap} />
           </div>
         )}
       </div>

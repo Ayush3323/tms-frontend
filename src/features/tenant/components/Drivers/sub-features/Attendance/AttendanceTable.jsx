@@ -3,7 +3,7 @@ import StatusBadge from '../../common/StatusBadge';
 import TableActions from '../../common/TableActions';
 import { STATUS_STYLES } from '../../common/constants';
 
-const AttendanceTable = ({ records, onEdit, onDelete, showDriver = false, driverMap = {} }) => {
+const AttendanceTable = ({ records, onEdit, showDriver = false, driverMap = {} }) => {
   const formatTime = (timeStr) => {
     if (!timeStr) return '—';
     return timeStr;
@@ -62,7 +62,6 @@ const AttendanceTable = ({ records, onEdit, onDelete, showDriver = false, driver
               <td className="px-4 py-3 whitespace-nowrap">
                 <TableActions
                   onEdit={() => onEdit(rec)}
-                  onDelete={() => onDelete(rec)}
                 />
               </td>
             </tr>

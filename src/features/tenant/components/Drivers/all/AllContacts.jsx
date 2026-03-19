@@ -11,7 +11,6 @@ import Select from '../common/Select';
 const AllContacts = () => {
   const [addOpen,       setAddOpen]       = useState(false);
   const [editContact,   setEditContact]   = useState(null);
-  const [deleteContact, setDeleteContact] = useState(null);
   const [filters, setFilters] = useState({
     driver: '',
     is_primary: '',
@@ -32,7 +31,7 @@ const AllContacts = () => {
     });
   };
 
-  if (isLoading) return <div className="p-6"><LoadingState message="Loading all emergency contacts..." /></div>;
+  if (isLoading && !data) return <div className="p-6"><LoadingState message="Loading all emergency contacts..." /></div>;
   if (isError)   return <div className="p-6"><ErrorState message="Failed to load contacts" error={error?.message} onRetry={() => refetch()} /></div>;
 
   return (
@@ -40,7 +39,6 @@ const AllContacts = () => {
       {/* ── Modals ── */}
       {addOpen       && <AddContactModal    driverId={null} onClose={() => setAddOpen(false)} />}
       {editContact   && <EditContactModal   contact={editContact} driverId={editContact.driver} onClose={() => setEditContact(null)} />}
-      {deleteContact && <DeleteContactDialog contact={deleteContact} driverId={deleteContact.driver} onClose={() => setDeleteContact(null)} />}
 
       {/* ── Header ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -90,7 +88,7 @@ const AllContacts = () => {
           </div>
         ) : (
           <div className="p-4">
-             <ContactTable contacts={contacts} onEdit={setEditContact} onDelete={setDeleteContact} showDriver={true} driverMap={driverMap} />
+             <ContactTable contacts={contacts} onEdit={setEditContact} showDriver={true} driverMap={driverMap} />
           </div>
         )}
       </div>

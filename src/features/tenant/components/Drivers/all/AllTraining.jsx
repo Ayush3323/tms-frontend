@@ -14,7 +14,6 @@ import Input from '../common/Input';
 const AllTraining = () => {
   const [addOpen, setAddOpen] = useState(false);
   const [editRecord, setEditRecord] = useState(null);
-  const [deleteRecord, setDeleteRecord] = useState(null);
 
   const [filters, setFilters] = useState({
     driver: '',
@@ -42,7 +41,7 @@ const AllTraining = () => {
     });
   };
 
-  if (isLoading) return <div className="p-6"><LoadingState message="Loading all training records..." /></div>;
+  if (isLoading && !data) return <div className="p-6"><LoadingState message="Loading all training records..." /></div>;
   if (isError) return <div className="p-6"><ErrorState message="Failed to load records" error={error?.message} onRetry={() => refetch()} /></div>;
 
   return (
@@ -50,7 +49,6 @@ const AllTraining = () => {
       {/* ── Modals ── */}
       {addOpen && <AddTrainingModal driverId={null} onClose={() => setAddOpen(false)} />}
       {editRecord && <EditTrainingModal record={editRecord} driverId={editRecord.driver} onClose={() => setEditRecord(null)} />}
-      {deleteRecord && <DeleteTrainingDialog record={deleteRecord} driverId={deleteRecord.driver} onClose={() => setDeleteRecord(null)} />}
 
       {/* ── Header ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -114,7 +112,7 @@ const AllTraining = () => {
           </div>
         ) : (
           <div className="p-4">
-            <TrainingTable records={records} onEdit={setEditRecord} onDelete={setDeleteRecord} showDriver={true} driverMap={driverMap} />
+            <TrainingTable records={records} onEdit={setEditRecord} showDriver={true} driverMap={driverMap} />
           </div>
         )}
       </div>
