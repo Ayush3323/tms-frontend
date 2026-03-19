@@ -6,7 +6,7 @@ import {
   ASSIGNMENT_STATUS_STYLES,
 } from '../../common/constants';
 
-const AssignmentTable = ({ assignments, onEdit, onDelete, showDriver = false, driverMap = {} }) => {
+const AssignmentTable = ({ assignments, onEdit, showDriver = false, driverMap = {} }) => {
   return (
     <div className="overflow-x-auto rounded-xl border border-gray-200 text-nowrap">
       <table className="w-full text-sm">
@@ -56,7 +56,7 @@ const AssignmentTable = ({ assignments, onEdit, onDelete, showDriver = false, dr
                 />
               </td>
               <td className="px-4 py-3 whitespace-nowrap">
-                <TableActions onEdit={() => onEdit(a)} onDelete={() => onDelete(a)} />
+                <TableActions onEdit={() => onEdit(a)} />
               </td>
             </tr>
           ))}

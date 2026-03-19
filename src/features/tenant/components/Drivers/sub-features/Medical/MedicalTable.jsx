@@ -4,7 +4,7 @@ import TableActions from '../../common/TableActions';
 import { STATUS_STYLES } from '../../common/constants';
 import { getExpiryColor } from '../../common/utils';
 
-const MedicalTable = ({ records, onEdit, onDelete, showDriver = false, driverMap = {} }) => {
+const MedicalTable = ({ records, onEdit, showDriver = false, driverMap = {} }) => {
   return (
     <div className="overflow-x-auto rounded-xl border border-gray-200">
       <table className="w-full text-sm">
@@ -71,7 +71,6 @@ const MedicalTable = ({ records, onEdit, onDelete, showDriver = false, driverMap
               <td className="px-4 py-3 whitespace-nowrap">
                 <TableActions
                   onEdit={() => onEdit(rec)}
-                  onDelete={() => onDelete(rec)}
                 />
               </td>
             </tr>

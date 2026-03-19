@@ -14,7 +14,6 @@ import Input from '../common/Input';
 const AllMedical = () => {
   const [addOpen,       setAddOpen]       = useState(false);
   const [editRecord,    setEditRecord]    = useState(null);
-  const [deleteRecord,  setDeleteRecord]  = useState(null);
 
   const [filters, setFilters] = useState({
     driver: '',
@@ -40,7 +39,7 @@ const AllMedical = () => {
     });
   };
 
-  if (isLoading) return <div className="p-6"><LoadingState message="Loading all medical records..." /></div>;
+  if (isLoading && !data) return <div className="p-6"><LoadingState message="Loading all medical records..." /></div>;
   if (isError)   return <div className="p-6"><ErrorState message="Failed to load records" error={error?.message} onRetry={() => refetch()} /></div>;
 
   return (
@@ -48,7 +47,6 @@ const AllMedical = () => {
       {/* ── Modals ── */}
       {addOpen      && <AddMedicalModal    driverId={null} onClose={() => setAddOpen(false)} />}
       {editRecord   && <EditMedicalModal   record={editRecord} driverId={editRecord.driver} onClose={() => setEditRecord(null)} />}
-      {deleteRecord && <DeleteMedicalDialog record={deleteRecord} driverId={deleteRecord.driver} onClose={() => setDeleteRecord(null)} />}
 
       {/* ── Header ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -105,7 +103,7 @@ const AllMedical = () => {
           </div>
         ) : (
           <div className="p-4">
-            <MedicalTable records={records} onEdit={setEditRecord} onDelete={setDeleteRecord} showDriver={true} driverMap={driverMap} />
+            <MedicalTable records={records} onEdit={setEditRecord} showDriver={true} driverMap={driverMap} />
           </div>
         )}
       </div>

@@ -15,7 +15,6 @@ import Input from '../common/Input';
 const AllIncidents = () => {
   const [addOpen, setAddOpen] = useState(false);
   const [editIncident, setEditIncident] = useState(null);
-  const [deleteIncident, setDeleteIncident] = useState(null);
 
   const [filters, setFilters] = useState({
     driver: '',
@@ -53,7 +52,7 @@ const AllIncidents = () => {
     });
   };
 
-  if (isLoading) return <div className="p-6"><LoadingState message="Loading all incidents..." /></div>;
+  if (isLoading && !data) return <div className="p-6"><LoadingState message="Loading all incidents..." /></div>;
   if (isError) return <div className="p-6"><ErrorState message="Failed to load incidents" error={error?.message} onRetry={() => refetch()} /></div>;
 
   return (
@@ -61,7 +60,6 @@ const AllIncidents = () => {
       {/* ── Modals ── */}
       {addOpen && <AddIncidentModal driverId={null} onClose={() => setAddOpen(false)} />}
       {editIncident && <EditIncidentModal incident={editIncident} driverId={editIncident.driver} onClose={() => setEditIncident(null)} />}
-      {deleteIncident && <DeleteIncidentDialog incident={deleteIncident} driverId={deleteIncident.driver} onClose={() => setDeleteIncident(null)} />}
 
       {/* ── Header ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -141,7 +139,6 @@ const AllIncidents = () => {
             <IncidentTable 
               incidents={incidents} 
               onEdit={setEditIncident} 
-              onDelete={setDeleteIncident} 
               showDriver={true} 
               driverMap={driverMap}
               vehicleMap={vehicleMap}

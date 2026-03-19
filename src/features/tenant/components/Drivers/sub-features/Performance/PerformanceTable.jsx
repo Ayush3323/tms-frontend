@@ -3,7 +3,7 @@ import StatusBadge from '../../common/StatusBadge';
 import TableActions from '../../common/TableActions';
 import { getScoreColor } from '../../common/utils';
 
-const PerformanceTable = ({ metrics, onEdit, onDelete, showDriver = false, driverMap = {} }) => {
+const PerformanceTable = ({ metrics, onEdit, showDriver = false, driverMap = {} }) => {
   return (
     <div className="overflow-x-auto rounded-xl border border-gray-200 text-nowrap">
       <table className="w-full text-sm">
@@ -62,7 +62,7 @@ const PerformanceTable = ({ metrics, onEdit, onDelete, showDriver = false, drive
                 </span>
               </td>
               <td className="px-4 py-3 whitespace-nowrap">
-                <TableActions onEdit={() => onEdit(m)} onDelete={() => onDelete(m)} />
+                <TableActions onEdit={() => onEdit(m)} />
               </td>
             </tr>
           ))}

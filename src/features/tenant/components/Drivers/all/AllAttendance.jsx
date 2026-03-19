@@ -14,7 +14,6 @@ import Input from '../common/Input';
 const AllAttendance = () => {
   const [addOpen, setAddOpen] = useState(false);
   const [editAtten, setEditAtten] = useState(null);
-  const [deleteAtten, setDeleteAtten] = useState(null);
 
   const [filters, setFilters] = useState({
     driver: '',
@@ -38,7 +37,7 @@ const AllAttendance = () => {
     });
   };
 
-  if (isLoading) return <div className="p-6"><LoadingState message="Loading all attendance records..." /></div>;
+  if (isLoading && !data) return <div className="p-6"><LoadingState message="Loading all attendance records..." /></div>;
   if (isError) return <div className="p-6"><ErrorState message="Failed to load attendance" error={error?.message} onRetry={() => refetch()} /></div>;
 
   return (
@@ -46,7 +45,6 @@ const AllAttendance = () => {
       {/* ── Modals ── */}
       {addOpen && <AddAttendanceModal driverId={null} onClose={() => setAddOpen(false)} />}
       {editAtten && <EditAttendanceModal record={editAtten} driverId={editAtten.driver} onClose={() => setEditAtten(null)} />}
-      {deleteAtten && <DeleteAttendanceDialog record={deleteAtten} driverId={deleteAtten.driver} onClose={() => setDeleteAtten(null)} />}
 
       {/* ── Header ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -99,7 +97,7 @@ const AllAttendance = () => {
           </div>
         ) : (
           <div className="p-4">
-            <AttendanceTable records={attendance} onEdit={setEditAtten} onDelete={setDeleteAtten} showDriver={true} driverMap={driverMap} />
+            <AttendanceTable records={attendance} onEdit={setEditAtten} showDriver={true} driverMap={driverMap} />
           </div>
         )}
       </div>

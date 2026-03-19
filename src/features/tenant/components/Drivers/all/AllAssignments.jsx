@@ -14,7 +14,6 @@ import Input from '../common/Input';
 const AllAssignments = () => {
   const [addOpen, setAddOpen] = useState(false);
   const [editAssignment, setEditAssignment] = useState(null);
-  const [deleteAssignment, setDeleteAssignment] = useState(null);
 
   const [filters, setFilters] = useState({
     driver: '',
@@ -43,7 +42,7 @@ const AllAssignments = () => {
     });
   };
 
-  if (isLoading) return <div className="p-6"><LoadingState message="Loading all vehicle assignments..." /></div>;
+  if (isLoading && !data) return <div className="p-6"><LoadingState message="Loading all vehicle assignments..." /></div>;
   if (isError) return <div className="p-6"><ErrorState message="Failed to load assignments" error={error?.message} onRetry={() => refetch()} /></div>;
 
   return (
@@ -51,7 +50,6 @@ const AllAssignments = () => {
       {/* ── Modals ── */}
       {addOpen && <AddAssignmentModal driverId={null} onClose={() => setAddOpen(false)} />}
       {editAssignment && <EditAssignmentModal assignment={editAssignment} driverId={editAssignment.driver} onClose={() => setEditAssignment(null)} />}
-      {deleteAssignment && <DeleteAssignmentDialog assignment={deleteAssignment} driverId={deleteAssignment.driver} onClose={() => setDeleteAssignment(null)} />}
 
       {/* ── Header ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -117,7 +115,7 @@ const AllAssignments = () => {
           </div>
         ) : (
           <div className="p-4">
-            <AssignmentTable assignments={assignments} onEdit={setEditAssignment} onDelete={setDeleteAssignment} showDriver={true} driverMap={driverMap} />
+            <AssignmentTable assignments={assignments} onEdit={setEditAssignment} showDriver={true} driverMap={driverMap} />
           </div>
         )}
       </div>

@@ -3,7 +3,7 @@ import StatusBadge from '../../common/StatusBadge';
 import TableActions from '../../common/TableActions';
 import { SEVERITY_STYLES, INCIDENT_TYPE_STYLES, STATUS_STYLES } from '../../common/constants';
 
-const IncidentTable = ({ incidents, onEdit, onDelete, showDriver = false, driverMap = {}, vehicleMap = {} }) => {
+const IncidentTable = ({ incidents, onEdit, showDriver = false, driverMap = {}, vehicleMap = {} }) => {
   const formatDate = (dateStr) => {
     if (!dateStr) return '—';
     return new Date(dateStr).toLocaleDateString('en-IN', {
@@ -87,7 +87,6 @@ const IncidentTable = ({ incidents, onEdit, onDelete, showDriver = false, driver
               <td className="px-4 py-3 whitespace-nowrap">
                 <TableActions
                   onEdit={() => onEdit(inc)}
-                  onDelete={() => onDelete(inc)}
                 />
               </td>
             </tr>
