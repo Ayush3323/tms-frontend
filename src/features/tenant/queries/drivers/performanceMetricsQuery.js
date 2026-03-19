@@ -3,11 +3,11 @@ import driverApi from '../../api/drivers/driverEndpoint';
 
 // ─── Query Keys ───────────────────────────────────────────
 export const performanceKeys = {
-  all:      ['driver-performance-metrics'],
-  lists:    () => [...performanceKeys.all, 'list'],
-  list:     (params) => [...performanceKeys.lists(), params],
+  all: ['driver-performance-metrics'],
+  lists: () => [...performanceKeys.all, 'list'],
+  list: (params) => [...performanceKeys.lists(), params],
   byDriver: (driverId) => [...performanceKeys.all, 'driver', driverId],
-  detail:   (id) => [...performanceKeys.all, 'detail', id],
+  detail: (id) => [...performanceKeys.all, 'detail', id],
 };
 
 // ─── Error Handler ────────────────────────────────────────
@@ -17,7 +17,7 @@ const handleError = (error) => {
   }
 
   const status = error.response?.status;
-  const data   = error.response?.data;
+  const data = error.response?.data;
 
   switch (status) {
     case 400: {
@@ -42,7 +42,7 @@ const handleError = (error) => {
 export const usePerformanceMetrics = (params = {}) => {
   return useQuery({
     queryKey: performanceKeys.list(params),
-    queryFn:  async () => {
+    queryFn: async () => {
       try {
         const response = await driverApi.getPerformanceMetrics(params);
         return response.data;
@@ -51,9 +51,10 @@ export const usePerformanceMetrics = (params = {}) => {
         handleError(error);
       }
     },
-    staleTime:            0,
-    retry:                0,
+    staleTime: 0,
+    retry: 0,
     refetchOnWindowFocus: false,
+    placeholderData: (prev) => prev,
   });
 };
 
@@ -62,7 +63,7 @@ export const usePerformanceMetrics = (params = {}) => {
 export const useDriverPerformanceMetrics = (driverId, params = {}) => {
   return useQuery({
     queryKey: performanceKeys.byDriver(driverId),
-    queryFn:  async () => {
+    queryFn: async () => {
       try {
         const response = await driverApi.getPerformanceMetrics({
           driver: driverId,
@@ -74,9 +75,9 @@ export const useDriverPerformanceMetrics = (driverId, params = {}) => {
         handleError(error);
       }
     },
-    enabled:              !!driverId, // Skip query if driverId is not available
-    staleTime:            0,
-    retry:                0,
+    enabled: !!driverId, // Skip query if driverId is not available
+    staleTime: 0,
+    retry: 0,
     refetchOnWindowFocus: false,
   });
 };
@@ -85,7 +86,7 @@ export const useDriverPerformanceMetrics = (driverId, params = {}) => {
 export const usePerformanceMetricById = (id) => {
   return useQuery({
     queryKey: performanceKeys.detail(id),
-    queryFn:  async () => {
+    queryFn: async () => {
       try {
         const response = await driverApi.getPerformanceMetricById(id);
         return response.data;
@@ -93,9 +94,9 @@ export const usePerformanceMetricById = (id) => {
         handleError(error);
       }
     },
-    enabled:              !!id, // Skip query if id is not available
-    staleTime:            0,
-    retry:                0,
+    enabled: !!id, // Skip query if id is not available
+    staleTime: 0,
+    retry: 0,
     refetchOnWindowFocus: false,
   });
 };

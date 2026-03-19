@@ -106,7 +106,9 @@ export const EditTrainingModal = ({ record, driverId, onClose }) => {
     notes: record.notes ?? '',
   });
   const [error, setError] = useState('');
+  const [showDelete, setShowDelete] = useState(false);
   const updateTraining = useUpdateTrainingRecord(driverId, record.id);
+  const deleteTraining = useDeleteTrainingRecord(driverId);
   const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
 
   const handleSubmit = () => {
@@ -125,15 +127,32 @@ export const EditTrainingModal = ({ record, driverId, onClose }) => {
       description={<span>Editing: <span className="font-semibold text-gray-600">{record.training_type_display ?? record.training_type}</span></span>}
       onClose={onClose}
       footer={
-        <>
-          <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-          <button onClick={handleSubmit} disabled={!form.training_type || !form.training_date || updateTraining.isPending}
-            className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed">
-            {updateTraining.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Pencil size={14} /> Update Record</>}
+        <div className="flex items-center justify-between w-full">
+          <button 
+            onClick={() => setShowDelete(true)}
+            className="px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
+          >
+            Delete Record
           </button>
-        </>
+          <div className="flex items-center gap-2">
+            <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
+            <button onClick={handleSubmit} disabled={!form.training_type || !form.training_date || updateTraining.isPending}
+              className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed">
+              {updateTraining.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Pencil size={14} /> Update Record</>}
+            </button>
+          </div>
+        </div>
       }
     >
+      {showDelete && (
+        <DeleteConfirmDialog
+          title="Delete Training Record?"
+          description="This training record will be permanently removed. This action cannot be undone."
+          onConfirm={() => deleteTraining.mutate(record.id, { onSuccess: onClose })}
+          onCancel={() => setShowDelete(false)}
+          isDeleting={deleteTraining.isPending}
+        />
+      )}
       <div className="space-y-4">
         {error && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium">{error}</div>}
         <div className="grid grid-cols-2 gap-4">
