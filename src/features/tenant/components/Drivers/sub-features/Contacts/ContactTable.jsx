@@ -3,7 +3,7 @@ import { Phone } from 'lucide-react';
 import StatusBadge from '../../common/StatusBadge';
 import TableActions from '../../common/TableActions';
 
-const ContactTable = ({ contacts, onEdit, onDelete, showDriver = false, driverMap = {} }) => {
+const ContactTable = ({ contacts, onEdit, showDriver = false, driverMap = {} }) => {
   return (
     <div className="overflow-x-auto rounded-xl border border-gray-200 text-nowrap">
       <table className="w-full text-sm">
@@ -50,7 +50,7 @@ const ContactTable = ({ contacts, onEdit, onDelete, showDriver = false, driverMa
                 )}
               </td>
               <td className="px-4 py-3 whitespace-nowrap">
-                <TableActions onEdit={() => onEdit(c)} onDelete={() => onDelete(c)} />
+                <TableActions onEdit={() => onEdit(c)} />
               </td>
             </tr>
           ))}

@@ -15,7 +15,6 @@ import { useDebounce } from '../common/hooks';
 const AllDocuments = () => {
   const [addOpen, setAddOpen] = useState(false);
   const [editDoc, setEditDoc] = useState(null);
-  const [deleteDoc, setDeleteDoc] = useState(null);
 
   const [filters, setFilters] = useState({
     driver: '',
@@ -52,7 +51,7 @@ const AllDocuments = () => {
     });
   };
 
-  if (isLoading) return <div className="p-6"><LoadingState message="Loading all driver documents..." /></div>;
+  if (isLoading && !data) return <div className="p-6"><LoadingState message="Loading all driver documents..." /></div>;
   if (isError) return <div className="p-6"><ErrorState message="Failed to load documents" error={error?.message} onRetry={() => refetch()} /></div>;
 
   return (
@@ -60,7 +59,6 @@ const AllDocuments = () => {
       {/* ── Modals ── */}
       {addOpen && <AddDocumentModal driverId={null} onClose={() => setAddOpen(false)} />}
       {editDoc && <EditDocumentModal doc={editDoc} driverId={editDoc.driver} onClose={() => setEditDoc(null)} />}
-      {deleteDoc && <DeleteDocumentDialog doc={deleteDoc} driverId={deleteDoc.driver} onClose={() => setDeleteDoc(null)} />}
 
       {/* ── Header ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -138,7 +136,6 @@ const AllDocuments = () => {
             <DocumentTable
               documents={documents}
               onEdit={setEditDoc}
-              onDelete={setDeleteDoc}
               showDriver={true}
               driverMap={driverMap}
             />

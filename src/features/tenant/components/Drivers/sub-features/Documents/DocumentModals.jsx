@@ -138,7 +138,9 @@ export const EditDocumentModal = ({ doc, driverId, onClose }) => {
     verification_status: doc.verification_status ?? 'PENDING',
   });
   const [error, setError] = useState('');
+  const [showDelete, setShowDelete] = useState(false);
   const updateDocument = useUpdateDriverDocument(driverId, doc.id);
+  const deleteDocument = useDeleteDriverDocument(driverId);
   const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
 
   const handleSubmit = () => {
@@ -158,23 +160,40 @@ export const EditDocumentModal = ({ doc, driverId, onClose }) => {
       description={<span>Editing: <span className="font-semibold text-gray-600">{doc.document_type_display ?? doc.document_type}</span></span>}
       onClose={onClose}
       footer={
-        <>
-          <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={!form.document_type || !form.document_number || updateDocument.isPending}
-            className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed"
+        <div className="flex items-center justify-between w-full">
+          <button 
+            onClick={() => setShowDelete(true)}
+            className="px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
           >
-            {updateDocument.isPending
-              ? <><Loader2 size={14} className="animate-spin" /> Saving...</>
-              : <><Pencil size={14} /> Update Document</>
-            }
+            Delete Document
           </button>
-        </>
+          <div className="flex items-center gap-2">
+            <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={!form.document_type || !form.document_number || updateDocument.isPending}
+              className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {updateDocument.isPending
+                ? <><Loader2 size={14} className="animate-spin" /> Saving...</>
+                : <><Pencil size={14} /> Update Document</>
+              }
+            </button>
+          </div>
+        </div>
       }
     >
+      {showDelete && (
+        <DeleteConfirmDialog
+          title="Delete Document?"
+          description="This document will be permanently removed. This action cannot be undone."
+          onConfirm={() => deleteDocument.mutate(doc.id, { onSuccess: onClose })}
+          onCancel={() => setShowDelete(false)}
+          isDeleting={deleteDocument.isPending}
+        />
+      )}
       <div className="space-y-4">
         {error && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium">{error}</div>}
         <div className="grid grid-cols-2 gap-4">
