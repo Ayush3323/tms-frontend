@@ -98,6 +98,25 @@ export const getPermissions = async (params = {}) => {
   }
 };
 
+export const getCurrentUser = async () => {
+  try {
+    const response = await axiosInstance.get("/api/v1/users/users/me/");
+    return response.data;
+  } catch (error) {
+    handleApiError(error);
+  }
+};
+
+export const getUserPermissions = async (id) => {
+  if (!id) throw new Error("User ID is required");
+  try {
+    const response = await axiosInstance.get(`/api/v1/users/users/${id}/permissions/`);
+    return response.data;
+  } catch (error) {
+    handleApiError(error);
+  }
+};
+
 export const getPermissionById = async (id) => {
   if (!id) throw new Error("Permission ID is required");
   try {
