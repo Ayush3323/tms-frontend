@@ -263,11 +263,13 @@ const VehicleInspections = ({ vehicleId, isTab }) => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <StatCard icon={ClipboardCheck} label="Total Inspections" value={stats.total} color="blue" />
-        <StatCard icon={CheckCircle} label="Passed" value={stats.passed} color="emerald" />
-        <StatCard icon={XCircle} label="Failed" value={stats.failed} color="red" />
-      </div>
+      {!isTab && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <StatCard icon={ClipboardCheck} label="Total Inspections" value={stats.total} color="blue" />
+          <StatCard icon={CheckCircle} label="Passed" value={stats.passed} color="emerald" />
+          <StatCard icon={XCircle} label="Failed" value={stats.failed} color="red" />
+        </div>
+      )}
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0">
         {isTab ? (

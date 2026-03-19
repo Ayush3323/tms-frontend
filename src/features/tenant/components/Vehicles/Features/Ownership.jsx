@@ -286,10 +286,13 @@ const VehicleOwnership = ({ vehicleId, isTab }) => {
                       </span>
                     </td>
                     <td className="px-5 py-4">
-                      <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => setViewing(h)} className="p-2 text-gray-400 hover:text-[#0052CC] hover:bg-white rounded-lg transition-all shadow-sm"><Search size={14} /></button>
-                        <button onClick={() => setModal({ mode: 'edit', data: h })} className="p-2 text-gray-400 hover:text-[#0052CC] hover:bg-white rounded-lg transition-all shadow-sm"><Edit2 size={14} /></button>
-                        <button onClick={() => setDeleting(h)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-white rounded-lg transition-all shadow-sm"><Trash2 size={14} /></button>
+                      <div className="flex justify-end gap-2">
+                        <button onClick={() => setModal({ mode: 'edit', data: h })} className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all">
+                          <Edit2 size={12} /> Edit
+                        </button>
+                        <button onClick={() => setDeleting(h)} className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-all">
+                          <Trash2 size={12} /> Delete
+                        </button>
                       </div>
                     </td>
                   </tr>

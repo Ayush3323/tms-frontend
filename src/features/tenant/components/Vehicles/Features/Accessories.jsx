@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
-  Package, Plus, Edit2, Trash2, X, Search, 
-  RefreshCw, Loader2, CheckCircle, Clock, XCircle,
+  Package, Plus, Edit2, Trash2, Search,
+  RefreshCw, Loader2, CheckCircle, Clock, XCircle, ChevronDown,
   Calendar, Hash, FileText
 } from 'lucide-react';
 import {
@@ -10,7 +10,7 @@ import {
   useUpdateVehicleAccessory,
   useDeleteVehicleAccessory,
 } from '../../../queries/vehicles/vehicleInfoQuery';
-import { 
+import {
   Badge, InfoCard, SectionHeader, EmptyState, Modal, DeleteConfirm, ItemActions,
   Label, Input, Sel, Field, StatCard, Textarea, VehicleSelect,
   fmtDate, fmtINR, fmtKm
@@ -19,30 +19,30 @@ import {
 // ─── Constants ────────────────────────────────────────────────────────────────
 const TYPE_OPTIONS = [
   { value: 'DASHCAM', label: 'Dashcam' },
-  { value: 'GPS',     label: 'GPS Tracker' },
-  { value: 'CAMERA',  label: 'Camera' },
-  { value: 'SAFETY',  label: 'Safety Equipment' },
+  { value: 'GPS', label: 'GPS Tracker' },
+  { value: 'CAMERA', label: 'Camera' },
+  { value: 'SAFETY', label: 'Safety Equipment' },
   { value: 'COMFORT', label: 'Comfort' },
   { value: 'TOOLBOX', label: 'Toolbox' },
   { value: 'FIRE_EXT', label: 'Fire Extinguisher' },
-  { value: 'OTHER',   label: 'Other' },
+  { value: 'OTHER', label: 'Other' },
 ];
 
 const TYPE_COLORS = {
   DASHCAM: 'bg-blue-50 text-blue-700 border-blue-200',
-  GPS:     'bg-teal-50 text-teal-700 border-teal-200',
-  CAMERA:  'bg-indigo-50 text-indigo-700 border-indigo-200',
-  SAFETY:  'bg-orange-50 text-orange-700 border-orange-200',
+  GPS: 'bg-teal-50 text-teal-700 border-teal-200',
+  CAMERA: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+  SAFETY: 'bg-orange-50 text-orange-700 border-orange-200',
   COMFORT: 'bg-purple-50 text-purple-700 border-purple-200',
   TOOLBOX: 'bg-yellow-50 text-yellow-700 border-yellow-200',
   FIRE_EXT: 'bg-red-50 text-red-700 border-red-200',
-  OTHER:   'bg-gray-100 text-gray-600 border-gray-200',
+  OTHER: 'bg-gray-100 text-gray-600 border-gray-200',
 };
 
 const STATUS_CONFIG = {
   INSTALLED: { label: 'Installed', dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50' },
-  REMOVED:   { label: 'Removed',   dot: 'bg-gray-400',    text: 'text-gray-600',    bg: 'bg-gray-100' },
-  FAULTY:    { label: 'Faulty',    dot: 'bg-red-500',     text: 'text-red-700',     bg: 'bg-red-50' },
+  REMOVED: { label: 'Removed', dot: 'bg-gray-400', text: 'text-gray-600', bg: 'bg-gray-100' },
+  FAULTY: { label: 'Faulty', dot: 'bg-red-500', text: 'text-red-700', bg: 'bg-red-50' },
 };
 
 const EMPTY_FORM = {
@@ -103,14 +103,14 @@ const AccessoryModal = ({ initial, onClose, isView, vehicleId }) => {
 
   const [form, setForm] = useState(
     initial ? {
-      vehicle:            resolveVehicleId(),
-      accessory_type:      initial.accessory_type ?? '',
-      accessory_name:      initial.accessory_name ?? '',
-      serial_number:       initial.serial_number  ?? '',
-      installation_date:   initial.installation_date ?? '',
-      warranty_expiry:     initial.warranty_expiry   ?? '',
-      status:              initial.status            ?? 'INSTALLED',
-      notes:               initial.notes             ?? '',
+      vehicle: resolveVehicleId(),
+      accessory_type: initial.accessory_type ?? '',
+      accessory_name: initial.accessory_name ?? '',
+      serial_number: initial.serial_number ?? '',
+      installation_date: initial.installation_date ?? '',
+      warranty_expiry: initial.warranty_expiry ?? '',
+      status: initial.status ?? 'INSTALLED',
+      notes: initial.notes ?? '',
     } : { ...EMPTY_FORM, vehicle: vehicleId ?? '' }
   );
 
@@ -122,11 +122,11 @@ const AccessoryModal = ({ initial, onClose, isView, vehicleId }) => {
   const handleSubmit = () => {
     const clean = Object.fromEntries(Object.entries(form).map(([k, v]) => [k, v === '' ? null : v]));
     if (isEdit) update.mutate({ id: initial.id, data: clean }, { onSuccess: onClose });
-    else        create.mutate(clean, { onSuccess: onClose });
+    else create.mutate(clean, { onSuccess: onClose });
   };
 
   return (
-    <Modal 
+    <Modal
       title={isView ? 'Accessory Details' : isEdit ? 'Edit Accessory' : 'Add Accessory'}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -190,7 +190,7 @@ const VehicleAccessories = ({ vehicleId, isTab }) => {
   const [modal, setModal] = useState(null);
   const [viewing, setViewing] = useState(null);
   const [deleting, setDeleting] = useState(null);
-  
+
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
 
@@ -225,17 +225,19 @@ const VehicleAccessories = ({ vehicleId, isTab }) => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <StatCard icon={Package} label="Total Assets" value={stats.total} color="blue" />
-        <StatCard icon={CheckCircle} label="Active Units" value={stats.active} color="emerald" />
-      </div>
+      {!isTab && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <StatCard icon={Package} label="Total Assets" value={stats.total} color="blue" />
+          <StatCard icon={CheckCircle} label="Active Units" value={stats.active} color="emerald" />
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0">
         <div className="p-5 border-b border-gray-100 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3 flex-1 min-w-[240px]">
             <div className="relative flex-1 max-w-xs">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input 
+              <input
                 type="text" placeholder="Search equipment..."
                 className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border-none rounded-lg focus:ring-2 focus:ring-[#0052CC]/10"
                 value={search} onChange={e => setSearch(e.target.value)} />
@@ -315,10 +317,13 @@ const VehicleAccessories = ({ vehicleId, isTab }) => {
                       })()}
                     </td>
                     <td className="px-5 py-4">
-                      <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => setViewing(a)} className="p-2 text-gray-400 hover:text-[#0052CC] hover:bg-white rounded-lg transition-all shadow-sm"><Search size={14} /></button>
-                        <button onClick={() => setModal({ mode: 'edit', data: a })} className="p-2 text-gray-400 hover:text-[#0052CC] hover:bg-white rounded-lg transition-all shadow-sm"><Edit2 size={14} /></button>
-                        <button onClick={() => setDeleting(a)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-white rounded-lg transition-all shadow-sm"><Trash2 size={14} /></button>
+                      <div className="flex justify-end gap-2">
+                        <button onClick={() => setModal({ mode: 'edit', data: a })} className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all">
+                          <Edit2 size={12} /> Edit
+                        </button>
+                        <button onClick={() => setDeleting(a)} className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-all">
+                          <Trash2 size={12} /> Delete
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -330,24 +335,24 @@ const VehicleAccessories = ({ vehicleId, isTab }) => {
       </div>
 
       {modal && (
-        <AccessoryModal 
-          initial={modal.data} 
-          onClose={() => setModal(null)} 
+        <AccessoryModal
+          initial={modal.data}
+          onClose={() => setModal(null)}
           vehicleId={vehicleId}
         />
       )}
       {viewing && (
-        <AccessoryModal 
-          initial={viewing} 
-          onClose={() => setViewing(null)} 
-          isView 
+        <AccessoryModal
+          initial={viewing}
+          onClose={() => setViewing(null)}
+          isView
           vehicleId={vehicleId}
         />
       )}
       {deleting && (
-        <DeleteConfirm 
-          label="Accessory" 
-          onClose={() => setDeleting(null)} 
+        <DeleteConfirm
+          label="Accessory"
+          onClose={() => setDeleting(null)}
           onConfirm={() => del.mutate(deleting.id, { onSuccess: () => setDeleting(null) })}
           deleting={del.isPending}
         />
