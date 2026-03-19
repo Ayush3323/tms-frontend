@@ -223,11 +223,13 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <StatCard icon={IndianRupee} label="Total Spend" value={fmtINR(stats.totalSpend)} color="blue" accent />
-        <StatCard icon={Fuel} label="Total Liters" value={`${stats.totalLiters.toFixed(1)} L`} color="emerald" />
-        <StatCard icon={Zap} label="Avg Efficiency" value="N/A" color="indigo" />
-      </div>
+      {!isTab && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <StatCard icon={IndianRupee} label="Total Spend" value={fmtINR(stats.totalSpend)} color="blue" accent />
+          <StatCard icon={Fuel} label="Total Liters" value={`${stats.totalLiters.toFixed(1)} L`} color="emerald" />
+          <StatCard icon={Zap} label="Avg Efficiency" value="N/A" color="indigo" />
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0">
         <div className="p-5 border-b border-gray-100 flex flex-wrap items-center justify-between gap-4">
