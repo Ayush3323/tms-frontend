@@ -3,11 +3,11 @@ import driverApi from '../../api/drivers/driverEndpoint';
 
 // ─── Query Keys ───────────────────────────────────────────
 export const contactKeys = {
-  all:      ['driver-emergency-contacts'],
-  lists:    () => [...contactKeys.all, 'list'],
-  list:     (params) => [...contactKeys.lists(), params],
+  all: ['driver-emergency-contacts'],
+  lists: () => [...contactKeys.all, 'list'],
+  list: (params) => [...contactKeys.lists(), params],
   byDriver: (driverId) => [...contactKeys.all, 'driver', driverId],
-  detail:   (id) => [...contactKeys.all, 'detail', id],
+  detail: (id) => [...contactKeys.all, 'detail', id],
 };
 
 // ─── Error Handler ────────────────────────────────────────
@@ -17,7 +17,7 @@ const handleError = (error) => {
   }
 
   const status = error.response?.status;
-  const data   = error.response?.data;
+  const data = error.response?.data;
 
   switch (status) {
     case 400: {
@@ -42,7 +42,7 @@ const handleError = (error) => {
 export const useEmergencyContacts = (params = {}) => {
   return useQuery({
     queryKey: contactKeys.list(params),
-    queryFn:  async () => {
+    queryFn: async () => {
       try {
         const response = await driverApi.getEmergencyContacts(params);
         return response.data;
@@ -51,9 +51,10 @@ export const useEmergencyContacts = (params = {}) => {
         handleError(error);
       }
     },
-    staleTime:            0,
-    retry:                0,
+    staleTime: 0,
+    retry: 0,
     refetchOnWindowFocus: false,
+    placeholderData: (prev) => prev,
   });
 };
 
@@ -62,7 +63,7 @@ export const useEmergencyContacts = (params = {}) => {
 export const useDriverContacts = (driverId) => {
   return useQuery({
     queryKey: contactKeys.byDriver(driverId),
-    queryFn:  async () => {
+    queryFn: async () => {
       try {
         const response = await driverApi.getEmergencyContacts({ driver: driverId });
         return response.data;
@@ -71,9 +72,9 @@ export const useDriverContacts = (driverId) => {
         handleError(error);
       }
     },
-    enabled:              !!driverId, // Skip query if driverId is not available
-    staleTime:            0,
-    retry:                0,
+    enabled: !!driverId, // Skip query if driverId is not available
+    staleTime: 0,
+    retry: 0,
     refetchOnWindowFocus: false,
   });
 };
@@ -82,7 +83,7 @@ export const useDriverContacts = (driverId) => {
 export const useEmergencyContactById = (id) => {
   return useQuery({
     queryKey: contactKeys.detail(id),
-    queryFn:  async () => {
+    queryFn: async () => {
       try {
         const response = await driverApi.getEmergencyContactById(id);
         return response.data;
@@ -90,9 +91,9 @@ export const useEmergencyContactById = (id) => {
         handleError(error);
       }
     },
-    enabled:              !!id, // Skip query if id is not available
-    staleTime:            0,
-    retry:                0,
+    enabled: !!id, // Skip query if id is not available
+    staleTime: 0,
+    retry: 0,
     refetchOnWindowFocus: false,
   });
 };

@@ -3,19 +3,19 @@ import driverApi from '../../api/drivers/driverEndpoint';
 
 // ─── Query Keys ───────────────────────────────────────────
 export const incidentKeys = {
-  all:      ['driver-incidents'],
-  lists:    () => [...incidentKeys.all, 'list'],
-  list:     (params) => [...incidentKeys.lists(), params],
+  all: ['driver-incidents'],
+  lists: () => [...incidentKeys.all, 'list'],
+  list: (params) => [...incidentKeys.lists(), params],
   byDriver: (driverId) => [...incidentKeys.all, 'driver', driverId],
-  detail:   (id) => [...incidentKeys.all, 'detail', id],
+  detail: (id) => [...incidentKeys.all, 'detail', id],
 };
 
 export const attendanceKeys = {
-  all:      ['driver-attendance'],
-  lists:    () => [...attendanceKeys.all, 'list'],
-  list:     (params) => [...attendanceKeys.lists(), params],
+  all: ['driver-attendance'],
+  lists: () => [...attendanceKeys.all, 'list'],
+  list: (params) => [...attendanceKeys.lists(), params],
   byDriver: (driverId) => [...attendanceKeys.all, 'driver', driverId],
-  detail:   (id) => [...attendanceKeys.all, 'detail', id],
+  detail: (id) => [...attendanceKeys.all, 'detail', id],
 };
 
 // ─── Error Handler ────────────────────────────────────────
@@ -25,7 +25,7 @@ const handleError = (error) => {
   }
 
   const status = error.response?.status;
-  const data   = error.response?.data;
+  const data = error.response?.data;
 
   switch (status) {
     case 400: {
@@ -54,7 +54,7 @@ const handleError = (error) => {
 export const useIncidents = (params = {}) => {
   return useQuery({
     queryKey: incidentKeys.list(params),
-    queryFn:  async () => {
+    queryFn: async () => {
       try {
         const response = await driverApi.getIncidents(params);
         return response.data;
@@ -63,9 +63,10 @@ export const useIncidents = (params = {}) => {
         handleError(error);
       }
     },
-    staleTime:            0,
-    retry:                0,
+    staleTime: 0,
+    retry: 0,
     refetchOnWindowFocus: false,
+    placeholderData: (prev) => prev,
   });
 };
 
@@ -73,7 +74,7 @@ export const useIncidents = (params = {}) => {
 export const useDriverIncidents = (driverId) => {
   return useQuery({
     queryKey: incidentKeys.byDriver(driverId),
-    queryFn:  async () => {
+    queryFn: async () => {
       try {
         const response = await driverApi.getIncidents({ driver: driverId });
         return response.data;
@@ -81,9 +82,9 @@ export const useDriverIncidents = (driverId) => {
         handleError(error);
       }
     },
-    enabled:              !!driverId, // Skip query if driverId is not available
-    staleTime:            0,
-    retry:                0,
+    enabled: !!driverId, // Skip query if driverId is not available
+    staleTime: 0,
+    retry: 0,
     refetchOnWindowFocus: false,
   });
 };
@@ -92,7 +93,7 @@ export const useDriverIncidents = (driverId) => {
 export const useIncidentById = (id) => {
   return useQuery({
     queryKey: incidentKeys.detail(id),
-    queryFn:  async () => {
+    queryFn: async () => {
       try {
         const response = await driverApi.getIncidentById(id);
         return response.data;
@@ -100,9 +101,9 @@ export const useIncidentById = (id) => {
         handleError(error);
       }
     },
-    enabled:              !!id, // Skip query if id is not available
-    staleTime:            0,
-    retry:                0,
+    enabled: !!id, // Skip query if id is not available
+    staleTime: 0,
+    retry: 0,
     refetchOnWindowFocus: false,
   });
 };
@@ -178,7 +179,7 @@ export const useDeleteIncident = (driverId) => {
 export const useAttendance = (params = {}) => {
   return useQuery({
     queryKey: attendanceKeys.list(params),
-    queryFn:  async () => {
+    queryFn: async () => {
       try {
         const response = await driverApi.getAttendance(params);
         return response.data;
@@ -187,8 +188,8 @@ export const useAttendance = (params = {}) => {
         handleError(error);
       }
     },
-    staleTime:            0,
-    retry:                0,
+    staleTime: 0,
+    retry: 0,
     refetchOnWindowFocus: false,
   });
 };
@@ -197,7 +198,7 @@ export const useAttendance = (params = {}) => {
 export const useDriverAttendance = (driverId, params = {}) => {
   return useQuery({
     queryKey: attendanceKeys.byDriver(driverId),
-    queryFn:  async () => {
+    queryFn: async () => {
       try {
         const response = await driverApi.getAttendance({
           driver: driverId,
@@ -208,9 +209,9 @@ export const useDriverAttendance = (driverId, params = {}) => {
         handleError(error);
       }
     },
-    enabled:              !!driverId, // Skip query if driverId is not available
-    staleTime:            0,
-    retry:                0,
+    enabled: !!driverId, // Skip query if driverId is not available
+    staleTime: 0,
+    retry: 0,
     refetchOnWindowFocus: false,
   });
 };
@@ -219,7 +220,7 @@ export const useDriverAttendance = (driverId, params = {}) => {
 export const useAttendanceById = (id) => {
   return useQuery({
     queryKey: attendanceKeys.detail(id),
-    queryFn:  async () => {
+    queryFn: async () => {
       try {
         const response = await driverApi.getAttendanceById(id);
         return response.data;
@@ -227,9 +228,9 @@ export const useAttendanceById = (id) => {
         handleError(error);
       }
     },
-    enabled:              !!id, // Skip query if id is not available
-    staleTime:            0,
-    retry:                0,
+    enabled: !!id, // Skip query if id is not available
+    staleTime: 0,
+    retry: 0,
     refetchOnWindowFocus: false,
   });
 };
