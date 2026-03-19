@@ -260,12 +260,14 @@ const VehicleTires = ({ vehicleId, isTab }) => {
         </div>
       )}
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard icon={CircleDot} label="Total Tires" value={stats.total} color="blue" />
-        <StatCard icon={RefreshCw} label="Installed" value={stats.installed} color="emerald" />
-        <StatCard icon={AlertTriangle} label="Worn Out" value={stats.worn} color="orange" />
-        <StatCard icon={Trash2} label="Removed" value={stats.removed} color="red" />
-      </div>
+      {!isTab && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <StatCard icon={CircleDot} label="Total Tires" value={stats.total} color="blue" />
+          <StatCard icon={RefreshCw} label="Installed" value={stats.installed} color="emerald" />
+          <StatCard icon={AlertTriangle} label="Worn Out" value={stats.worn} color="orange" />
+          <StatCard icon={Trash2} label="Removed" value={stats.removed} color="red" />
+        </div>
+      )}
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0">
         {isTab ? (

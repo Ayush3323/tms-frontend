@@ -194,7 +194,11 @@ const VehicleTollTags = ({ vehicleId, isTab }) => {
   });
   const del = useDeleteVehicleTollTag();
 
-  const tags = data?.results ?? data ?? [];
+  const tags = useMemo(() => {
+    const raw = data?.results ?? data ?? [];
+    if (!providerFilter) return raw;
+    return raw.filter(t => t.tag_provider === providerFilter);
+  }, [data, providerFilter]);
 
   const stats = useMemo(() => {
     const total = tags.length;
@@ -219,11 +223,13 @@ const VehicleTollTags = ({ vehicleId, isTab }) => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <StatCard icon={Tag} label="Total Tags" value={stats.total} color="blue" />
-        <StatCard icon={CheckCircle} label="Active Tags" value={stats.active} color="emerald" />
-        <StatCard icon={IndianRupee} label="Fleet Balance" value={fmtINR(stats.balance, 0)} color="indigo" />
-      </div>
+      {!isTab && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <StatCard icon={Tag} label="Total Tags" value={stats.total} color="blue" />
+          <StatCard icon={CheckCircle} label="Active Tags" value={stats.active} color="emerald" />
+          <StatCard icon={IndianRupee} label="Fleet Balance" value={fmtINR(stats.balance, 0)} color="indigo" />
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0">
         <div className="p-5 border-b border-gray-100 flex flex-wrap items-center justify-between gap-4">
@@ -296,10 +302,13 @@ const VehicleTollTags = ({ vehicleId, isTab }) => {
                       </Badge>
                     </td>
                     <td className="px-5 py-4">
-                      <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => setViewing(t)} className="p-2 text-gray-400 hover:text-[#0052CC] hover:bg-white rounded-lg transition-all shadow-sm"><Search size={14} /></button>
-                        <button onClick={() => setModal({ mode: 'edit', data: t })} className="p-2 text-gray-400 hover:text-[#0052CC] hover:bg-white rounded-lg transition-all shadow-sm"><Edit2 size={14} /></button>
-                        <button onClick={() => setDeleting(t)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-white rounded-lg transition-all shadow-sm"><Trash2 size={14} /></button>
+                      <div className="flex justify-end gap-2">
+                        <button onClick={() => setModal({ mode: 'edit', data: t })} className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all">
+                          <Edit2 size={12} /> Edit
+                        </button>
+                        <button onClick={() => setDeleting(t)} className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-all">
+                          <Trash2 size={12} /> Delete
+                        </button>
                       </div>
                     </td>
                   </tr>
