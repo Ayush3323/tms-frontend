@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { AlertTriangle, Plus, RefreshCw } from 'lucide-react';
 import { useIncidents } from '../../../queries/drivers/incidentsAndAttendance';
 
@@ -8,6 +8,7 @@ import { AddIncidentModal, EditIncidentModal, DeleteIncidentDialog, VehicleSelec
 import DriverSelect from '../common/DriverSelect';
 import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
 import { useVehiclesList } from '../../../queries/drivers/vehicleAssignmentQuery';
+import { useUsers } from '../../../queries/users/userQuery';
 import { INCIDENT_TYPES, SEVERITY_TYPES, RESOLUTION_LIST } from '../common/constants';
 import Select from '../common/Select';
 import Input from '../common/Input';
@@ -33,6 +34,15 @@ const AllIncidents = () => {
   const vehicleMap = (vehiclesData?.results ?? []).reduce((acc, v) => ({
     ...acc, [v.id]: v.registration_number
   }), {});
+
+  const { data: usersData } = useUsers({ page_size: 1000 });
+  const userMap = useMemo(() => {
+    const map = {};
+    usersData?.results?.forEach(u => {
+      map[u.id] = `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username || 'System User';
+    });
+    return map;
+  }, [usersData]);
 
   const incidents = data?.results ?? [];
 
@@ -142,6 +152,7 @@ const AllIncidents = () => {
               showDriver={true} 
               driverMap={driverMap}
               vehicleMap={vehicleMap}
+              userMap={userMap}
             />
           </div>
         )}

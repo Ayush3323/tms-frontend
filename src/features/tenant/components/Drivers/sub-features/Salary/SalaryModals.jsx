@@ -77,6 +77,10 @@ export const AddSalaryModal = ({ driverId, onClose }) => {
     if (!form.base_salary) return setError('Base salary is required.');
     if (!form.effective_from) return setError('Effective from date is required.');
 
+    if (form.effective_to && form.effective_to < form.effective_from) {
+      return setError('Effective To date cannot be before Effective From date.');
+    }
+
     const submissionData = {
       ...form,
       per_trip_rate: form.per_trip_rate || 0,
@@ -165,6 +169,10 @@ export const EditSalaryModal = ({ salary, driverId, onClose }) => {
     setError('');
     if (!form.base_salary) return setError('Base salary is required.');
     if (!form.effective_from) return setError('Effective from date is required.');
+
+    if (form.effective_to && form.effective_to < form.effective_from) {
+      return setError('Effective To date cannot be before Effective From date.');
+    }
 
     const submissionData = {
       ...form,

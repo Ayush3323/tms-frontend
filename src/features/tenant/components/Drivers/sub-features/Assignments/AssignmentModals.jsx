@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Loader2, Plus, Pencil } from 'lucide-react';
 import ModalWrapper from '../../common/ModalWrapper';
 import Label from '../../common/Label';
@@ -10,9 +10,13 @@ import {
   useCreateVehicleAssignment,
   useUpdateVehicleAssignment,
   useDeleteVehicleAssignment,
+  useDriverVehicleAssignments,
   useVehiclesList,
 } from '../../../../queries/drivers/vehicleAssignmentQuery';
+import { useUsers } from '../../../../queries/users/userQuery';
+import { useCurrentUser } from '../../../../queries/users/userActionQuery';
 import DriverSelect from '../../common/DriverSelect';
+
 
 // Vehicle Select for assignments - Displays registration, make and model
 export const VehicleSelect = ({ value, onChange }) => {
@@ -34,18 +38,32 @@ import { ASSIGNMENT_TYPES } from '../../common/constants';
 
 export const AddAssignmentModal = ({ driverId, onClose }) => {
   const [targetDriverId, setTargetDriverId] = useState(driverId || '');
+  const { data: currentUser } = useCurrentUser();
   const [form, setForm] = useState({
     vehicle: '',
     assigned_date: '',
     assignment_type: 'PERMANENT',
+    assigned_by: '',
     notes: '',
   });
+
+  // Auto-fill assigned_by when currentUser is loaded
+  React.useEffect(() => {
+    if (currentUser?.id && !form.assigned_by) {
+      setForm(p => ({ ...p, assigned_by: currentUser.id }));
+    }
+  }, [currentUser, form.assigned_by]);
+
   const [error, setError] = useState('');
+  const { data: assignmentsData } = useDriverVehicleAssignments(targetDriverId);
   const createAssignment = useCreateVehicleAssignment(targetDriverId);
   const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
 
   const handleSubmit = () => {
     setError('');
+    const hasActive = assignmentsData?.results?.some(a => a.is_active === true);
+    if (hasActive) return setError('You cannot add more than 1 vehicle to driver at one time.');
+
     if (!targetDriverId) return setError('Please select a driver.');
     if (!form.vehicle) return setError('Vehicle is required.');
     if (!form.assigned_date) return setError('Assigned date is required.');
@@ -92,6 +110,11 @@ export const AddAssignmentModal = ({ driverId, onClose }) => {
               {ASSIGNMENT_TYPES.map(t => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
             </Select>
           </div>
+          <div><Label>Assigned By</Label>
+            <div className="px-3 py-2 text-sm bg-gray-100 border border-gray-200 rounded-lg text-gray-500 font-medium">
+              {currentUser ? `${currentUser.first_name} ${currentUser.last_name}` : 'Loading...'}
+            </div>
+          </div>
         </div>
         <div><Label>Notes</Label>
           <textarea rows={2} placeholder="Any additional notes..." value={form.notes} onChange={set('notes')}
@@ -109,22 +132,44 @@ export const EditAssignmentModal = ({ assignment, driverId, onClose }) => {
     unassigned_date: assignment.unassigned_date ?? '',
     assignment_type: assignment.assignment_type ?? 'PERMANENT',
     is_active: assignment.is_active ?? true,
+    assigned_by: assignment.assigned_by ?? '',
     notes: assignment.notes ?? '',
   });
+  const { data: usersData } = useUsers({ page_size: 1000 });
+  const userMap = useMemo(() => {
+    const map = {};
+    usersData?.results?.forEach(u => {
+      map[u.id] = `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username || 'System User';
+    });
+    return map;
+  }, [usersData]);
+
   const [error, setError] = useState('');
   const [showDelete, setShowDelete] = useState(false);
+  const { data: assignmentsData } = useDriverVehicleAssignments(driverId);
   const updateAssignment = useUpdateVehicleAssignment(driverId, assignment.id);
   const deleteAssignment = useDeleteVehicleAssignment(driverId);
   const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
 
   const handleSubmit = () => {
     setError('');
+    
+    // Check if trying to activate this one while another is already active
+    if (form.is_active) {
+      const otherActive = assignmentsData?.results?.some(a => a.is_active === true && a.id !== assignment.id);
+      if (otherActive) return setError('Another vehicle is already active for this driver. Please deactivate it first.');
+    }
+
     if (!form.vehicle) return setError('Vehicle is required.');
     if (!form.assigned_date) return setError('Assigned date is required.');
 
+    if (form.unassigned_date && form.unassigned_date < form.assigned_date) {
+      return setError('Unassigned date cannot be before assigned date.');
+    }
+
     const clean = Object.fromEntries(
       Object.entries(form).map(([k, v]) => {
-        if (k === 'is_active') return [k, v];
+        if (k === 'is_active' || k === 'assigned_by') return [k, v];
         return [k, v === '' ? null : v];
       })
     );
@@ -183,6 +228,11 @@ export const EditAssignmentModal = ({ assignment, driverId, onClose }) => {
           <div className="flex items-center gap-2 mt-5">
             <input type="checkbox" id="is_active" checked={form.is_active} onChange={e => setForm(p => ({ ...p, is_active: e.target.checked }))} className="w-4 h-4 rounded border-gray-300 text-[#0052CC] cursor-pointer" />
             <label htmlFor="is_active" className="text-sm font-semibold text-gray-600 cursor-pointer">Active</label>
+          </div>
+          <div><Label>Assigned By</Label>
+            <div className="px-3 py-2 text-sm bg-gray-100 border border-gray-200 rounded-lg text-gray-500 font-medium">
+              {userMap[form.assigned_by] || form.assigned_by || '—'}
+            </div>
           </div>
         </div>
         <div><Label>Notes</Label>

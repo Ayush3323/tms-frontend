@@ -41,7 +41,7 @@ const ContactTable = ({ contacts, onEdit, showDriver = false, driverMap = {} }) 
                 </span>
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-500 font-mono">{c.alternate_phone ?? '—'}</td>
-              <td className="px-4 py-3 text-[12px] text-gray-600 max-w-45 truncate">{c.address ?? '—'}</td>
+              <td className="px-4 py-3 text-[12px] text-gray-600 min-w-[200px]">{c.address ?? '—'}</td>
               <td className="px-4 py-3 whitespace-nowrap">
                 {c.is_primary ? (
                   <StatusBadge label="Primary" styles={{ text: 'text-blue-700', bg: 'bg-blue-50 border border-blue-100' }} />

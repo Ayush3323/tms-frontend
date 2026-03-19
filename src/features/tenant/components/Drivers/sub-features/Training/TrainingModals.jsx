@@ -11,9 +11,40 @@ import {
   useUpdateTrainingRecord,
   useDeleteTrainingRecord,
 } from '../../../../queries/drivers/trainingAndMedicalQuery';
-import { useDrivers } from '../../../../queries/drivers/driverCoreQuery';
 import DriverSelect from '../../common/DriverSelect';
 import { TRAINING_TYPES, VERIFICATION_STATUS } from '../../common/constants';
+
+// Shared Form Fields for Training
+const TrainingFormFields = ({ form, setForm, error }) => {
+  const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
+  return (
+    <div className="space-y-4">
+      {error && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium">{error}</div>}
+      <div className="grid grid-cols-2 gap-4">
+        <div><Label required>Training Type</Label>
+          <Select value={form.training_type} onChange={set('training_type')}>
+            <option value="">Select type</option>
+            {TRAINING_TYPES.map(t => <option key={t} value={t}>{t.replaceAll('_', ' ')}</option>)}
+          </Select>
+        </div>
+        <div><Label required>Status</Label>
+          <Select value={form.status} onChange={set('status')}>
+            {VERIFICATION_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
+          </Select>
+        </div>
+        <div><Label required>Training Date</Label><Input type="date" value={form.training_date} onChange={set('training_date')} /></div>
+        <div><Label>Expiry Date</Label><Input type="date" value={form.expiry_date} onChange={set('expiry_date')} /></div>
+        <div><Label>Certificate Number</Label><Input placeholder="e.g. CERT123456" value={form.certificate_number} onChange={set('certificate_number')} /></div>
+        <div><Label>Trainer Name</Label><Input placeholder="e.g. John Trainer" value={form.trainer_name} onChange={set('trainer_name')} /></div>
+      </div>
+      <div><Label>Certificate URL</Label><Input placeholder="https://example.com/certs/cert.pdf" value={form.certificate_url} onChange={set('certificate_url')} /></div>
+      <div><Label>Notes</Label>
+        <textarea rows={2} placeholder="Any additional notes..." value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
+          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] placeholder:text-gray-300 resize-none" />
+      </div>
+    </div>
+  );
+};
 
 export const AddTrainingModal = ({ driverId, onClose }) => {
   const [targetDriverId, setTargetDriverId] = useState(driverId || '');
@@ -29,13 +60,23 @@ export const AddTrainingModal = ({ driverId, onClose }) => {
   });
   const [error, setError] = useState('');
   const createTraining = useCreateTrainingRecord(targetDriverId);
-  const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
+
+  const validate = () => {
+    if (!targetDriverId) return 'Please select a driver.';
+    if (!form.training_type) return 'Training type is required.';
+    if (!form.training_date) return 'Training date is required.';
+    if (!form.status) return 'Status is required.';
+    if (form.expiry_date && form.training_date > form.expiry_date) {
+      return 'Expiry date cannot be before training date.';
+    }
+    return null;
+  };
 
   const handleSubmit = () => {
     setError('');
-    if (!targetDriverId) return setError('Please select a driver.');
-    if (!form.training_type) return setError('Training type is required.');
-    if (!form.training_date) return setError('Training date is required.');
+    const validationError = validate();
+    if (validationError) return setError(validationError);
+
     createTraining.mutate(cleanObject(form), {
       onSuccess: onClose,
       onError: (err) => setError(err.message || 'Failed to add training record.'),
@@ -58,37 +99,13 @@ export const AddTrainingModal = ({ driverId, onClose }) => {
       }
     >
       <div className="space-y-4">
-        {error && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium">{error}</div>}
-        
         {!driverId && (
           <div>
             <Label required>Driver</Label>
             <DriverSelect value={targetDriverId} onChange={setTargetDriverId} />
           </div>
         )}
-
-        <div className="grid grid-cols-2 gap-4">
-          <div><Label required>Training Type</Label>
-            <Select value={form.training_type} onChange={set('training_type')}>
-              <option value="">Select type</option>
-              {TRAINING_TYPES.map(t => <option key={t} value={t}>{t.replaceAll('_', ' ')}</option>)}
-            </Select>
-          </div>
-          <div><Label>Status</Label>
-            <Select value={form.status} onChange={set('status')}>
-              {VERIFICATION_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
-            </Select>
-          </div>
-          <div><Label required>Training Date</Label><Input type="date" value={form.training_date} onChange={set('training_date')} /></div>
-          <div><Label>Expiry Date</Label><Input type="date" value={form.expiry_date} onChange={set('expiry_date')} /></div>
-          <div><Label>Certificate Number</Label><Input placeholder="e.g. CERT123456" value={form.certificate_number} onChange={set('certificate_number')} /></div>
-          <div><Label>Trainer Name</Label><Input placeholder="e.g. John Trainer" value={form.trainer_name} onChange={set('trainer_name')} /></div>
-        </div>
-        <div><Label>Certificate URL</Label><Input placeholder="https://example.com/certs/cert.pdf" value={form.certificate_url} onChange={set('certificate_url')} /></div>
-        <div><Label>Notes</Label>
-          <textarea rows={2} placeholder="Any additional notes..." value={form.notes} onChange={set('notes')}
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] placeholder:text-gray-300 resize-none" />
-        </div>
+        <TrainingFormFields form={form} setForm={setForm} error={error} />
       </div>
     </ModalWrapper>
   );
@@ -109,12 +126,22 @@ export const EditTrainingModal = ({ record, driverId, onClose }) => {
   const [showDelete, setShowDelete] = useState(false);
   const updateTraining = useUpdateTrainingRecord(driverId, record.id);
   const deleteTraining = useDeleteTrainingRecord(driverId);
-  const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
+
+  const validate = () => {
+    if (!form.training_type) return 'Training type is required.';
+    if (!form.training_date) return 'Training date is required.';
+    if (!form.status) return 'Status is required.';
+    if (form.expiry_date && form.training_date > form.expiry_date) {
+      return 'Expiry date cannot be before training date.';
+    }
+    return null;
+  };
 
   const handleSubmit = () => {
     setError('');
-    if (!form.training_type) return setError('Training type is required.');
-    if (!form.training_date) return setError('Training date is required.');
+    const validationError = validate();
+    if (validationError) return setError(validationError);
+
     updateTraining.mutate(cleanObject(form), {
       onSuccess: onClose,
       onError: (err) => setError(err.message || 'Failed to update training record.'),
@@ -153,31 +180,7 @@ export const EditTrainingModal = ({ record, driverId, onClose }) => {
           isDeleting={deleteTraining.isPending}
         />
       )}
-      <div className="space-y-4">
-        {error && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium">{error}</div>}
-        <div className="grid grid-cols-2 gap-4">
-          <div><Label required>Training Type</Label>
-            <Select value={form.training_type} onChange={set('training_type')}>
-              <option value="">Select type</option>
-              {TRAINING_TYPES.map(t => <option key={t} value={t}>{t.replaceAll('_', ' ')}</option>)}
-            </Select>
-          </div>
-          <div><Label>Status</Label>
-            <Select value={form.status} onChange={set('status')}>
-              {VERIFICATION_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
-            </Select>
-          </div>
-          <div><Label required>Training Date</Label><Input type="date" value={form.training_date} onChange={set('training_date')} /></div>
-          <div><Label>Expiry Date</Label><Input type="date" value={form.expiry_date} onChange={set('expiry_date')} /></div>
-          <div><Label>Certificate Number</Label><Input placeholder="e.g. CERT123456" value={form.certificate_number} onChange={set('certificate_number')} /></div>
-          <div><Label>Trainer Name</Label><Input placeholder="e.g. John Trainer" value={form.trainer_name} onChange={set('trainer_name')} /></div>
-        </div>
-        <div><Label>Certificate URL</Label><Input placeholder="https://example.com/certs/cert.pdf" value={form.certificate_url} onChange={set('certificate_url')} /></div>
-        <div><Label>Notes</Label>
-          <textarea rows={2} placeholder="Any additional notes..." value={form.notes} onChange={set('notes')}
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] placeholder:text-gray-300 resize-none" />
-        </div>
-      </div>
+      <TrainingFormFields form={form} setForm={setForm} error={error} />
     </ModalWrapper>
   );
 };

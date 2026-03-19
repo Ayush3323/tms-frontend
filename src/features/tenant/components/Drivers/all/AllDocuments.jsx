@@ -7,6 +7,7 @@ import DocumentTable from '../sub-features/Documents/DocumentTable';
 import { AddDocumentModal, EditDocumentModal, DeleteDocumentDialog } from '../sub-features/Documents/DocumentModals';
 import DriverSelect from '../common/DriverSelect';
 import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
+import { useUsers as useSystemUsers } from '../../../queries/users/userQuery';
 import { DOCUMENT_TYPES, VERIFICATION_LIST } from '../common/constants';
 import Select from '../common/Select';
 import Input from '../common/Input';
@@ -34,6 +35,18 @@ const AllDocuments = () => {
 
   const { data, isLoading, isError, error, refetch, isFetching } = useDocuments(filters);
   const driverMap = useDriverLookup();
+  const { data: usersData } = useSystemUsers();
+  
+  const userMap = React.useMemo(() => {
+    return usersData?.results?.reduce((acc, u) => ({ 
+      ...acc, 
+      [u.id]: {
+        ...u,
+        name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username || 'System User'
+      }
+    }), {}) ?? {};
+  }, [usersData]);
+
   const documents = data?.results ?? [];
 
   const handleFilterChange = (field, value) => {
@@ -58,7 +71,7 @@ const AllDocuments = () => {
     <div className="p-6 space-y-6">
       {/* ── Modals ── */}
       {addOpen && <AddDocumentModal driverId={null} onClose={() => setAddOpen(false)} />}
-      {editDoc && <EditDocumentModal doc={editDoc} driverId={editDoc.driver} onClose={() => setEditDoc(null)} />}
+      {editDoc && <EditDocumentModal doc={editDoc} driverId={editDoc.driver} onClose={() => setEditDoc(null)} userMap={userMap} />}
 
       {/* ── Header ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -138,6 +151,7 @@ const AllDocuments = () => {
               onEdit={setEditDoc}
               showDriver={true}
               driverMap={driverMap}
+              userMap={userMap}
             />
           </div>
         )}

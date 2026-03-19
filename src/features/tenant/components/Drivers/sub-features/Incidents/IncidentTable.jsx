@@ -3,11 +3,19 @@ import StatusBadge from '../../common/StatusBadge';
 import TableActions from '../../common/TableActions';
 import { SEVERITY_STYLES, INCIDENT_TYPE_STYLES, STATUS_STYLES } from '../../common/constants';
 
-const IncidentTable = ({ incidents, onEdit, showDriver = false, driverMap = {}, vehicleMap = {} }) => {
+const IncidentTable = ({ incidents, onEdit, showDriver = false, driverMap = {}, vehicleMap = {}, userMap = {} }) => {
+  // Diagnostic log to see if backend is returning resolution data
+  React.useEffect(() => {
+    if (incidents.length > 0) {
+      console.log('DEBUG: Incidents from server:', incidents);
+    }
+  }, [incidents]);
+
   const formatDate = (dateStr) => {
     if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleDateString('en-IN', {
+    return new Date(dateStr).toLocaleString('en-IN', {
       day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
     });
   };
 
@@ -22,7 +30,7 @@ const IncidentTable = ({ incidents, onEdit, showDriver = false, driverMap = {}, 
                 <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Emp ID</th>
               </>
             )}
-            {['Type', 'Vehicle', 'Trip ID', 'Date', 'Location', 'Severity', 'Description', 'Resolution', 'Resolution Notes', 'Police Report', 'Insurance Claim', 'Actions'].map(h => (
+            {['Type', 'Vehicle', 'Trip ID', 'Date', 'Location', 'Severity', 'Description', 'Resolution', 'Resolution Notes', 'Resolved By', 'Resolved At', 'Police Report No', 'Insurance No', 'Actions'].map(h => (
               <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
             ))}
           </tr>
@@ -75,6 +83,12 @@ const IncidentTable = ({ incidents, onEdit, showDriver = false, driverMap = {}, 
               </td>
               <td className="px-4 py-3 text-[12px] text-gray-600 max-w-xs truncate" title={inc.resolution_notes}>
                 {inc.resolution_notes || '—'}
+              </td>
+              <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600">
+                {userMap[inc.resolved_by] || inc.resolved_by || '—'}
+              </td>
+              <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-500">
+                {inc.resolved_at ? formatDate(inc.resolved_at) : '—'}
               </td>
               <td className="px-4 py-3 whitespace-nowrap">
                 {inc.police_report_number

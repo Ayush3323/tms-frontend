@@ -6,7 +6,7 @@ import {
   ASSIGNMENT_STATUS_STYLES,
 } from '../../common/constants';
 
-const AssignmentTable = ({ assignments, onEdit, showDriver = false, driverMap = {} }) => {
+const AssignmentTable = ({ assignments, onEdit, showDriver = false, driverMap = {}, userMap = {} }) => {
   return (
     <div className="overflow-x-auto rounded-xl border border-gray-200 text-nowrap">
       <table className="w-full text-sm">
@@ -18,7 +18,7 @@ const AssignmentTable = ({ assignments, onEdit, showDriver = false, driverMap = 
                 <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Emp ID</th>
               </>
             )}
-            {['Vehicle', 'Assignment Type', 'Assigned Date', 'Unassigned Date', 'Status', 'Actions'].map(h => (
+            {['Vehicle', 'Assignment Type', 'Assigned Date', 'Unassigned Date', 'Status', 'Assigned By', 'Notes', 'Actions'].map(h => (
               <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
             ))}
           </tr>
@@ -54,6 +54,12 @@ const AssignmentTable = ({ assignments, onEdit, showDriver = false, driverMap = 
                   label={a.is_active ? 'Active' : 'Inactive'}
                   styles={ASSIGNMENT_STATUS_STYLES[a.is_active ? 'ACTIVE' : 'INACTIVE']}
                 />
+              </td>
+              <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600">
+                {userMap[a.assigned_by] || a.assigned_by_name || a.assigned_by || '—'}
+              </td>
+              <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-400 italic max-w-[150px] truncate" title={a.notes}>
+                {a.notes || '—'}
               </td>
               <td className="px-4 py-3 whitespace-nowrap">
                 <TableActions onEdit={() => onEdit(a)} />

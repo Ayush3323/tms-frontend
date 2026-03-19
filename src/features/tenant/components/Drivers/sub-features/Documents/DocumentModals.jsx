@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Loader2, Plus, Pencil } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Loader2, Plus, Pencil, User, Clock } from 'lucide-react';
 import ModalWrapper from '../../common/ModalWrapper';
 import Label from '../../common/Label';
 import Input from '../../common/Input';
@@ -11,10 +11,86 @@ import {
   useUpdateDriverDocument,
   useDeleteDriverDocument,
 } from '../../../../queries/drivers/driverDocumentQuery';
+import { useUsers } from '../../../../queries/users/userQuery';
+import { useCurrentUser } from '../../../../queries/users/userActionQuery';
 import DriverSelect from '../../common/DriverSelect';
 import { DOCUMENT_TYPES, VERIFICATION_STATUS as VERIFICATION_LIST } from '../../common/constants';
 
+// Shared Form Fields for Documents
+const DocumentFormFields = ({ form, setForm, error, userMap = {}, onStatusChange }) => {
+  const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
+  
+  const handleStatusChange = (e) => {
+    if (onStatusChange) {
+      onStatusChange(e.target.value);
+    } else {
+      set('verification_status')(e);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {error && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium">{error}</div>}
+      
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label required>Document Type</Label>
+          <Select value={form.document_type} onChange={set('document_type')}>
+            <option value="">Select type</option>
+            {DOCUMENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+          </Select>
+        </div>
+        <div>
+          <Label required>Document Number</Label>
+          <Input placeholder="e.g. 1234 5678 9012" value={form.document_number} onChange={set('document_number')} />
+        </div>
+        <div><Label>Issue Date</Label><Input type="date" value={form.issue_date} onChange={set('issue_date')} /></div>
+        <div><Label>Expiry Date</Label><Input type="date" value={form.expiry_date} onChange={set('expiry_date')} /></div>
+        <div><Label>Issuing Authority</Label><Input placeholder="e.g. UIDAI" value={form.issuing_authority} onChange={set('issuing_authority')} /></div>
+        <div>
+          <Label required>Verification Status</Label>
+          <Select value={form.verification_status} onChange={handleStatusChange}>
+            {VERIFICATION_LIST.map(s => <option key={s} value={s}>{s}</option>)}
+          </Select>
+        </div>
+      </div>
+
+      {form.verified_by && (
+        <div className="grid grid-cols-2 gap-4 p-3 bg-blue-50/50 border border-blue-100 rounded-lg">
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold text-blue-400 uppercase tracking-tight flex items-center gap-1">
+              <User size={10} /> Verified By
+            </span>
+            <div className="text-[12px] font-semibold text-blue-700">
+              {userMap[form.verified_by]?.name || form.verified_by || 'System User'}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold text-blue-400 uppercase tracking-tight flex items-center gap-1">
+              <Clock size={10} /> Verified At
+            </span>
+            <div className="text-[12px] font-semibold text-blue-700">
+              {form.verified_at ? new Date(form.verified_at).toLocaleString() : '—'}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div>
+        <Label>File URL</Label>
+        <Input placeholder="https://example.com/files/doc.pdf" value={form.file_url} onChange={set('file_url')} />
+      </div>
+      <div>
+        <Label>Notes</Label>
+        <textarea rows={2} placeholder="Any additional notes..." value={form.notes} onChange={set('notes')}
+          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] placeholder:text-gray-300 transition-all resize-none" />
+      </div>
+    </div>
+  );
+};
+
 export const AddDocumentModal = ({ driverId, onClose }) => {
+  const { data: currentUser } = useCurrentUser();
   const [targetDriverId, setTargetDriverId] = useState(driverId || '');
   const [form, setForm] = useState({
     document_type: '',
@@ -25,18 +101,45 @@ export const AddDocumentModal = ({ driverId, onClose }) => {
     file_url: '',
     notes: '',
     verification_status: 'PENDING',
+    verified_by: null,
+    verified_at: null,
   });
   const [error, setError] = useState('');
   const createDocument = useCreateDriverDocument(targetDriverId);
-  const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
+
+  const handleStatusChange = (newStatus) => {
+    setForm(p => {
+      const updates = { verification_status: newStatus };
+      if (newStatus === 'VERIFIED' && currentUser?.id) {
+        updates.verified_by = currentUser.id;
+        updates.verified_at = new Date().toISOString();
+      } else if (newStatus !== 'VERIFIED') {
+        updates.verified_by = null;
+        updates.verified_at = null;
+      }
+      return { ...p, ...updates };
+    });
+  };
+
+  const validate = () => {
+    if (!targetDriverId) return 'Please select a driver.';
+    if (!form.document_type) return 'Document type is required.';
+    if (!form.document_number) return 'Document number is required.';
+    if (form.issue_date && form.expiry_date && form.issue_date > form.expiry_date) {
+      return 'Expiry date cannot be before issue date.';
+    }
+    return null;
+  };
 
   const handleSubmit = () => {
     setError('');
-    if (!targetDriverId) return setError('Please select a driver.');
-    if (!form.document_type) return setError('Document type is required.');
-    if (!form.document_number) return setError('Document number is required.');
+    const validationError = validate();
+    if (validationError) return setError(validationError);
 
-    createDocument.mutate(cleanObject(form), {
+    const payload = cleanObject(form);
+    console.log('Creating Document with payload:', payload);
+
+    createDocument.mutate(payload, {
       onSuccess: onClose,
       onError: (err) => setError(err.message || 'Failed to add document.'),
     });
@@ -49,84 +152,29 @@ export const AddDocumentModal = ({ driverId, onClose }) => {
       onClose={onClose}
       footer={
         <>
-          <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={!form.document_type || !form.document_number || createDocument.isPending}
-            className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {createDocument.isPending
-              ? <><Loader2 size={14} className="animate-spin" /> Saving...</>
-              : <><Plus size={14} /> Add Document</>
-            }
+          <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
+          <button onClick={handleSubmit} disabled={!form.document_type || !form.document_number || createDocument.isPending}
+            className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed">
+            {createDocument.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Plus size={14} /> Add Document</>}
           </button>
         </>
       }
     >
       <div className="space-y-4">
-        {error && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium">{error}</div>}
-        
-        {/* Driver Selection (Only visible if driverId is not provided) */}
         {!driverId && (
           <div>
             <Label required>Driver</Label>
             <DriverSelect value={targetDriverId} onChange={setTargetDriverId} />
           </div>
         )}
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label required>Document Type</Label>
-            <Select value={form.document_type} onChange={set('document_type')}>
-              <option value="">Select type</option>
-              {DOCUMENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-            </Select>
-          </div>
-          <div>
-            <Label required>Document Number</Label>
-            <Input placeholder="e.g. 1234 5678 9012" value={form.document_number} onChange={set('document_number')} />
-          </div>
-          <div>
-            <Label>Issue Date</Label>
-            <Input type="date" value={form.issue_date} onChange={set('issue_date')} />
-          </div>
-          <div>
-            <Label>Expiry Date</Label>
-            <Input type="date" value={form.expiry_date} onChange={set('expiry_date')} />
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label>Issuing Authority</Label>
-            <Input placeholder="e.g. UIDAI" value={form.issuing_authority} onChange={set('issuing_authority')} />
-          </div>
-          <div>
-            <Label>Verification Status</Label>
-            <Select value={form.verification_status} onChange={set('verification_status')}>
-              {VERIFICATION_LIST.map(s => <option key={s} value={s}>{s}</option>)}
-            </Select>
-          </div>
-        </div>
-        <div>
-          <Label>File URL</Label>
-          <Input placeholder="https://example.com/files/doc.pdf" value={form.file_url} onChange={set('file_url')} />
-        </div>
-        <div>
-          <Label>Notes</Label>
-          <textarea
-            rows={2} placeholder="Any additional notes..."
-            value={form.notes} onChange={set('notes')}
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] placeholder:text-gray-300 transition-all resize-none"
-          />
-        </div>
+        <DocumentFormFields form={form} setForm={setForm} error={error} onStatusChange={handleStatusChange} />
       </div>
     </ModalWrapper>
   );
 };
 
-export const EditDocumentModal = ({ doc, driverId, onClose }) => {
+export const EditDocumentModal = ({ doc, driverId, onClose, userMap = {} }) => {
+  const { data: currentUser } = useCurrentUser();
   const [form, setForm] = useState({
     document_type: doc.document_type ?? '',
     document_number: doc.document_number ?? '',
@@ -136,19 +184,46 @@ export const EditDocumentModal = ({ doc, driverId, onClose }) => {
     file_url: doc.file_url ?? '',
     notes: doc.notes ?? '',
     verification_status: doc.verification_status ?? 'PENDING',
+    verified_by: doc.verified_by ?? null,
+    verified_at: doc.verified_at ?? null,
   });
   const [error, setError] = useState('');
   const [showDelete, setShowDelete] = useState(false);
   const updateDocument = useUpdateDriverDocument(driverId, doc.id);
   const deleteDocument = useDeleteDriverDocument(driverId);
-  const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
+
+  const handleStatusChange = (newStatus) => {
+    setForm(p => {
+      const updates = { verification_status: newStatus };
+      if (newStatus === 'VERIFIED' && currentUser?.id) {
+        updates.verified_by = currentUser.id;
+        updates.verified_at = new Date().toISOString();
+      } else if (newStatus !== 'VERIFIED') {
+        updates.verified_by = null;
+        updates.verified_at = null;
+      }
+      return { ...p, ...updates };
+    });
+  };
+
+  const validate = () => {
+    if (!form.document_type) return 'Document type is required.';
+    if (!form.document_number) return 'Document number is required.';
+    if (form.issue_date && form.expiry_date && form.issue_date > form.expiry_date) {
+      return 'Expiry date cannot be before issue date.';
+    }
+    return null;
+  };
 
   const handleSubmit = () => {
     setError('');
-    if (!form.document_type) return setError('Document type is required.');
-    if (!form.document_number) return setError('Document number is required.');
+    const validationError = validate();
+    if (validationError) return setError(validationError);
 
-    updateDocument.mutate(cleanObject(form), {
+    const payload = cleanObject(form);
+    console.log('Updating Document with payload:', payload);
+
+    updateDocument.mutate(payload, {
       onSuccess: onClose,
       onError: (err) => setError(err.message || 'Failed to update document.'),
     });
@@ -168,18 +243,10 @@ export const EditDocumentModal = ({ doc, driverId, onClose }) => {
             Delete Document
           </button>
           <div className="flex items-center gap-2">
-            <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={!form.document_type || !form.document_number || updateDocument.isPending}
-              className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {updateDocument.isPending
-                ? <><Loader2 size={14} className="animate-spin" /> Saving...</>
-                : <><Pencil size={14} /> Update Document</>
-              }
+            <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
+            <button onClick={handleSubmit} disabled={!form.document_type || !form.document_number || updateDocument.isPending}
+              className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed">
+              {updateDocument.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Pencil size={14} /> Update Document</>}
             </button>
           </div>
         </div>
@@ -194,52 +261,7 @@ export const EditDocumentModal = ({ doc, driverId, onClose }) => {
           isDeleting={deleteDocument.isPending}
         />
       )}
-      <div className="space-y-4">
-        {error && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium">{error}</div>}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label required>Document Type</Label>
-            <Select value={form.document_type} onChange={set('document_type')}>
-              <option value="">Select type</option>
-              {DOCUMENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-            </Select>
-          </div>
-          <div>
-            <Label required>Document Number</Label>
-            <Input placeholder="e.g. 1234 5678 9012" value={form.document_number} onChange={set('document_number')} />
-          </div>
-          <div>
-            <Label>Issue Date</Label>
-            <Input type="date" value={form.issue_date} onChange={set('issue_date')} />
-          </div>
-          <div>
-            <Label>Expiry Date</Label>
-            <Input type="date" value={form.expiry_date} onChange={set('expiry_date')} />
-          </div>
-          <div>
-            <Label>Issuing Authority</Label>
-            <Input placeholder="e.g. UIDAI" value={form.issuing_authority} onChange={set('issuing_authority')} />
-          </div>
-          <div>
-            <Label>Verification Status</Label>
-            <Select value={form.verification_status} onChange={set('verification_status')}>
-              {VERIFICATION_LIST.map(s => <option key={s} value={s}>{s}</option>)}
-            </Select>
-          </div>
-        </div>
-        <div>
-          <Label>File URL</Label>
-          <Input placeholder="https://example.com/files/doc.pdf" value={form.file_url} onChange={set('file_url')} />
-        </div>
-        <div>
-          <Label>Notes</Label>
-          <textarea
-            rows={2} placeholder="Any additional notes..."
-            value={form.notes} onChange={set('notes')}
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] placeholder:text-gray-300 transition-all resize-none"
-          />
-        </div>
-      </div>
+      <DocumentFormFields form={form} setForm={setForm} error={error} userMap={userMap} onStatusChange={handleStatusChange} />
     </ModalWrapper>
   );
 };

@@ -4,9 +4,9 @@ import driverApi from '../../api/drivers/driverEndpoint';
 
 // ─── Query Keys ───────────────────────────────────────────
 export const driverKeys = {
-  all:    ['drivers'],
-  lists:  () => [...driverKeys.all, 'list'],
-  list:   (filters) => [...driverKeys.lists(), filters],
+  all: ['drivers'],
+  lists: () => [...driverKeys.all, 'list'],
+  list: (filters) => [...driverKeys.lists(), filters],
   detail: (id) => [...driverKeys.all, 'detail', id],
 };
 
@@ -17,36 +17,44 @@ const handleError = (error) => {
   }
 
   const status = error.response?.status;
-  const data   = error.response?.data;
+  const data = error.response?.data;
+
+  if (status === 400 && data) {
+    // 1. Recursive helper to find the first error message
+    const getFirstError = (obj, prefix = '') => {
+      if (typeof obj === 'string') return `${prefix}${obj}`;
+      if (Array.isArray(obj)) return getFirstError(obj[0], prefix);
+      if (typeof obj === 'object' && obj !== null) {
+        const keys = Object.keys(obj);
+        // Prioritize 'details' if it's a validation error
+        if (keys.includes('details')) return getFirstError(obj.details, prefix);
+        // Skip generic wrapper if it's the only key
+        if (keys.length === 1 && (keys[0] === 'error' || keys[0] === 'errors')) {
+          return getFirstError(obj[keys[0]], prefix);
+        }
+        // General recursion, but skip generic keys at the top level
+        const filteredKeys = keys.filter(k => !['code', 'message', 'detail', 'status'].includes(k));
+        const keyToUse = filteredKeys.length > 0 ? filteredKeys[0] : keys[0];
+        if (!keyToUse) return null;
+
+        const newPrefix = ['error', 'errors', 'details'].includes(keyToUse) ? prefix : (prefix ? `${prefix}${keyToUse}: ` : `${keyToUse}: `);
+        return getFirstError(obj[keyToUse], newPrefix);
+      }
+      return null;
+    };
+
+    const specificError = getFirstError(data);
+    if (specificError) throw new Error(specificError);
+  }
 
   switch (status) {
-    case 400: {
-      const firstKey = Object.keys(data ?? {})[0];
-
-      // Flat error → { "license_number": ["required"] }
-      if (firstKey && Array.isArray(data[firstKey])) {
-        throw new Error(`${firstKey}: ${data[firstKey][0]}`);
-      }
-
-      // Nested error → { "user": { "email": ["already exists"] } }
-      if (firstKey && typeof data[firstKey] === 'object') {
-        const nestedObj   = data[firstKey];
-        const nestedKey   = Object.keys(nestedObj)[0];
-        const nestedError = nestedObj[nestedKey];
-        if (Array.isArray(nestedError)) {
-          throw new Error(`${firstKey}.${nestedKey}: ${nestedError[0]}`);
-        }
-      }
-
-      throw new Error(data?.message || 'Validation failed.');
-    }
     case 401: throw new Error('Session expired. Please login again.');
     case 403: throw new Error('You do not have permission to perform this action.');
-    case 404: throw new Error('Driver not found.');
-    case 409: throw new Error('Driver with this email or employee ID already exists.');
+    case 404: throw new Error('Resource not found.');
+    case 409: throw new Error('Duplicate entry found.');
     default:
       if (status >= 500) throw new Error('Server error. Please try again later.');
-      throw new Error(data?.message || 'Something went wrong.');
+      throw new Error(data?.message || data?.detail || 'Validation failed.');
   }
 };
 
@@ -56,7 +64,7 @@ const handleError = (error) => {
 export const useDrivers = (params = {}) => {
   return useQuery({
     queryKey: driverKeys.list(params),
-    queryFn:  async () => {
+    queryFn: async () => {
       try {
         const response = await driverApi.getDrivers(params);
         return response.data;
@@ -64,9 +72,9 @@ export const useDrivers = (params = {}) => {
         handleError(error);
       }
     },
-    staleTime:            0,     
-    retry:                0,     
-    refetchOnWindowFocus: false, 
+    staleTime: 0,
+    retry: 0,
+    refetchOnWindowFocus: false,
   });
 };
 
@@ -74,7 +82,7 @@ export const useDrivers = (params = {}) => {
 export const useDriverDetail = (id) => {
   return useQuery({
     queryKey: driverKeys.detail(id),
-    queryFn:  async () => {
+    queryFn: async () => {
       try {
         const response = await driverApi.getDriverById(id);
         return response.data;
@@ -82,9 +90,9 @@ export const useDriverDetail = (id) => {
         handleError(error);
       }
     },
-    enabled:              !!id,  // Skip query if id is not available
-    staleTime:            0,
-    retry:                0,
+    enabled: !!id,  // Skip query if id is not available
+    staleTime: 0,
+    retry: 0,
     refetchOnWindowFocus: false,
   });
 };
@@ -117,7 +125,7 @@ export const useRegisterDriver = () => {
     },
 
     onError: (error) => {
-       handleError(error);
+      handleError(error);
     }
   });
 };
@@ -127,8 +135,8 @@ export const useUpdateDriver = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({id, data}) => driverApi.updateDriver(id, data),
-    onSuccess: (_, {id}) => {
+    mutationFn: ({ id, data }) => driverApi.updateDriver(id, data),
+    onSuccess: (_, { id }) => {
       // Refresh both detail and list to reflect updated data
       queryClient.invalidateQueries({ queryKey: driverKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: driverKeys.lists() });
@@ -145,11 +153,9 @@ export const useDeleteDriver = () => {
 
   return useMutation({
     mutationFn: (id) => driverApi.deleteDriver(id),
-    onSuccess: (_, deletedId) => {
-      // Refresh list after deletion
-      queryClient.invalidateQueries({ queryKey: driverKeys.lists() });
-      // Remove deleted driver's detail from cache immediately
-      queryClient.removeQueries({ queryKey: driverKeys.detail(deletedId) });
+    onSuccess: () => {
+      // Refresh EVERYTHING related to drivers to ensure no stale data in any list/filter
+      queryClient.invalidateQueries({ queryKey: driverKeys.all });
     },
     onError: (error) => {
       handleError(error);
@@ -159,8 +165,8 @@ export const useDeleteDriver = () => {
 
 // ─── 6. useDriverLookup (ID -> Name Map) ──────────────────
 export const useDriverLookup = () => {
-  const { data } = useDrivers({ page_size: 1000 }); 
-  
+  const { data } = useDrivers({ page_size: 1000 });
+
   return useMemo(() => {
     const map = {};
     data?.results?.forEach(d => {

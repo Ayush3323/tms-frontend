@@ -32,8 +32,8 @@ import { getDriverName, cleanObject, getExpiryColor } from './common/utils';
 // getDriverName handled via common/utils.js
 
 const SortIcon = ({ field, ordering }) => {
-  if (ordering === field)        return <ArrowUp   size={12} className="text-[#0052CC]" />;
-  if (ordering === `-${field}`)  return <ArrowDown size={12} className="text-[#0052CC]" />;
+  if (ordering === field) return <ArrowUp size={12} className="text-[#0052CC]" />;
+  if (ordering === `-${field}`) return <ArrowDown size={12} className="text-[#0052CC]" />;
   return <ArrowUpDown size={12} className="text-gray-300" />;
 };
 
@@ -65,23 +65,52 @@ const AddDriverModal = ({ onClose }) => {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const registerDriver = useRegisterDriver();
-  const setUser   = (f) => (e) => setUserForm(p => ({ ...p, [f]: e.target.value }));
+  const setUser = (f) => (e) => setUserForm(p => ({ ...p, [f]: e.target.value }));
   const setDriver = (f) => (e) => setDriverForm(p => ({ ...p, [f]: e.target.value }));
 
   const handleSubmit = () => {
     setError('');
-    if (!userForm.first_name)       return setError('First name is required.');
-    if (!userForm.last_name)        return setError('Last name is required.');
-    if (!userForm.email)            return setError('Email is required.');
-    if (!userForm.password)         return setError('Password is required.');
+
+    // 1. Basic Required Fields
+    if (!userForm.first_name || !userForm.last_name) return setError('First and last name are required.');
+    if (!userForm.email)      return setError('Email is required.');
+    if (!userForm.password)   return setError('Password is required.');
+    
+    // 2. Name Length Validation (Max 100)
+    if (userForm.first_name.length > 100) return setError('First name cannot exceed 100 characters.');
+    if (userForm.last_name.length > 100) return setError('Last name cannot exceed 100 characters.');
+    if (userForm.middle_name && userForm.middle_name.length > 100) return setError('Middle name cannot exceed 100 characters.');
+
+    // 3. Email Validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(userForm.email)) return setError('Please enter a valid email address.');
+
+    // 4. Age Validation (18+)
+    if (userForm.date_of_birth) {
+      const birthDate = new Date(userForm.date_of_birth);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      if (age < 18) return setError('Driver must be at least 18 years old.');
+    }
+
     if (!driverForm.license_number) return setError('License number is required.');
     if (!driverForm.license_type)   return setError('License type is required.');
-    if (!driverForm.license_expiry) return setError('License expiry is required.');
+    if (!driverForm.license_expiry) return setError('License expiry date is required.');
+    if (!driverForm.license_issuing_authority) return setError('License issuing authority is required.');
     if (!driverForm.joined_date)    return setError('Joined date is required.');
 
+    // Auto-generate username from email prefix + short unique suffix
+    const emailPrefix = userForm.email.split('@')[0];
+    const uniqueSuffix = Math.random().toString(36).substring(2, 7);
+    const generatedUsername = `${emailPrefix}_${uniqueSuffix}`.substring(0, 100);
+
     registerDriver.mutate({
-      ...cleanObject(driverForm),
-      user: cleanObject(userForm),
+      driver: cleanObject(driverForm),
+      user: cleanObject({ ...userForm, username: generatedUsername }),
     }, {
       onSuccess: onClose,
       onError: (err) => setError(err.message || 'Failed to register driver.'),
@@ -111,7 +140,7 @@ const AddDriverModal = ({ onClose }) => {
           <SectionTitle Icon={User} title="User Information" subtitle="Login credentials and personal details" />
           <div className="grid grid-cols-2 gap-4">
             <div><Label required>First Name</Label><Input placeholder="e.g. John" value={userForm.first_name} onChange={setUser('first_name')} /></div>
-            <div><Label required>Last Name</Label><Input placeholder="e.g. Driver" value={userForm.last_name} onChange={setUser('last_name')} /></div>
+            <div><Label required>Last Name</Label><Input placeholder="e.g. Smith" value={userForm.last_name} onChange={setUser('last_name')} /></div>
             <div><Label>Middle Name</Label><Input placeholder="e.g. Kumar" value={userForm.middle_name} onChange={setUser('middle_name')} /></div>
             <div><Label required>Email</Label><Input type="email" placeholder="e.g. john@company.com" value={userForm.email} onChange={setUser('email')} /></div>
             <div><Label required>Password</Label>
@@ -153,8 +182,8 @@ const AddDriverModal = ({ onClose }) => {
                 {LICENSE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
               </Select>
             </div>
-            <div><Label required>License Expiry</Label><Input type="date" value={driverForm.license_expiry} onChange={setDriver('license_expiry')} /></div>
-            <div><Label>Issuing Authority</Label><Input placeholder="e.g. RTO Mumbai" value={driverForm.license_issuing_authority} onChange={setDriver('license_issuing_authority')} /></div>
+            <div><Label required>Expiry Date</Label><Input type="date" value={driverForm.license_expiry} onChange={setDriver('license_expiry')} /></div>
+            <div className="col-span-2"><Label required>Issuing Authority</Label><Input placeholder="e.g. RTO Delhi" value={driverForm.license_issuing_authority} onChange={setDriver('license_issuing_authority')} /></div>
             <div><Label>Driver Type</Label>
               <Select value={driverForm.driver_type} onChange={setDriver('driver_type')}>
                 {DRIVER_TYPES.map(t => <option key={t} value={t}>{t.replaceAll('_', ' ')}</option>)}
@@ -196,30 +225,30 @@ const StatCard = ({ label, value, color, IconComponent, loading }) => (
 
 // ── Main Component ────────────────────────────────────────────────────
 const DriversList = () => {
-  const [search,       setSearch]     = useState('');
-  const [statusFilter, setStatus]     = useState('');
-  const [typeFilter,   setType]       = useState('');
-  const [licFilter,    setLic]        = useState('');
-  const [joinedFrom,   setJoinedFrom] = useState('');
-  const [joinedTo,     setJoinedTo]   = useState('');
-  const [ordering,     setOrdering]   = useState('');
-  const [addOpen,      setAddOpen]    = useState(false);  // ← Add Driver modal
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatus] = useState('');
+  const [typeFilter, setType] = useState('');
+  const [licFilter, setLic] = useState('');
+  const [joinedFrom, setJoinedFrom] = useState('');
+  const [joinedTo, setJoinedTo] = useState('');
+  const [ordering, setOrdering] = useState('');
+  const [addOpen, setAddOpen] = useState(false);  // ← Add Driver modal
   const navigate = useNavigate();
 
   const { data, isLoading, isError, error, refetch } = useDrivers({
-    ...(statusFilter && { status:           statusFilter }),
-    ...(typeFilter   && { driver_type:      typeFilter }),
-    ...(licFilter    && { license_type:     licFilter }),
-    ...(search       && { search }),
-    ...(joinedFrom   && { joined_date__gte: joinedFrom }),
-    ...(joinedTo     && { joined_date__lte: joinedTo }),
-    ...(ordering     && { ordering }),
+    ...(statusFilter && { status: statusFilter }),
+    ...(typeFilter && { driver_type: typeFilter }),
+    ...(licFilter && { license_type: licFilter }),
+    ...(search && { search }),
+    ...(joinedFrom && { joined_date__gte: joinedFrom }),
+    ...(joinedTo && { joined_date__lte: joinedTo }),
+    ...(ordering && { ordering }),
   });
 
-  const drivers   = data?.results ?? [];
-  const total     = data?.count ?? drivers.length;
-  const active    = drivers.filter(d => d.status === 'ACTIVE').length;
-  const inactive  = drivers.filter(d => d.status === 'INACTIVE').length;
+  const drivers = data?.results ?? [];
+  const total = data?.count ?? drivers.length;
+  const active = drivers.filter(d => d.status === 'ACTIVE').length;
+  const inactive = drivers.filter(d => d.status === 'INACTIVE').length;
   const suspended = drivers.filter(d => d.status === 'SUSPENDED').length;
 
   const handleSort = (field) => {
@@ -355,10 +384,10 @@ const DriversList = () => {
 
       {/* ── Stat Cards ── */}
       <div className="grid grid-cols-4 gap-4">
-        <StatCard loading={isLoading} label="Total Drivers" value={total}     IconComponent={Users}     color={{ value: 'text-[#172B4D]',  iconBg: 'bg-blue-50',   iconText: 'text-blue-500' }} />
-        <StatCard loading={isLoading} label="Active"        value={active}    IconComponent={UserCheck} color={{ value: 'text-green-600',  iconBg: 'bg-green-50',  iconText: 'text-green-500' }} />
-        <StatCard loading={isLoading} label="Inactive"      value={inactive}  IconComponent={UserMinus} color={{ value: 'text-orange-500', iconBg: 'bg-orange-50', iconText: 'text-orange-500' }} />
-        <StatCard loading={isLoading} label="Suspended"     value={suspended} IconComponent={UserX}     color={{ value: 'text-red-500',    iconBg: 'bg-red-50',    iconText: 'text-red-400' }} />
+        <StatCard loading={isLoading} label="Total Drivers" value={total} IconComponent={Users} color={{ value: 'text-[#172B4D]', iconBg: 'bg-blue-50', iconText: 'text-blue-500' }} />
+        <StatCard loading={isLoading} label="Active" value={active} IconComponent={UserCheck} color={{ value: 'text-green-600', iconBg: 'bg-green-50', iconText: 'text-green-500' }} />
+        <StatCard loading={isLoading} label="Inactive" value={inactive} IconComponent={UserMinus} color={{ value: 'text-orange-500', iconBg: 'bg-orange-50', iconText: 'text-orange-500' }} />
+        <StatCard loading={isLoading} label="Suspended" value={suspended} IconComponent={UserX} color={{ value: 'text-red-500', iconBg: 'bg-red-50', iconText: 'text-red-400' }} />
       </div>
 
       {/* ── Table Card ── */}
@@ -392,8 +421,8 @@ const DriversList = () => {
           </div>
           {[
             { val: statusFilter, set: setStatus, opts: DRIVER_STATUS, ph: 'All Status' },
-            { val: typeFilter,   set: setType,   opts: DRIVER_TYPES,  ph: 'All Types' },
-            { val: licFilter,    set: setLic,    opts: LICENSE_TYPES, ph: 'All Licenses' },
+            { val: typeFilter, set: setType, opts: DRIVER_TYPES, ph: 'All Types' },
+            { val: licFilter, set: setLic, opts: LICENSE_TYPES, ph: 'All Licenses' },
           ].map(({ val, set, opts, ph }) => (
             <div key={ph} className="relative">
               <select

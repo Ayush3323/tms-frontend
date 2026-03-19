@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Truck, Plus, RefreshCw } from 'lucide-react';
 import { useVehicleAssignments } from '../../../queries/drivers/vehicleAssignmentQuery';
 
@@ -7,6 +7,7 @@ import AssignmentTable from '../sub-features/Assignments/AssignmentTable';
 import { AddAssignmentModal, EditAssignmentModal, DeleteAssignmentDialog, VehicleSelect } from '../sub-features/Assignments/AssignmentModals';
 import DriverSelect from '../common/DriverSelect';
 import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
+import { useUsers } from '../../../queries/users/userQuery';
 import { ASSIGNMENT_TYPES } from '../common/constants';
 import Select from '../common/Select';
 import Input from '../common/Input';
@@ -26,6 +27,16 @@ const AllAssignments = () => {
   // useVehicleAssignments(filters) to fetch filtered assignments
   const { data, isLoading, isError, error, refetch, isFetching } = useVehicleAssignments(filters);
   const driverMap = useDriverLookup();
+  const { data: usersData } = useUsers({ page_size: 1000 });
+  
+  const userMap = useMemo(() => {
+    const map = {};
+    usersData?.results?.forEach(u => {
+      map[u.id] = `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username || 'System User';
+    });
+    return map;
+  }, [usersData]);
+
   const assignments = data?.results ?? [];
 
   const handleFilterChange = (field, value) => {
@@ -115,7 +126,7 @@ const AllAssignments = () => {
           </div>
         ) : (
           <div className="p-4">
-            <AssignmentTable assignments={assignments} onEdit={setEditAssignment} showDriver={true} driverMap={driverMap} />
+            <AssignmentTable assignments={assignments} onEdit={setEditAssignment} showDriver={true} driverMap={driverMap} userMap={userMap} />
           </div>
         )}
       </div>
