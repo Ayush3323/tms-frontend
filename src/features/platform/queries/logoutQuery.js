@@ -5,33 +5,24 @@ import { useNavigate } from "react-router-dom";
  * Hook for logout mutation using TanStack Query.
  * Clears tokens from localStorage, clears Query cache, and redirects to login.
  */
+const ADMIN_TOKEN_KEY = "admin_token";
+const ADMIN_REFRESH_KEY = "admin_refresh_token";
+
 export const useLogout = () => {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
 
     return useMutation({
         mutationFn: async () => {
-            // Optional: call a logout API endpoint if it exists
-            // await axiosInstance.post('/admin/api/v1/logout/');
-
-            // Clear authentication tokens from localStorage
-            localStorage.removeItem("token");
-            localStorage.removeItem("refresh_token");
-            
-            // Artificial delay to simulate real logout if needed, 
-            // but usually logout is immediate unless there's an API call.
+            localStorage.removeItem(ADMIN_TOKEN_KEY);
+            localStorage.removeItem(ADMIN_REFRESH_KEY);
             return Promise.resolve();
         },
         onSuccess: () => {
-            // Reset the query client to clear any cached user data
             queryClient.clear();
-            
-            // Direct navigation to the login page
-            // Using replace: true prevents going back to dashboard with back button
             navigate("/admin/login", { replace: true });
         },
         onError: (error) => {
-            // Log logout errors
             console.error("Logout process failed:", error);
         },
     });

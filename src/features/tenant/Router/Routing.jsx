@@ -1,5 +1,5 @@
 import React from 'react'
-import { Routes, Route, Navigate, BrowserRouter } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "../pages/Login";
 import TenantDashboard from "../pages/TenantDashboard";
 import { ProtectedRoute, PublicRoute } from "../Router/AuthGuards";
@@ -37,54 +37,52 @@ import VehicleOwnershipDashboard from '../components/Vehicles/Features/Ownership
 
 const Routing = () => {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Navigate to="/tenant/login" />} />
-        <Route path="/tenant/login" element={<PublicRoute><Login /></PublicRoute>} />
-        <Route
-          path="/tenant/dashboard"
-          element={<ProtectedRoute><TenantDashboard /></ProtectedRoute>}
-        >
-          {/* Default child route */}
-          <Route index element={<Navigate to="users" replace />} />
-          <Route path="users" element={<Userdetail />} />
-          <Route path="users/:userid" element={<UserProfile />} />
-          <Route path="users/roles" element={<Roles />} />
-          <Route path="users/permission" element={<Permission />} />
-          <Route path="users/activities" element={<Activities />} />
-          <Route path="users/session" element={<Session />} />
-          <Route path="vehicles" element={<Vehicles />} />
-          <Route path="drivers" element={<DriversList />} />
-          
-          {/* Global Driver Routes */}
-          <Route path="drivers/documents" element={<AllDocuments />} />
-          <Route path="drivers/emergency-contacts" element={<AllContacts />} />
-          <Route path="drivers/training" element={<AllTraining />} />
-          <Route path="drivers/medical" element={<AllMedical />} />
-          <Route path="drivers/performance" element={<AllPerformance />} />
-          <Route path="drivers/incidents" element={<AllIncidents />} />
-          <Route path="drivers/attendance" element={<AllAttendance />} />
-          <Route path="drivers/vehicle-assignments" element={<AllAssignments />} />
-          <Route path="drivers/salary" element={<AllSalaryStructures />} />
+    <Routes>
+      <Route path="login" element={<PublicRoute><Login /></PublicRoute>} />
+      <Route
+        path="dashboard"
+        element={<ProtectedRoute><TenantDashboard /></ProtectedRoute>}
+      >
+        {/* Default child route */}
+        <Route index element={<Navigate to="users" replace />} />
+        <Route path="users" element={<Userdetail />} />
+        <Route path="users/:userid" element={<UserProfile />} />
+        <Route path="users/roles" element={<Roles />} />
+        <Route path="users/permission" element={<Permission />} />
+        <Route path="users/activities" element={<Activities />} />
+        <Route path="users/session" element={<Session />} />
+        <Route path="vehicles" element={<Vehicles />} />
+        <Route path="drivers" element={<DriversList />} />
 
-          {/* Specific Driver Detail Route (Must be last to avoid catching sub-paths as IDs) */}
-          <Route path="drivers/:id" element={<DriverDetail />} />
-          <Route path="vehicles/types" element={<VehicleTypes />} />
-          <Route path="vehicles/documents" element={<VehiclesDocument />} />
-          <Route path="vehicles/insurance" element={<VehicleInsurance />} />
-          <Route path="vehicles/maintenance" element={<MaintenanceSchedules />} />
-          <Route path="vehicles/inspections" element={<VehicleInspections />} />
-          <Route path="vehicles/tires" element={<TiresDashboard />} />
-          <Route path="vehicles/accessories" element={<AccessoriesDashboard />} />
-          <Route path="vehicles/:id" element={<VehicleDetail />} />
-          <Route path="vehicles/:id/edit" element={<VehicleDetail />} />
-          <Route path="vehicles/toll-tags" element={<VehicleTollTagsDashboard />} />
-          <Route path="vehicles/toll-tags/:id" element={<VehicleTollTagsDashboard />} />
-          <Route path="vehicles/ownership" element={<VehicleOwnershipDashboard />} />
-          <Route path="vehicles/ownership/:id" element={<VehicleOwnershipDashboard />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+        {/* Global Driver Routes */}
+        <Route path="drivers/documents" element={<AllDocuments />} />
+        <Route path="drivers/emergency-contacts" element={<AllContacts />} />
+        <Route path="drivers/training" element={<AllTraining />} />
+        <Route path="drivers/medical" element={<AllMedical />} />
+        <Route path="drivers/performance" element={<AllPerformance />} />
+        <Route path="drivers/incidents" element={<AllIncidents />} />
+        <Route path="drivers/attendance" element={<AllAttendance />} />
+        <Route path="drivers/vehicle-assignments" element={<AllAssignments />} />
+        <Route path="drivers/salary" element={<AllSalaryStructures />} />
+
+        {/* Specific Driver Detail Route (Must be last to avoid catching sub-paths as IDs) */}
+        <Route path="drivers/:id" element={<DriverDetail />} />
+        <Route path="vehicles/types" element={<VehicleTypes />} />
+        <Route path="vehicles/documents" element={<VehiclesDocument />} />
+        <Route path="vehicles/insurance" element={<VehicleInsurance />} />
+        <Route path="vehicles/maintenance" element={<MaintenanceSchedules />} />
+        <Route path="vehicles/inspections" element={<VehicleInspections />} />
+        <Route path="vehicles/tires" element={<TiresDashboard />} />
+        <Route path="vehicles/accessories" element={<AccessoriesDashboard />} />
+        <Route path="vehicles/:id" element={<VehicleDetail />} />
+        <Route path="vehicles/:id/edit" element={<VehicleDetail />} />
+        <Route path="vehicles/toll-tags" element={<VehicleTollTagsDashboard />} />
+        <Route path="vehicles/toll-tags/:id" element={<VehicleTollTagsDashboard />} />
+        <Route path="vehicles/ownership" element={<VehicleOwnershipDashboard />} />
+        <Route path="vehicles/ownership/:id" element={<VehicleOwnershipDashboard />} />
+      </Route>
+      <Route path="*" element={<Navigate to="login" replace />} />
+    </Routes>
   )
 }
 

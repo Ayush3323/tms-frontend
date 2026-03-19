@@ -8,48 +8,40 @@ const axiosInstance = axios.create({
     },
 });
 
-// Request interceptor to attach access token
+const ADMIN_TOKEN_KEY = "admin_token";
+const ADMIN_REFRESH_KEY = "admin_refresh_token";
+
 axiosInstance.interceptors.request.use((config) => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem(ADMIN_TOKEN_KEY);
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
 });
 
-// Response interceptor to handle token expiration and refresh
 axiosInstance.interceptors.response.use(
-    (response) => {
-        return response;
-    },
+    (response) => response,
     async (error) => {
         const originalRequest = error.config;
 
-        // If error is 401 (Unauthorized) and we haven't tried refreshing yet
         if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
 
             try {
-                const refreshToken = localStorage.getItem("refresh_token");
+                const refreshToken = localStorage.getItem(ADMIN_REFRESH_KEY);
                 if (refreshToken) {
-                    // Attempt to refresh the token
-                    // We use axios directly to avoid infinite loop with the instance
-                    const response = await refreshEndpoint({refresh: refreshToken});    
+                    const response = await refreshEndpoint({ refresh: refreshToken });
+                    const access = response?.access || response?.data?.access;
 
-                    const { access } = response.data;
+                    localStorage.setItem(ADMIN_TOKEN_KEY, access);
 
-                    // Update local storage with new access token
-                    localStorage.setItem("token", access);
-
-                    // Update the original request header and retry
                     originalRequest.headers.Authorization = `Bearer ${access}`;
                     return axiosInstance(originalRequest);
                 }
             } catch (refreshError) {
-                // If refresh fails, clear tokens and logout
                 console.error("Refresh token failed:", refreshError);
-                localStorage.removeItem("token");
-                localStorage.removeItem("refresh_token");
+                localStorage.removeItem(ADMIN_TOKEN_KEY);
+                localStorage.removeItem(ADMIN_REFRESH_KEY);
                 window.location.href = "/admin/login";
             }
         }

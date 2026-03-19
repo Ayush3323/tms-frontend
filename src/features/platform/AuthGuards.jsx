@@ -1,9 +1,7 @@
-// components/AuthGuards.jsx
 import { Navigate } from "react-router-dom";
 
 const ADMIN_TOKEN_KEY = "admin_token";
 
-// 1. Use this for Login page
 export function PublicRoute({ children }) {
   const token = localStorage.getItem(ADMIN_TOKEN_KEY);
   if (token) {
@@ -12,11 +10,9 @@ export function PublicRoute({ children }) {
   return children;
 }
 
-// 2. Use this for Dashboard/Admin pages
 export function ProtectedRoute({ children }) {
   const token = localStorage.getItem(ADMIN_TOKEN_KEY);
   if (!token) {
-    // No token? Kick them out to login!
     return <Navigate to="/admin/login" replace />;
   }
   return children;
