@@ -3,11 +3,11 @@ import driverApi from '../../api/drivers/driverEndpoint';
 
 // ─── Query Keys ───────────────────────────────────────────
 export const salaryKeys = {
-  all:      ['driver-salary-structures'],
-  lists:    () => [...salaryKeys.all, 'list'],
-  list:     (params) => [...salaryKeys.lists(), params],
+  all: ['driver-salary-structures'],
+  lists: () => [...salaryKeys.all, 'list'],
+  list: (params) => [...salaryKeys.lists(), params],
   byDriver: (driverId) => [...salaryKeys.all, 'driver', driverId],
-  detail:   (id) => [...salaryKeys.all, 'detail', id],
+  detail: (id) => [...salaryKeys.all, 'detail', id],
 };
 
 // ─── Error Handler ────────────────────────────────────────
@@ -17,7 +17,7 @@ const handleError = (error) => {
   }
 
   const status = error.response?.status;
-  const data   = error.response?.data;
+  const data = error.response?.data;
 
   switch (status) {
     case 400: {
@@ -42,7 +42,7 @@ const handleError = (error) => {
 export const useSalaryStructures = (params = {}) => {
   return useQuery({
     queryKey: salaryKeys.list(params),
-    queryFn:  async () => {
+    queryFn: async () => {
       try {
         const response = await driverApi.getSalaryStructures(params);
         return response.data;
@@ -51,9 +51,11 @@ export const useSalaryStructures = (params = {}) => {
         handleError(error);
       }
     },
-    staleTime:            0,
-    retry:                0,
+    staleTime: 0,
+    retry: 0,
     refetchOnWindowFocus: false,
+    placeholderData: (prev) => prev,
+    placeholderData: (prev) => prev,
   });
 };
 
@@ -62,7 +64,7 @@ export const useSalaryStructures = (params = {}) => {
 export const useDriverSalaryStructures = (driverId) => {
   return useQuery({
     queryKey: salaryKeys.byDriver(driverId),
-    queryFn:  async () => {
+    queryFn: async () => {
       try {
         const response = await driverApi.getSalaryStructures({ driver: driverId });
         return response.data;
@@ -71,9 +73,9 @@ export const useDriverSalaryStructures = (driverId) => {
         handleError(error);
       }
     },
-    enabled:              !!driverId, // Skip query if driverId is not available
-    staleTime:            0,
-    retry:                0,
+    enabled: !!driverId, // Skip query if driverId is not available
+    staleTime: 0,
+    retry: 0,
     refetchOnWindowFocus: false,
   });
 };
@@ -82,7 +84,7 @@ export const useDriverSalaryStructures = (driverId) => {
 export const useSalaryStructureById = (id) => {
   return useQuery({
     queryKey: salaryKeys.detail(id),
-    queryFn:  async () => {
+    queryFn: async () => {
       try {
         const response = await driverApi.getSalaryStructureById(id);
         return response.data;
@@ -90,9 +92,9 @@ export const useSalaryStructureById = (id) => {
         handleError(error);
       }
     },
-    enabled:              !!id, // Skip query if id is not available
-    staleTime:            0,
-    retry:                0,
+    enabled: !!id, // Skip query if id is not available
+    staleTime: 0,
+    retry: 0,
     refetchOnWindowFocus: false,
   });
 };

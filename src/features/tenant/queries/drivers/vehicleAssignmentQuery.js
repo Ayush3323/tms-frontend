@@ -4,11 +4,11 @@ import { vehiclesApi } from '../../api/vehicles/vehicleEndpoint';
 
 // ─── Query Keys ───────────────────────────────────────────
 export const vehicleAssignmentKeys = {
-  all:      ['driver-vehicle-assignments'],
-  lists:    () => [...vehicleAssignmentKeys.all, 'list'],
-  list:     (params) => [...vehicleAssignmentKeys.lists(), params],
+  all: ['driver-vehicle-assignments'],
+  lists: () => [...vehicleAssignmentKeys.all, 'list'],
+  list: (params) => [...vehicleAssignmentKeys.lists(), params],
   byDriver: (driverId) => [...vehicleAssignmentKeys.all, 'driver', driverId],
-  detail:   (id) => [...vehicleAssignmentKeys.all, 'detail', id],
+  detail: (id) => [...vehicleAssignmentKeys.all, 'detail', id],
 };
 
 // Sirf list ki zaroorat hai → dropdown ke liye
@@ -23,7 +23,7 @@ const handleError = (error) => {
   }
 
   const status = error.response?.status;
-  const data   = error.response?.data;
+  const data = error.response?.data;
 
   switch (status) {
     case 400: {
@@ -55,7 +55,7 @@ export const useVehiclesList = (params = {}) => {
   return useQuery({
     queryKey: vehicleKeys.list(params),
     // → ['vehicles', 'list', { is_active: true }]
-    queryFn:  async () => {
+    queryFn: async () => {
       try {
         const response = await vehiclesApi.list(params);
         // vehiclesApi.list() already returns r.data directly
@@ -65,8 +65,8 @@ export const useVehiclesList = (params = {}) => {
         handleError(error);
       }
     },
-    staleTime:            0,
-    retry:                0,
+    staleTime: 0,
+    retry: 0,
     refetchOnWindowFocus: false,
   });
 };
@@ -80,7 +80,7 @@ export const useVehiclesList = (params = {}) => {
 export const useVehicleAssignments = (params = {}) => {
   return useQuery({
     queryKey: vehicleAssignmentKeys.list(params),
-    queryFn:  async () => {
+    queryFn: async () => {
       try {
         const response = await driverApi.getVehicleAssignments(params);
         return response.data;
@@ -88,9 +88,10 @@ export const useVehicleAssignments = (params = {}) => {
         handleError(error);
       }
     },
-    staleTime:            0,
-    retry:                0,
+    staleTime: 0,
+    retry: 0,
     refetchOnWindowFocus: false,
+    placeholderData: (prev) => prev,
   });
 };
 
@@ -98,7 +99,7 @@ export const useVehicleAssignments = (params = {}) => {
 export const useDriverVehicleAssignments = (driverId) => {
   return useQuery({
     queryKey: vehicleAssignmentKeys.byDriver(driverId),
-    queryFn:  async () => {
+    queryFn: async () => {
       try {
         const response = await driverApi.getVehicleAssignments({ driver: driverId });
         return response.data;
@@ -106,9 +107,9 @@ export const useDriverVehicleAssignments = (driverId) => {
         handleError(error);
       }
     },
-    enabled:              !!driverId, // Skip query if driverId is not available
-    staleTime:            0,
-    retry:                0,
+    enabled: !!driverId, // Skip query if driverId is not available
+    staleTime: 0,
+    retry: 0,
     refetchOnWindowFocus: false,
   });
 };
@@ -117,7 +118,7 @@ export const useDriverVehicleAssignments = (driverId) => {
 export const useVehicleAssignmentById = (id) => {
   return useQuery({
     queryKey: vehicleAssignmentKeys.detail(id),
-    queryFn:  async () => {
+    queryFn: async () => {
       try {
         const response = await driverApi.getVehicleAssignmentById(id);
         return response.data;
@@ -125,9 +126,9 @@ export const useVehicleAssignmentById = (id) => {
         handleError(error);
       }
     },
-    enabled:              !!id, // Skip query if id is not available
-    staleTime:            0,
-    retry:                0,
+    enabled: !!id, // Skip query if id is not available
+    staleTime: 0,
+    retry: 0,
     refetchOnWindowFocus: false,
   });
 };

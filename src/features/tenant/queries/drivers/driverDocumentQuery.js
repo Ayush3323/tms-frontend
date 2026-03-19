@@ -3,11 +3,11 @@ import driverApi from '../../api/drivers/driverEndpoint';
 
 // ─── Query Keys ───────────────────────────────────────────
 export const documentKeys = {
-  all:      ['driver-documents'],
-  lists:    () => [...documentKeys.all, 'list'],
-  list:     (params) => [...documentKeys.lists(), params],
+  all: ['driver-documents'],
+  lists: () => [...documentKeys.all, 'list'],
+  list: (params) => [...documentKeys.lists(), params],
   byDriver: (driverId) => [...documentKeys.all, 'driver', driverId],
-  detail:   (id) => [...documentKeys.all, 'detail', id],
+  detail: (id) => [...documentKeys.all, 'detail', id],
 };
 
 // ─── Error Handler ────────────────────────────────────────
@@ -17,7 +17,7 @@ const handleError = (error) => {
   }
 
   const status = error.response?.status;
-  const data   = error.response?.data;
+  const data = error.response?.data;
 
   switch (status) {
     case 400: {
@@ -43,7 +43,7 @@ const handleError = (error) => {
 export const useDocuments = (params = {}) => {
   return useQuery({
     queryKey: documentKeys.list(params),
-    queryFn:  async () => {
+    queryFn: async () => {
       try {
         const response = await driverApi.getDocuments(params);
         return response.data;
@@ -52,9 +52,11 @@ export const useDocuments = (params = {}) => {
         handleError(error);
       }
     },
-    staleTime:            0,
-    retry:                0,
+    staleTime: 0,
+    retry: 0,
     refetchOnWindowFocus: false,
+    placeholderData: (prev) => prev,
+    placeholderData: (prev) => prev,
   });
 };
 
@@ -63,7 +65,7 @@ export const useDocuments = (params = {}) => {
 export const useDriverDocuments = (driverId, params = {}) => {
   return useQuery({
     queryKey: documentKeys.byDriver(driverId),
-    queryFn:  async () => {
+    queryFn: async () => {
       try {
         const response = await driverApi.getDocuments({
           driver: driverId, // ← filter param se driver ke documents
@@ -75,9 +77,9 @@ export const useDriverDocuments = (driverId, params = {}) => {
         handleError(error);
       }
     },
-    enabled:              !!driverId, // Skip query if driverId is not available
-    staleTime:            0,
-    retry:                0,
+    enabled: !!driverId, // Skip query if driverId is not available
+    staleTime: 0,
+    retry: 0,
     refetchOnWindowFocus: false,
   });
 };
@@ -86,7 +88,7 @@ export const useDriverDocuments = (driverId, params = {}) => {
 export const useDocumentById = (id) => {
   return useQuery({
     queryKey: documentKeys.detail(id),
-    queryFn:  async () => {
+    queryFn: async () => {
       try {
         const response = await driverApi.getDocumentById(id);
         return response.data;
@@ -94,9 +96,9 @@ export const useDocumentById = (id) => {
         handleError(error);
       }
     },
-    enabled:              !!id, // Skip query if id is not available
-    staleTime:            0,
-    retry:                0,
+    enabled: !!id, // Skip query if id is not available
+    staleTime: 0,
+    retry: 0,
     refetchOnWindowFocus: false,
   });
 };

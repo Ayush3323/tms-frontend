@@ -4,7 +4,7 @@ import TableActions from '../../common/TableActions';
 import { FREQUENCY_STYLES } from '../../common/constants';
 import { formatCurrency, sumObjectValues } from './SalaryModals';
 
-const SalaryTable = ({ salaries, onEdit, onDelete, showDriver = false, driverMap = {} }) => {
+const SalaryTable = ({ salaries, onEdit, showDriver = false, driverMap = {} }) => {
   return (
     <div className="overflow-x-auto rounded-xl border border-gray-200 text-nowrap">
       <table className="w-full text-sm">
@@ -81,7 +81,6 @@ const SalaryTable = ({ salaries, onEdit, onDelete, showDriver = false, driverMap
                 <td className="px-4 py-3 whitespace-nowrap">
                   <TableActions 
                     onEdit={() => onEdit(sal)} 
-                    onDelete={() => onDelete(sal)}
                   />
                 </td>
               </tr>

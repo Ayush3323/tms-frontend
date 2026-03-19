@@ -3,19 +3,19 @@ import driverApi from '../../api/drivers/driverEndpoint';
 
 // ─── Query Keys ───────────────────────────────────────────
 export const trainingKeys = {
-  all:      ['driver-training-records'],
-  lists:    () => [...trainingKeys.all, 'list'],
-  list:     (params) => [...trainingKeys.lists(), params],
+  all: ['driver-training-records'],
+  lists: () => [...trainingKeys.all, 'list'],
+  list: (params) => [...trainingKeys.lists(), params],
   byDriver: (driverId) => [...trainingKeys.all, 'driver', driverId],
-  detail:   (id) => [...trainingKeys.all, 'detail', id],
+  detail: (id) => [...trainingKeys.all, 'detail', id],
 };
 
 export const medicalKeys = {
-  all:      ['driver-medical-records'],
-  lists:    () => [...medicalKeys.all, 'list'],
-  list:     (params) => [...medicalKeys.lists(), params],
+  all: ['driver-medical-records'],
+  lists: () => [...medicalKeys.all, 'list'],
+  list: (params) => [...medicalKeys.lists(), params],
   byDriver: (driverId) => [...medicalKeys.all, 'driver', driverId],
-  detail:   (id) => [...medicalKeys.all, 'detail', id],
+  detail: (id) => [...medicalKeys.all, 'detail', id],
 };
 
 // ─── Error Handler ────────────────────────────────────────
@@ -25,7 +25,7 @@ const handleError = (error) => {
   }
 
   const status = error.response?.status;
-  const data   = error.response?.data;
+  const data = error.response?.data;
 
   switch (status) {
     case 400: {
@@ -54,7 +54,7 @@ const handleError = (error) => {
 export const useTrainingRecords = (params = {}) => {
   return useQuery({
     queryKey: trainingKeys.list(params),
-    queryFn:  async () => {
+    queryFn: async () => {
       try {
         const response = await driverApi.getTrainingRecords(params); // ← fixed
         return response.data;
@@ -63,9 +63,10 @@ export const useTrainingRecords = (params = {}) => {
         handleError(error);
       }
     },
-    staleTime:            0,
-    retry:                0,
+    staleTime: 0,
+    retry: 0,
     refetchOnWindowFocus: false,
+    placeholderData: (prev) => prev,
   });
 };
 
@@ -74,7 +75,7 @@ export const useTrainingRecords = (params = {}) => {
 export const useDriverTrainingRecords = (driverId) => {
   return useQuery({
     queryKey: trainingKeys.byDriver(driverId),
-    queryFn:  async () => {
+    queryFn: async () => {
       try {
         const response = await driverApi.getTrainingRecords({ driver: driverId });
         return response.data;
@@ -83,9 +84,9 @@ export const useDriverTrainingRecords = (driverId) => {
         handleError(error);
       }
     },
-    enabled:              !!driverId, // Skip query if driverId is not available
-    staleTime:            0,
-    retry:                0,
+    enabled: !!driverId, // Skip query if driverId is not available
+    staleTime: 0,
+    retry: 0,
     refetchOnWindowFocus: false,
   });
 };
@@ -94,7 +95,7 @@ export const useDriverTrainingRecords = (driverId) => {
 export const useTrainingRecordById = (id) => {
   return useQuery({
     queryKey: trainingKeys.detail(id),
-    queryFn:  async () => {
+    queryFn: async () => {
       try {
         const response = await driverApi.getTrainingRecordById(id); // ← fixed
         return response.data;
@@ -102,9 +103,9 @@ export const useTrainingRecordById = (id) => {
         handleError(error);
       }
     },
-    enabled:              !!id, // Skip query if id is not available
-    staleTime:            0,
-    retry:                0,
+    enabled: !!id, // Skip query if id is not available
+    staleTime: 0,
+    retry: 0,
     refetchOnWindowFocus: false,
   });
 };
@@ -179,7 +180,7 @@ export const useDeleteTrainingRecord = (driverId) => {
 export const useMedicalRecords = (params = {}) => {
   return useQuery({
     queryKey: medicalKeys.list(params),
-    queryFn:  async () => {
+    queryFn: async () => {
       try {
         const response = await driverApi.getMedicalRecords(params);
         return response.data;
@@ -188,8 +189,8 @@ export const useMedicalRecords = (params = {}) => {
         handleError(error);
       }
     },
-    staleTime:            0,
-    retry:                0,
+    staleTime: 0,
+    retry: 0,
     refetchOnWindowFocus: false,
   });
 };
@@ -199,7 +200,7 @@ export const useMedicalRecords = (params = {}) => {
 export const useDriverMedicalRecords = (driverId) => {
   return useQuery({
     queryKey: medicalKeys.byDriver(driverId),
-    queryFn:  async () => {
+    queryFn: async () => {
       try {
         const response = await driverApi.getMedicalRecords({ driver: driverId });
         return response.data;
@@ -208,9 +209,9 @@ export const useDriverMedicalRecords = (driverId) => {
         handleError(error);
       }
     },
-    enabled:              !!driverId, // Skip query if driverId is not available
-    staleTime:            0,
-    retry:                0,
+    enabled: !!driverId, // Skip query if driverId is not available
+    staleTime: 0,
+    retry: 0,
     refetchOnWindowFocus: false,
   });
 };
@@ -219,7 +220,7 @@ export const useDriverMedicalRecords = (driverId) => {
 export const useMedicalRecordById = (id) => {
   return useQuery({
     queryKey: medicalKeys.detail(id),
-    queryFn:  async () => {
+    queryFn: async () => {
       try {
         const response = await driverApi.getMedicalRecordById(id);
         return response.data;
@@ -227,9 +228,9 @@ export const useMedicalRecordById = (id) => {
         handleError(error);
       }
     },
-    enabled:              !!id, // Skip query if id is not available
-    staleTime:            0,
-    retry:                0,
+    enabled: !!id, // Skip query if id is not available
+    staleTime: 0,
+    retry: 0,
     refetchOnWindowFocus: false,
   });
 };
