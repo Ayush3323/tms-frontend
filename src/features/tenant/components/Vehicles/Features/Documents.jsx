@@ -10,7 +10,7 @@ import {
   useUpdateVehicleDocument,
   useDeleteVehicleDocument,
 } from '../../../queries/vehicles/vehicleInfoQuery';
-import { 
+import {
   Badge, InfoCard, SectionHeader, EmptyState, Modal, DeleteConfirm, ItemActions,
   Label, Input, Sel, Section, Field, StatCard, Textarea, VehicleSelect,
   fmtDate
@@ -20,29 +20,29 @@ import {
 const DOC_TYPES = ['RC', 'INSURANCE', 'PUC', 'FITNESS', 'PERMIT', 'TAX'];
 
 const DOC_TYPE_COLORS = {
-  RC:        'bg-blue-50 text-blue-600 border-blue-200',
+  RC: 'bg-blue-50 text-blue-600 border-blue-200',
   INSURANCE: 'bg-purple-50 text-purple-600 border-purple-200',
-  PUC:       'bg-green-50 text-green-600 border-green-200',
-  FITNESS:   'bg-orange-50 text-orange-600 border-orange-200',
-  PERMIT:    'bg-teal-50 text-teal-600 border-teal-200',
-  TAX:       'bg-pink-50 text-pink-600 border-pink-200',
+  PUC: 'bg-green-50 text-green-600 border-green-200',
+  FITNESS: 'bg-orange-50 text-orange-600 border-orange-200',
+  PERMIT: 'bg-teal-50 text-teal-600 border-teal-200',
+  TAX: 'bg-pink-50 text-pink-600 border-pink-200',
 };
 
 // API returns status: VALID | EXPIRED | EXPIRING_SOON
 const STATUS_STYLES = {
-  VALID:         { label: 'Valid',    color: 'bg-green-50 text-green-600 border-green-200',   dot: 'bg-green-500' },
-  EXPIRED:       { label: 'Expired',  color: 'bg-red-50 text-red-600 border-red-200',         dot: 'bg-red-500' },
+  VALID: { label: 'Valid', color: 'bg-green-50 text-green-600 border-green-200', dot: 'bg-green-500' },
+  EXPIRED: { label: 'Expired', color: 'bg-red-50 text-red-600 border-red-200', dot: 'bg-red-500' },
   EXPIRING_SOON: { label: 'Expiring', color: 'bg-orange-50 text-orange-600 border-orange-200', dot: 'bg-orange-500' },
 };
 
 const EMPTY_FORM = {
-  vehicle:           '',
-  document_type:     '',
-  document_number:   '',
-  issue_date:        '',
-  expiry_date:       '',
+  vehicle: '',
+  document_type: '',
+  document_number: '',
+  issue_date: '',
+  expiry_date: '',
   issuing_authority: '',
-  notes:             '',
+  notes: '',
 };
 
 // ── Field components ──────────────────────────────────────────────────
@@ -68,8 +68,8 @@ const DocDetailView = ({ data, onClose }) => {
         <div>
           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Status</p>
           <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold w-fit border ${st.color}`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
-              {st.label}
+            <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
+            {st.label}
           </span>
         </div>
       </div>
@@ -135,20 +135,20 @@ const DocModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => {
 
   const [form, setForm] = useState(
     initial ? {
-      vehicle:           resolveVehicleId(),
-      document_type:     initial.document_type     ?? '',
-      document_number:   initial.document_number   ?? '',
-      issue_date:        initial.issue_date        ?? '',
-      expiry_date:       initial.expiry_date       ?? '',
+      vehicle: resolveVehicleId(),
+      document_type: initial.document_type ?? '',
+      document_number: initial.document_number ?? '',
+      issue_date: initial.issue_date ?? '',
+      expiry_date: initial.expiry_date ?? '',
       issuing_authority: initial.issuing_authority ?? '',
-      notes:             initial.notes             ?? '',
+      notes: initial.notes ?? '',
     } : { ...EMPTY_FORM, vehicle: vehicleId ?? '' }
   );
 
-  const create    = useCreateVehicleDocument();
-  const update    = useUpdateVehicleDocument();
+  const create = useCreateVehicleDocument();
+  const update = useUpdateVehicleDocument();
   const isPending = create.isPending || update.isPending;
-  const set       = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
+  const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
   const [errors, setErrors] = useState({});
 
   const handleSubmit = () => {
@@ -161,11 +161,11 @@ const DocModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => {
 
     const clean = Object.fromEntries(Object.entries(form).map(([k, v]) => [k, v === '' ? null : v]));
     if (isEdit) update.mutate({ id: initial.id, data: clean }, { onSuccess: onClose });
-    else        create.mutate(clean, { onSuccess: onClose });
+    else create.mutate(clean, { onSuccess: onClose });
   };
 
   return (
-    <Modal 
+    <Modal
       title={isView ? 'Document Details' : isEdit ? 'Edit Document' : 'Add Document'}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -215,27 +215,27 @@ const DocModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => {
 
 // ── Main Page ─────────────────────────────────────────────────────────
 const VehicleDocuments = ({ vehicleId, isTab }) => {
-  const [search, setSearch]       = useState('');
-  const [typeFilter, setType]     = useState('');
-  const [modal, setModal]         = useState(null);
-  const [viewTarget, setView]     = useState(null);
+  const [search, setSearch] = useState('');
+  const [typeFilter, setType] = useState('');
+  const [modal, setModal] = useState(null);
+  const [viewTarget, setView] = useState(null);
   const [deleteTarget, setDelete] = useState(null);
 
   const del = useDeleteVehicleDocument();
 
   const { data, isLoading, isError, error, refetch } = useVehicleDocuments({
-    ...(vehicleId  && { vehicle: vehicleId }),
+    ...(vehicleId && { vehicle: vehicleId }),
     ...(typeFilter && { document_type: typeFilter }),
-    ...(search     && { search }),
+    ...(search && { search }),
     expand: 'vehicle',
   });
 
-  const docs     = data?.results ?? data ?? [];
-  const total    = data?.count   ?? docs.length;
+  const docs = data?.results ?? data ?? [];
+  const total = data?.count ?? docs.length;
   // Use API status field directly
-  const valid    = docs.filter(d => d.status === 'VALID').length;
+  const valid = docs.filter(d => d.status === 'VALID').length;
   const expiring = docs.filter(d => d.status === 'EXPIRING_SOON').length;
-  const expired  = docs.filter(d => d.status === 'EXPIRED').length;
+  const expired = docs.filter(d => d.status === 'EXPIRED').length;
 
   const content = (
     <div className={!isTab ? "p-6 space-y-6 bg-[#F8FAFC] min-h-screen" : "space-y-4"}>
@@ -275,10 +275,10 @@ const VehicleDocuments = ({ vehicleId, isTab }) => {
       {/* Stat Cards — hidden in tab mode */}
       {!isTab && (
         <div className="grid grid-cols-4 gap-4">
-          <StatCard loading={isLoading} label="Total"    value={total}    icon={FileText}      color="blue" />
-          <StatCard loading={isLoading} label="Valid"    value={valid}    icon={CheckCircle}   color="green" />
-          <StatCard loading={isLoading} label="Expiring" value={expiring} icon={Clock}         color="orange" />
-          <StatCard loading={isLoading} label="Expired"  value={expired}  icon={AlertTriangle} color="red" />
+          <StatCard loading={isLoading} label="Total" value={total} icon={FileText} color="blue" />
+          <StatCard loading={isLoading} label="Valid" value={valid} icon={CheckCircle} color="green" />
+          <StatCard loading={isLoading} label="Expiring" value={expiring} icon={Clock} color="orange" />
+          <StatCard loading={isLoading} label="Expired" value={expired} icon={AlertTriangle} color="red" />
         </div>
       )}
 
@@ -355,9 +355,9 @@ const VehicleDocuments = ({ vehicleId, isTab }) => {
                         <td className="px-4 py-3 whitespace-nowrap">
                           <button onClick={() => setView(doc)}
                             className="font-bold text-[#172B4D] font-mono text-[13px] hover:text-[#0052CC] transition-colors text-left uppercase">
-                          {typeof doc.vehicle === 'object'
-                            ? (doc.vehicle?.registration_number ?? '—')
-                            : (doc.vehicle_registration_number ?? doc.vehicle_registration ?? doc.vehicle_display ?? doc.vehicle ?? '—')}
+                            {typeof doc.vehicle === 'object'
+                              ? (doc.vehicle?.registration_number ?? '—')
+                              : (doc.vehicle_registration_number ?? doc.vehicle_registration ?? doc.vehicle_display ?? doc.vehicle ?? '—')}
                           </button>
                         </td>
                       )}
