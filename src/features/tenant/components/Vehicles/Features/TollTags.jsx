@@ -12,11 +12,12 @@ import {
   useDeleteVehicleTollTag,
 } from '../../../queries/vehicles/vehicleInfoQuery';
 import { useVehicles } from '../../../queries/vehicles/vehicleQuery';
-import { 
+import {
   Badge, InfoCard, SectionHeader, EmptyState, Modal, DeleteConfirm, ItemActions,
   Label, Input, Sel, Field, StatCard, Textarea, VehicleSelect,
   fmtDate, fmtINR
 } from '../Common/VehicleCommon';
+import { TabContentShimmer, ErrorState } from '../Common/StateFeedback';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const PROVIDER_OPTIONS = [
@@ -119,7 +120,7 @@ const TollTagModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) 
   };
 
   return (
-    <Modal 
+    <Modal
       title={isView ? 'Toll Tag Details' : isEdit ? 'Edit Toll Tag' : 'Add Toll Tag'}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -154,9 +155,9 @@ const TollTagModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) 
                 <Input type="number" placeholder="e.g. 500" value={form.recharge_balance} onChange={set('recharge_balance')} />
               </Field>
               <div className="flex items-center gap-2 pt-6">
-                <input 
-                  type="checkbox" id="is_active" 
-                  checked={form.is_active} 
+                <input
+                  type="checkbox" id="is_active"
+                  checked={form.is_active}
                   onChange={e => setForm(p => ({ ...p, is_active: e.target.checked }))}
                   className="w-4 h-4 text-[#0052CC] border-gray-300 rounded focus:ring-[#0052CC]" />
                 <label htmlFor="is_active" className="text-sm font-bold text-[#172B4D]">Active Tag</label>
@@ -192,11 +193,11 @@ const VehicleTollTags = ({ vehicleId, isTab }) => {
   const [modal, setModal] = useState(null);
   const [viewing, setViewing] = useState(null);
   const [deleting, setDeleting] = useState(null);
-  
+
   const [search, setSearch] = useState('');
   const [providerFilter, setProviderFilter] = useState('');
 
-  const { data, isLoading } = useVehicleTollTags({
+  const { data, isLoading, isError, error, refetch } = useVehicleTollTags({
     ...(search && { search }),
     ...(providerFilter && { tag_provider: providerFilter }),
     ...(vehicleId && { vehicle: vehicleId }),
@@ -215,6 +216,9 @@ const VehicleTollTags = ({ vehicleId, isTab }) => {
     const balance = tags.reduce((acc, t) => acc + (Number(t.recharge_balance) || 0), 0);
     return { total, active, balance };
   }, [tags]);
+
+  if (isLoading) return <TabContentShimmer />;
+  if (isError) return <ErrorState message="Failed to load toll tags" error={error?.message} onRetry={() => refetch()} />;
 
   return (
     <div className={`flex flex-col h-full bg-[#F4F5F7] ${isTab ? '' : 'p-6'}`}>
@@ -245,7 +249,7 @@ const VehicleTollTags = ({ vehicleId, isTab }) => {
           <div className="flex items-center gap-3 flex-1 min-w-[240px]">
             <div className="relative flex-1 max-w-xs">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input 
+              <input
                 type="text" placeholder="Search tags..."
                 className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border-none rounded-lg focus:ring-2 focus:ring-[#0052CC]/10"
                 value={search} onChange={e => setSearch(e.target.value)} />
@@ -265,9 +269,7 @@ const VehicleTollTags = ({ vehicleId, isTab }) => {
         </div>
 
         <div className="flex-1 overflow-auto">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-64"><Loader2 className="animate-spin text-[#0052CC]" /></div>
-          ) : !tags.length ? (
+          {!tags.length ? (
             <EmptyState icon={Tag} text="No toll tags found" onAdd={() => setModal({ mode: 'add' })} />
           ) : (
             <table className="w-full border-collapse text-left">

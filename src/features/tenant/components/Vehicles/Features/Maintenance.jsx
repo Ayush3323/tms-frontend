@@ -21,6 +21,7 @@ import {
   Label, Input, Sel, Section, Field, StatCard, Textarea, VehicleSelect,
   fmtDate, fmtKm, fmtINR
 } from '../Common/VehicleCommon';
+import { TabContentShimmer, ErrorState } from '../Common/StateFeedback';
 
 // ── Constants ─────────────────────────────────────────────────────────
 const MAINTENANCE_TYPES = [
@@ -536,13 +537,13 @@ const SchedulesTab = ({ onEdit, onDelete, onView, vehicleId }) => {
         </button>
       </div>
 
-      {isLoading && <div className="flex items-center justify-center py-16 gap-3 text-gray-400"><Loader2 size={20} className="animate-spin text-[#0052CC]" /><span className="text-sm">Loading...</span></div>}
+      {isLoading && <TabContentShimmer />}
       {isError && (
-        <div className="flex flex-col items-center justify-center py-16 gap-3 text-red-400">
-          <AlertCircle size={32} /><p className="text-sm font-medium">Failed to load schedules</p>
-          <p className="text-xs text-gray-400">{error?.response?.data?.detail || error?.message}</p>
-          <button onClick={() => refetch()} className="px-4 py-2 text-sm font-semibold text-white bg-[#0052CC] rounded-lg">Try Again</button>
-        </div>
+        <ErrorState 
+          message="Failed to load schedules" 
+          error={error?.response?.data?.detail || error?.message} 
+          onRetry={() => refetch()} 
+        />
       )}
 
       {!isLoading && !isError && (
@@ -666,13 +667,13 @@ const RecordsTab = ({ onEdit, onDelete, onView, vehicleId }) => {
         </button>
       </div>
 
-      {isLoading && <div className="flex items-center justify-center py-16 gap-3 text-gray-400"><Loader2 size={20} className="animate-spin text-[#0052CC]" /><span className="text-sm">Loading...</span></div>}
+      {isLoading && <TabContentShimmer />}
       {isError && (
-        <div className="flex flex-col items-center justify-center py-16 gap-3 text-red-400">
-          <AlertCircle size={32} /><p className="text-sm font-medium">Failed to load records</p>
-          <p className="text-xs text-gray-400">{error?.response?.data?.detail || error?.message}</p>
-          <button onClick={() => refetch()} className="px-4 py-2 text-sm font-semibold text-white bg-[#0052CC] rounded-lg">Try Again</button>
-        </div>
+        <ErrorState 
+          message="Failed to load records" 
+          error={error?.response?.data?.detail || error?.message} 
+          onRetry={() => refetch()} 
+        />
       )}
 
       {!isLoading && !isError && (

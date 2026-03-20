@@ -15,6 +15,7 @@ import {
   Label, Input, Sel, Field, StatCard, Textarea, VehicleSelect,
   fmtDate, fmtKm
 } from '../Common/VehicleCommon';
+import { TabContentShimmer, ErrorState } from '../Common/StateFeedback';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const TYPE_OPTIONS = [
@@ -236,7 +237,7 @@ const VehicleInspections = ({ vehicleId, isTab }) => {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
 
-  const { data, isLoading } = useVehicleInspections({
+  const { data, isLoading, isError, error, refetch } = useVehicleInspections({
     ...(search && { search }),
     ...(typeFilter && { inspection_type: typeFilter }),
     ...(vehicleId && { vehicle: vehicleId }),
