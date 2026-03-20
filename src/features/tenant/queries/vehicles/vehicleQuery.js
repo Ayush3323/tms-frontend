@@ -96,10 +96,25 @@ export const useUpdateVehicle = () => {
   return useMutation({
     mutationFn: ({ id, data }) => vehiclesApi.update(id, data),
 
-    onSuccess: () => {
+    onSuccess: (responseData, variables) => {
       qc.invalidateQueries({ queryKey: ['vehicles'] })
       qc.invalidateQueries({ queryKey: ['vehicle'] })
-      toast.success('Vehicle updated successfully')
+      
+      const isStatusOnly = Object.keys(variables.data).length === 1 && variables.data.status;
+      if (isStatusOnly) {
+         const statuses = {
+             MAINTENANCE: 'suspended',
+             ACTIVE: 'activated',
+             RETIRED: 'retired',
+             SOLD: 'sold',
+             SCRAPPED: 'scrapped'
+         };
+         const action = statuses[variables.data.status] || 'updated';
+         const reg = responseData.registration_number || responseData.registration || '';
+         toast.success(`Vehicle ${reg} ${action}`.trim().replace(/\s+/g, ' '));
+      } else {
+         toast.success('Vehicle updated successfully')
+      }
     },
 
     onError: (error) => toast.error(parseError(error))

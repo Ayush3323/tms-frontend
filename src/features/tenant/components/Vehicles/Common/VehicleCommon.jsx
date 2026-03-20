@@ -15,24 +15,24 @@ export const Badge = ({ children, className = '' }) => (
 
 // ── Style Maps ────────────────────────────────────────────────────────
 export const FUEL_COLORS = {
-  DIESEL:   'bg-orange-50 text-orange-700 border border-orange-200',
-  PETROL:   'bg-sky-50 text-sky-700 border border-sky-200',
-  CNG:      'bg-emerald-50 text-emerald-700 border border-emerald-200',
-  LPG:      'bg-yellow-50 text-yellow-700 border border-yellow-200',
+  DIESEL: 'bg-orange-50 text-orange-700 border border-orange-200',
+  PETROL: 'bg-sky-50 text-sky-700 border border-sky-200',
+  CNG: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+  LPG: 'bg-yellow-50 text-yellow-700 border border-yellow-200',
   ELECTRIC: 'bg-teal-50 text-teal-700 border border-teal-200',
-  HYBRID:   'bg-purple-50 text-purple-700 border border-purple-200',
+  HYBRID: 'bg-purple-50 text-purple-700 border border-purple-200',
 };
 
 export const STATUS_STYLES = {
-  ACTIVE:      { dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50 border border-emerald-200' },
+  ACTIVE: { dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50 border border-emerald-200' },
   MAINTENANCE: { dot: 'bg-orange-500', text: 'text-orange-700', bg: 'bg-orange-50 border border-orange-200' },
-  RETIRED:     { dot: 'bg-red-500',    text: 'text-red-700',    bg: 'bg-red-50 border border-red-200' },
-  SOLD:        { dot: 'bg-gray-400',   text: 'text-gray-600',   bg: 'bg-gray-50 border border-gray-200' },
-  SCRAPPED:    { dot: 'bg-gray-500',   text: 'text-gray-600',   bg: 'bg-gray-100 border border-gray-200' },
+  RETIRED: { dot: 'bg-red-500', text: 'text-red-700', bg: 'bg-red-50 border border-red-200' },
+  SOLD: { dot: 'bg-gray-400', text: 'text-gray-600', bg: 'bg-gray-50 border border-gray-200' },
+  SCRAPPED: { dot: 'bg-gray-500', text: 'text-gray-600', bg: 'bg-gray-100 border border-gray-200' },
 };
 
 export const OWNERSHIP_COLORS = {
-  OWNED:  'bg-blue-50 text-blue-600 border border-blue-200',
+  OWNED: 'bg-blue-50 text-blue-600 border border-blue-200',
   LEASED: 'bg-purple-50 text-purple-600 border border-purple-200',
 };
 
@@ -40,22 +40,26 @@ export const OWNERSHIP_COLORS = {
 export const fmtDate = (iso) => {
   if (!iso) return '—';
   try {
-    return new Date(iso).toLocaleDateString('en-IN', { 
-      year: 'numeric', month: 'short', day: '2-digit' 
+    return new Date(iso).toLocaleDateString('en-IN', {
+      year: 'numeric', month: 'short', day: '2-digit'
     });
   } catch (e) { return iso; }
 };
 
-export const fmtKm = (n) => 
+export const fmtKm = (n) =>
   n != null ? `${Number(n).toLocaleString('en-IN')} km` : '—';
 
-export const fmtINR = (n, decimals = 0) => 
+export const fmtINR = (n, decimals = 0) =>
   n != null ? `₹${Number(n).toLocaleString('en-IN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}` : '—';
 
 export const driverName = (d) => {
   if (!d) return '—';
   if (typeof d === 'object') {
-    return d.full_name ?? d.name ?? d.user?.full_name ?? d.user?.name ?? 'Driver Assigned';
+    const u = d.user ?? d;
+    if (u.first_name || u.last_name) {
+      return [u.first_name, u.last_name].filter(Boolean).join(' ');
+    }
+    return d.full_name ?? d.name ?? d.driver_name ?? d.employee_id ?? 'Driver Assigned';
   }
   return d;
 };
@@ -197,11 +201,11 @@ export const Modal = ({ title, onClose, onSubmit, submitting, isView, children, 
         <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50/50">
           <div>
             {onDelete && (
-                <button type="button" onClick={onDelete} disabled={isDeleting}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-red-600 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 transition-all disabled:opacity-50">
-                  {isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                  Delete
-                </button>
+              <button type="button" onClick={onDelete} disabled={isDeleting}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-red-600 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 transition-all disabled:opacity-50">
+                {isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                Delete
+              </button>
             )}
           </div>
           <div className="flex justify-end gap-3">

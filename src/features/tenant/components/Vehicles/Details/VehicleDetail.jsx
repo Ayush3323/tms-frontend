@@ -6,14 +6,14 @@ import {
   Fuel, CircleDot, Package, Tag, History,
   Gauge, Calendar, User, IndianRupee,
   ChevronRight, Loader2, AlertCircle,
-  Hash, Palette, Zap, BarChart3,
+  Hash, Palette, Zap, BarChart3, Trash2,
 } from 'lucide-react';
 import {
   Badge, InfoCard, SectionHeader, EmptyState,
   FUEL_COLORS, STATUS_STYLES, fmtDate, fmtKm, fmtINR, driverName
 } from '../Common/VehicleCommon';
 import { VehicleFormModal } from '../Common/VehicleFormModal';
-import { useVehicle, useUpdateVehicle } from '../../../queries/vehicles/vehicleQuery';
+import { useVehicle, useUpdateVehicle, useDeleteVehicle } from '../../../queries/vehicles/vehicleQuery';
 
 // Import Consolidated Features
 import VehicleDocuments from '../Features/Documents';
@@ -140,7 +140,7 @@ const OverviewTab = ({ v }) => {
 // ═════════════════════════════════════════════════════════════════════════════
 //  VEHICLE HEADER
 // ═════════════════════════════════════════════════════════════════════════════
-const VehicleHeader = ({ v, onEdit, onToggle, updating }) => {
+const VehicleHeader = ({ v, onEdit, onToggle, onDelete, updating }) => {
   const st = STATUS_STYLES[v.status] ?? STATUS_STYLES.RETIRED;
   const fuel = FUEL_COLORS[v.fuel_type] ?? 'bg-gray-100 text-gray-600 border-gray-200';
   return (
@@ -179,6 +179,10 @@ const VehicleHeader = ({ v, onEdit, onToggle, updating }) => {
                 <button onClick={onEdit}
                   className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-xl hover:bg-[#0043A8] transition-all shadow-sm shadow-blue-200">
                   <Edit2 size={14} /> Edit
+                </button>
+                <button onClick={onDelete} disabled={updating}
+                  className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-[#172B4D] bg-white border border-gray-200 rounded-xl hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all shadow-sm shadow-gray-100 disabled:opacity-50">
+                  <Trash2 size={14} /> Delete
                 </button>
                 {v.status === 'ACTIVE' && (
                   <button onClick={onToggle} disabled={updating}
@@ -241,11 +245,19 @@ const VehicleDetail = () => {
 
   const { data: v, isLoading, isError, error, refetch } = useVehicle(id);
   const updateVehicle = useUpdateVehicle();
+  const deleteVehicle = useDeleteVehicle();
 
   const handleToggle = () => {
     if (!v) return;
     updateVehicle.mutate({ id: v.id, data: { status: v.status === 'ACTIVE' ? 'MAINTENANCE' : 'ACTIVE' } });
   };
+  
+  const handleDelete = () => {
+    if (window.confirm('Are you sure you want to delete this vehicle? This action cannot be undone.')) {
+      deleteVehicle.mutate(id, { onSuccess: () => navigate('/tenant/dashboard/vehicles') });
+    }
+  };
+
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const handleEdit = () => setIsEditModalOpen(true);
 
@@ -303,7 +315,7 @@ const VehicleDetail = () => {
           <span className="font-semibold text-[#172B4D]">{v.registration_number}</span>
         </div>
 
-        <VehicleHeader v={v} onEdit={handleEdit} onToggle={handleToggle} updating={updateVehicle.isPending} />
+        <VehicleHeader v={v} onEdit={handleEdit} onToggle={handleToggle} onDelete={handleDelete} updating={updateVehicle.isPending || deleteVehicle.isPending} />
 
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
           <div className="flex overflow-x-auto border-b border-gray-100 scrollbar-hide">
