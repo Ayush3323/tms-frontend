@@ -15,6 +15,12 @@ import VehicleInspections from '../components/Vehicles/Features/Inspections';
 import TiresDashboard from '../components/Vehicles/Features/Tires';
 import DriversList from '../components/Drivers/DriversList'
 import DriverDetail from '../components/Drivers/DriverDetail'
+import CustomersDashboard from '../components/customers/customers'
+import Consigners from '../components/customers/consigners'
+import Consignees from '../components/customers/consignees'
+import Brokers from '../components/customers/brokers';
+
+
 
 // Global Driver Views
 import AllDocuments from '../components/Drivers/all/AllDocuments';
@@ -80,6 +86,16 @@ const Routing = () => {
         <Route path="vehicles/toll-tags/:id" element={<VehicleTollTagsDashboard />} />
         <Route path="vehicles/ownership" element={<VehicleOwnershipDashboard />} />
         <Route path="vehicles/ownership/:id" element={<VehicleOwnershipDashboard />} />
+
+        {/* Specific Customer Detail Route (Must be last to avoid catching sub-paths as IDs) */}
+
+        <Route path="customers" element={<CustomersDashboard />} />
+        <Route path="customers/consigners" element={<Consigners />} />
+        <Route path="customers/consignees" element={<Consignees />} />
+        <Route path="customers/brokers" element={<Brokers />} />
+
+
+
       </Route>
       <Route path="*" element={<Navigate to="login" replace />} />
     </Routes>
