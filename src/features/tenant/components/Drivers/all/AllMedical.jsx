@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { HeartPulse, Plus, RefreshCw } from 'lucide-react';
 import { useMedicalRecords } from '../../../queries/drivers/trainingAndMedicalQuery';
 
-import { LoadingState, ErrorState, EmptyState } from '../common/StateFeedback';
+import { LoadingState, ErrorState, EmptyState, PageShimmer } from '../common/StateFeedback';
 import MedicalTable from '../sub-features/Medical/MedicalTable';
 import { AddMedicalModal, EditMedicalModal, DeleteMedicalDialog } from '../sub-features/Medical/MedicalModals';
 import { FITNESS_STATUS } from '../common/constants';
@@ -39,7 +39,7 @@ const AllMedical = () => {
     });
   };
 
-  if (isLoading && !data) return <div className="p-6"><LoadingState message="Loading all medical records..." /></div>;
+  if (isLoading && !data) return <PageShimmer columns={4} />;
   if (isError)   return <div className="p-6"><ErrorState message="Failed to load records" error={error?.message} onRetry={() => refetch()} /></div>;
 
   return (

@@ -5,7 +5,7 @@ import Label from '../../common/Label';
 import Input from '../../common/Input';
 import Select from '../../common/Select';
 import DeleteConfirmDialog from '../../common/DeleteConfirmDialog';
-import { cleanObject } from '../../common/utils';
+import { cleanObject, formatError } from '../../common/utils';
 import {
   useCreateIncident,
   useUpdateIncident,
@@ -59,11 +59,10 @@ export const AddIncidentModal = ({ driverId, onClose }) => {
     if (!form.incident_type) return setError('Incident type is required.');
     if (!form.incident_date) return setError('Incident date is required.');
     if (!form.description) return setError('Description is required.');
-    if (!form.severity) return setError('Severity is required.');
 
     createIncident.mutate(cleanObject(form), {
       onSuccess: onClose,
-      onError: (err) => setError(err.message || 'Failed to add incident.'),
+      onError: (err) => setError(formatError(err)),
     });
   };
 
@@ -102,47 +101,47 @@ export const AddIncidentModal = ({ driverId, onClose }) => {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label required>incident_type</Label>
+            <Label required>Incident Type</Label>
             <Select value={form.incident_type} onChange={set('incident_type')}>
               <option value="">Select type</option>
               {INCIDENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
             </Select>
           </div>
           <div>
-            <Label>vehicle</Label>
+            <Label>Vehicle</Label>
             <VehicleSelect value={form.vehicle} onChange={(e) => setForm(p => ({ ...p, vehicle: e.target.value }))} />
           </div>
           <div>
-            <Label>trip_id</Label>
+            <Label>Trip ID</Label>
             <Input placeholder="Trip UUID" value={form.trip_id} onChange={set('trip_id')} />
           </div>
           <div>
-            <Label required>severity</Label>
+            <Label>Severity</Label>
             <Select value={form.severity} onChange={set('severity')}>
               {SEVERITY_LIST.map(s => <option key={s} value={s}>{s}</option>)}
             </Select>
           </div>
           <div>
-            <Label required>incident_date</Label>
+            <Label required>Incident Date</Label>
             <Input type="datetime-local" value={form.incident_date} onChange={set('incident_date')} />
           </div>
           <div>
-            <Label>location</Label>
+            <Label>Location</Label>
             <Input placeholder="Location" value={form.location} onChange={set('location')} />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label>police_report_number</Label>
+            <Label>Police Report Number</Label>
             <Input placeholder="Police report no" value={form.police_report_number} onChange={set('police_report_number')} />
           </div>
           <div>
-            <Label>insurance_claim_number</Label>
+            <Label>Insurance Claim Number</Label>
             <Input placeholder="Insurance no" value={form.insurance_claim_number} onChange={set('insurance_claim_number')} />
           </div>
         </div>
         <div>
-          <Label required>description</Label>
+          <Label required>Description</Label>
           <textarea
             rows={2} placeholder="Describe what happened..."
             value={form.description} onChange={set('description')}
@@ -150,7 +149,7 @@ export const AddIncidentModal = ({ driverId, onClose }) => {
           />
         </div>
         <div className="border-t border-gray-100 pt-4 mt-4">
-          <Label>resolution_status</Label>
+          <Label>Resolution Status</Label>
           <div className="grid grid-cols-2 gap-4 mt-2">
             <Select value={form.resolution_status} onChange={set('resolution_status')}>
               {RESOLUTION_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
@@ -245,7 +244,7 @@ export const EditIncidentModal = ({ incident, driverId, onClose }) => {
 
     updateIncident.mutate(clean, {
       onSuccess: onClose,
-      onError: (err) => setError(err.message || 'Failed to update incident.'),
+      onError: (err) => setError(formatError(err)),
     });
   };
 
@@ -293,45 +292,45 @@ export const EditIncidentModal = ({ incident, driverId, onClose }) => {
         {error && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium">{error}</div>}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label required>incident_type</Label>
+            <Label required>Incident Type</Label>
             <Select value={form.incident_type} onChange={set('incident_type')}>
               <option value="">Select type</option>
               {INCIDENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
             </Select>
           </div>
-          <div><Label>vehicle</Label>
+          <div><Label>Vehicle</Label>
             <VehicleSelect value={form.vehicle} onChange={(e) => setForm(p => ({ ...p, vehicle: e.target.value }))} />
           </div>
-          <div><Label>trip_id</Label>
+          <div><Label>Trip ID</Label>
             <Input placeholder="Trip UUID" value={form.trip_id} onChange={set('trip_id')} />
           </div>
           <div>
-            <Label required>severity</Label>
+            <Label>Severity</Label>
             <Select value={form.severity} onChange={set('severity')}>
               {SEVERITY_LIST.map(s => <option key={s} value={s}>{s}</option>)}
             </Select>
           </div>
           <div>
-            <Label required>incident_date</Label>
+            <Label required>Incident Date</Label>
             <Input type="datetime-local" value={form.incident_date} onChange={set('incident_date')} />
           </div>
           <div>
-            <Label>location</Label>
+            <Label>Location</Label>
             <Input placeholder="Location" value={form.location} onChange={set('location')} />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label>police_report_number</Label>
+            <Label>Police Report Number</Label>
             <Input placeholder="Police report no" value={form.police_report_number} onChange={set('police_report_number')} />
           </div>
           <div>
-            <Label>insurance_claim_number</Label>
+            <Label>Insurance Claim Number</Label>
             <Input placeholder="Insurance no" value={form.insurance_claim_number} onChange={set('insurance_claim_number')} />
           </div>
         </div>
         <div>
-          <Label required>description</Label>
+          <Label required>Description</Label>
           <textarea
             rows={2} placeholder="Describe what happened..."
             value={form.description} onChange={set('description')}
@@ -339,7 +338,7 @@ export const EditIncidentModal = ({ incident, driverId, onClose }) => {
           />
         </div>
         <div className="border-t border-gray-100 pt-4 mt-4">
-          <Label>resolution_status</Label>
+          <Label>Resolution Status</Label>
           <div className="grid grid-cols-2 gap-4 mt-2">
             <Select value={form.resolution_status} onChange={handleStatusChange}>
               {RESOLUTION_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
@@ -349,13 +348,13 @@ export const EditIncidentModal = ({ incident, driverId, onClose }) => {
           {(form.resolved_by || form.resolved_at) && (
             <div className="grid grid-cols-2 gap-4 mt-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
               <div>
-                <Label>resolved_by</Label>
+                <Label>Resolved By</Label>
                 <div className="text-xs font-semibold text-gray-600 mt-1">
                   {userMap[form.resolved_by] || form.resolved_by || '—'}
                 </div>
               </div>
               <div>
-                <Label>resolved_at</Label>
+                <Label>Resolved At</Label>
                 <div className="text-xs font-semibold text-gray-600 mt-1">
                   {form.resolved_at ? new Date(form.resolved_at).toLocaleString() : '—'}
                 </div>

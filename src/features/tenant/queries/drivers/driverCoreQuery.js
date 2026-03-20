@@ -66,8 +66,12 @@ export const useDrivers = (params = {}) => {
     queryKey: driverKeys.list(params),
     queryFn: async () => {
       try {
-        const response = await driverApi.getDrivers(params);
-        return response.data;
+        const response = await driverApi.getDrivers({ ...params, ordering: 'id' });
+        const data = response.data;
+        if (data?.results) {
+          data.results = [...data.results].sort((a, b) => b.id.localeCompare(a.id));
+        }
+        return data;
       } catch (error) {
         handleError(error);
       }
@@ -165,7 +169,7 @@ export const useDeleteDriver = () => {
 
 // ─── 6. useDriverLookup (ID -> Name Map) ──────────────────
 export const useDriverLookup = () => {
-  const { data } = useDrivers({ page_size: 1000 });
+  const { data } = useDrivers({ page_size: 1000, ordering: 'id' });
 
   return useMemo(() => {
     const map = {};

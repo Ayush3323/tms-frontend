@@ -16,7 +16,7 @@ const MedicalTable = ({ records, onEdit, showDriver = false, driverMap = {} }) =
                 <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Emp ID</th>
               </>
             )}
-            {['Exam Date', 'Next Due', 'Fitness', 'Blood Group', 'Doctor', 'Cert No.', 'Cert File', 'Restrictions', 'Notes', 'Actions'].map(h => (
+            {['Examination Date', 'Next Due Date', 'Fitness Status', 'Blood Group', 'Examining Doctor', 'Certificate Number', 'Certificate File', 'Restrictions', 'Notes', 'Actions'].map(h => (
               <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
             ))}
           </tr>

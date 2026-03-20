@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { GraduationCap, Plus, RefreshCw } from 'lucide-react';
 import { useTrainingRecords } from '../../../queries/drivers/trainingAndMedicalQuery';
 
-import { LoadingState, ErrorState, EmptyState } from '../common/StateFeedback';
+import { LoadingState, ErrorState, EmptyState, PageShimmer } from '../common/StateFeedback';
 import TrainingTable from '../sub-features/Training/TrainingTable';
 import { AddTrainingModal, EditTrainingModal, DeleteTrainingDialog } from '../sub-features/Training/TrainingModals';
 import DriverSelect from '../common/DriverSelect';
@@ -41,7 +41,7 @@ const AllTraining = () => {
     });
   };
 
-  if (isLoading && !data) return <div className="p-6"><LoadingState message="Loading all training records..." /></div>;
+  if (isLoading && !data) return <PageShimmer columns={5} />;
   if (isError) return <div className="p-6"><ErrorState message="Failed to load records" error={error?.message} onRetry={() => refetch()} /></div>;
 
   return (

@@ -26,7 +26,7 @@ import Select from './common/Select';
 import ModalWrapper from './common/ModalWrapper';
 import StatusBadge from './common/StatusBadge';
 import DeleteConfirmDialog from './common/DeleteConfirmDialog';
-import { LoadingState, ErrorState } from './common/StateFeedback';
+import { LoadingState, ErrorState, DetailShimmer } from './common/StateFeedback';
 
 import {
   STATUS_STYLES,
@@ -37,7 +37,7 @@ import {
   DRIVER_STATUS_OPTIONS as DRIVER_STATUSES,
   GENDER_OPTIONS as GENDERS
 } from './common/constants';
-import { getDriverName, cleanObject, getExpiryColor } from './common/utils';
+import { getDriverName, cleanObject, getExpiryColor, formatError } from './common/utils';
 
 // Constants handled via common/constants.js
 
@@ -71,6 +71,7 @@ const EditDriverModal = ({ driver, onClose }) => {
 
   const handleSubmit = async () => {
     setError('');
+    const phoneRegex = /^[6-9]\d{9}$/;
     const uId = driver.user?.id || driver.user_id;
 
     // 1. Basic Required Fields
@@ -85,7 +86,15 @@ const EditDriverModal = ({ driver, onClose }) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (form.email && !emailRegex.test(form.email)) return setError('Please enter a valid email address.');
 
-    // 4. Age Validation (18+)
+    // 4. Phone Validation (Optional but validate if filled)
+    let p = form.phone.replace(/\s+/g, '');
+    if (p) {
+      if (p.startsWith('+91')) p = p.slice(3);
+      if (!phoneRegex.test(p)) return setError("Enter valid 10-digit phone number");
+      p = `+91${p}`;
+    }
+
+    // 5. Age Validation (18+)
     if (form.date_of_birth) {
       const birthDate = new Date(form.date_of_birth);
       const today = new Date();
@@ -110,20 +119,24 @@ const EditDriverModal = ({ driver, onClose }) => {
       if (uId) {
         await updateUser.mutateAsync({
           id: uId,
-          data: cleanObject({ first_name, middle_name, last_name, phone, email, date_of_birth, gender }),
+          data: cleanObject({ first_name, middle_name, last_name, phone: p, email, date_of_birth, gender }),
         });
       }
 
       // 2. Update Driver Details
       await updateDriver.mutateAsync({
         id: driver.id,
-        data: cleanObject(driverFields),
+        data: cleanObject({
+          ...driverFields,
+          years_of_experience: driverFields.years_of_experience === '' ? 0 : parseInt(driverFields.years_of_experience, 10),
+          driver_type: driverFields.driver_type || 'PERMANENT'
+        }),
       });
 
       onClose();
     } catch (err) {
       console.error('Update failure:', err);
-      setError(err?.message || 'Failed to update driver information.');
+      setError(formatError(err));
     }
   };
 
@@ -169,8 +182,8 @@ const EditDriverModal = ({ driver, onClose }) => {
         <div>
           <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">License Information</p>
           <div className="grid grid-cols-2 gap-4">
-            <div><Label>License Number</Label><Input value={form.license_number} onChange={set('license_number')} placeholder="e.g. DL-01-20200001234" /></div>
-            <div><Label>License Type</Label>
+            <div><Label required>License Number</Label><Input value={form.license_number} onChange={set('license_number')} placeholder="e.g. DL-01-20200001234" /></div>
+            <div><Label required>License Type</Label>
               <Select value={form.license_type} onChange={set('license_type')}>
                 <option value="">— Select —</option>
                 {LICENSE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
@@ -187,7 +200,6 @@ const EditDriverModal = ({ driver, onClose }) => {
           <div className="grid grid-cols-2 gap-4">
             <div><Label>Driver Type</Label>
               <Select value={form.driver_type} onChange={set('driver_type')}>
-                <option value="">— Select —</option>
                 {DRIVER_TYPES.map(t => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
               </Select>
             </div>
@@ -332,7 +344,7 @@ const DriverDetail = () => {
     });
   };
 
-  if (isLoading) return <LoadingState message="Loading driver..." />;
+  if (isLoading) return <DetailShimmer />;
 
   if (isError) return (
     <ErrorState

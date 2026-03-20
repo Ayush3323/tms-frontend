@@ -5,7 +5,7 @@ import Label from '../../common/Label';
 import Input from '../../common/Input';
 import Select from '../../common/Select';
 import DeleteConfirmDialog from '../../common/DeleteConfirmDialog';
-import { cleanObject } from '../../common/utils';
+import { cleanObject, formatError } from '../../common/utils';
 import {
   useCreateMedicalRecord,
   useUpdateMedicalRecord,
@@ -23,15 +23,15 @@ const MedicalFormFields = ({ form, setForm, error }) => {
       <div className="grid grid-cols-2 gap-4">
         <div><Label required>Examination Date</Label><Input type="date" value={form.examination_date} onChange={set('examination_date')} /></div>
         <div><Label required>Next Due Date</Label><Input type="date" value={form.next_due_date} onChange={set('next_due_date')} /></div>
-        <div><Label required>Fitness Status</Label>
+        <div><Label>Fitness Status</Label>
           <Select value={form.fitness_status} onChange={set('fitness_status')}>
             {VERIFICATION_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
           </Select>
         </div>
         <div><Label>Blood Group</Label><Input placeholder="e.g. O+" value={form.blood_group} onChange={set('blood_group')} /></div>
-        <div><Label>Certificate No.</Label><Input placeholder="MED123456" value={form.certificate_number} onChange={set('certificate_number')} /></div>
+        <div><Label>Certificate Number</Label><Input placeholder="MED123456" value={form.certificate_number} onChange={set('certificate_number')} /></div>
         <div><Label>Examining Doctor</Label><Input placeholder="Dr. Smith" value={form.examining_doctor} onChange={set('examining_doctor')} /></div>
-        <div className="col-span-2"><Label>Certificate URL</Label><Input placeholder="https://example.com/cert.pdf" value={form.certificate_url} onChange={set('certificate_url')} /></div>
+        <div className="col-span-2"><Label>Certificate File (URL)</Label><Input placeholder="https://example.com/cert.pdf" value={form.certificate_url} onChange={set('certificate_url')} /></div>
       </div>
       <div><Label>Restrictions</Label>
         <textarea rows={2} placeholder="Any medical restrictions..." value={form.restrictions} onChange={e => setForm(p => ({ ...p, restrictions: e.target.value }))}
@@ -66,7 +66,6 @@ export const AddMedicalModal = ({ driverId, onClose }) => {
     if (!form.examination_date) return 'Examination date is required.';
     if (!form.next_due_date) return 'Next due date is required.';
     if (form.examination_date > form.next_due_date) return 'Next due date cannot be before examination date.';
-    if (!form.fitness_status) return 'Fitness status is required.';
     return null;
   };
 
@@ -77,7 +76,7 @@ export const AddMedicalModal = ({ driverId, onClose }) => {
 
     createMedical.mutate(cleanObject(form), {
       onSuccess: onClose,
-      onError: (err) => setError(err.message || 'Failed to add medical record.'),
+      onError: (err) => setError(formatError(err)),
     });
   };
 
@@ -130,7 +129,6 @@ export const EditMedicalModal = ({ record, driverId, onClose }) => {
     if (!form.examination_date) return 'Examination date is required.';
     if (!form.next_due_date) return 'Next due date is required.';
     if (form.examination_date > form.next_due_date) return 'Next due date cannot be before examination date.';
-    if (!form.fitness_status) return 'Fitness status is required.';
     return null;
   };
 
@@ -141,7 +139,7 @@ export const EditMedicalModal = ({ record, driverId, onClose }) => {
 
     updateMedical.mutate(cleanObject(form), {
       onSuccess: onClose,
-      onError: (err) => setError(err.message || 'Failed to update medical record.'),
+      onError: (err) => setError(formatError(err)),
     });
   };
 

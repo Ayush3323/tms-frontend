@@ -40,7 +40,13 @@ const ContactTable = ({ contacts, onEdit, showDriver = false, driverMap = {} }) 
                   <Phone size={10} /> {c.phone ?? '—'}
                 </span>
               </td>
-              <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-500 font-mono">{c.alternate_phone ?? '—'}</td>
+               <td className="px-4 py-3 whitespace-nowrap">
+                {c.alternate_phone ? (
+                  <span className="font-mono text-[12px] text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100 w-fit block">
+                    {c.alternate_phone}
+                  </span>
+                ) : '—'}
+              </td>
               <td className="px-4 py-3 text-[12px] text-gray-600 min-w-[200px]">{c.address ?? '—'}</td>
               <td className="px-4 py-3 whitespace-nowrap">
                 {c.is_primary ? (

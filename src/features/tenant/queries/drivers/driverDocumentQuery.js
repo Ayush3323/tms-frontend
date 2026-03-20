@@ -45,8 +45,12 @@ export const useDocuments = (params = {}) => {
     queryKey: documentKeys.list(params),
     queryFn: async () => {
       try {
-        const response = await driverApi.getDocuments(params);
-        return response.data;
+        const response = await driverApi.getDocuments({ ...params, ordering: 'id' });
+        const data = response.data;
+        if (data?.results) {
+          data.results = [...data.results].sort((a, b) => b.id.localeCompare(a.id));
+        }
+        return data;
         // { count, next, previous, results: [...] }
       } catch (error) {
         handleError(error);
@@ -69,9 +73,14 @@ export const useDriverDocuments = (driverId, params = {}) => {
       try {
         const response = await driverApi.getDocuments({
           driver: driverId, // ← filter param se driver ke documents
+          ordering: 'id',
           ...params,
         });
-        return response.data;
+        const data = response.data;
+        if (data?.results) {
+          data.results = [...data.results].sort((a, b) => b.id.localeCompare(a.id));
+        }
+        return data;
         // { count, next, previous, results: [...] }
       } catch (error) {
         handleError(error);

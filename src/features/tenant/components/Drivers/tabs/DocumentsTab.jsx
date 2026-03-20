@@ -13,7 +13,7 @@ const DocumentsTab = ({ driverId }) => {
   const [deleteDoc, setDeleteDoc] = useState(null);
 
   const { data, isLoading, isError, error, refetch } = useDriverDocuments(driverId);
-  const { data: usersData } = useUsers();
+  const { data: usersData, isLoading: isLoadingUsers } = useUsers();
 
   const userMap = React.useMemo(() => {
     return usersData?.results?.reduce((acc, u) => ({
@@ -34,7 +34,7 @@ const DocumentsTab = ({ driverId }) => {
     <>
       {/* ── Modals ── */}
       {addOpen && <AddDocumentModal driverId={driverId} onClose={() => setAddOpen(false)} />}
-      {editDoc && <EditDocumentModal doc={editDoc} driverId={driverId} onClose={() => setEditDoc(null)} userMap={userMap} />}
+      {editDoc && <EditDocumentModal doc={editDoc} driverId={driverId} onClose={() => setEditDoc(null)} userMap={userMap} isLoadingUsers={isLoadingUsers} />}
       {deleteDoc && <DeleteDocumentDialog doc={deleteDoc} driverId={driverId} onClose={() => setDeleteDoc(null)} />}
 
       {/* ── Header ── */}

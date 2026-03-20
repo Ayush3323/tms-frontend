@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Wallet, Plus, RefreshCw } from 'lucide-react';
 import { useSalaryStructures } from '../../../queries/drivers/salaryStructureQuery';
 
-import { LoadingState, ErrorState, EmptyState, TableShimmer } from '../common/StateFeedback';
+import { LoadingState, ErrorState, EmptyState, TableShimmer, PageShimmer } from '../common/StateFeedback';
 import SalaryTable from '../sub-features/Salary/SalaryTable';
 import { AddSalaryModal, EditSalaryModal, DeleteSalaryDialog, ViewSalaryModal, PAYMENT_FREQUENCIES } from '../sub-features/Salary/SalaryModals';
 import DriverSelect from '../common/DriverSelect';
@@ -38,12 +38,7 @@ const AllSalaryStructures = () => {
     });
   };
 
-  if (isLoading && !data) return (
-    <div className="p-6 space-y-6">
-      <div className="h-20 bg-gray-50 rounded-2xl animate-pulse" />
-      <TableShimmer rows={10} cols={10} />
-    </div>
-  );
+  if (isLoading && !data) return <PageShimmer columns={4} />;
   if (isError)   return <div className="p-6"><ErrorState message="Failed to load salary structures" error={error?.message} onRetry={() => refetch()} /></div>;
 
   return (
@@ -75,19 +70,19 @@ const AllSalaryStructures = () => {
            <DriverSelect value={filters.driver} onChange={(val) => handleFilterChange('driver', val)} />
         </div>
         <div>
-           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">payment_frequency</p>
+           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Payment Frequency</p>
            <Select value={filters.payment_frequency} onChange={(e) => handleFilterChange('payment_frequency', e.target.value)}>
              <option value="">All Frequencies</option>
              {PAYMENT_FREQUENCIES.map(f => <option key={f} value={f}>{f}</option>)}
            </Select>
         </div>
         <div>
-           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">effective_from</p>
+           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Effective From</p>
            <Input type="date" value={filters.effective_from} onChange={(e) => handleFilterChange('effective_from', e.target.value)} />
         </div>
         <div className="flex items-end gap-2">
            <div className="flex-1">
-             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">effective_to</p>
+             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Effective To</p>
              <Input type="date" value={filters.effective_to} onChange={(e) => handleFilterChange('effective_to', e.target.value)} />
            </div>
            <button 

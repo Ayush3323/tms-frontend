@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Truck, Plus, RefreshCw } from 'lucide-react';
 import { useVehicleAssignments } from '../../../queries/drivers/vehicleAssignmentQuery';
 
-import { LoadingState, ErrorState, EmptyState, TableShimmer } from '../common/StateFeedback';
+import { LoadingState, ErrorState, EmptyState, TableShimmer, PageShimmer } from '../common/StateFeedback';
 import AssignmentTable from '../sub-features/Assignments/AssignmentTable';
 import { AddAssignmentModal, EditAssignmentModal, DeleteAssignmentDialog, VehicleSelect } from '../sub-features/Assignments/AssignmentModals';
 import DriverSelect from '../common/DriverSelect';
@@ -53,12 +53,7 @@ const AllAssignments = () => {
     });
   };
 
-  if (isLoading && !data) return (
-    <div className="p-6 space-y-6">
-      <div className="h-24 bg-gray-50 rounded-2xl animate-pulse" />
-      <TableShimmer rows={10} cols={10} />
-    </div>
-  );
+  if (isLoading && !data) return <PageShimmer columns={6} />;
   if (isError) return <div className="p-6"><ErrorState message="Failed to load assignments" error={error?.message} onRetry={() => refetch()} /></div>;
 
   return (
@@ -91,18 +86,18 @@ const AllAssignments = () => {
             <DriverSelect value={filters.driver} onChange={(val) => handleFilterChange('driver', val)} />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">vehicle</p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Vehicle</p>
             <VehicleSelect value={filters.vehicle} onChange={(e) => handleFilterChange('vehicle', e.target.value)} />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">assignment_type</p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Assignment Type</p>
             <Select value={filters.assignment_type} onChange={(e) => handleFilterChange('assignment_type', e.target.value)}>
               <option value="">All Types</option>
               {ASSIGNMENT_TYPES.map(t => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
             </Select>
           </div>
           <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">is_active</p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Status</p>
             <Select value={filters.is_active} onChange={(e) => handleFilterChange('is_active', e.target.value)}>
               <option value="">All Status</option>
               <option value="true">Active Only</option>
@@ -111,7 +106,7 @@ const AllAssignments = () => {
           </div>
           <div className="flex items-end gap-2 lg:col-span-2">
             <div className="flex-1">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">assigned_date</p>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Assigned Date</p>
               <Input type="date" value={filters.assigned_date} onChange={(e) => handleFilterChange('assigned_date', e.target.value)} />
             </div>
             <button
