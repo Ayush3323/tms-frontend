@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FileText, Plus, RefreshCw } from 'lucide-react';
 import { useDocuments } from '../../../queries/drivers/driverDocumentQuery';
 
-import { LoadingState, ErrorState, EmptyState, TableShimmer } from '../common/StateFeedback';
+import { LoadingState, ErrorState, EmptyState, TableShimmer, PageShimmer } from '../common/StateFeedback';
 import DocumentTable from '../sub-features/Documents/DocumentTable';
 import { AddDocumentModal, EditDocumentModal, DeleteDocumentDialog } from '../sub-features/Documents/DocumentModals';
 import DriverSelect from '../common/DriverSelect';
@@ -35,7 +35,7 @@ const AllDocuments = () => {
 
   const { data, isLoading, isError, error, refetch, isFetching } = useDocuments(filters);
   const driverMap = useDriverLookup();
-  const { data: usersData } = useSystemUsers();
+  const { data: usersData, isLoading: isLoadingUsers } = useSystemUsers();
   
   const userMap = React.useMemo(() => {
     return usersData?.results?.reduce((acc, u) => ({ 
@@ -64,19 +64,14 @@ const AllDocuments = () => {
     });
   };
 
-  if (isLoading && !data) return (
-    <div className="p-6 space-y-6">
-      <div className="h-20 bg-gray-50 rounded-2xl animate-pulse" />
-      <TableShimmer rows={10} cols={10} />
-    </div>
-  );
+  if (isLoading && !data) return <PageShimmer columns={5} />;
   if (isError) return <div className="p-6"><ErrorState message="Failed to load documents" error={error?.message} onRetry={() => refetch()} /></div>;
 
   return (
     <div className="p-6 space-y-6">
       {/* ── Modals ── */}
       {addOpen && <AddDocumentModal driverId={null} onClose={() => setAddOpen(false)} />}
-      {editDoc && <EditDocumentModal doc={editDoc} driverId={editDoc.driver} onClose={() => setEditDoc(null)} userMap={userMap} />}
+      {editDoc && <EditDocumentModal doc={editDoc} driverId={editDoc.driver} onClose={() => setEditDoc(null)} userMap={userMap} isLoadingUsers={isLoadingUsers} />}
 
       {/* ── Header ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

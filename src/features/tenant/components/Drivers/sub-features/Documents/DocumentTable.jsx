@@ -60,10 +60,10 @@ const DocumentTable = ({ documents, onEdit, showDriver = false, driverMap = {}, 
                 />
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600">
-                {userMap[doc.verified_by]?.name || doc.verified_by || '—'}
+                {doc.verification_status === 'VERIFIED' ? (userMap[doc.verified_by]?.name || doc.verified_by || '—') : '—'}
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600">
-                {doc.verified_at ? new Date(doc.verified_at).toLocaleString() : '—'}
+                {doc.verification_status === 'VERIFIED' && doc.verified_at ? new Date(doc.verified_at).toLocaleString() : '—'}
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-[12px]">
                 {doc.file_url 

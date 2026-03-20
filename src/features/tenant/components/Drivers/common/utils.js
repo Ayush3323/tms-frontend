@@ -21,7 +21,11 @@ export const getDriverName = (driver) => {
 export const cleanObject = (obj) => {
   if (!obj) return {};
   return Object.fromEntries(
-    Object.entries(obj).map(([k, v]) => [k, v === '' ? null : v])
+    Object.entries(obj).map(([k, v]) => {
+      // Basic text fields that should be "" instead of null
+      if (k === 'middle_name' && v === '') return [k, ''];
+      return [k, v === '' ? null : v];
+    })
   );
 };
 
@@ -46,3 +50,53 @@ export const getScoreColor = (val, max = 100) => {
   if (pct >= 0.6) return 'text-orange-500 font-semibold';
   return 'text-red-600 font-semibold';
 };
+
+/**
+ * Recursively flattens backend validation error messages into a human-readable string.
+ * Handles nested objects (like { user: { email: [...] } }) and arrays.
+ */
+export const formatError = (error) => {
+  if (!error) return 'An unexpected error occurred.';
+  
+  const data = error.response?.data;
+  if (!data) return error.message || 'An unexpected error occurred.';
+
+  // Support both { error: { details: ... } } and { details: ... }
+  const errObj = data.error || data;
+
+  // If backend returns a simple message
+  if (errObj.message && typeof errObj.message === 'string' && !errObj.details) {
+    return errObj.message;
+  }
+
+  // If backend returns structured details (VALIDATION_ERROR style)
+  if (errObj.details && typeof errObj.details === 'object') {
+    const messages = [];
+    
+    const extract = (obj, prefix = '') => {
+      Object.entries(obj).forEach(([key, value]) => {
+        const fieldName = key.replace(/_/g, ' ');
+        // Avoid redundant prefixes like "driver driver type"
+        const label = prefix ? `${prefix} ${fieldName}` : fieldName;
+        
+        if (Array.isArray(value)) {
+          // Flatten array of error strings
+          const valStr = value.map(v => typeof v === 'object' ? JSON.stringify(v) : v).join(' ');
+          messages.push(`${label.charAt(0).toUpperCase() + label.slice(1)}: ${valStr}`);
+        } else if (typeof value === 'object' && value !== null) {
+          // Flatten nested object like `driver: { years_of_experience: [...] }`
+          extract(value, fieldName === 'driver' || fieldName === 'user' ? '' : label);
+        } else {
+          messages.push(`${label.charAt(0).toUpperCase() + label.slice(1)}: ${value}`);
+        }
+      });
+    };
+    
+    extract(errObj.details);
+    if (messages.length > 0) return messages.join(' | ');
+  }
+
+  // Fallback to top-level message
+  return errObj.message || data.message || error.message || 'An unexpected error occurred.';
+};
+

@@ -44,8 +44,12 @@ export const useSalaryStructures = (params = {}) => {
     queryKey: salaryKeys.list(params),
     queryFn: async () => {
       try {
-        const response = await driverApi.getSalaryStructures(params);
-        return response.data;
+        const response = await driverApi.getSalaryStructures({ ...params, ordering: 'id' });
+        const data = response.data;
+        if (data?.results) {
+          data.results = [...data.results].sort((a, b) => b.id.localeCompare(a.id));
+        }
+        return data;
         // { count, next, previous, results: [...] }
       } catch (error) {
         handleError(error);
@@ -66,8 +70,12 @@ export const useDriverSalaryStructures = (driverId) => {
     queryKey: salaryKeys.byDriver(driverId),
     queryFn: async () => {
       try {
-        const response = await driverApi.getSalaryStructures({ driver: driverId });
-        return response.data;
+        const response = await driverApi.getSalaryStructures({ driver: driverId, ordering: 'id' });
+        const data = response.data;
+        if (data?.results) {
+          data.results = [...data.results].sort((a, b) => b.id.localeCompare(a.id));
+        }
+        return data;
         // { count, next, previous, results: [...] }
       } catch (error) {
         handleError(error);

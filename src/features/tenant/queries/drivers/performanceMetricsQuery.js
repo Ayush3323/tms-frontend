@@ -44,8 +44,12 @@ export const usePerformanceMetrics = (params = {}) => {
     queryKey: performanceKeys.list(params),
     queryFn: async () => {
       try {
-        const response = await driverApi.getPerformanceMetrics(params);
-        return response.data;
+        const response = await driverApi.getPerformanceMetrics({ ...params, ordering: 'id' });
+        const data = response.data;
+        if (data?.results) {
+          data.results = [...data.results].sort((a, b) => b.id.localeCompare(a.id));
+        }
+        return data;
         // { count, next, previous, results: [...] }
       } catch (error) {
         handleError(error);
@@ -67,9 +71,14 @@ export const useDriverPerformanceMetrics = (driverId, params = {}) => {
       try {
         const response = await driverApi.getPerformanceMetrics({
           driver: driverId,
+          ordering: 'id',
           ...params, // period_start, period_end filter bhi pass kar sakte ho
         });
-        return response.data;
+        const data = response.data;
+        if (data?.results) {
+          data.results = [...data.results].sort((a, b) => b.id.localeCompare(a.id));
+        }
+        return data;
         // { count, next, previous, results: [...] }
       } catch (error) {
         handleError(error);

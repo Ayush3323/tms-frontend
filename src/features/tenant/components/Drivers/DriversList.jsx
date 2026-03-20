@@ -25,7 +25,7 @@ import {
   LICENSE_COLORS,
   DRIVER_TYPE_COLORS,
 } from './common/constants';
-import { getDriverName, cleanObject, getExpiryColor } from './common/utils';
+import { getDriverName, cleanObject, getExpiryColor, formatError } from './common/utils';
 
 // ── Constants handled via centralized common/constants.js ─────────────
 
@@ -70,6 +70,7 @@ const AddDriverModal = ({ onClose }) => {
 
   const handleSubmit = () => {
     setError('');
+    const phoneRegex = /^[6-9]\d{9}$/;
 
     // 1. Basic Required Fields
     if (!userForm.first_name || !userForm.last_name) return setError('First and last name are required.');
@@ -85,7 +86,15 @@ const AddDriverModal = ({ onClose }) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(userForm.email)) return setError('Please enter a valid email address.');
 
-    // 4. Age Validation (18+)
+    // 4. Phone Validation (Optional but validate if filled)
+    let p = userForm.phone.replace(/\s+/g, '');
+    if (p) {
+      if (p.startsWith('+91')) p = p.slice(3);
+      if (!phoneRegex.test(p)) return setError("Enter valid 10-digit phone number");
+      p = `+91${p}`;
+    }
+
+    // 5. Age Validation (18+)
     if (userForm.date_of_birth) {
       const birthDate = new Date(userForm.date_of_birth);
       const today = new Date();
@@ -109,11 +118,14 @@ const AddDriverModal = ({ onClose }) => {
     const generatedUsername = `${emailPrefix}_${uniqueSuffix}`.substring(0, 100);
 
     registerDriver.mutate({
-      driver: cleanObject(driverForm),
-      user: cleanObject({ ...userForm, username: generatedUsername }),
+      driver: cleanObject({
+        ...driverForm,
+        years_of_experience: driverForm.years_of_experience === '' ? 0 : parseInt(driverForm.years_of_experience, 10)
+      }),
+      user: cleanObject({ ...userForm, phone: p, username: generatedUsername }),
     }, {
       onSuccess: onClose,
-      onError: (err) => setError(err.message || 'Failed to register driver.'),
+      onError: (err) => setError(formatError(err)),
     });
   };
 
@@ -160,7 +172,7 @@ const AddDriverModal = ({ onClose }) => {
                 </button>
               </div>
             </div>
-            <div><Label>Phone</Label><Input placeholder="+91-9876543210" value={userForm.phone} onChange={setUser('phone')} /></div>
+            <div><Label>Phone</Label><Input placeholder="e.g. 9876543210" value={userForm.phone} onChange={setUser('phone')} /></div>
             <div><Label>Date of Birth</Label><Input type="date" value={userForm.date_of_birth} onChange={setUser('date_of_birth')} /></div>
             <div><Label>Gender</Label>
               <Select value={userForm.gender} onChange={setUser('gender')}>

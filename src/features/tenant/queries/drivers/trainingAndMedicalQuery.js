@@ -56,8 +56,12 @@ export const useTrainingRecords = (params = {}) => {
     queryKey: trainingKeys.list(params),
     queryFn: async () => {
       try {
-        const response = await driverApi.getTrainingRecords(params); // ← fixed
-        return response.data;
+        const response = await driverApi.getTrainingRecords({ ...params, ordering: 'id' }); // ← fixed
+        const data = response.data;
+        if (data?.results) {
+          data.results = [...data.results].sort((a, b) => b.id.localeCompare(a.id));
+        }
+        return data;
         // { count, next, previous, results: [...] }
       } catch (error) {
         handleError(error);
@@ -77,8 +81,12 @@ export const useDriverTrainingRecords = (driverId) => {
     queryKey: trainingKeys.byDriver(driverId),
     queryFn: async () => {
       try {
-        const response = await driverApi.getTrainingRecords({ driver: driverId });
-        return response.data;
+        const response = await driverApi.getTrainingRecords({ driver: driverId, ordering: 'id' });
+        const data = response.data;
+        if (data?.results) {
+          data.results = [...data.results].sort((a, b) => b.id.localeCompare(a.id));
+        }
+        return data;
         // { count, next, previous, results: [...] }
       } catch (error) {
         handleError(error);
@@ -182,8 +190,12 @@ export const useMedicalRecords = (params = {}) => {
     queryKey: medicalKeys.list(params),
     queryFn: async () => {
       try {
-        const response = await driverApi.getMedicalRecords(params);
-        return response.data;
+        const response = await driverApi.getMedicalRecords({ ...params, ordering: 'id' });
+        const data = response.data;
+        if (data?.results) {
+          data.results = [...data.results].sort((a, b) => b.id.localeCompare(a.id));
+        }
+        return data;
         // { count, next, previous, results: [...] }
       } catch (error) {
         handleError(error);
@@ -202,8 +214,12 @@ export const useDriverMedicalRecords = (driverId) => {
     queryKey: medicalKeys.byDriver(driverId),
     queryFn: async () => {
       try {
-        const response = await driverApi.getMedicalRecords({ driver: driverId });
-        return response.data;
+        const response = await driverApi.getMedicalRecords({ driver: driverId, ordering: 'id' });
+        const data = response.data;
+        if (data?.results) {
+          data.results = [...data.results].sort((a, b) => b.id.localeCompare(a.id));
+        }
+        return data;
         // { count, next, previous, results: [...] }
       } catch (error) {
         handleError(error);

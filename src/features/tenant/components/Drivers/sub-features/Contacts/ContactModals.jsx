@@ -5,7 +5,7 @@ import Label from '../../common/Label';
 import Input from '../../common/Input';
 import Select from '../../common/Select';
 import DeleteConfirmDialog from '../../common/DeleteConfirmDialog';
-import { cleanObject } from '../../common/utils';
+import { cleanObject, formatError } from '../../common/utils';
 import {
   useCreateEmergencyContact,
   useUpdateEmergencyContact,
@@ -29,14 +29,32 @@ export const AddContactModal = ({ driverId, onClose }) => {
 
   const handleSubmit = () => {
     setError('');
+    const phoneRegex = /^[6-9]\d{9}$/;
+
     if (!targetDriverId) return setError('Please select a driver.');
     if (!form.contact_name) return setError('Contact name is required.');
     if (!form.relationship) return setError('Relationship is required.');
     if (!form.phone) return setError('Phone number is required.');
 
-    createContact.mutate(cleanObject(form), {
+    let p = form.phone.replace(/\s+/g, '');
+    if (p.startsWith('+91')) p = p.slice(3);
+    if (!phoneRegex.test(p)) return setError("Enter valid 10-digit phone number");
+
+    let ap = form.alternate_phone.replace(/\s+/g, '');
+    if (ap) {
+      if (ap.startsWith('+91')) ap = ap.slice(3);
+      if (!phoneRegex.test(ap)) return setError("Enter valid alternate phone number");
+    }
+
+    const payload = {
+      ...form,
+      phone: `+91${p}`,
+      alternate_phone: ap ? `+91${ap}` : '',
+    };
+
+    createContact.mutate(cleanObject(payload), {
       onSuccess: onClose,
-      onError: (err) => setError(err.message || 'Failed to add contact.'),
+      onError: (err) => setError(formatError(err)),
     });
   };
 
@@ -101,13 +119,31 @@ export const EditContactModal = ({ contact, driverId, onClose }) => {
 
   const handleSubmit = () => {
     setError('');
+    const phoneRegex = /^[6-9]\d{9}$/;
+
     if (!form.contact_name) return setError('Contact name is required.');
     if (!form.relationship) return setError('Relationship is required.');
     if (!form.phone) return setError('Phone number is required.');
 
-    updateContact.mutate(cleanObject(form), {
+    let p = form.phone.replace(/\s+/g, '');
+    if (p.startsWith('+91')) p = p.slice(3);
+    if (!phoneRegex.test(p)) return setError("Enter valid 10-digit phone number");
+
+    let ap = form.alternate_phone.replace(/\s+/g, '');
+    if (ap) {
+      if (ap.startsWith('+91')) ap = ap.slice(3);
+      if (!phoneRegex.test(ap)) return setError("Enter valid alternate phone number");
+    }
+
+    const payload = {
+      ...form,
+      phone: `+91${p}`,
+      alternate_phone: ap ? `+91${ap}` : '',
+    };
+
+    updateContact.mutate(cleanObject(payload), {
       onSuccess: onClose,
-      onError: (err) => setError(err.message || 'Failed to update contact.'),
+      onError: (err) => setError(formatError(err)),
     });
   };
 

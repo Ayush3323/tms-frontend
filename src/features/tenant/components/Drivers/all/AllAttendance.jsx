@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Calendar, Plus, RefreshCw } from 'lucide-react';
 import { useAttendance } from '../../../queries/drivers/incidentsAndAttendance';
 
-import { LoadingState, ErrorState, EmptyState } from '../common/StateFeedback';
+import { LoadingState, ErrorState, EmptyState, PageShimmer } from '../common/StateFeedback';
 import AttendanceTable from '../sub-features/Attendance/AttendanceTable';
 import { AddAttendanceModal, EditAttendanceModal, DeleteAttendanceDialog } from '../sub-features/Attendance/AttendanceModals';
 import DriverSelect from '../common/DriverSelect';
@@ -37,7 +37,7 @@ const AllAttendance = () => {
     });
   };
 
-  if (isLoading && !data) return <div className="p-6"><LoadingState message="Loading all attendance records..." /></div>;
+  if (isLoading && !data) return <PageShimmer columns={3} />;
   if (isError) return <div className="p-6"><ErrorState message="Failed to load attendance" error={error?.message} onRetry={() => refetch()} /></div>;
 
   return (
