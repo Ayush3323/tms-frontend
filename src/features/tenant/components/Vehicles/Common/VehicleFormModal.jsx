@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useVehicle, useUpdateVehicle, useCreateVehicle } from '../../../queries/vehicles/vehicleQuery';
 import { useVehicleTypes } from '../../../queries/vehicles/vehicletypeQuery';
+import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
 import DriverSelect from '../../Drivers/common/DriverSelect';
 
 import {
@@ -37,6 +38,18 @@ export const EMPTY_FORM = {
 
 
 // ──────────────────────────────────────────────────────────────────────
+
+// ─── Driver Display Helper ─────────────────────────────────────────────
+const DriverDisplay = ({ driverId }) => {
+  const lookup = useDriverLookup();
+  const driver = typeof driverId === 'object' ? driverId : lookup[driverId];
+  
+  return (
+    <p className="text-sm font-bold text-[#172B4D]">
+      {driverName(driver ?? driverId)}
+    </p>
+  );
+};
 
 // ─── Detail View ─────────────────────────────────────────────────────────────
 export const VehicleDetailView = ({ data, onClose }) => {
@@ -106,7 +119,7 @@ export const VehicleDetailView = ({ data, onClose }) => {
       <div className="grid grid-cols-2 gap-6">
         <div>
           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Assigned Driver</p>
-          <p className="text-sm font-bold text-[#172B4D]">{driverName(data.assigned_driver)}</p>
+          <DriverDisplay driverId={data.assigned_driver} />
         </div>
       </div>
 
