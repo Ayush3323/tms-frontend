@@ -20,25 +20,21 @@ import {
 const TYPE_OPTIONS = [
   { value: 'PRE_TRIP',  label: 'Pre-Trip' },
   { value: 'POST_TRIP', label: 'Post-Trip' },
-  { value: 'ROUTINE',   label: 'Routine' },
-  { value: 'SAFETY',    label: 'Safety' },
-  { value: 'EMISSION',  label: 'Emission' },
-  { value: 'ANNUAL',    label: 'Annual' },
+  { value: 'PERIODIC',  label: 'Periodic' },
+  { value: 'RANDOM',    label: 'Random' },
 ];
 
 const STATUS_CONFIG = {
-  PASS:    { label: 'Pass',    dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50' },
-  FAIL:    { label: 'Fail',    dot: 'bg-red-500',     text: 'text-red-700',     bg: 'bg-red-50' },
-  PARTIAL: { label: 'Partial', dot: 'bg-orange-400',  text: 'text-orange-700',  bg: 'bg-orange-50' },
+  PASS:        { label: 'Pass',        dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50' },
+  FAIL:        { label: 'Fail',        dot: 'bg-red-500',     text: 'text-red-700',     bg: 'bg-red-50' },
+  CONDITIONAL: { label: 'Conditional', dot: 'bg-orange-400',  text: 'text-orange-700',  bg: 'bg-orange-50' },
 };
 
 const TYPE_COLORS = {
   PRE_TRIP:  'bg-blue-50 text-blue-700 border-blue-200',
   POST_TRIP: 'bg-purple-50 text-purple-700 border-purple-200',
-  ROUTINE:   'bg-gray-100 text-gray-700 border-gray-200',
-  SAFETY:    'bg-orange-50 text-orange-700 border-orange-200',
-  EMISSION:  'bg-teal-50 text-teal-700 border-teal-200',
-  ANNUAL:    'bg-indigo-50 text-indigo-700 border-indigo-200',
+  PERIODIC:  'bg-indigo-50 text-indigo-700 border-indigo-200',
+  RANDOM:    'bg-gray-100 text-gray-700 border-gray-200',
 };
 
 const EMPTY_FORM = {
@@ -110,7 +106,7 @@ const ViewDetail = ({ data, onClose }) => {
   );
 };
 
-const InspectionModal = ({ initial, onClose, isView, vehicleId }) => {
+const InspectionModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => {
   const isEdit = !!initial?.id && !isView;
 
   const resolveVehicleId = () => {
@@ -139,8 +135,16 @@ const InspectionModal = ({ initial, onClose, isView, vehicleId }) => {
   const update = useUpdateVehicleInspection();
   const isPending = create.isPending || update.isPending;
   const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
+  const [errors, setErrors] = useState({});
 
   const handleSubmit = () => {
+    const errs = {};
+    if (form.inspection_date && form.resolved_date && new Date(form.resolved_date) < new Date(form.inspection_date)) {
+      errs.resolved_date = 'Cannot be earlier than inspection date';
+    }
+    if (Object.keys(errs).length > 0) return setErrors(errs);
+    setErrors({});
+
     const clean = {
       ...form,
       defects_found: form.defects_found ? form.defects_found.split(',').map(d => d.trim()).filter(Boolean) : [],
@@ -158,6 +162,7 @@ const InspectionModal = ({ initial, onClose, isView, vehicleId }) => {
       onSubmit={handleSubmit}
       submitting={isPending}
       isView={isView}
+      onDelete={isEdit ? onDeleteRequest : null}
       maxWidth="max-w-2xl"
     >
       <div className="space-y-5">
@@ -211,7 +216,7 @@ const InspectionModal = ({ initial, onClose, isView, vehicleId }) => {
                 <Field label="Resolved By">
                   <Input value={form.resolved_by} onChange={set('resolved_by')} />
                 </Field>
-                <Field label="Resolved Date">
+                <Field label="Resolved Date" error={errors.resolved_date}>
                   <Input type="date" value={form.resolved_date} onChange={set('resolved_date')} />
                 </Field>
               </div>
@@ -370,10 +375,6 @@ const VehicleInspections = ({ vehicleId, isTab }) => {
                           className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all">
                           <Pencil size={12} /> Edit
                         </button>
-                        <button onClick={() => setDeleting(i)} 
-                          className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-all">
-                          <Trash2 size={12} /> Delete
-                        </button>
                       </div>
                     </td>
                   </tr>
@@ -389,6 +390,7 @@ const VehicleInspections = ({ vehicleId, isTab }) => {
           initial={modal.data} 
           onClose={() => setModal(null)} 
           vehicleId={vehicleId}
+          onDeleteRequest={() => { setModal(null); setDeleting(modal.data); }}
         />
       )}
       {viewing && (

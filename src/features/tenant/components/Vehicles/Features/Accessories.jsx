@@ -18,25 +18,21 @@ import {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const TYPE_OPTIONS = [
-  { value: 'DASHCAM', label: 'Dashcam' },
   { value: 'GPS', label: 'GPS Tracker' },
-  { value: 'CAMERA', label: 'Camera' },
-  { value: 'SAFETY', label: 'Safety Equipment' },
-  { value: 'COMFORT', label: 'Comfort' },
+  { value: 'DASHCAM', label: 'Dashcam' },
   { value: 'TOOLBOX', label: 'Toolbox' },
-  { value: 'FIRE_EXT', label: 'Fire Extinguisher' },
-  { value: 'OTHER', label: 'Other' },
+  { value: 'SPARE_TIRE', label: 'Spare Tire' },
+  { value: 'FIRST_AID', label: 'First Aid Kit' },
+  { value: 'FIRE_EXTINGUISHER', label: 'Fire Extinguisher' },
 ];
 
 const TYPE_COLORS = {
-  DASHCAM: 'bg-blue-50 text-blue-700 border-blue-200',
   GPS: 'bg-teal-50 text-teal-700 border-teal-200',
-  CAMERA: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-  SAFETY: 'bg-orange-50 text-orange-700 border-orange-200',
-  COMFORT: 'bg-purple-50 text-purple-700 border-purple-200',
+  DASHCAM: 'bg-blue-50 text-blue-700 border-blue-200',
   TOOLBOX: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-  FIRE_EXT: 'bg-red-50 text-red-700 border-red-200',
-  OTHER: 'bg-gray-100 text-gray-600 border-gray-200',
+  SPARE_TIRE: 'bg-gray-100 text-gray-700 border-gray-200',
+  FIRST_AID: 'bg-purple-50 text-purple-700 border-purple-200',
+  FIRE_EXTINGUISHER: 'bg-red-50 text-red-700 border-red-200',
 };
 
 const STATUS_CONFIG = {
@@ -91,7 +87,7 @@ const ViewDetail = ({ data, onClose }) => (
   </div>
 );
 
-const AccessoryModal = ({ initial, onClose, isView, vehicleId }) => {
+const AccessoryModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => {
   const isEdit = !!initial?.id && !isView;
 
   const resolveVehicleId = () => {
@@ -118,8 +114,16 @@ const AccessoryModal = ({ initial, onClose, isView, vehicleId }) => {
   const update = useUpdateVehicleAccessory();
   const isPending = create.isPending || update.isPending;
   const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
+  const [errors, setErrors] = useState({});
 
   const handleSubmit = () => {
+    const errs = {};
+    if (form.installation_date && form.warranty_expiry && new Date(form.warranty_expiry) <= new Date(form.installation_date)) {
+      errs.warranty_expiry = 'Must be after installation date';
+    }
+    if (Object.keys(errs).length > 0) return setErrors(errs);
+    setErrors({});
+
     const clean = Object.fromEntries(Object.entries(form).map(([k, v]) => [k, v === '' ? null : v]));
     if (isEdit) update.mutate({ id: initial.id, data: clean }, { onSuccess: onClose });
     else create.mutate(clean, { onSuccess: onClose });
@@ -132,6 +136,7 @@ const AccessoryModal = ({ initial, onClose, isView, vehicleId }) => {
       onSubmit={handleSubmit}
       submitting={isPending}
       isView={isView}
+      onDelete={isEdit ? onDeleteRequest : null}
       maxWidth="max-w-2xl"
     >
       <div className="space-y-5">
@@ -171,7 +176,7 @@ const AccessoryModal = ({ initial, onClose, isView, vehicleId }) => {
               <Field label="Installation Date">
                 <Input type="date" value={form.installation_date} onChange={set('installation_date')} />
               </Field>
-              <Field label="Warranty Expiry">
+              <Field label="Warranty Expiry" error={errors.warranty_expiry}>
                 <Input type="date" value={form.warranty_expiry} onChange={set('warranty_expiry')} />
               </Field>
             </div>
@@ -321,9 +326,6 @@ const VehicleAccessories = ({ vehicleId, isTab }) => {
                         <button onClick={() => setModal({ mode: 'edit', data: a })} className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all">
                           <Edit2 size={12} /> Edit
                         </button>
-                        <button onClick={() => setDeleting(a)} className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-all">
-                          <Trash2 size={12} /> Delete
-                        </button>
                       </div>
                     </td>
                   </tr>
@@ -339,6 +341,7 @@ const VehicleAccessories = ({ vehicleId, isTab }) => {
           initial={modal.data}
           onClose={() => setModal(null)}
           vehicleId={vehicleId}
+          onDeleteRequest={() => { setModal(null); setDeleting(modal.data); }}
         />
       )}
       {viewing && (

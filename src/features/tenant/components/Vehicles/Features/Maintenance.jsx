@@ -24,17 +24,17 @@ import {
 
 // ── Constants ─────────────────────────────────────────────────────────
 const MAINTENANCE_TYPES = [
-  'OIL_CHANGE', 'TIRE_ROTATION', 'BRAKE_SERVICE', 'ENGINE_SERVICE',
-  'TRANSMISSION', 'BATTERY', 'INSPECTION', 'GENERAL',
+  'SERVICE', 'INSPECTION', 'REPAIR', 'REPLACEMENT',
 ];
 
-const STATUS_OPTIONS = ['SCHEDULED', 'COMPLETED', 'OVERDUE', 'CANCELLED'];
+const STATUS_OPTIONS = ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'OVERDUE'];
 
 const STATUS_STYLES = {
-  SCHEDULED: { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-200', dot: 'bg-blue-500' },
-  COMPLETED: { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-200', dot: 'bg-emerald-500' },
-  OVERDUE: { bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-200', dot: 'bg-red-500' },
-  CANCELLED: { bg: 'bg-gray-50', text: 'text-gray-500', border: 'border-gray-200', dot: 'bg-gray-400' },
+  SCHEDULED:   { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-200', dot: 'bg-blue-500' },
+  IN_PROGRESS: { bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-200', dot: 'bg-purple-500' },
+  COMPLETED:   { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-200', dot: 'bg-emerald-500' },
+  OVERDUE:     { bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-200', dot: 'bg-red-500' },
+  CANCELLED:   { bg: 'bg-gray-50', text: 'text-gray-500', border: 'border-gray-200', dot: 'bg-gray-400' },
 };
 
 const EMPTY_SCHEDULE = {
@@ -232,8 +232,7 @@ const RecordDetailView = ({ data, onClose }) => {
   );
 };
 
-// ── Schedule Modal ────────────────────────────────────────────────────
-const ScheduleModal = ({ initial, onClose, isView, vehicleId }) => {
+const ScheduleModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => {
   const isEdit = !!initial?.id && !isView;
 
   const resolveVehicleId = () => {
@@ -262,8 +261,16 @@ const ScheduleModal = ({ initial, onClose, isView, vehicleId }) => {
   const update    = useUpdateMaintenanceSchedule();
   const isPending = create.isPending || update.isPending;
   const set       = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
+  const [errors, setErrors] = useState({});
 
   const handleSubmit = () => {
+    const errs = {};
+    if (form.scheduled_date && form.completed_date && new Date(form.completed_date) < new Date(form.scheduled_date)) {
+      errs.completed_date = 'Cannot be earlier than scheduled date';
+    }
+    if (Object.keys(errs).length > 0) return setErrors(errs);
+    setErrors({});
+
     const clean = Object.fromEntries(Object.entries(form).map(([k, v]) => [k, v === '' ? null : v]));
     if (isEdit) update.mutate({ id: initial.id, data: clean }, { onSuccess: onClose });
     else        create.mutate(clean, { onSuccess: onClose });
@@ -276,6 +283,7 @@ const ScheduleModal = ({ initial, onClose, isView, vehicleId }) => {
       onSubmit={handleSubmit}
       submitting={isPending}
       isView={isView}
+      onDelete={isEdit ? onDeleteRequest : null}
       maxWidth="max-w-2xl"
     >
       <div className="space-y-5">
@@ -313,7 +321,7 @@ const ScheduleModal = ({ initial, onClose, isView, vehicleId }) => {
               <Field label="Scheduled Date" required>
                 <Input type="date" value={form.scheduled_date} onChange={set('scheduled_date')} />
               </Field>
-              <Field label="Completed Date">
+              <Field label="Completed Date" error={errors.completed_date}>
                 <Input type="date" value={form.completed_date} onChange={set('completed_date')} />
               </Field>
               <Field label="Next Due Date">
@@ -340,8 +348,7 @@ const ScheduleModal = ({ initial, onClose, isView, vehicleId }) => {
   );
 };
 
-// ── Record Modal ──────────────────────────────────────────────────────
-const RecordModal = ({ initial, onClose, isView, vehicleId }) => {
+const RecordModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => {
   const isEdit = !!initial?.id && !isView;
 
   const resolveVehicleId = () => {
@@ -371,6 +378,7 @@ const RecordModal = ({ initial, onClose, isView, vehicleId }) => {
   const update    = useUpdateMaintenanceRecord();
   const isPending = create.isPending || update.isPending;
   const set       = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
+  const [errors, setErrors] = useState({});
 
   const [newPart, setNewPart] = useState({ part_name: '', quantity: '', cost: '' });
   const addPart = () => {
@@ -381,6 +389,13 @@ const RecordModal = ({ initial, onClose, isView, vehicleId }) => {
   const removePart = (i) => setForm(p => ({ ...p, parts_replaced: p.parts_replaced.filter((_, idx) => idx !== i) }));
 
   const handleSubmit = () => {
+    const errs = {};
+    if (form.service_date && form.next_service_due && new Date(form.next_service_due) <= new Date(form.service_date)) {
+      errs.next_service_due = 'Must be after service date';
+    }
+    if (Object.keys(errs).length > 0) return setErrors(errs);
+    setErrors({});
+
     const clean = Object.fromEntries(Object.entries(form).map(([k, v]) => [k, v === '' ? null : v]));
     if (isEdit) update.mutate({ id: initial.id, data: clean }, { onSuccess: onClose });
     else        create.mutate(clean, { onSuccess: onClose });
@@ -393,6 +408,7 @@ const RecordModal = ({ initial, onClose, isView, vehicleId }) => {
       onSubmit={handleSubmit}
       submitting={isPending}
       isView={isView}
+      onDelete={isEdit ? onDeleteRequest : null}
       maxWidth="max-w-2xl"
     >
       <div className="space-y-5">
@@ -424,7 +440,7 @@ const RecordModal = ({ initial, onClose, isView, vehicleId }) => {
               <Field label="Service Date" required>
                 <Input type="date" value={form.service_date} onChange={set('service_date')} />
               </Field>
-              <Field label="Next Service Due">
+              <Field label="Next Service Due" error={errors.next_service_due}>
                 <Input type="date" value={form.next_service_due} onChange={set('next_service_due')} />
               </Field>
               <Field label="Odometer (km)">
@@ -598,9 +614,6 @@ const SchedulesTab = ({ onEdit, onDelete, onView, vehicleId }) => {
                       <div className="flex items-center gap-2">
                         <button onClick={() => onEdit(row)} className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100">
                           <Pencil size={12} /> Edit
-                        </button>
-                        <button onClick={() => onDelete(row)} className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100">
-                          <Trash2 size={12} /> Delete
                         </button>
                       </div>
                     </td>
@@ -788,10 +801,10 @@ const MaintenanceSchedules = ({ vehicleId, tab: initialTab = 'schedules', isTab 
     <div className={!isTab ? "p-6 space-y-6 bg-[#F8FAFC] min-h-screen" : "space-y-4"}>
 
       {modal && modal.type === 'schedule' && (
-        <ScheduleModal vehicleId={vehicleId} initial={modal.mode === 'add' ? null : modal.data} onClose={() => setModal(null)} />
+        <ScheduleModal vehicleId={vehicleId} initial={modal.mode === 'add' ? null : modal.data} onClose={() => setModal(null)} onDeleteRequest={() => { setModal(null); setDelete({ type: 'schedule', data: modal.data }); }} />
       )}
       {modal && modal.type === 'record' && (
-        <RecordModal vehicleId={vehicleId} initial={modal.mode === 'add' ? null : modal.data} onClose={() => setModal(null)} />
+        <RecordModal vehicleId={vehicleId} initial={modal.mode === 'add' ? null : modal.data} onClose={() => setModal(null)} onDeleteRequest={() => { setModal(null); setDelete({ type: 'record', data: modal.data }); }} />
       )}
 
       {viewTarget && viewTarget.type === 'schedule' && (

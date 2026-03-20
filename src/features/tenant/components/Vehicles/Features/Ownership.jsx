@@ -80,7 +80,7 @@ const ViewDetail = ({ data, onClose }) => (
   </div>
 );
 
-const OwnershipModal = ({ initial, onClose, isView, vehicleId }) => {
+const OwnershipModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => {
   const isEdit = !!initial?.id && !isView;
 
   const resolveVehicleId = () => {
@@ -120,6 +120,7 @@ const OwnershipModal = ({ initial, onClose, isView, vehicleId }) => {
       onSubmit={handleSubmit}
       submitting={isPending}
       isView={isView}
+      onDelete={isEdit ? onDeleteRequest : null}
       maxWidth="max-w-2xl"
     >
       <div className="space-y-5">
@@ -290,9 +291,6 @@ const VehicleOwnership = ({ vehicleId, isTab }) => {
                         <button onClick={() => setModal({ mode: 'edit', data: h })} className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all">
                           <Edit2 size={12} /> Edit
                         </button>
-                        <button onClick={() => setDeleting(h)} className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-all">
-                          <Trash2 size={12} /> Delete
-                        </button>
                       </div>
                     </td>
                   </tr>
@@ -308,6 +306,7 @@ const VehicleOwnership = ({ vehicleId, isTab }) => {
           initial={modal.data} 
           onClose={() => setModal(null)} 
           vehicleId={vehicleId}
+          onDeleteRequest={() => { setModal(null); setDeleting(modal.data); }}
         />
       )}
       {viewing && (
