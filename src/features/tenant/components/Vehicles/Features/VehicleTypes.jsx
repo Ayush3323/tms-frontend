@@ -88,7 +88,7 @@ const TypeDetailView = ({ data, onClose }) => {
   );
 };
 
-const TypeModal = ({ initial, onClose, isView }) => {
+const TypeModal = ({ initial, onClose, isView, onDeleteRequest }) => {
   const [form, setForm] = useState(
     initial ? {
       type_code:                initial.type_code                ?? '',
@@ -121,6 +121,7 @@ const TypeModal = ({ initial, onClose, isView }) => {
       onSubmit={handleSubmit}
       submitting={isPending}
       isView={isView}
+      onDelete={isEdit ? onDeleteRequest : null}
       maxWidth="max-w-md"
     >
       <div className="space-y-4">
@@ -194,7 +195,7 @@ const VehicleTypes = () => {
     <div className="p-6 space-y-6 bg-[#F8FAFC] min-h-screen">
 
       {(modal === 'add' || (modal && modal !== 'add')) && (
-        <TypeModal initial={modal === 'add' ? null : modal} onClose={() => setModal(null)} />
+        <TypeModal initial={modal === 'add' ? null : modal} onClose={() => setModal(null)} onDeleteRequest={() => { setModal(null); setDelete(modal); }} />
       )}
       {viewModal && (
         <TypeModal initial={viewModal} isView onClose={() => setViewModal(null)} />
@@ -333,10 +334,6 @@ const VehicleTypes = () => {
                           <button onClick={() => setModal(t)}
                             className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100">
                             <Pencil size={12} /> Edit
-                          </button>
-                          <button onClick={() => setDelete(t)}
-                            className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100">
-                            <Trash2 size={12} /> Delete
                           </button>
                         </div>
                       </td>

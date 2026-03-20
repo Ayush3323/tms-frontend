@@ -74,7 +74,7 @@ const ViewDetail = ({ data, onClose }) => (
   </div>
 );
 
-const FuelModal = ({ initial, onClose, isView, vehicleId }) => {
+const FuelModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => {
   const isEdit = !!initial?.id && !isView;
 
   const resolveVehicleId = () => {
@@ -128,6 +128,7 @@ const FuelModal = ({ initial, onClose, isView, vehicleId }) => {
       onSubmit={handleSubmit}
       submitting={isPending}
       isView={isView}
+      onDelete={isEdit ? onDeleteRequest : null}
       maxWidth="max-w-2xl"
     >
       <div className="space-y-5">
@@ -304,7 +305,6 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
                       <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={() => setViewing(l)} className="p-2 text-gray-400 hover:text-[#0052CC] hover:bg-white rounded-lg transition-all shadow-sm"><Search size={14} /></button>
                         <button onClick={() => setModal({ mode: 'edit', data: l })} className="p-2 text-gray-400 hover:text-[#0052CC] hover:bg-white rounded-lg transition-all shadow-sm"><Edit2 size={14} /></button>
-                        <button onClick={() => setDeleting(l)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-white rounded-lg transition-all shadow-sm"><Trash2 size={14} /></button>
                       </div>
                     </td>
                   </tr>
@@ -320,6 +320,7 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
           initial={modal.data} 
           onClose={() => setModal(null)} 
           vehicleId={vehicleId}
+          onDeleteRequest={() => { setModal(null); setDeleting(modal.data); }}
         />
       )}
       {viewing && (

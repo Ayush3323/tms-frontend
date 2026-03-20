@@ -140,7 +140,7 @@ const InsuranceDetailView = ({ data, onClose }) => {
 };
 
 // ── Add / Edit Modal ──────────────────────────────────────────────────
-const InsuranceModal = ({ initial, onClose, isView, vehicleId }) => {
+const InsuranceModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => {
   const isEdit = !!initial?.id && !isView;
 
   const resolveVehicleId = () => {
@@ -169,8 +169,16 @@ const InsuranceModal = ({ initial, onClose, isView, vehicleId }) => {
   const update    = useUpdateVehicleInsurance();
   const isPending = create.isPending || update.isPending;
   const set       = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
+  const [errors, setErrors] = useState({});
 
   const handleSubmit = () => {
+    const errs = {};
+    if (form.issue_date && form.expiry_date && new Date(form.expiry_date) <= new Date(form.issue_date)) {
+      errs.expiry_date = 'Must be after issue date';
+    }
+    if (Object.keys(errs).length > 0) return setErrors(errs);
+    setErrors({});
+
     const clean = Object.fromEntries(Object.entries(form).map(([k, v]) => [k, v === '' ? null : v]));
     if (isEdit) update.mutate({ id: initial.id, data: clean }, { onSuccess: onClose });
     else        create.mutate(clean, { onSuccess: onClose });
@@ -184,6 +192,7 @@ const InsuranceModal = ({ initial, onClose, isView, vehicleId }) => {
       submitting={isPending}
       // canSubmit={canSubmit} // Removed as per instructions
       isView={isView}
+      onDelete={isEdit ? onDeleteRequest : null}
     >
       <div className="space-y-4">
         {isView ? (
@@ -234,10 +243,9 @@ const InsuranceModal = ({ initial, onClose, isView, vehicleId }) => {
                 <Label>Issue Date</Label>
                 <Input type="date" value={form.issue_date} onChange={set('issue_date')} />
               </div>
-              <div>
-                <Label>Expiry Date</Label>
+              <Field label="Expiry Date" error={errors.expiry_date}>
                 <Input type="date" value={form.expiry_date} onChange={set('expiry_date')} />
-              </div>
+              </Field>
             </div>
 
             <div>
@@ -293,7 +301,7 @@ const VehicleInsurance = ({ vehicleId, isTab }) => {
     <div className={!isTab ? "p-6 space-y-6 bg-[#F8FAFC] min-h-screen" : "space-y-4"}>
 
       {modal && (
-        <InsuranceModal vehicleId={vehicleId} initial={modal === 'add' ? null : modal} onClose={() => setModal(null)} />
+        <InsuranceModal vehicleId={vehicleId} initial={modal === 'add' ? null : modal} onClose={() => setModal(null)} onDeleteRequest={() => { setModal(null); setDelete(modal); }} />
       )}
       {viewTarget && (
         <InsuranceModal vehicleId={vehicleId} initial={viewTarget} isView onClose={() => setView(null)} />
@@ -503,10 +511,6 @@ const VehicleInsurance = ({ vehicleId, isTab }) => {
                           <button onClick={() => setModal(doc)}
                             className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all">
                             <Pencil size={12} /> Edit
-                          </button>
-                          <button onClick={() => setDelete(doc)}
-                            className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-all">
-                            <Trash2 size={12} /> Delete
                           </button>
                         </div>
                       </td>

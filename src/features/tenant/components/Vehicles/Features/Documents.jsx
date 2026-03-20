@@ -122,7 +122,7 @@ const DocDetailView = ({ data, onClose }) => {
 };
 
 // ── Add / Edit Modal ──────────────────────────────────────────────────
-const DocModal = ({ initial, onClose, isView, vehicleId }) => {
+const DocModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => {
   const isEdit = !!initial?.id && !isView;
 
   // Resolve vehicle id from initial or prop
@@ -149,8 +149,16 @@ const DocModal = ({ initial, onClose, isView, vehicleId }) => {
   const update    = useUpdateVehicleDocument();
   const isPending = create.isPending || update.isPending;
   const set       = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
+  const [errors, setErrors] = useState({});
 
   const handleSubmit = () => {
+    const errs = {};
+    if (form.issue_date && form.expiry_date && new Date(form.expiry_date) <= new Date(form.issue_date)) {
+      errs.expiry_date = 'Must be after issue date';
+    }
+    if (Object.keys(errs).length > 0) return setErrors(errs);
+    setErrors({});
+
     const clean = Object.fromEntries(Object.entries(form).map(([k, v]) => [k, v === '' ? null : v]));
     if (isEdit) update.mutate({ id: initial.id, data: clean }, { onSuccess: onClose });
     else        create.mutate(clean, { onSuccess: onClose });
@@ -163,6 +171,7 @@ const DocModal = ({ initial, onClose, isView, vehicleId }) => {
       onSubmit={handleSubmit}
       submitting={isPending}
       isView={isView}
+      onDelete={isEdit ? onDeleteRequest : null}
     >
       <div className="space-y-4">
         {isView ? (
@@ -190,7 +199,7 @@ const DocModal = ({ initial, onClose, isView, vehicleId }) => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <Field label="Issue Date"><Input type="date" value={form.issue_date} onChange={set('issue_date')} /></Field>
-              <Field label="Expiry Date"><Input type="date" value={form.expiry_date} onChange={set('expiry_date')} /></Field>
+              <Field label="Expiry Date" error={errors.expiry_date}><Input type="date" value={form.expiry_date} onChange={set('expiry_date')} /></Field>
             </div>
             <Field label="Issuing Authority"><Input placeholder="e.g. RTO Mumbai" value={form.issuing_authority} onChange={set('issuing_authority')} /></Field>
             <Field label="Notes">
@@ -232,7 +241,7 @@ const VehicleDocuments = ({ vehicleId, isTab }) => {
     <div className={!isTab ? "p-6 space-y-6 bg-[#F8FAFC] min-h-screen" : "space-y-4"}>
 
       {(modal === 'add' || (modal && modal !== 'add')) && (
-        <DocModal vehicleId={vehicleId} initial={modal === 'add' ? null : modal} onClose={() => setModal(null)} />
+        <DocModal vehicleId={vehicleId} initial={modal === 'add' ? null : modal} onClose={() => setModal(null)} onDeleteRequest={() => { setModal(null); setDelete(modal); }} />
       )}
       {viewTarget && (
         <DocModal vehicleId={vehicleId} initial={viewTarget} isView onClose={() => setView(null)} />
@@ -403,10 +412,6 @@ const VehicleDocuments = ({ vehicleId, isTab }) => {
                           <button onClick={() => setModal(doc)}
                             className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100">
                             <Pencil size={12} /> Edit
-                          </button>
-                          <button onClick={() => setDelete(doc)}
-                            className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100">
-                            <Trash2 size={12} /> Delete
                           </button>
                         </div>
                       </td>

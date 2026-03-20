@@ -36,7 +36,6 @@ const POSITION_COLORS = {
 const STATUS_CONFIG = {
   INSTALLED: { label: 'Installed', dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50' },
   REMOVED:   { label: 'Removed',   dot: 'bg-gray-400',    text: 'text-gray-600',    bg: 'bg-gray-100' },
-  WORN:      { label: 'Worn',      dot: 'bg-orange-400',  text: 'text-orange-700',  bg: 'bg-orange-50' },
   REPLACED:  { label: 'Replaced',  dot: 'bg-red-400',     text: 'text-red-700',     bg: 'bg-red-50' },
 };
 
@@ -97,7 +96,7 @@ const ViewDetail = ({ data, onClose }) => (
   </div>
 );
 
-const TireModal = ({ initial, onClose, isView, vehicleId }) => {
+const TireModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => {
   const isEdit = !!initial?.id && !isView;
 
   const resolveVehicleId = () => {
@@ -127,8 +126,16 @@ const TireModal = ({ initial, onClose, isView, vehicleId }) => {
   const update = useUpdateVehicleTire();
   const isPending = create.isPending || update.isPending;
   const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
+  const [errors, setErrors] = useState({});
 
   const handleSubmit = () => {
+    const errs = {};
+    if (form.installation_date && form.removal_date && new Date(form.removal_date) <= new Date(form.installation_date)) {
+      errs.removal_date = 'Must be after installation date';
+    }
+    if (Object.keys(errs).length > 0) return setErrors(errs);
+    setErrors({});
+
     const clean = Object.fromEntries(Object.entries(form).map(([k, v]) => [k, v === '' ? null : v]));
     if (isEdit) update.mutate({ id: initial.id, data: clean }, { onSuccess: onClose });
     else        create.mutate(clean, { onSuccess: onClose });
@@ -141,6 +148,7 @@ const TireModal = ({ initial, onClose, isView, vehicleId }) => {
       onSubmit={handleSubmit}
       submitting={isPending}
       isView={isView}
+      onDelete={isEdit ? onDeleteRequest : null}
       maxWidth="max-w-2xl"
     >
       <div className="space-y-5">
@@ -379,10 +387,6 @@ const VehicleTires = ({ vehicleId, isTab }) => {
                           className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all">
                           <Pencil size={12} /> Edit
                         </button>
-                        <button onClick={() => setDeleting(t)}
-                          className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-all">
-                          <Trash2 size={12} /> Delete
-                        </button>
                       </div>
                     </td>
                   </tr>
@@ -405,6 +409,7 @@ const VehicleTires = ({ vehicleId, isTab }) => {
           initial={modal.data} 
           onClose={() => setModal(null)} 
           vehicleId={vehicleId}
+          onDeleteRequest={() => { setModal(null); setDeleting(modal.data); }}
         />
       )}
       {viewing && (

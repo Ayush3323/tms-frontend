@@ -162,19 +162,27 @@ export const Textarea = ({ className = '', ...props }) => (
       placeholder:text-gray-300 transition-all ${className}`} />
 );
 
-export const Field = ({ label, required, children, className = '' }) => (
+export const Field = ({ label, required, children, error, className = '' }) => (
   <div className={`flex flex-col gap-1.5 ${className}`}>
     {label && (
       <label className="text-[11px] font-black text-gray-500 uppercase tracking-widest">
         {label}{required && <span className="text-red-400 ml-0.5">*</span>}
       </label>
     )}
-    {children}
+    <div className={error ? "rounded-lg ring-2 ring-red-500 border-red-500 overflow-hidden" : ""}>
+      {children}
+    </div>
+    {error && (
+      <div className="flex items-center gap-1 mt-0.5 text-red-500">
+        <AlertCircle size={12} className="shrink-0" />
+        <span className="text-[11px] font-semibold leading-tight">{error}</span>
+      </div>
+    )}
   </div>
 );
 
 // ── Modal Component ──────────────────────────────────────────────────
-export const Modal = ({ title, onClose, onSubmit, submitting, isView, children, maxWidth = 'max-w-lg' }) => (
+export const Modal = ({ title, onClose, onSubmit, submitting, isView, children, maxWidth = 'max-w-lg', onDelete, isDeleting }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
     <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
     <div className={`relative bg-white rounded-2xl shadow-2xl w-full ${maxWidth} max-h-[90vh] flex flex-col overflow-hidden`}>
@@ -186,15 +194,26 @@ export const Modal = ({ title, onClose, onSubmit, submitting, isView, children, 
       </div>
       <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4 text-left">{children}</div>
       {!isView && (
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/50">
-          <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all">
-            Cancel
-          </button>
-          <button onClick={onSubmit} disabled={submitting}
-            className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-xl hover:bg-[#0043A8] transition-all disabled:opacity-50 shadow-sm shadow-blue-200">
-            {submitting ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-            Save
-          </button>
+        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50/50">
+          <div>
+            {onDelete && (
+                <button type="button" onClick={onDelete} disabled={isDeleting}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-red-600 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 transition-all disabled:opacity-50">
+                  {isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                  Delete
+                </button>
+            )}
+          </div>
+          <div className="flex justify-end gap-3">
+            <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all">
+              Cancel
+            </button>
+            <button onClick={onSubmit} disabled={submitting}
+              className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-xl hover:bg-[#0043A8] transition-all disabled:opacity-50 shadow-sm shadow-blue-200">
+              {submitting ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+              Save
+            </button>
+          </div>
         </div>
       )}
     </div>
