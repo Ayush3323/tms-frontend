@@ -235,7 +235,7 @@ const Vehicles = () => {
           {[
             { val: statusFilter, set: setStatus, opts: ['ACTIVE','MAINTENANCE','RETIRED','SOLD','SCRAPPED'], ph: 'All Status' },
             { val: fuelFilter,   set: setFuel,   opts: ['DIESEL','PETROL','CNG','LPG','ELECTRIC','HYBRID'], ph: 'All Fuel' },
-            { val: ownerFilter,  set: setOwner,  opts: ['OWNED','LEASED'],                                  ph: 'All Ownership' },
+            { val: ownerFilter,  set: setOwner,  opts: ['OWNED','LEASED','RENTED'],                                 ph: 'All Ownership' },
           ].map(({ val, set, opts, ph }) => (
             <div key={ph} className="relative">
               <select value={val} onChange={e => set(e.target.value)}

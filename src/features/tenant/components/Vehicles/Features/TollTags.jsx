@@ -75,7 +75,7 @@ const ViewDetail = ({ data, onClose }) => (
   </div>
 );
 
-const TollTagModal = ({ initial, onClose, isView, vehicleId }) => {
+const TollTagModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => {
   const isEdit = !!initial?.id && !isView;
 
   const resolveVehicleId = () => {
@@ -103,8 +103,16 @@ const TollTagModal = ({ initial, onClose, isView, vehicleId }) => {
   const update = useUpdateVehicleTollTag();
   const isPending = create.isPending || update.isPending;
   const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
+  const [errors, setErrors] = useState({});
 
   const handleSubmit = () => {
+    const errs = {};
+    if (form.issue_date && form.expiry_date && new Date(form.expiry_date) <= new Date(form.issue_date)) {
+      errs.expiry_date = 'Must be after issue date';
+    }
+    if (Object.keys(errs).length > 0) return setErrors(errs);
+    setErrors({});
+
     const clean = Object.fromEntries(Object.entries(form).map(([k, v]) => [k, v === '' ? null : v]));
     if (isEdit) update.mutate({ id: initial.id, data: clean }, { onSuccess: onClose });
     else        create.mutate(clean, { onSuccess: onClose });
@@ -117,6 +125,7 @@ const TollTagModal = ({ initial, onClose, isView, vehicleId }) => {
       onSubmit={handleSubmit}
       submitting={isPending}
       isView={isView}
+      onDelete={isEdit ? onDeleteRequest : null}
       maxWidth="max-w-2xl"
     >
       <div className="space-y-5">
@@ -159,7 +168,7 @@ const TollTagModal = ({ initial, onClose, isView, vehicleId }) => {
               <Field label="Issue Date">
                 <Input type="date" value={form.issue_date} onChange={set('issue_date')} />
               </Field>
-              <Field label="Expiry Date">
+              <Field label="Expiry Date" error={errors.expiry_date}>
                 <Input type="date" value={form.expiry_date} onChange={set('expiry_date')} />
               </Field>
               <div className="col-span-2">
@@ -306,9 +315,6 @@ const VehicleTollTags = ({ vehicleId, isTab }) => {
                         <button onClick={() => setModal({ mode: 'edit', data: t })} className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all">
                           <Edit2 size={12} /> Edit
                         </button>
-                        <button onClick={() => setDeleting(t)} className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-all">
-                          <Trash2 size={12} /> Delete
-                        </button>
                       </div>
                     </td>
                   </tr>
@@ -324,6 +330,7 @@ const VehicleTollTags = ({ vehicleId, isTab }) => {
           initial={modal.data} 
           onClose={() => setModal(null)} 
           vehicleId={vehicleId}
+          onDeleteRequest={() => { setModal(null); setDeleting(modal.data); }}
         />
       )}
       {viewing && (
