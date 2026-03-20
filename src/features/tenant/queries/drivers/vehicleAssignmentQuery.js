@@ -82,8 +82,12 @@ export const useVehicleAssignments = (params = {}) => {
     queryKey: vehicleAssignmentKeys.list(params),
     queryFn: async () => {
       try {
-        const response = await driverApi.getVehicleAssignments(params);
-        return response.data;
+        const response = await driverApi.getVehicleAssignments({ ...params, ordering: 'id' });
+        const data = response.data;
+        if (data?.results) {
+          data.results = [...data.results].sort((a, b) => b.id.localeCompare(a.id));
+        }
+        return data;
       } catch (error) {
         handleError(error);
       }
@@ -101,8 +105,12 @@ export const useDriverVehicleAssignments = (driverId) => {
     queryKey: vehicleAssignmentKeys.byDriver(driverId),
     queryFn: async () => {
       try {
-        const response = await driverApi.getVehicleAssignments({ driver: driverId });
-        return response.data;
+        const response = await driverApi.getVehicleAssignments({ driver: driverId, ordering: 'id' });
+        const data = response.data;
+        if (data?.results) {
+          data.results = [...data.results].sort((a, b) => b.id.localeCompare(a.id));
+        }
+        return data;
       } catch (error) {
         handleError(error);
       }

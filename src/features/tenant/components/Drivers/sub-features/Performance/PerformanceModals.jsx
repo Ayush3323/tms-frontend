@@ -62,6 +62,7 @@ export const AddPerformanceModal = ({ driverId, onClose }) => {
     
     if (form.trips_completed !== '' && Number(form.trips_completed) < 0) return 'trips_completed cannot be negative.';
     if (form.distance_covered !== '' && Number(form.distance_covered) < 0) return 'distance_covered cannot be negative.';
+    if (form.fuel_efficiency !== '' && Number(form.fuel_efficiency) < 0) return 'fuel_efficiency cannot be negative.';
     
     if (form.on_time_delivery_rate !== '') {
       const deliveryRate = Number(form.on_time_delivery_rate);
@@ -144,6 +145,7 @@ export const EditPerformanceModal = ({ metric, driverId, onClose }) => {
     
     if (form.trips_completed !== '' && Number(form.trips_completed) < 0) return 'trips_completed cannot be negative.';
     if (form.distance_covered !== '' && Number(form.distance_covered) < 0) return 'distance_covered cannot be negative.';
+    if (form.fuel_efficiency !== '' && Number(form.fuel_efficiency) < 0) return 'fuel_efficiency cannot be negative.';
     
     if (form.on_time_delivery_rate !== '') {
       const deliveryRate = Number(form.on_time_delivery_rate);

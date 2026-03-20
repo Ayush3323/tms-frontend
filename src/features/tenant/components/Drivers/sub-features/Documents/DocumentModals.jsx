@@ -5,7 +5,7 @@ import Label from '../../common/Label';
 import Input from '../../common/Input';
 import Select from '../../common/Select';
 import DeleteConfirmDialog from '../../common/DeleteConfirmDialog';
-import { cleanObject } from '../../common/utils';
+import { cleanObject, formatError } from '../../common/utils';
 import {
   useCreateDriverDocument,
   useUpdateDriverDocument,
@@ -17,7 +17,7 @@ import DriverSelect from '../../common/DriverSelect';
 import { DOCUMENT_TYPES, VERIFICATION_STATUS as VERIFICATION_LIST } from '../../common/constants';
 
 // Shared Form Fields for Documents
-const DocumentFormFields = ({ form, setForm, error, userMap = {}, onStatusChange }) => {
+const DocumentFormFields = ({ form, setForm, error, userMap = {}, onStatusChange, currentUser, isLoadingUsers }) => {
   const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
   
   const handleStatusChange = (e) => {
@@ -48,29 +48,40 @@ const DocumentFormFields = ({ form, setForm, error, userMap = {}, onStatusChange
         <div><Label>Expiry Date</Label><Input type="date" value={form.expiry_date} onChange={set('expiry_date')} /></div>
         <div><Label>Issuing Authority</Label><Input placeholder="e.g. UIDAI" value={form.issuing_authority} onChange={set('issuing_authority')} /></div>
         <div>
-          <Label required>Verification Status</Label>
+          <Label>Verification Status</Label>
           <Select value={form.verification_status} onChange={handleStatusChange}>
             {VERIFICATION_LIST.map(s => <option key={s} value={s}>{s}</option>)}
           </Select>
         </div>
       </div>
 
-      {form.verified_by && (
+      {form.verification_status === 'VERIFIED' && form.verified_by && (
         <div className="grid grid-cols-2 gap-4 p-3 bg-blue-50/50 border border-blue-100 rounded-lg">
           <div className="space-y-1">
             <span className="text-[10px] font-bold text-blue-400 uppercase tracking-tight flex items-center gap-1">
               <User size={10} /> Verified By
             </span>
-            <div className="text-[12px] font-semibold text-blue-700">
-              {userMap[form.verified_by]?.name || form.verified_by || 'System User'}
+            <div className="text-[12px] font-semibold text-blue-700 min-h-[16px]">
+              {isLoadingUsers && !userMap[form.verified_by] ? (
+                <div className="h-3 bg-blue-200/50 rounded animate-pulse w-24 mt-0.5" />
+              ) : (
+                userMap[form.verified_by]?.name || 
+                (form.verified_by === currentUser?.id ? `${currentUser?.first_name || ''} ${currentUser?.last_name || ''}`.trim() || currentUser?.username : null) || 
+                form.verified_by || 
+                'System User'
+              )}
             </div>
           </div>
           <div className="space-y-1">
             <span className="text-[10px] font-bold text-blue-400 uppercase tracking-tight flex items-center gap-1">
               <Clock size={10} /> Verified At
             </span>
-            <div className="text-[12px] font-semibold text-blue-700">
-              {form.verified_at ? new Date(form.verified_at).toLocaleString() : '—'}
+            <div className="text-[12px] font-semibold text-blue-700 min-h-[16px]">
+              {isLoadingUsers && !form.verified_at ? (
+                <div className="h-3 bg-blue-200/50 rounded animate-pulse w-32 mt-0.5" />
+              ) : (
+                form.verified_at ? new Date(form.verified_at).toLocaleString() : '—'
+              )}
             </div>
           </div>
         </div>
@@ -141,7 +152,7 @@ export const AddDocumentModal = ({ driverId, onClose }) => {
 
     createDocument.mutate(payload, {
       onSuccess: onClose,
-      onError: (err) => setError(err.message || 'Failed to add document.'),
+      onError: (err) => setError(formatError(err)),
     });
   };
 
@@ -167,13 +178,13 @@ export const AddDocumentModal = ({ driverId, onClose }) => {
             <DriverSelect value={targetDriverId} onChange={setTargetDriverId} />
           </div>
         )}
-        <DocumentFormFields form={form} setForm={setForm} error={error} onStatusChange={handleStatusChange} />
+        <DocumentFormFields form={form} setForm={setForm} error={error} onStatusChange={handleStatusChange} currentUser={currentUser} />
       </div>
     </ModalWrapper>
   );
 };
 
-export const EditDocumentModal = ({ doc, driverId, onClose, userMap = {} }) => {
+export const EditDocumentModal = ({ doc, driverId, onClose, userMap = {}, isLoadingUsers }) => {
   const { data: currentUser } = useCurrentUser();
   const [form, setForm] = useState({
     document_type: doc.document_type ?? '',
@@ -225,7 +236,7 @@ export const EditDocumentModal = ({ doc, driverId, onClose, userMap = {} }) => {
 
     updateDocument.mutate(payload, {
       onSuccess: onClose,
-      onError: (err) => setError(err.message || 'Failed to update document.'),
+      onError: (err) => setError(formatError(err)),
     });
   };
 
@@ -261,7 +272,15 @@ export const EditDocumentModal = ({ doc, driverId, onClose, userMap = {} }) => {
           isDeleting={deleteDocument.isPending}
         />
       )}
-      <DocumentFormFields form={form} setForm={setForm} error={error} userMap={userMap} onStatusChange={handleStatusChange} />
+      <DocumentFormFields 
+        form={form} 
+        setForm={setForm} 
+        error={error} 
+        userMap={userMap} 
+        onStatusChange={handleStatusChange} 
+        currentUser={currentUser}
+        isLoadingUsers={isLoadingUsers}
+      />
     </ModalWrapper>
   );
 };

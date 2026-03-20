@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Users, Plus, RefreshCw } from 'lucide-react';
 import { useEmergencyContacts } from '../../../queries/drivers/driverContactQuery';
 import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
-import { LoadingState, ErrorState, EmptyState } from '../common/StateFeedback';
+import { LoadingState, ErrorState, EmptyState, PageShimmer } from '../common/StateFeedback';
 import ContactTable from '../sub-features/Contacts/ContactTable';
 import { AddContactModal, EditContactModal, DeleteContactDialog } from '../sub-features/Contacts/ContactModals';
 import DriverSelect from '../common/DriverSelect';
@@ -31,7 +31,7 @@ const AllContacts = () => {
     });
   };
 
-  if (isLoading && !data) return <div className="p-6"><LoadingState message="Loading all emergency contacts..." /></div>;
+  if (isLoading && !data) return <PageShimmer columns={2} />;
   if (isError)   return <div className="p-6"><ErrorState message="Failed to load contacts" error={error?.message} onRetry={() => refetch()} /></div>;
 
   return (

@@ -44,8 +44,12 @@ export const useEmergencyContacts = (params = {}) => {
     queryKey: contactKeys.list(params),
     queryFn: async () => {
       try {
-        const response = await driverApi.getEmergencyContacts(params);
-        return response.data;
+        const response = await driverApi.getEmergencyContacts({ ...params, ordering: 'id' });
+        const data = response.data;
+        if (data?.results) {
+          data.results = [...data.results].sort((a, b) => b.id.localeCompare(a.id));
+        }
+        return data;
         // { count, next, previous, results: [...] }
       } catch (error) {
         handleError(error);
@@ -65,8 +69,12 @@ export const useDriverContacts = (driverId) => {
     queryKey: contactKeys.byDriver(driverId),
     queryFn: async () => {
       try {
-        const response = await driverApi.getEmergencyContacts({ driver: driverId });
-        return response.data;
+        const response = await driverApi.getEmergencyContacts({ driver: driverId, ordering: 'id' });
+        const data = response.data;
+        if (data?.results) {
+          data.results = [...data.results].sort((a, b) => b.id.localeCompare(a.id));
+        }
+        return data;
         // { count, next, previous, results: [...] }
       } catch (error) {
         handleError(error);

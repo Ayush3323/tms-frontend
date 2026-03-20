@@ -5,7 +5,7 @@ import Label from '../../common/Label';
 import Input from '../../common/Input';
 import Select from '../../common/Select';
 import DeleteConfirmDialog from '../../common/DeleteConfirmDialog';
-import { cleanObject } from '../../common/utils';
+import { cleanObject, formatError } from '../../common/utils';
 import {
   useCreateVehicleAssignment,
   useUpdateVehicleAssignment,
@@ -42,6 +42,7 @@ export const AddAssignmentModal = ({ driverId, onClose }) => {
   const [form, setForm] = useState({
     vehicle: '',
     assigned_date: '',
+    unassigned_date: '',
     assignment_type: 'PERMANENT',
     is_active: true,
     assigned_by: '',
@@ -69,9 +70,13 @@ export const AddAssignmentModal = ({ driverId, onClose }) => {
     if (!form.vehicle) return setError('Vehicle is required.');
     if (!form.assigned_date) return setError('Assigned date is required.');
 
+    if (form.unassigned_date && form.unassigned_date < form.assigned_date) {
+      return setError('Unassigned date cannot be before assigned date.');
+    }
+
     createAssignment.mutate(cleanObject(form), {
       onSuccess: onClose,
-      onError: (err) => setError(err.message || 'Failed to add assignment.'),
+      onError: (err) => setError(formatError(err)),
     });
   };
 
@@ -106,6 +111,9 @@ export const AddAssignmentModal = ({ driverId, onClose }) => {
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div><Label required>assigned_date</Label><Input type="date" value={form.assigned_date} onChange={set('assigned_date')} /></div>
+          <div><Label>unassigned_date</Label><Input type="date" value={form.unassigned_date} onChange={set('unassigned_date')} /></div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
           <div><Label>assignment_type</Label>
             <Select value={form.assignment_type} onChange={set('assignment_type')}>
               {ASSIGNMENT_TYPES.map(t => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
@@ -180,7 +188,7 @@ export const EditAssignmentModal = ({ assignment, driverId, onClose }) => {
     );
     updateAssignment.mutate(clean, {
       onSuccess: onClose,
-      onError: (err) => setError(err.message || 'Failed to update assignment.'),
+      onError: (err) => setError(formatError(err)),
     });
   };
 
