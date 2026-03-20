@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
+import { resolveTenantContext } from "./features/tenant/context/tenantContext";
 
 const AdminRoutes = lazy(() => import("./app/router/Router"));
 const TenantRoutes = lazy(() => import("./features/tenant/Router/Routing"));
@@ -12,6 +13,14 @@ const PageLoader = () => (
 );
 
 function App() {
+  useEffect(() => {
+    if (window.location.pathname.startsWith("/tenant")) {
+      resolveTenantContext().catch(() => {
+        // Tenant routes handle unresolved/error state in UI.
+      });
+    }
+  }, []);
+
   return (
     <BrowserRouter>
       <Toaster position="top-center" />

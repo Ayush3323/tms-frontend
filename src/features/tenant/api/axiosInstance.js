@@ -1,21 +1,13 @@
 import axios from "axios";
-import {refreshEndpoint} from "./loginEndpoint";
+import { API_BASE_URL } from "../../../config/apiConfig";
+import { ensureTenantContext } from "../context/tenantContext";
 
 const axiosInstance = axios.create({
-    baseURL: "http://192.168.1.34",
+    baseURL: API_BASE_URL,
     headers: {
         "Content-Type": "application/json",
-        "X-Tenant-ID": "3fcf7c96-a1b6-48b8-b5c3-52c8e5c210fd",
     },
 });
-
-// const axiosInstance = axios.create({
-//     baseURL: "http://192.168.1.36",
-//     headers: {
-//         "Content-Type": "application/json",
-//         "X-Tenant-ID": "a5d6ca21-8eff-4986-afb4-f536e6431bce",
-//     },
-// });
 
 const ACCESS_TOKEN_KEY = "token";
 const REFRESH_TOKEN_KEY = "refresh_token";
@@ -57,7 +49,14 @@ let refreshPromise = null;
 
 
 // Request interceptor to attach access token
-axiosInstance.interceptors.request.use((config) => {
+axiosInstance.interceptors.request.use(async (config) => {
+    const tenant = await ensureTenantContext();
+    if (!tenant?.id) {
+        throw new Error("Tenant context is not resolved.");
+    }
+
+    config.headers["X-Tenant-ID"] = tenant.id;
+
     const token = getAccessToken();
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
@@ -85,6 +84,7 @@ axiosInstance.interceptors.response.use(
 
                 // Single-flight refresh: if multiple requests 401 together, only refresh once.
                 if (!refreshPromise) {
+                    const tenant = await ensureTenantContext();
                     refreshPromise = axios
                         .post(
                             `${axiosInstance.defaults.baseURL}/api/v1/auth/refresh/`,
@@ -92,7 +92,7 @@ axiosInstance.interceptors.response.use(
                             {
                                 headers: {
                                     "Content-Type": "application/json",
-                                    "X-Tenant-ID": axiosInstance.defaults.headers["X-Tenant-ID"],
+                                    "X-Tenant-ID": tenant?.id,
                                 },
                             }
                         )

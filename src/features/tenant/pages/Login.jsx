@@ -2,12 +2,18 @@ import React, { useEffect, useState } from 'react';
 import { useLogin } from '../queries/loginQuery';
 import { useNavigate } from 'react-router-dom';
 import banner from '../../../assets/banner.avif';
+import {
+  getTenantContext,
+  resolveTenantContext,
+  subscribeTenantContext,
+} from '../context/tenantContext';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
+  const [tenantState, setTenantState] = useState(getTenantContext());
   const navigate = useNavigate();
 
   const { mutate: login, isPending, isError, error } = useLogin();
@@ -17,10 +23,17 @@ const Login = () => {
     if (remembered) setEmail(remembered);
     const pref = localStorage.getItem("auth_storage");
     if (pref === "session") setRememberMe(false);
+
+    const unsub = subscribeTenantContext((next) => setTenantState(next));
+    resolveTenantContext().catch(() => {
+      // handled via tenantState error UI
+    });
+    return unsub;
   }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!tenantState?.data?.id) return;
     login(
       { email, password, rememberMe },
       {
@@ -31,6 +44,9 @@ const Login = () => {
     );
   };
 
+  const companyName = tenantState?.data?.trading_name || tenantState?.data?.company_name || "Tenant";
+  const logoLetter = companyName?.charAt(0)?.toUpperCase() || "T";
+
   return (
     <div className="min-h-screen bg-[#F4F5F7] flex items-center justify-center p-4">
       <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-10 items-stretch">
@@ -40,9 +56,9 @@ const Login = () => {
           <div className="w-full max-w-md mx-auto bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
             <div className="mb-8">
               <div className="w-12 h-12 rounded-xl bg-violet-600 flex items-center justify-center text-white font-bold text-xl">
-                A
+                {logoLetter}
               </div>
-              <h2 className="text-gray-500 text-xs font-semibold tracking-widest uppercase mt-6">Alpha Transport</h2>
+              <h2 className="text-gray-500 text-xs font-semibold tracking-widest uppercase mt-6">{companyName}</h2>
               <h1 className="text-gray-900 text-2xl font-bold mt-2">Tenant Login</h1>
               <p className="text-gray-500 text-sm mt-2">Sign in to manage your fleet.</p>
             </div>
@@ -104,6 +120,18 @@ const Login = () => {
               </label>
             </div>
 
+            {tenantState?.status === "loading" && (
+              <div className="text-sm text-blue-600 bg-blue-50 border border-blue-200 rounded-md px-3 py-2">
+                Resolving tenant from domain...
+              </div>
+            )}
+
+            {tenantState?.status === "error" && (
+              <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+                Unable to resolve tenant for this domain. Use a valid tenant domain or set <code>tenant_domain</code> query param locally.
+              </div>
+            )}
+
             {/* Error Message */}
             {isError && (
               <div className="text-red-500 text-sm mt-2">
@@ -114,9 +142,9 @@ const Login = () => {
             {/* Login Button */}
             <button
               type="submit"
-              disabled={isPending}
+              disabled={isPending || tenantState?.status === "loading" || !tenantState?.data?.id}
               className={`w-full py-3 rounded-lg text-white font-semibold text-base transition-all duration-200
-                ${isPending
+                ${isPending || tenantState?.status === "loading" || !tenantState?.data?.id
                   ? 'bg-violet-300 cursor-not-allowed'
                   : 'bg-violet-600 hover:bg-violet-700 active:scale-[0.98]'
                 }`}

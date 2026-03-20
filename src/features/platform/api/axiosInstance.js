@@ -1,8 +1,8 @@
 import axios from "axios";
-import {refreshEndpoint} from "./loginEndpoint";
+import { API_BASE_URL } from "../../../config/apiConfig";
 
 const axiosInstance = axios.create({
-    baseURL: "http://192.168.1.34",
+    baseURL: API_BASE_URL,
     headers: {
         "Content-Type": "application/json",
     },
