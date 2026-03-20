@@ -15,6 +15,7 @@ import {
 import { 
   StatCard, FUEL_COLORS, STATUS_STYLES, OWNERSHIP_COLORS, fmtKm 
 } from '../Common/VehicleCommon';
+import { TableShimmer, CardShimmer, ErrorState } from '../Common/StateFeedback';
 
 // ── Edit Button with full data fetch ─────────────────────────────────
 const EditVehicleButton = ({ vehicleId, onEdit }) => {
@@ -205,10 +206,16 @@ const Vehicles = () => {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-4 gap-4">
-        <StatCard loading={isLoading} label="Total"          value={total}       icon={Truck}       color={{ value: 'text-[#172B4D]', iconBg: 'bg-blue-50',   iconText: 'text-blue-500' }} />
-        <StatCard loading={isLoading} label="Active"         value={active}      icon={CheckCircle} color={{ value: 'text-green-600',  iconBg: 'bg-green-50',  iconText: 'text-green-500' }} />
-        <StatCard loading={isLoading} label="Maintenance"    value={maintenance} icon={Wrench}      color={{ value: 'text-orange-500', iconBg: 'bg-orange-50', iconText: 'text-orange-500' }} />
-        <StatCard loading={isLoading} label="Retired / Sold" value={retired}     icon={ArchiveX}    color={{ value: 'text-red-500',    iconBg: 'bg-red-50',    iconText: 'text-red-400' }} />
+        {isLoading ? (
+          <CardShimmer count={4} />
+        ) : (
+          <>
+            <StatCard loading={isLoading} label="Total"          value={total}       icon={Truck}       color={{ value: 'text-[#172B4D]', iconBg: 'bg-blue-50',   iconText: 'text-blue-500' }} />
+            <StatCard loading={isLoading} label="Active"         value={active}      icon={CheckCircle} color={{ value: 'text-green-600',  iconBg: 'bg-green-50',  iconText: 'text-green-500' }} />
+            <StatCard loading={isLoading} label="Maintenance"    value={maintenance} icon={Wrench}      color={{ value: 'text-orange-500', iconBg: 'bg-orange-50', iconText: 'text-orange-500' }} />
+            <StatCard loading={isLoading} label="Retired / Sold" value={retired}     icon={ArchiveX}    color={{ value: 'text-red-500',    iconBg: 'bg-red-50',    iconText: 'text-red-400' }} />
+          </>
+        )}
       </div>
 
       {/* Table Card */}
@@ -253,19 +260,17 @@ const Vehicles = () => {
         </div>
 
         {isLoading && (
-          <div className="flex items-center justify-center py-16 gap-3 text-gray-400">
-            <Loader2 size={20} className="animate-spin text-[#0052CC]" />
-            <span className="text-sm">Loading vehicles...</span>
+          <div className="p-4">
+            <TableShimmer rows={8} cols={COLUMNS.length} />
           </div>
         )}
 
         {isError && (
-          <div className="flex flex-col items-center justify-center py-16 gap-3 text-red-400">
-            <AlertCircle size={32} />
-            <p className="text-sm font-medium">Failed to load vehicles</p>
-            <p className="text-xs text-gray-400">{error?.response?.data?.detail || error?.message}</p>
-            <button onClick={() => refetch()} className="px-4 py-2 text-sm font-semibold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8]">Try Again</button>
-          </div>
+          <ErrorState 
+            message="Failed to load vehicles" 
+            error={error?.response?.data?.detail || error?.message} 
+            onRetry={() => refetch()} 
+          />
         )}
 
         {!isLoading && !isError && (

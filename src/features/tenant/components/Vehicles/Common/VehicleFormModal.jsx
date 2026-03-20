@@ -10,7 +10,7 @@ import { useVehicleTypes } from '../../../queries/vehicles/vehicletypeQuery';
 import DriverSelect from '../../Drivers/common/DriverSelect';
 
 import {
-  Label, Input, Sel, Section, Modal, VehicleTypeSelect,
+  Label, Input, Sel, Section, Modal, VehicleTypeSelect, Field,
   FUEL_COLORS, STATUS_STYLES, OWNERSHIP_COLORS, driverName
 } from './VehicleCommon';
 
@@ -137,26 +137,42 @@ export const VehicleFormModal = ({ initial, onClose, isView }) => {
       color: initial.color ?? '',
       purchase_date: initial.purchase_date ?? '',
       purchase_price: initial.purchase_price != null ? String(parseFloat(initial.purchase_price)) : '',
-      ownership_type: initial.ownership_type ?? '',
-      current_odometer: initial.current_odometer != null ? String(parseFloat(initial.current_odometer)) : '0',
-      status: initial.status ?? 'ACTIVE',
-      assigned_driver: initial.assigned_driver?.id ?? initial.assigned_driver ?? '',
+      ownership_type:                initial.ownership_type                               ?? '',
+      current_odometer:              initial.current_odometer != null ? String(parseFloat(initial.current_odometer)) : '0',
+      status:                        initial.status                                       ?? 'ACTIVE',
+      assigned_driver:               initial.assigned_driver?.id ?? initial.assigned_driver ?? '',
     } : EMPTY_FORM
   );
 
+  const [errors, setErrors] = useState({});
   const createVehicle = useCreateVehicle();
   const updateVehicle = useUpdateVehicle();
   const isPending = createVehicle.isPending || updateVehicle.isPending;
-  const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
+  const set = (f) => (e) => {
+    setForm(p => ({ ...p, [f]: e.target.value }));
+    if (errors[f]) setErrors(p => ({ ...p, [f]: null }));
+  };
 
   const handleSubmit = () => {
     const clean = Object.fromEntries(
       Object.entries(form).map(([k, v]) => [k, v === '' ? null : v])
     );
+
+    const onSuccess = () => {
+      setErrors({});
+      onClose();
+    };
+
+    const onError = (error) => {
+      if (error.response?.status === 400 && typeof error.response.data === 'object') {
+        setErrors(error.response.data);
+      }
+    };
+
     if (isEdit) {
-      updateVehicle.mutate({ id: initial.id, data: clean }, { onSuccess: onClose });
+      updateVehicle.mutate({ id: initial.id, data: clean }, { onSuccess, onError });
     } else {
-      createVehicle.mutate(clean, { onSuccess: onClose });
+      createVehicle.mutate(clean, { onSuccess, onError });
     }
   };
 
@@ -178,8 +194,12 @@ export const VehicleFormModal = ({ initial, onClose, isView }) => {
           <>
             <Section title="Vehicle Identity" />
             <div className="grid grid-cols-2 gap-4">
-              <div><Label required>Registration Number</Label><Input placeholder="e.g. MH12CD5678" value={form.registration_number} onChange={set('registration_number')} /></div>
-              <div><Label>VIN (Chassis / VIN)</Label><Input placeholder="e.g. 1HGBH41JXMN109187" value={form.vehicle_identification_number} onChange={set('vehicle_identification_number')} /></div>
+              <Field label="Registration Number" required error={errors.registration_number}>
+                <Input placeholder="e.g. MH12CD5678" value={form.registration_number} onChange={set('registration_number')} />
+              </Field>
+              <Field label="VIN (Chassis / VIN)" error={errors.vehicle_identification_number}>
+                <Input placeholder="e.g. 1HGBH41JXMN109187" value={form.vehicle_identification_number} onChange={set('vehicle_identification_number')} />
+              </Field>
             </div>
 
             <Section title="Make & Model" />
@@ -231,7 +251,14 @@ export const VehicleFormModal = ({ initial, onClose, isView }) => {
               <div><Label>Purchase Price (₹)</Label><Input type="number" placeholder="e.g. 1800000" value={form.purchase_price} onChange={set('purchase_price')} /></div>
               <div className="col-span-2">
                 <Label>Assigned Driver</Label>
-                <DriverSelect value={form.assigned_driver} onChange={(val) => setForm(p => ({ ...p, assigned_driver: val }))} />
+                <DriverSelect 
+                  value={form.assigned_driver} 
+                  onChange={(val) => {
+                    setForm(p => ({ ...p, assigned_driver: val }));
+                    if (errors.assigned_driver) setErrors(p => ({ ...p, assigned_driver: null }));
+                  }} 
+                  currentVehicleId={initial?.id}
+                />
               </div>
             </div>
           </>

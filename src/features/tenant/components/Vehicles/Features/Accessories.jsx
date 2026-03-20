@@ -15,6 +15,7 @@ import {
   Label, Input, Sel, Field, StatCard, Textarea, VehicleSelect,
   fmtDate, fmtINR, fmtKm
 } from '../Common/VehicleCommon';
+import { TabContentShimmer, ErrorState } from '../Common/StateFeedback';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const TYPE_OPTIONS = [
@@ -199,7 +200,7 @@ const VehicleAccessories = ({ vehicleId, isTab }) => {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
 
-  const { data, isLoading } = useVehicleAccessories({
+  const { data, isLoading, isError, error, refetch } = useVehicleAccessories({
     ...(search && { search }),
     ...(typeFilter && { accessory_type: typeFilter }),
     ...(vehicleId && { vehicle: vehicleId }),
@@ -263,7 +264,9 @@ const VehicleAccessories = ({ vehicleId, isTab }) => {
 
         <div className="flex-1 overflow-auto">
           {isLoading ? (
-            <div className="flex items-center justify-center h-64"><Loader2 className="animate-spin text-[#0052CC]" /></div>
+            <TabContentShimmer />
+          ) : isError ? (
+            <ErrorState message="Failed to load accessories" error={error?.message} onRetry={() => refetch()} />
           ) : !accessories.length ? (
             <EmptyState icon={Package} text="No equipment found" onAdd={() => setModal({ mode: 'add' })} />
           ) : (

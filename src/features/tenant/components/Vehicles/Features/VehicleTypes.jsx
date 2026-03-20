@@ -11,10 +11,11 @@ import {
   useUpdateVehicleType,
   useDeleteVehicleType,
 } from '../../../queries/vehicles/vehicletypeQuery';
-import { 
-  Badge, InfoCard, SectionHeader, EmptyState, Modal, DeleteConfirm, ItemActions,
-  Label, Input, Sel, Section, Field, StatCard, Textarea
+import {
+  StatCard, Badge, EmptyState, Modal, DeleteConfirm, ItemActions,
+  Label, Input, Sel, Field, Section, Textarea, VehicleSelect
 } from '../Common/VehicleCommon';
+import { TableShimmer, CardShimmer, ErrorState } from '../Common/StateFeedback';
 
 const CATEGORIES = ['Truck', 'LCV', 'HCV', 'Pickup', 'Tanker', 'Bus', 'Trailer', 'Container', 'Other'];
 
@@ -115,7 +116,7 @@ const TypeModal = ({ initial, onClose, isView, onDeleteRequest }) => {
   };
 
   return (
-    <Modal 
+    <Modal
       title={isView ? 'Type Details' : isEdit ? 'Edit Vehicle Type' : 'Add Vehicle Type'}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -226,10 +227,16 @@ const VehicleTypes = () => {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-4 gap-4">
-        <StatCard loading={isLoading} label="Total Types" value={total}    icon={Truck}       color="blue" />
-        <StatCard loading={isLoading} label="Active"      value={active}   icon={ToggleRight} color="green" />
-        <StatCard loading={isLoading} label="Inactive"    value={inactive} icon={ToggleLeft}  color="gray" />
-        <StatCard loading={isLoading} label="Categories"  value={cats}     icon={Package}     color="purple" />
+        {isLoading ? (
+          <CardShimmer count={4} />
+        ) : (
+          <>
+            <StatCard loading={isLoading} label="Total Types" value={total}    icon={Truck}       color="blue" />
+            <StatCard loading={isLoading} label="Active"      value={active}   icon={ToggleRight} color="green" />
+            <StatCard loading={isLoading} label="Inactive"    value={inactive} icon={ToggleLeft}  color="gray" />
+            <StatCard loading={isLoading} label="Categories"  value={cats}     icon={Package}     color="purple" />
+          </>
+        )}
       </div>
 
       {/* Table Card */}
@@ -275,15 +282,18 @@ const VehicleTypes = () => {
           </button>
         </div>
 
-        {isLoading && <div className="flex items-center justify-center py-16 gap-3 text-gray-400"><Loader2 size={20} className="animate-spin text-[#0052CC]" /><span className="text-sm">Loading vehicle types...</span></div>}
+        {isLoading && (
+          <div className="p-4">
+            <TableShimmer rows={8} cols={5} />
+          </div>
+        )}
 
         {isError && (
-          <div className="flex flex-col items-center justify-center py-16 gap-3 text-red-400">
-            <AlertCircle size={32} />
-            <p className="text-sm font-medium">Failed to load vehicle types</p>
-            <p className="text-xs text-gray-400">{error?.response?.data?.detail || error?.message}</p>
-            <button onClick={() => refetch()} className="px-4 py-2 text-sm font-semibold text-white bg-[#0052CC] rounded-lg">Try Again</button>
-          </div>
+          <ErrorState
+            message="Failed to load vehicle types"
+            error={error?.response?.data?.detail || error?.message}
+            onRetry={() => refetch()}
+          />
         )}
 
         {!isLoading && !isError && (

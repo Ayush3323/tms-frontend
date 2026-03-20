@@ -13,8 +13,9 @@ import {
 import { 
   Badge, InfoCard, SectionHeader, EmptyState, Modal, DeleteConfirm,
   Label, Input, Sel, Section, Field, StatCard, Textarea, VehicleSelect,
-  fmtDate, fmtINR
+  fmtDate, fmtINR, ItemActions
 } from '../Common/VehicleCommon';
+import { TabContentShimmer, ErrorState } from '../Common/StateFeedback';
 
 // ── Constants ─────────────────────────────────────────────────────────
 const POLICY_TYPES = ['COMPREHENSIVE', 'THIRD_PARTY', 'FIRE_THEFT'];
@@ -171,10 +172,20 @@ const InsuranceModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }
   const set       = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
   const [errors, setErrors] = useState({});
 
+  const { data: checkData } = useVehicleInsurances(
+    { vehicle: form.vehicle }, 
+    { enabled: !!form.vehicle && !isEdit }
+  );
+  const hasExisting = (checkData?.results?.length ?? checkData?.length ?? 0) > 0;
+
   const handleSubmit = () => {
     const errs = {};
+    if (!form.vehicle) errs.vehicle = 'Vehicle is required';
     if (form.issue_date && form.expiry_date && new Date(form.expiry_date) <= new Date(form.issue_date)) {
       errs.expiry_date = 'Must be after issue date';
+    }
+    if (!isEdit && hasExisting) {
+      errs.vehicle = 'This vehicle already has an insurance policy. Please edit the existing one.';
     }
     if (Object.keys(errs).length > 0) return setErrors(errs);
     setErrors({});
@@ -200,8 +211,11 @@ const InsuranceModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }
         ) : (
           <>
             {!vehicleId && (
-              <Field label="Vehicle" required={!isEdit}>
-                <VehicleSelect value={form.vehicle} onChange={(id) => setForm(p => ({ ...p, vehicle: id }))} />
+              <Field label="Vehicle" required={!isEdit} error={errors.vehicle}>
+                <VehicleSelect value={form.vehicle} onChange={(id) => {
+                  setForm(p => ({ ...p, vehicle: id }));
+                  setErrors(p => ({ ...p, vehicle: null }));
+                }} />
                 {isEdit && !form.vehicle && (
                   <p className="text-[11px] text-orange-500 mt-1">⚠ Vehicle info not available in API — will be preserved on update</p>
                 )}
@@ -296,6 +310,10 @@ const VehicleInsurance = ({ vehicleId, isTab }) => {
     return diff > 0 && diff <= (30 * 24 * 60 * 60 * 1000);
   }).length;
   const expired  = docs.filter(d => d.status === 'EXPIRED' || (d.expiry_date && new Date(d.expiry_date) < new Date())).length;
+  const hasInsurance = docs.length > 0;
+
+  if (isLoading) return <TabContentShimmer />;
+  if (isError) return <ErrorState message="Failed to load insurance" error={error?.message} onRetry={() => refetch()} />;
 
   const content = (
     <div className={!isTab ? "p-6 space-y-6 bg-[#F8FAFC] min-h-screen" : "space-y-4"}>
@@ -349,17 +367,25 @@ const VehicleInsurance = ({ vehicleId, isTab }) => {
       {/* Table Card */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {isTab ? (
-          <SectionHeader icon={Shield} title="Insurance Policies" count={docs.length} onAdd={() => setModal('add')} addLabel="Add Policy" />
+          <SectionHeader 
+            icon={Shield} 
+            title="Insurance Policies" 
+            count={docs.length} 
+            onAdd={(vehicleId && hasInsurance) ? null : () => setModal('add')} 
+            addLabel="Add Policy" 
+          />
         ) : (
           <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
             <div>
               <h2 className="font-bold text-[#172B4D]">🛡️ Insurance Registry</h2>
               <p className="text-xs text-gray-400 mt-0.5">All vehicle insurance policies</p>
             </div>
-            <button onClick={() => setModal('add')}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all">
-              <Plus size={14} /> Add Insurance
-            </button>
+            {(!vehicleId || !hasInsurance) && (
+              <button onClick={() => setModal('add')}
+                className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all">
+                <Plus size={14} /> Add Insurance
+              </button>
+            )}
           </div>
         )}
 
@@ -387,24 +413,6 @@ const VehicleInsurance = ({ vehicleId, isTab }) => {
           </button>
         </div>
 
-        {isLoading && (
-          <div className="flex items-center justify-center py-16 gap-3 text-gray-400">
-            <Loader2 size={20} className="animate-spin text-[#0052CC]" />
-            <span className="text-sm">Loading insurances...</span>
-          </div>
-        )}
-
-        {isError && (
-          <div className="flex flex-col items-center justify-center py-16 gap-3 text-red-400">
-            <AlertCircle size={32} />
-            <p className="text-sm font-medium">Failed to load insurances</p>
-            <p className="text-xs text-gray-400">{error?.response?.data?.detail || error?.message}</p>
-            <button onClick={() => refetch()}
-              className="px-4 py-2 text-sm font-semibold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8]">
-              Try Again
-            </button>
-          </div>
-        )}
 
         {!isLoading && !isError && (
           <div className="overflow-x-auto">
