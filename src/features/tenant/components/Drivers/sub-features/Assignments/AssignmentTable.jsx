@@ -18,7 +18,7 @@ const AssignmentTable = ({ assignments, onEdit, showDriver = false, driverMap = 
                 <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Emp ID</th>
               </>
             )}
-            {['Vehicle', 'Assignment Type', 'Assigned Date', 'Unassigned Date', 'Status', 'Assigned By', 'Notes', 'Actions'].map(h => (
+            {['vehicle', 'assignment_type', 'assigned_date', 'unassigned_date', 'is_active', 'assigned_by', 'notes', 'Actions'].map(h => (
               <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
             ))}
           </tr>
@@ -58,7 +58,7 @@ const AssignmentTable = ({ assignments, onEdit, showDriver = false, driverMap = 
               <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600">
                 {userMap[a.assigned_by] || a.assigned_by_name || a.assigned_by || '—'}
               </td>
-              <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-400 italic max-w-[150px] truncate" title={a.notes}>
+              <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-800 max-w-[150px] truncate" title={a.notes}>
                 {a.notes || '—'}
               </td>
               <td className="px-4 py-3 whitespace-nowrap">

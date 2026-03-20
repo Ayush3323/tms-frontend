@@ -414,7 +414,7 @@ const DriverDetail = () => {
                 <PauseCircle size={13} /> Suspend
               </button>
             )}
-            {driver.status === 'SUSPENDED' && (
+            {['SUSPENDED', 'INACTIVE', 'ON_LEAVE'].includes(driver.status) && (
               <button onClick={handleStatusToggle} disabled={updateDriver.isPending}
                 className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-all disabled:opacity-50">
                 <PlayCircle size={13} /> Activate

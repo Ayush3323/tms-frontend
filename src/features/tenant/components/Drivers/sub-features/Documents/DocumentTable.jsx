@@ -71,7 +71,7 @@ const DocumentTable = ({ documents, onEdit, showDriver = false, driverMap = {}, 
                   : <span className="text-gray-400">—</span>
                 }
               </td>
-              <td className="px-4 py-3 text-[12px] text-gray-600 max-w-xs truncate" title={doc.notes}>
+              <td className="px-4 py-3 text-[12px] text-gray-800 max-w-xs truncate" title={doc.notes}>
                 {doc.notes || '—'}
               </td>
               <td className="px-4 py-3 whitespace-nowrap">

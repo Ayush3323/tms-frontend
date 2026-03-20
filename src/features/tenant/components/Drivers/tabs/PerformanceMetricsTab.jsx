@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { BarChart3 } from 'lucide-react';
 import { useDriverPerformanceMetrics } from '../../../queries/drivers/performanceMetricsQuery';
 
-import { LoadingState, ErrorState, EmptyState } from '../common/StateFeedback';
+import { LoadingState, ErrorState, EmptyState, TabContentShimmer } from '../common/StateFeedback';
 import PerformanceTable from '../sub-features/Performance/PerformanceTable';
 import { AddPerformanceModal, EditPerformanceModal, DeletePerformanceDialog } from '../sub-features/Performance/PerformanceModals';
 
@@ -14,7 +14,7 @@ const PerformanceTab = ({ driverId }) => {
   const { data, isLoading, isError, error, refetch } = useDriverPerformanceMetrics(driverId);
   const metrics = data?.results ?? [];
 
-  if (isLoading) return <LoadingState message="Loading performance metrics..." />;
+  if (isLoading) return <TabContentShimmer />;
   if (isError)   return <ErrorState message="Failed to load performance metrics" error={error?.message} onRetry={() => refetch()} />;
 
   return (

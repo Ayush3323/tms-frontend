@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { AlertTriangle, Plus, RefreshCw } from 'lucide-react';
 import { useIncidents } from '../../../queries/drivers/incidentsAndAttendance';
 
-import { LoadingState, ErrorState, EmptyState } from '../common/StateFeedback';
+import { LoadingState, ErrorState, EmptyState, TableShimmer } from '../common/StateFeedback';
 import IncidentTable from '../sub-features/Incidents/IncidentTable';
 import { AddIncidentModal, EditIncidentModal, DeleteIncidentDialog, VehicleSelect } from '../sub-features/Incidents/IncidentModals';
 import DriverSelect from '../common/DriverSelect';
@@ -62,7 +62,12 @@ const AllIncidents = () => {
     });
   };
 
-  if (isLoading && !data) return <div className="p-6"><LoadingState message="Loading all incidents..." /></div>;
+  if (isLoading && !data) return (
+    <div className="p-6 space-y-6">
+      <div className="h-20 bg-gray-50 rounded-2xl animate-pulse" />
+      <TableShimmer rows={10} cols={8} />
+    </div>
+  );
   if (isError) return <div className="p-6"><ErrorState message="Failed to load incidents" error={error?.message} onRetry={() => refetch()} /></div>;
 
   return (
@@ -91,33 +96,33 @@ const AllIncidents = () => {
       <div className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-4">
           <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Driver</p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">driver</p>
             <DriverSelect value={filters.driver} onChange={(val) => handleFilterChange('driver', val)} />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Vehicle</p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">vehicle</p>
             <VehicleSelect value={filters.vehicle} onChange={(e) => handleFilterChange('vehicle', e.target.value)} />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Trip ID</p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">trip_id</p>
             <Input placeholder="Search trip..." value={filters.trip_id} onChange={(e) => handleFilterChange('trip_id', e.target.value)} />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Type</p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">incident_type</p>
             <Select value={filters.incident_type} onChange={(e) => handleFilterChange('incident_type', e.target.value)}>
               <option value="">All Types</option>
               {INCIDENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
             </Select>
           </div>
           <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Severity</p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">severity</p>
             <Select value={filters.severity} onChange={(e) => handleFilterChange('severity', e.target.value)}>
               <option value="">All Severities</option>
               {SEVERITY_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
             </Select>
           </div>
           <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Status</p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">resolution_status</p>
             <Select value={filters.resolution_status} onChange={(e) => handleFilterChange('resolution_status', e.target.value)}>
               <option value="">All Status</option>
               {RESOLUTION_LIST.map(s => <option key={s} value={s}>{s}</option>)}
@@ -125,7 +130,7 @@ const AllIncidents = () => {
           </div>
           <div className="flex items-end gap-2">
             <div className="flex-1">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Date</p>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">incident_date</p>
               <Input type="date" value={filters.incident_date} onChange={(e) => handleFilterChange('incident_date', e.target.value)} />
             </div>
             <button

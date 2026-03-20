@@ -20,16 +20,16 @@ const PerformanceFormFields = ({ form, setForm, error }) => {
       <div className="space-y-4">
         {error && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium">{error}</div>}
         <div className="grid grid-cols-2 gap-4">
-          <div><Label required>Period Start</Label><Input type="date" value={form.period_start} onChange={set('period_start')} /></div>
-          <div><Label required>Period End</Label><Input type="date" value={form.period_end} onChange={set('period_end')} /></div>
-          <div><Label required>Trips Completed</Label><Input type="number" placeholder="e.g. 45" min="0" value={form.trips_completed} onChange={set('trips_completed')} /></div>
-          <div><Label required>Distance Covered (km)</Label><Input type="number" placeholder="e.g. 12500" min="0" step="0.01" value={form.distance_covered} onChange={set('distance_covered')} /></div>
-          <div><Label>Fuel Efficiency (km/L)</Label><Input type="number" placeholder="e.g. 8.5" min="0" step="0.1" value={form.fuel_efficiency} onChange={set('fuel_efficiency')} /></div>
-          <div><Label required>On-Time Delivery Rate (%)</Label><Input type="number" placeholder="e.g. 95.5" min="0" max="100" step="0.1" value={form.on_time_delivery_rate} onChange={set('on_time_delivery_rate')} /></div>
-          <div><Label>Safety Score (0-100)</Label><Input type="number" placeholder="e.g. 92.5" min="0" max="100" step="0.1" value={form.safety_score} onChange={set('safety_score')} /></div>
-          <div><Label>Customer Rating (0-5)</Label><Input type="number" placeholder="e.g. 4.5" min="0" max="5" step="0.1" value={form.customer_rating} onChange={set('customer_rating')} /></div>
+          <div><Label required>period_start</Label><Input type="date" value={form.period_start} onChange={set('period_start')} /></div>
+          <div><Label required>period_end</Label><Input type="date" value={form.period_end} onChange={set('period_end')} /></div>
+          <div><Label>trips_completed</Label><Input type="number" placeholder="e.g. 45" min="0" value={form.trips_completed} onChange={set('trips_completed')} /></div>
+          <div><Label>distance_covered</Label><Input type="number" placeholder="e.g. 12500" min="0" step="0.01" value={form.distance_covered} onChange={set('distance_covered')} /></div>
+          <div><Label>fuel_efficiency</Label><Input type="number" placeholder="e.g. 8.5" min="0" step="0.1" value={form.fuel_efficiency} onChange={set('fuel_efficiency')} /></div>
+          <div><Label>on_time_delivery_rate</Label><Input type="number" placeholder="e.g. 95.5" min="0" max="100" step="0.1" value={form.on_time_delivery_rate} onChange={set('on_time_delivery_rate')} /></div>
+          <div><Label>safety_score</Label><Input type="number" placeholder="e.g. 92.5" min="0" max="100" step="0.1" value={form.safety_score} onChange={set('safety_score')} /></div>
+          <div><Label>customer_rating</Label><Input type="number" placeholder="e.g. 4.5" min="0" max="5" step="0.1" value={form.customer_rating} onChange={set('customer_rating')} /></div>
         </div>
-        <div><Label>Notes</Label>
+        <div><Label>notes</Label>
           <textarea rows={2} placeholder="Any additional notes..." value={form.notes}
             onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
             className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] placeholder:text-gray-300 resize-none" />
@@ -60,24 +60,22 @@ export const AddPerformanceModal = ({ driverId, onClose }) => {
     if (!form.period_end) return 'Period end date is required.';
     if (form.period_start > form.period_end) return 'Period end cannot be before start date.';
     
-    if (form.trips_completed === '') return 'Trips completed is required.';
-    if (Number(form.trips_completed) < 0) return 'Trips completed cannot be negative.';
+    if (form.trips_completed !== '' && Number(form.trips_completed) < 0) return 'trips_completed cannot be negative.';
+    if (form.distance_covered !== '' && Number(form.distance_covered) < 0) return 'distance_covered cannot be negative.';
     
-    if (form.distance_covered === '') return 'Distance covered is required.';
-    if (Number(form.distance_covered) < 0) return 'Distance covered cannot be negative.';
-    
-    if (form.on_time_delivery_rate === '') return 'On-time delivery rate is required.';
-    const deliveryRate = Number(form.on_time_delivery_rate);
-    if (deliveryRate < 0 || deliveryRate > 100) return 'Delivery rate must be between 0 and 100.';
+    if (form.on_time_delivery_rate !== '') {
+      const deliveryRate = Number(form.on_time_delivery_rate);
+      if (deliveryRate < 0 || deliveryRate > 100) return 'on_time_delivery_rate must be between 0 and 100.';
+    }
     
     if (form.safety_score !== '') {
       const safety = Number(form.safety_score);
-      if (safety < 0 || safety > 100) return 'Safety score must be between 0 and 100.';
+      if (safety < 0 || safety > 100) return 'safety_score must be between 0 and 100.';
     }
     
     if (form.customer_rating !== '') {
       const rating = Number(form.customer_rating);
-      if (rating < 0 || rating > 5) return 'Customer rating must be between 0 and 5.';
+      if (rating < 0 || rating > 5) return 'customer_rating must be between 0 and 5.';
     }
     
     return null;
@@ -144,24 +142,22 @@ export const EditPerformanceModal = ({ metric, driverId, onClose }) => {
     if (!form.period_end) return 'Period end date is required.';
     if (form.period_start > form.period_end) return 'Period end cannot be before start date.';
     
-    if (form.trips_completed === '') return 'Trips completed is required.';
-    if (Number(form.trips_completed) < 0) return 'Trips completed cannot be negative.';
+    if (form.trips_completed !== '' && Number(form.trips_completed) < 0) return 'trips_completed cannot be negative.';
+    if (form.distance_covered !== '' && Number(form.distance_covered) < 0) return 'distance_covered cannot be negative.';
     
-    if (form.distance_covered === '') return 'Distance covered is required.';
-    if (Number(form.distance_covered) < 0) return 'Distance covered cannot be negative.';
-    
-    if (form.on_time_delivery_rate === '') return 'On-time delivery rate is required.';
-    const deliveryRate = Number(form.on_time_delivery_rate);
-    if (deliveryRate < 0 || deliveryRate > 100) return 'Delivery rate must be between 0 and 100.';
+    if (form.on_time_delivery_rate !== '') {
+      const deliveryRate = Number(form.on_time_delivery_rate);
+      if (deliveryRate < 0 || deliveryRate > 100) return 'on_time_delivery_rate must be between 0 and 100.';
+    }
     
     if (form.safety_score !== '') {
       const safety = Number(form.safety_score);
-      if (safety < 0 || safety > 100) return 'Safety score must be between 0 and 100.';
+      if (safety < 0 || safety > 100) return 'safety_score must be between 0 and 100.';
     }
     
     if (form.customer_rating !== '') {
       const rating = Number(form.customer_rating);
-      if (rating < 0 || rating > 5) return 'Customer rating must be between 0 and 5.';
+      if (rating < 0 || rating > 5) return 'customer_rating must be between 0 and 5.';
     }
     
     return null;
