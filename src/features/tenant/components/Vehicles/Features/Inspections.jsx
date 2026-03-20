@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
-  ClipboardCheck, Plus, Pencil, Trash2, X, Search, 
-  RefreshCw, Loader2, AlertCircle, CheckCircle, 
+  ClipboardCheck, Plus, Pencil, Trash2, X, Search,
+  RefreshCw, Loader2, AlertCircle, CheckCircle,
   XCircle, AlertTriangle, Calendar, Gauge, ChevronDown
 } from 'lucide-react';
 import {
@@ -10,7 +10,7 @@ import {
   useUpdateVehicleInspection,
   useDeleteVehicleInspection,
 } from '../../../queries/vehicles/vehicleInfoQuery';
-import { 
+import {
   Badge, InfoCard, SectionHeader, EmptyState, Modal, DeleteConfirm, ItemActions,
   Label, Input, Sel, Field, StatCard, Textarea, VehicleSelect,
   fmtDate, fmtKm
@@ -18,23 +18,23 @@ import {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const TYPE_OPTIONS = [
-  { value: 'PRE_TRIP',  label: 'Pre-Trip' },
+  { value: 'PRE_TRIP', label: 'Pre-Trip' },
   { value: 'POST_TRIP', label: 'Post-Trip' },
-  { value: 'PERIODIC',  label: 'Periodic' },
-  { value: 'RANDOM',    label: 'Random' },
+  { value: 'PERIODIC', label: 'Periodic' },
+  { value: 'RANDOM', label: 'Random' },
 ];
 
 const STATUS_CONFIG = {
-  PASS:        { label: 'Pass',        dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50' },
-  FAIL:        { label: 'Fail',        dot: 'bg-red-500',     text: 'text-red-700',     bg: 'bg-red-50' },
-  CONDITIONAL: { label: 'Conditional', dot: 'bg-orange-400',  text: 'text-orange-700',  bg: 'bg-orange-50' },
+  PASS: { label: 'Pass', dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50' },
+  FAIL: { label: 'Fail', dot: 'bg-red-500', text: 'text-red-700', bg: 'bg-red-50' },
+  CONDITIONAL: { label: 'Conditional', dot: 'bg-orange-400', text: 'text-orange-700', bg: 'bg-orange-50' },
 };
 
 const TYPE_COLORS = {
-  PRE_TRIP:  'bg-blue-50 text-blue-700 border-blue-200',
+  PRE_TRIP: 'bg-blue-50 text-blue-700 border-blue-200',
   POST_TRIP: 'bg-purple-50 text-purple-700 border-purple-200',
-  PERIODIC:  'bg-indigo-50 text-indigo-700 border-indigo-200',
-  RANDOM:    'bg-gray-100 text-gray-700 border-gray-200',
+  PERIODIC: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+  RANDOM: 'bg-gray-100 text-gray-700 border-gray-200',
 };
 
 const EMPTY_FORM = {
@@ -118,16 +118,16 @@ const InspectionModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest 
 
   const [form, setForm] = useState(
     initial ? {
-      vehicle:            resolveVehicleId(),
-      driver:              initial.driver          ?? '',
-      inspection_type:     initial.inspection_type ?? '',
-      inspection_date:     initial.inspection_date ? initial.inspection_date.slice(0, 16) : '',
-      odometer_reading:    initial.odometer_reading ?? '',
-      overall_status:      initial.overall_status  ?? 'PASS',
+      vehicle: resolveVehicleId(),
+      driver: initial.driver ?? '',
+      inspection_type: initial.inspection_type ?? '',
+      inspection_date: initial.inspection_date ? initial.inspection_date.slice(0, 16) : '',
+      odometer_reading: initial.odometer_reading ?? '',
+      overall_status: initial.overall_status ?? 'PASS',
       inspector_signature: initial.inspector_signature ?? '',
-      resolved_date:       initial.resolved_date   ? initial.resolved_date.slice(0, 10) : '',
-      resolved_by:         initial.resolved_by     ?? '',
-      defects_found:       Array.isArray(initial.defects_found) ? initial.defects_found.join(', ') : (initial.defects_found ?? ''),
+      resolved_date: initial.resolved_date ? initial.resolved_date.slice(0, 10) : '',
+      resolved_by: initial.resolved_by ?? '',
+      defects_found: Array.isArray(initial.defects_found) ? initial.defects_found.join(', ') : (initial.defects_found ?? ''),
     } : { ...EMPTY_FORM, vehicle: vehicleId ?? '' }
   );
 
@@ -150,13 +150,13 @@ const InspectionModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest 
       defects_found: form.defects_found ? form.defects_found.split(',').map(d => d.trim()).filter(Boolean) : [],
     };
     const final = Object.fromEntries(Object.entries(clean).map(([k, v]) => [k, v === '' ? null : v]));
-    
+
     if (isEdit) update.mutate({ id: initial.id, data: final }, { onSuccess: onClose });
-    else        create.mutate(final, { onSuccess: onClose });
+    else create.mutate(final, { onSuccess: onClose });
   };
 
   return (
-    <Modal 
+    <Modal
       title={isView ? 'Inspection Details' : isEdit ? 'Edit Inspection' : 'Add Inspection'}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -232,7 +232,7 @@ const VehicleInspections = ({ vehicleId, isTab }) => {
   const [modal, setModal] = useState(null);
   const [viewing, setViewing] = useState(null);
   const [deleting, setDeleting] = useState(null);
-  
+
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
 
@@ -371,7 +371,7 @@ const VehicleInspections = ({ vehicleId, isTab }) => {
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center gap-2">
-                        <button onClick={() => setModal({ mode: 'edit', data: i })} 
+                        <button onClick={() => setModal({ mode: 'edit', data: i })}
                           className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all">
                           <Pencil size={12} /> Edit
                         </button>
@@ -386,25 +386,25 @@ const VehicleInspections = ({ vehicleId, isTab }) => {
       </div>
 
       {modal && (
-        <InspectionModal 
-          initial={modal.data} 
-          onClose={() => setModal(null)} 
+        <InspectionModal
+          initial={modal.data}
+          onClose={() => setModal(null)}
           vehicleId={vehicleId}
           onDeleteRequest={() => { setModal(null); setDeleting(modal.data); }}
         />
       )}
       {viewing && (
-        <InspectionModal 
-          initial={viewing} 
-          onClose={() => setViewing(null)} 
-          isView 
+        <InspectionModal
+          initial={viewing}
+          onClose={() => setViewing(null)}
+          isView
           vehicleId={vehicleId}
         />
       )}
       {deleting && (
-        <DeleteConfirm 
-          label="Inspection" 
-          onClose={() => setDeleting(null)} 
+        <DeleteConfirm
+          label="Inspection"
+          onClose={() => setDeleting(null)}
           onConfirm={() => del.mutate(deleting.id, { onSuccess: () => setDeleting(null) })}
           deleting={del.isPending}
         />

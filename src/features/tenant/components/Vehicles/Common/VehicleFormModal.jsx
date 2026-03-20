@@ -1,36 +1,38 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  X, Plus, Loader2, Search, ChevronDown, 
+import {
+  X, Plus, Loader2, Search, ChevronDown,
   Truck, CheckCircle, Wrench, ArchiveX,
   Fuel, Zap, Palette, Calendar, IndianRupee, Hash,
   ToggleRight, ToggleLeft
 } from 'lucide-react';
 import { useVehicle, useUpdateVehicle, useCreateVehicle } from '../../../queries/vehicles/vehicleQuery';
 import { useVehicleTypes } from '../../../queries/vehicles/vehicletypeQuery';
+import DriverSelect from '../../Drivers/common/DriverSelect';
 
-import { 
+import {
   Label, Input, Sel, Section, Modal, VehicleTypeSelect,
-  FUEL_COLORS, STATUS_STYLES, OWNERSHIP_COLORS
+  FUEL_COLORS, STATUS_STYLES, OWNERSHIP_COLORS, driverName
 } from './VehicleCommon';
 
 
 export const EMPTY_FORM = {
-  registration_number:           '',
+  registration_number: '',
   vehicle_identification_number: '',
-  make:                          '',
-  model:                         '',
-  year:                          '',
-  vehicle_type:                  '',
-  capacity_tonnage:              '',
-  capacity_volume:               '',
-  fuel_type:                     '',
-  transmission_type:             '',
-  color:                         '',
-  purchase_date:                 '',
-  purchase_price:                '',
-  ownership_type:                '',
-  current_odometer:              '0',
-  status:                        'ACTIVE',
+  make: '',
+  model: '',
+  year: '',
+  vehicle_type: '',
+  capacity_tonnage: '',
+  capacity_volume: '',
+  fuel_type: '',
+  transmission_type: '',
+  color: '',
+  purchase_date: '',
+  purchase_price: '',
+  ownership_type: '',
+  current_odometer: '0',
+  status: 'ACTIVE',
+  assigned_driver: '',
 };
 
 
@@ -101,6 +103,13 @@ export const VehicleDetailView = ({ data, onClose }) => {
         </div>
       </div>
 
+      <div className="grid grid-cols-2 gap-6">
+        <div>
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Assigned Driver</p>
+          <p className="text-sm font-bold text-[#172B4D]">{driverName(data.assigned_driver)}</p>
+        </div>
+      </div>
+
       <div className="pt-4 border-t border-gray-100 flex justify-end gap-3">
         <button onClick={onClose} className="px-4 py-2 text-sm font-bold text-[#0052CC] bg-blue-50 rounded-xl hover:bg-blue-100 transition-all">
           Close
@@ -115,29 +124,30 @@ export const VehicleFormModal = ({ initial, onClose, isView }) => {
   const isEdit = !!initial?.id && !isView;
   const [form, setForm] = useState(
     initial ? {
-      registration_number:           initial.registration_number                          ?? '',
-      vehicle_identification_number: initial.vehicle_identification_number                ?? '',
-      make:                          initial.make                                         ?? '',
-      model:                         initial.model                                        ?? '',
-      year:                          initial.year != null ? String(initial.year)          : '',
-      vehicle_type:                  initial.vehicle_type?.id ?? initial.vehicle_type     ?? '',
-      capacity_tonnage:              initial.capacity_tonnage != null ? String(parseFloat(initial.capacity_tonnage)) : '',
-      capacity_volume:               initial.capacity_volume  != null ? String(parseFloat(initial.capacity_volume))  : '',
-      fuel_type:                     initial.fuel_type                                    ?? '',
-      transmission_type:             initial.transmission_type                            ?? '',
-      color:                         initial.color                                        ?? '',
-      purchase_date:                 initial.purchase_date                                ?? '',
-      purchase_price:                initial.purchase_price != null ? String(parseFloat(initial.purchase_price)) : '',
-      ownership_type:                initial.ownership_type                               ?? '',
-      current_odometer:              initial.current_odometer != null ? String(parseFloat(initial.current_odometer)) : '0',
-      status:                        initial.status                                       ?? 'ACTIVE',
+      registration_number: initial.registration_number ?? '',
+      vehicle_identification_number: initial.vehicle_identification_number ?? '',
+      make: initial.make ?? '',
+      model: initial.model ?? '',
+      year: initial.year != null ? String(initial.year) : '',
+      vehicle_type: initial.vehicle_type?.id ?? initial.vehicle_type ?? '',
+      capacity_tonnage: initial.capacity_tonnage != null ? String(parseFloat(initial.capacity_tonnage)) : '',
+      capacity_volume: initial.capacity_volume != null ? String(parseFloat(initial.capacity_volume)) : '',
+      fuel_type: initial.fuel_type ?? '',
+      transmission_type: initial.transmission_type ?? '',
+      color: initial.color ?? '',
+      purchase_date: initial.purchase_date ?? '',
+      purchase_price: initial.purchase_price != null ? String(parseFloat(initial.purchase_price)) : '',
+      ownership_type: initial.ownership_type ?? '',
+      current_odometer: initial.current_odometer != null ? String(parseFloat(initial.current_odometer)) : '0',
+      status: initial.status ?? 'ACTIVE',
+      assigned_driver: initial.assigned_driver?.id ?? initial.assigned_driver ?? '',
     } : EMPTY_FORM
   );
 
   const createVehicle = useCreateVehicle();
   const updateVehicle = useUpdateVehicle();
-  const isPending     = createVehicle.isPending || updateVehicle.isPending;
-  const set           = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
+  const isPending = createVehicle.isPending || updateVehicle.isPending;
+  const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
 
   const handleSubmit = () => {
     const clean = Object.fromEntries(
@@ -153,7 +163,7 @@ export const VehicleFormModal = ({ initial, onClose, isView }) => {
   const canSubmit = form.registration_number && form.make && form.model && form.fuel_type && form.ownership_type && !isPending;
 
   return (
-    <Modal 
+    <Modal
       title={isView ? 'Vehicle Registry Details' : isEdit ? 'Edit Vehicle' : 'Add New Vehicle'}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -186,14 +196,14 @@ export const VehicleFormModal = ({ initial, onClose, isView }) => {
                 <Label required>Fuel Type</Label>
                 <Sel value={form.fuel_type} onChange={set('fuel_type')}>
                   <option value="">Select fuel</option>
-                  {['DIESEL','PETROL','CNG','LPG','ELECTRIC','HYBRID'].map(f => <option key={f}>{f}</option>)}
+                  {['DIESEL', 'PETROL', 'CNG', 'LPG', 'ELECTRIC', 'HYBRID'].map(f => <option key={f}>{f}</option>)}
                 </Sel>
               </div>
               <div>
                 <Label>Transmission</Label>
                 <Sel value={form.transmission_type} onChange={set('transmission_type')}>
                   <option value="">Select transmission</option>
-                  {['MANUAL','AUTOMATIC'].map(t => <option key={t}>{t}</option>)}
+                  {['MANUAL', 'AUTOMATIC'].map(t => <option key={t}>{t}</option>)}
                 </Sel>
               </div>
               <div><Label>Capacity (Tonnage)</Label><Input type="number" placeholder="e.g. 15" value={form.capacity_tonnage} onChange={set('capacity_tonnage')} /></div>
@@ -208,17 +218,21 @@ export const VehicleFormModal = ({ initial, onClose, isView }) => {
                 <Label required>Ownership Type</Label>
                 <Sel value={form.ownership_type} onChange={set('ownership_type')}>
                   <option value="">Select ownership</option>
-                  {['OWNED','LEASED'].map(o => <option key={o}>{o}</option>)}
+                  {['OWNED', 'LEASED'].map(o => <option key={o}>{o}</option>)}
                 </Sel>
               </div>
               <div>
                 <Label>Status</Label>
                 <Sel value={form.status} onChange={set('status')}>
-                  {['ACTIVE','MAINTENANCE','RETIRED','SOLD','SCRAPPED'].map(s => <option key={s}>{s}</option>)}
+                  {['ACTIVE', 'MAINTENANCE', 'RETIRED', 'SOLD', 'SCRAPPED'].map(s => <option key={s}>{s}</option>)}
                 </Sel>
               </div>
               <div><Label>Purchase Date</Label><Input type="date" value={form.purchase_date} onChange={set('purchase_date')} /></div>
               <div><Label>Purchase Price (₹)</Label><Input type="number" placeholder="e.g. 1800000" value={form.purchase_price} onChange={set('purchase_price')} /></div>
+              <div className="col-span-2">
+                <Label>Assigned Driver</Label>
+                <DriverSelect value={form.assigned_driver} onChange={(val) => setForm(p => ({ ...p, assigned_driver: val }))} />
+              </div>
             </div>
           </>
         )}
