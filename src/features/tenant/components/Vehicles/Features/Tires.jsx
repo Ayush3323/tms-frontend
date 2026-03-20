@@ -10,11 +10,12 @@ import {
   useUpdateVehicleTire,
   useDeleteVehicleTire,
 } from '../../../queries/vehicles/vehicleInfoQuery';
-import { 
+import {
   Badge, InfoCard, SectionHeader, EmptyState, Modal, DeleteConfirm, ItemActions,
   Label, Input, Sel, Field, StatCard, Textarea, VehicleSelect,
   fmtDate, fmtKm
 } from '../Common/VehicleCommon';
+import { TabContentShimmer, ErrorState } from '../Common/StateFeedback';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const POSITION_OPTIONS = [
@@ -74,7 +75,7 @@ const ViewDetail = ({ data, onClose }) => (
     </div>
 
     <div className="pt-4 border-t border-gray-100">
-      <Section title="Installation" />
+      <SectionHeader title="Installation" />
       <div className="grid grid-cols-2 gap-4 mt-2">
         <InfoCard label="Date" value={fmtDate(data.installation_date)} icon={Calendar} />
         <InfoCard label="Odometer" value={fmtKm(data.installation_odometer)} icon={Gauge} />
@@ -83,7 +84,7 @@ const ViewDetail = ({ data, onClose }) => (
 
     {data.removal_date && (
       <div className="pt-4 border-t border-gray-100">
-        <Section title="Removal" />
+        <SectionHeader title="Removal" />
         <div className="grid grid-cols-2 gap-4 mt-2">
           <InfoCard label="Date" value={fmtDate(data.removal_date)} icon={Calendar} />
           <InfoCard label="Odometer" value={fmtKm(data.removal_odometer)} icon={Gauge} />
@@ -142,7 +143,7 @@ const TireModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => 
   };
 
   return (
-    <Modal 
+    <Modal
       title={isView ? 'Tire Details' : isEdit ? 'Edit Tire' : 'Add Tire'}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -229,12 +230,12 @@ const VehicleTires = ({ vehicleId, isTab }) => {
   const [modal, setModal] = useState(null);
   const [viewing, setViewing] = useState(null);
   const [deleting, setDeleting] = useState(null);
-  
+
   const [search, setSearch] = useState('');
   const [posFilter, setPosFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
-  const { data, isLoading } = useVehicleTires({
+  const { data, isLoading, isError, error, refetch } = useVehicleTires({
     ...(search && { search }),
     ...(posFilter && { tire_position: posFilter }),
     ...(statusFilter && { status: statusFilter }),

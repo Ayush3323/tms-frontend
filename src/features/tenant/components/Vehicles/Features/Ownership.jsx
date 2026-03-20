@@ -14,8 +14,9 @@ import {
 import { 
   Badge, InfoCard, SectionHeader, EmptyState, Modal, DeleteConfirm, ItemActions,
   Label, Input, Sel, Field, StatCard, Textarea, VehicleSelect,
-  fmtDate
+  fmtDate, fmtINR
 } from '../Common/VehicleCommon';
+import { TabContentShimmer, ErrorState } from '../Common/StateFeedback';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const TRANSFER_TYPE_OPTIONS = [
@@ -180,7 +181,7 @@ const VehicleOwnership = ({ vehicleId, isTab }) => {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
 
-  const { data, isLoading } = useVehicleOwnership({
+  const { data, isLoading, isError, error, refetch } = useVehicleOwnership({
     ...(search && { search }),
     ...(typeFilter && { transfer_type: typeFilter }),
     ...(vehicleId && { vehicle: vehicleId }),
@@ -238,7 +239,9 @@ const VehicleOwnership = ({ vehicleId, isTab }) => {
 
         <div className="flex-1 overflow-auto">
           {isLoading ? (
-            <div className="flex items-center justify-center h-64"><Loader2 className="animate-spin text-[#0052CC]" /></div>
+            <TabContentShimmer />
+          ) : isError ? (
+            <ErrorState message="Failed to load ownership history" error={error?.message} onRetry={() => refetch()} />
           ) : !history.length ? (
             <EmptyState icon={Users} text="No ownership records found" onAdd={() => setModal({ mode: 'add' })} />
           ) : (

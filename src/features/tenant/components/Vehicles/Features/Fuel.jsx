@@ -10,11 +10,13 @@ import {
   useUpdateFuelLog,
   useDeleteFuelLog,
 } from '../../../queries/vehicles/vehicleInfoQuery';
-import { 
+import {
   Badge, InfoCard, SectionHeader, EmptyState, Modal, DeleteConfirm, ItemActions,
   Label, Input, Sel, Field, StatCard, Textarea, VehicleSelect,
   fmtDate, fmtINR, fmtKm
-} from '../Common/VehicleCommon';
+}
+from '../Common/VehicleCommon';
+import { TabContentShimmer, ErrorState } from '../Common/StateFeedback';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const FUEL_TYPE_OPTIONS = [
@@ -122,7 +124,7 @@ const FuelModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => 
   };
 
   return (
-    <Modal 
+    <Modal
       title={isView ? 'Fuel Log Details' : isEdit ? 'Edit Fuel Log' : 'Add Fuel Log'}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -189,11 +191,11 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
   const [modal, setModal] = useState(null);
   const [viewing, setViewing] = useState(null);
   const [deleting, setDeleting] = useState(null);
-  
+
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
 
-  const { data, isLoading } = useVehicleFuelLogs({
+  const { data, isLoading, isError, error, refetch } = useVehicleFuelLogs({
     ...(search && { search }),
     ...(typeFilter && { fuel_type: typeFilter }),
     ...(vehicleId && { vehicle: vehicleId }),
@@ -237,7 +239,7 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
           <div className="flex items-center gap-3 flex-1 min-w-[240px]">
             <div className="relative flex-1 max-w-xs">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input 
+              <input
                 type="text" placeholder="Search fuel logs..."
                 className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border-none rounded-lg focus:ring-2 focus:ring-[#0052CC]/10"
                 value={search} onChange={e => setSearch(e.target.value)} />
@@ -258,7 +260,9 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
 
         <div className="flex-1 overflow-auto">
           {isLoading ? (
-            <div className="flex items-center justify-center h-64"><Loader2 className="animate-spin text-[#0052CC]" /></div>
+            <TabContentShimmer />
+          ) : isError ? (
+            <ErrorState message="Failed to load fuel logs" error={error?.message} onRetry={() => refetch()} />
           ) : !logs.length ? (
             <EmptyState icon={Fuel} text="No fuel logs found" onAdd={() => setModal({ mode: 'add' })} />
           ) : (
