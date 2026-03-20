@@ -25,18 +25,25 @@ export const ErrorState = ({ message = 'Failed to load data', error, onRetry }) 
 );
 
 export const TableShimmer = ({ rows = 5, cols = 6 }) => (
-  <div className="w-full bg-white rounded-xl border border-gray-100 overflow-hidden animate-pulse">
-    <div className="bg-gray-50 h-10 border-b border-gray-100 flex items-center px-4 gap-4">
+  <div className="w-full bg-white rounded-xl border border-gray-200 overflow-hidden animate-pulse">
+    <div className="bg-gray-50 h-11 border-b border-gray-100 flex items-center px-4 gap-4">
       {[...Array(cols)].map((_, i) => (
-        <div key={i} className="h-3 bg-gray-200 rounded w-20" />
+        <div key={i} className={`h-2.5 bg-gray-200 rounded ${i === 0 ? 'w-32' : 'w-20'}`} />
       ))}
     </div>
     <div className="divide-y divide-gray-50">
       {[...Array(rows)].map((_, i) => (
-        <div key={i} className="px-4 py-4 flex items-center gap-4">
-          {[...Array(cols)].map((_, j) => (
-            <div key={j} className={`h-4 bg-gray-100 rounded ${j === 0 ? 'w-32' : 'w-24'}`} />
-          ))}
+        <div key={i} className="px-4 py-3 flex items-center gap-4">
+          {[...Array(cols)].map((_, j) => {
+            // Simulate badges for specific columns (e.g., column 2, 5, 7)
+            const isBadge = [0, 2, 5, 7, 9].includes(j % 10);
+            return (
+              <div 
+                key={j} 
+                className={`h-4 bg-gray-100 ${isBadge ? 'rounded-full w-24 h-6 opacity-70' : 'rounded w-20'} ${j === 0 ? 'w-36' : ''}`} 
+              />
+            );
+          })}
         </div>
       ))}
     </div>

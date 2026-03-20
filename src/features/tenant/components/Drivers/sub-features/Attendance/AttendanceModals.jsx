@@ -18,7 +18,7 @@ export const AddAttendanceModal = ({ driverId, onClose }) => {
   const [targetDriverId, setTargetDriverId] = useState(driverId || '');
   const [form, setForm] = useState({
     date: '',
-    status: 'PRESENT',
+    status: '',
     check_in: '',
     check_out: '',
     total_hours: '',

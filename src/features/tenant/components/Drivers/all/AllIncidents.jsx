@@ -65,7 +65,7 @@ const AllIncidents = () => {
   if (isLoading && !data) return (
     <div className="p-6 space-y-6">
       <div className="h-20 bg-gray-50 rounded-2xl animate-pulse" />
-      <TableShimmer rows={10} cols={8} />
+      <TableShimmer rows={10} cols={12} />
     </div>
   );
   if (isError) return <div className="p-6"><ErrorState message="Failed to load incidents" error={error?.message} onRetry={() => refetch()} /></div>;

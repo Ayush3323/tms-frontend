@@ -56,7 +56,7 @@ const AllAssignments = () => {
   if (isLoading && !data) return (
     <div className="p-6 space-y-6">
       <div className="h-24 bg-gray-50 rounded-2xl animate-pulse" />
-      <TableShimmer rows={10} cols={8} />
+      <TableShimmer rows={10} cols={10} />
     </div>
   );
   if (isError) return <div className="p-6"><ErrorState message="Failed to load assignments" error={error?.message} onRetry={() => refetch()} /></div>;

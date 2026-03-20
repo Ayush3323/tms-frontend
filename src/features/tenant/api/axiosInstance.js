@@ -1,9 +1,6 @@
 import axios from "axios";
-
 import { API_BASE_URL } from "../../../config/apiConfig";
 import { ensureTenantContext } from "../context/tenantContext";
-
-import { refreshEndpoint } from "./loginEndpoint";
 
 
 const axiosInstance = axios.create({
