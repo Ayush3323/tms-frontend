@@ -3,7 +3,7 @@ import { Plus, AlertTriangle } from 'lucide-react';
 import { useDriverIncidents } from '../../../queries/drivers/incidentsAndAttendance';
 import { useUsers } from '../../../queries/users/userQuery';
 
-import { LoadingState, ErrorState, EmptyState } from '../common/StateFeedback';
+import { LoadingState, ErrorState, EmptyState, TabContentShimmer } from '../common/StateFeedback';
 import IncidentTable from '../sub-features/Incidents/IncidentTable';
 import { AddIncidentModal, EditIncidentModal, DeleteIncidentDialog } from '../sub-features/Incidents/IncidentModals';
 
@@ -25,7 +25,7 @@ const IncidentsTab = ({ driverId }) => {
 
   const incidents = data?.results ?? [];
 
-  if (isLoading) return <LoadingState message="Loading incidents..." />;
+  if (isLoading) return <TabContentShimmer />;
   if (isError)   return <ErrorState message="Failed to load incidents" error={error?.message} onRetry={() => refetch()} />;
 
   return (

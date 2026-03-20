@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { BarChart3, Plus, RefreshCw } from 'lucide-react';
 import { usePerformanceMetrics } from '../../../queries/drivers/performanceMetricsQuery';
 
-import { LoadingState, ErrorState, EmptyState } from '../common/StateFeedback';
+import { LoadingState, ErrorState, EmptyState, TableShimmer } from '../common/StateFeedback';
 import PerformanceTable from '../sub-features/Performance/PerformanceTable';
 import { AddPerformanceModal, EditPerformanceModal, DeletePerformanceDialog } from '../sub-features/Performance/PerformanceModals';
 import DriverSelect from '../common/DriverSelect';
@@ -35,7 +35,12 @@ const AllPerformance = () => {
     });
   };
 
-  if (isLoading && !data) return <div className="p-6"><LoadingState message="Loading all performance metrics..." /></div>;
+  if (isLoading && !data) return (
+    <div className="p-6 space-y-6">
+      <div className="h-20 bg-gray-50 rounded-2xl animate-pulse" />
+      <TableShimmer rows={10} cols={8} />
+    </div>
+  );
   if (isError) return <div className="p-6"><ErrorState message="Failed to load metrics" error={error?.message} onRetry={() => refetch()} /></div>;
 
   return (
@@ -63,16 +68,16 @@ const AllPerformance = () => {
       {/* ── Filters ── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
         <div>
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Driver</p>
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">driver</p>
           <DriverSelect value={filters.driver} onChange={(val) => handleFilterChange('driver', val)} />
         </div>
         <div>
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Period Start</p>
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">period_start</p>
           <Input type="date" value={filters.period_start} onChange={(e) => handleFilterChange('period_start', e.target.value)} />
         </div>
         <div className="flex items-end gap-2">
           <div className="flex-1">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Period End</p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">period_end</p>
             <Input type="date" value={filters.period_end} onChange={(e) => handleFilterChange('period_end', e.target.value)} />
           </div>
           <button

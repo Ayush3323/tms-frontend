@@ -3,7 +3,7 @@ import { Plus, Truck } from 'lucide-react';
 import { useDriverVehicleAssignments } from '../../../queries/drivers/vehicleAssignmentQuery';
 import { useUsers } from '../../../queries/users/userQuery';
 
-import { LoadingState, ErrorState, EmptyState } from '../common/StateFeedback';
+import { LoadingState, ErrorState, EmptyState, TabContentShimmer } from '../common/StateFeedback';
 import AssignmentTable from '../sub-features/Assignments/AssignmentTable';
 import { AddAssignmentModal, EditAssignmentModal, DeleteAssignmentDialog } from '../sub-features/Assignments/AssignmentModals';
 
@@ -26,7 +26,7 @@ const VehicleTab = ({ driverId }) => {
   const assignments = data?.results ?? [];
   const hasActiveAssignment = assignments.some(a => a.is_active === true);
 
-  if (isLoading) return <LoadingState message="Loading vehicle assignments..." />;
+  if (isLoading) return <TabContentShimmer />;
   if (isError) return <ErrorState message="Failed to load vehicle assignments" error={error?.message} onRetry={() => refetch()} />;
 
   return (

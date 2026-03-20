@@ -62,10 +62,10 @@ const MedicalTable = ({ records, onEdit, showDriver = false, driverMap = {} }) =
                   <a href={rec.certificate_url} target="_blank" rel="noreferrer" className="text-[#0052CC] hover:underline font-semibold">View File</a>
                 ) : <span className="text-gray-400">—</span>}
               </td>
-              <td className="px-4 py-3 text-[12px] text-gray-600 max-w-xs truncate" title={rec.restrictions}>
+              <td className="px-4 py-3 text-[12px] text-gray-800 max-w-xs truncate" title={rec.restrictions}>
                 {rec.restrictions || '—'}
               </td>
-              <td className="px-4 py-3 text-[12px] text-gray-600 max-w-xs truncate" title={rec.notes}>
+              <td className="px-4 py-3 text-[12px] text-gray-800 max-w-xs truncate" title={rec.notes}>
                 {rec.notes || '—'}
               </td>
               <td className="px-4 py-3 whitespace-nowrap">

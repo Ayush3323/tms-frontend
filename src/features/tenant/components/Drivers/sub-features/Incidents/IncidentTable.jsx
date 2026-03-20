@@ -30,8 +30,8 @@ const IncidentTable = ({ incidents, onEdit, showDriver = false, driverMap = {}, 
                 <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Emp ID</th>
               </>
             )}
-            {['Type', 'Vehicle', 'Trip ID', 'Date', 'Location', 'Severity', 'Description', 'Resolution', 'Resolution Notes', 'Resolved By', 'Resolved At', 'Police Report No', 'Insurance No', 'Actions'].map(h => (
-              <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
+            {['incident_type', 'vehicle', 'trip_id', 'incident_date', 'location', 'severity', 'description', 'resolution_status', 'resolution_notes', 'resolved_by', 'resolved_at', 'police_report_number', 'insurance_claim_number', 'actions'].map(h => (
+              <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h.replace(/_/g, ' ')}</th>
             ))}
           </tr>
         </thead>
@@ -72,7 +72,7 @@ const IncidentTable = ({ incidents, onEdit, showDriver = false, driverMap = {}, 
                   styles={SEVERITY_STYLES[inc.severity]}
                 />
               </td>
-              <td className="px-4 py-3 text-[12px] text-gray-600 max-w-xs truncate" title={inc.description}>
+              <td className="px-4 py-3 text-[12px] text-gray-800 max-w-xs truncate" title={inc.description}>
                 {inc.description || '—'}
               </td>
               <td className="px-4 py-3 whitespace-nowrap">
@@ -81,7 +81,7 @@ const IncidentTable = ({ incidents, onEdit, showDriver = false, driverMap = {}, 
                   styles={STATUS_STYLES[inc.resolution_status]}
                 />
               </td>
-              <td className="px-4 py-3 text-[12px] text-gray-600 max-w-xs truncate" title={inc.resolution_notes}>
+              <td className="px-4 py-3 text-[12px] text-gray-800 max-w-xs truncate" title={inc.resolution_notes}>
                 {inc.resolution_notes || '—'}
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600">

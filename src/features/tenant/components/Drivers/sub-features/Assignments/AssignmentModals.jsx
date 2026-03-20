@@ -43,6 +43,7 @@ export const AddAssignmentModal = ({ driverId, onClose }) => {
     vehicle: '',
     assigned_date: '',
     assignment_type: 'PERMANENT',
+    is_active: true,
     assigned_by: '',
     notes: '',
   });
@@ -100,17 +101,21 @@ export const AddAssignmentModal = ({ driverId, onClose }) => {
         )}
 
         <div>
-          <Label required>Vehicle</Label>
+          <Label required>vehicle</Label>
           <VehicleSelect value={form.vehicle} onChange={set('vehicle')} />
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <div><Label required>Assigned Date</Label><Input type="date" value={form.assigned_date} onChange={set('assigned_date')} /></div>
-          <div><Label>Assignment Type</Label>
+          <div><Label required>assigned_date</Label><Input type="date" value={form.assigned_date} onChange={set('assigned_date')} /></div>
+          <div><Label>assignment_type</Label>
             <Select value={form.assignment_type} onChange={set('assignment_type')}>
               {ASSIGNMENT_TYPES.map(t => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
             </Select>
           </div>
-          <div><Label>Assigned By</Label>
+          <div className="flex items-center gap-2 mt-5">
+            <input type="checkbox" id="is_active_add" checked={form.is_active} onChange={e => setForm(p => ({ ...p, is_active: e.target.checked }))} className="w-4 h-4 rounded border-gray-300 text-[#0052CC] cursor-pointer" />
+            <label htmlFor="is_active_add" className="text-sm font-semibold text-gray-600 cursor-pointer">is_active</label>
+          </div>
+          <div><Label>assigned_by</Label>
             <div className="px-3 py-2 text-sm bg-gray-100 border border-gray-200 rounded-lg text-gray-500 font-medium">
               {currentUser ? `${currentUser.first_name} ${currentUser.last_name}` : 'Loading...'}
             </div>
@@ -214,22 +219,22 @@ export const EditAssignmentModal = ({ assignment, driverId, onClose }) => {
       <div className="space-y-4">
         {error && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium">{error}</div>}
         <div>
-          <Label required>Vehicle</Label>
+          <Label required>vehicle</Label>
           <VehicleSelect value={form.vehicle} onChange={set('vehicle')} />
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <div><Label required>Assigned Date</Label><Input type="date" value={form.assigned_date} onChange={set('assigned_date')} /></div>
-          <div><Label>Unassigned Date</Label><Input type="date" value={form.unassigned_date} onChange={set('unassigned_date')} /></div>
-          <div><Label>Assignment Type</Label>
+          <div><Label required>assigned_date</Label><Input type="date" value={form.assigned_date} onChange={set('assigned_date')} /></div>
+          <div><Label>unassigned_date</Label><Input type="date" value={form.unassigned_date} onChange={set('unassigned_date')} /></div>
+          <div><Label>assignment_type</Label>
             <Select value={form.assignment_type} onChange={set('assignment_type')}>
               {ASSIGNMENT_TYPES.map(t => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
             </Select>
           </div>
           <div className="flex items-center gap-2 mt-5">
-            <input type="checkbox" id="is_active" checked={form.is_active} onChange={e => setForm(p => ({ ...p, is_active: e.target.checked }))} className="w-4 h-4 rounded border-gray-300 text-[#0052CC] cursor-pointer" />
-            <label htmlFor="is_active" className="text-sm font-semibold text-gray-600 cursor-pointer">Active</label>
+            <input type="checkbox" id="is_active_edit" checked={form.is_active} onChange={e => setForm(p => ({ ...p, is_active: e.target.checked }))} className="w-4 h-4 rounded border-gray-300 text-[#0052CC] cursor-pointer" />
+            <label htmlFor="is_active_edit" className="text-sm font-semibold text-gray-600 cursor-pointer">is_active</label>
           </div>
-          <div><Label>Assigned By</Label>
+          <div><Label>assigned_by</Label>
             <div className="px-3 py-2 text-sm bg-gray-100 border border-gray-200 rounded-lg text-gray-500 font-medium">
               {userMap[form.assigned_by] || form.assigned_by || '—'}
             </div>

@@ -16,7 +16,7 @@ const SalaryTable = ({ salaries, onEdit, showDriver = false, driverMap = {} }) =
                 <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Emp ID</th>
               </>
             )}
-            {['Base Salary', 'Allowances', 'Deductions', 'Net Salary', 'Trip Rate', 'KM Rate', 'Overtime', 'Frequency', 'Effective From', 'Effective To', 'Notes', 'Actions'].map(h => (
+            {['base_salary', 'allowances', 'deductions', 'Net Salary', 'per_trip_rate', 'per_km_rate', 'overtime_rate', 'payment_frequency', 'effective_from', 'effective_to', 'notes', 'Actions'].map(h => (
               <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
             ))}
           </tr>
@@ -75,7 +75,7 @@ const SalaryTable = ({ salaries, onEdit, showDriver = false, driverMap = {} }) =
                 <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600">
                   {sal.effective_to ?? <span className="text-green-600 font-semibold">Current</span>}
                 </td>
-                <td className="px-4 py-3 text-[12px] text-gray-600 max-w-xs truncate" title={sal.notes}>
+                <td className="px-4 py-3 text-[12px] text-gray-800 max-w-xs truncate" title={sal.notes}>
                   {sal.notes || '—'}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Plus, Wallet } from 'lucide-react';
 import { useDriverSalaryStructures } from '../../../queries/drivers/salaryStructureQuery';
 
-import { LoadingState, ErrorState, EmptyState } from '../common/StateFeedback';
+import { LoadingState, ErrorState, EmptyState, TabContentShimmer } from '../common/StateFeedback';
 import SalaryTable from '../sub-features/Salary/SalaryTable';
 import { AddSalaryModal, EditSalaryModal, DeleteSalaryDialog, ViewSalaryModal } from '../sub-features/Salary/SalaryModals';
 
@@ -15,7 +15,7 @@ const SalaryTab = ({ driverId }) => {
   const { data, isLoading, isError, error, refetch } = useDriverSalaryStructures(driverId);
   const salaries = data?.results ?? [];
 
-  if (isLoading) return <LoadingState message="Loading salary structures..." />;
+  if (isLoading) return <TabContentShimmer />;
   if (isError)   return <ErrorState message="Failed to load salary structures" error={error?.message} onRetry={() => refetch()} />;
 
   return (

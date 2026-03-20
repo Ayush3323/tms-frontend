@@ -3,21 +3,21 @@ import { Plus, FileText } from 'lucide-react';
 import { useUsers } from '../../../queries/users/userQuery';
 import { useDriverDocuments } from '../../../queries/drivers/driverDocumentQuery';
 
-import { LoadingState, ErrorState, EmptyState } from '../common/StateFeedback';
+import { LoadingState, ErrorState, EmptyState, TabContentShimmer } from '../common/StateFeedback';
 import DocumentTable from '../sub-features/Documents/DocumentTable';
 import { AddDocumentModal, EditDocumentModal, DeleteDocumentDialog } from '../sub-features/Documents/DocumentModals';
 
 const DocumentsTab = ({ driverId }) => {
-  const [addOpen,   setAddOpen]   = useState(false);
-  const [editDoc,   setEditDoc]   = useState(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [editDoc, setEditDoc] = useState(null);
   const [deleteDoc, setDeleteDoc] = useState(null);
 
   const { data, isLoading, isError, error, refetch } = useDriverDocuments(driverId);
   const { data: usersData } = useUsers();
 
   const userMap = React.useMemo(() => {
-    return usersData?.results?.reduce((acc, u) => ({ 
-      ...acc, 
+    return usersData?.results?.reduce((acc, u) => ({
+      ...acc,
       [u.id]: {
         ...u,
         name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username || 'System User'
@@ -27,15 +27,15 @@ const DocumentsTab = ({ driverId }) => {
 
   const documents = data?.results ?? [];
 
-  if (isLoading) return <LoadingState message="Loading documents..." />;
-  if (isError)   return <ErrorState message="Failed to load documents" error={error?.message} onRetry={() => refetch()} />;
+  if (isLoading) return <TabContentShimmer />;
+  if (isError) return <ErrorState message="Failed to load documents" error={error?.message} onRetry={() => refetch()} />;
 
   return (
     <>
       {/* ── Modals ── */}
-      {addOpen    && <AddDocumentModal  driverId={driverId} onClose={() => setAddOpen(false)} />}
-      {editDoc    && <EditDocumentModal doc={editDoc} driverId={driverId} onClose={() => setEditDoc(null)} userMap={userMap} />}
-      {deleteDoc  && <DeleteDocumentDialog doc={deleteDoc} driverId={driverId} onClose={() => setDeleteDoc(null)} />}
+      {addOpen && <AddDocumentModal driverId={driverId} onClose={() => setAddOpen(false)} />}
+      {editDoc && <EditDocumentModal doc={editDoc} driverId={driverId} onClose={() => setEditDoc(null)} userMap={userMap} />}
+      {deleteDoc && <DeleteDocumentDialog doc={deleteDoc} driverId={driverId} onClose={() => setDeleteDoc(null)} />}
 
       {/* ── Header ── */}
       <div className="flex items-center justify-between mb-4">
@@ -64,10 +64,10 @@ const DocumentsTab = ({ driverId }) => {
 
       {/* ── Table ── */}
       {documents.length > 0 && (
-        <DocumentTable 
-          documents={documents} 
-          onEdit={setEditDoc} 
-          onDelete={setDeleteDoc} 
+        <DocumentTable
+          documents={documents}
+          onEdit={setEditDoc}
+          onDelete={setDeleteDoc}
           showDriver={false}
           userMap={userMap}
         />

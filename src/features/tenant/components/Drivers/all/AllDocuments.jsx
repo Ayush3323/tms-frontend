@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FileText, Plus, RefreshCw } from 'lucide-react';
 import { useDocuments } from '../../../queries/drivers/driverDocumentQuery';
 
-import { LoadingState, ErrorState, EmptyState } from '../common/StateFeedback';
+import { LoadingState, ErrorState, EmptyState, TableShimmer } from '../common/StateFeedback';
 import DocumentTable from '../sub-features/Documents/DocumentTable';
 import { AddDocumentModal, EditDocumentModal, DeleteDocumentDialog } from '../sub-features/Documents/DocumentModals';
 import DriverSelect from '../common/DriverSelect';
@@ -64,7 +64,12 @@ const AllDocuments = () => {
     });
   };
 
-  if (isLoading && !data) return <div className="p-6"><LoadingState message="Loading all driver documents..." /></div>;
+  if (isLoading && !data) return (
+    <div className="p-6 space-y-6">
+      <div className="h-20 bg-gray-50 rounded-2xl animate-pulse" />
+      <TableShimmer rows={10} cols={7} />
+    </div>
+  );
   if (isError) return <div className="p-6"><ErrorState message="Failed to load documents" error={error?.message} onRetry={() => refetch()} /></div>;
 
   return (

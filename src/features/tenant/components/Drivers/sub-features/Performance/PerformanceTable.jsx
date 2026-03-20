@@ -15,8 +15,8 @@ const PerformanceTable = ({ metrics, onEdit, showDriver = false, driverMap = {} 
                 <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Emp ID</th>
               </>
             )}
-            {['Period', 'Trips', 'Distance', 'On-Time %', 'Fuel Eff.', 'Safety', 'Rating', 'Notes', 'Actions'].map(h => (
-              <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
+            {['period', 'trips_completed', 'distance_covered', 'on_time_delivery_rate', 'fuel_efficiency', 'safety_score', 'customer_rating', 'notes', 'actions'].map(h => (
+              <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h.replace(/_/g, ' ')}</th>
             ))}
           </tr>
         </thead>
@@ -61,7 +61,7 @@ const PerformanceTable = ({ metrics, onEdit, showDriver = false, driverMap = {} 
                   {m.customer_rating != null ? `⭐ ${m.customer_rating}` : '—'}
                 </span>
               </td>
-              <td className="px-4 py-3 text-[12px] text-gray-400 max-w-xs truncate italic" title={m.notes}>
+              <td className="px-4 py-3 text-[12px] text-gray-800 max-w-xs truncate" title={m.notes}>
                 {m.notes || '—'}
               </td>
               <td className="px-4 py-3 whitespace-nowrap">

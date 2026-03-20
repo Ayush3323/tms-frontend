@@ -122,19 +122,19 @@ export const AddSalaryModal = ({ driverId, onClose }) => {
         )}
 
         <div className="grid grid-cols-2 gap-4">
-          <div><Label required>Base Salary (₹)</Label><Input type="number" placeholder="e.g. 50000" value={form.base_salary} onChange={set('base_salary')} /></div>
-          <div><Label>Per Trip Rate (₹)</Label><Input type="number" placeholder="rate per trip" value={form.per_trip_rate} onChange={set('per_trip_rate')} /></div>
-          <div><Label>Per KM Rate (₹)</Label><Input type="number" placeholder="rate per km" value={form.per_km_rate} onChange={set('per_km_rate')} /></div>
-          <div><Label>Overtime Rate (₹/hr)</Label><Input type="number" placeholder="hourly rate" value={form.overtime_rate} onChange={set('overtime_rate')} /></div>
-          <div><Label>Payment Frequency</Label>
+          <div><Label required>base_salary (₹)</Label><Input type="number" placeholder="monthly base" value={form.base_salary} onChange={set('base_salary')} /></div>
+          <div><Label>per_trip_rate (₹)</Label><Input type="number" placeholder="rate per trip" value={form.per_trip_rate} onChange={set('per_trip_rate')} /></div>
+          <div><Label>per_km_rate (₹)</Label><Input type="number" placeholder="rate per km" value={form.per_km_rate} onChange={set('per_km_rate')} /></div>
+          <div><Label>overtime_rate (₹/hr)</Label><Input type="number" placeholder="hourly rate" value={form.overtime_rate} onChange={set('overtime_rate')} /></div>
+          <div><Label>payment_frequency</Label>
             <Select value={form.payment_frequency} onChange={set('payment_frequency')}>
               {PAYMENT_FREQUENCIES.map(f => <option key={f} value={f}>{f}</option>)}
             </Select>
           </div>
-          <div><Label>Allowances (₹)</Label><Input type="number" placeholder="e.g. 10000" value={form.allowances} onChange={set('allowances')} /></div>
-          <div><Label>Deductions (₹)</Label><Input type="number" placeholder="e.g. 5000" value={form.deductions} onChange={set('deductions')} /></div>
-          <div><Label required>Effective From</Label><Input type="date" value={form.effective_from} onChange={set('effective_from')} /></div>
-          <div><Label>Effective To</Label><Input type="date" value={form.effective_to} onChange={set('effective_to')} /></div>
+          <div><Label>allowances (₹)</Label><Input type="number" placeholder="total allowances" value={form.allowances} onChange={set('allowances')} /></div>
+          <div><Label>deductions (₹)</Label><Input type="number" placeholder="total deductions" value={form.deductions} onChange={set('deductions')} /></div>
+          <div><Label required>effective_from</Label><Input type="date" value={form.effective_from} onChange={set('effective_from')} /></div>
+          <div><Label>effective_to</Label><Input type="date" value={form.effective_to} onChange={set('effective_to')} /></div>
         </div>
         <NetSalaryPreview base={form.base_salary} allowances={form.allowances} deductions={form.deductions} />
         <div><Label>Notes</Label>
@@ -224,19 +224,19 @@ export const EditSalaryModal = ({ salary, driverId, onClose }) => {
       <div className="space-y-4">
         {error && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium">{error}</div>}
         <div className="grid grid-cols-2 gap-4">
-          <div><Label required>Base Salary (₹)</Label><Input type="number" placeholder="monthly base" value={form.base_salary} onChange={set('base_salary')} /></div>
-          <div><Label>Per Trip Rate (₹)</Label><Input type="number" placeholder="rate per trip" value={form.per_trip_rate} onChange={set('per_trip_rate')} /></div>
-          <div><Label>Per KM Rate (₹)</Label><Input type="number" placeholder="rate per km" value={form.per_km_rate} onChange={set('per_km_rate')} /></div>
-          <div><Label>Overtime Rate (₹/hr)</Label><Input type="number" placeholder="hourly rate" value={form.overtime_rate} onChange={set('overtime_rate')} /></div>
-          <div><Label>Payment Frequency</Label>
+          <div><Label required>base_salary (₹)</Label><Input type="number" placeholder="monthly base" value={form.base_salary} onChange={set('base_salary')} /></div>
+          <div><Label>per_trip_rate (₹)</Label><Input type="number" placeholder="rate per trip" value={form.per_trip_rate} onChange={set('per_trip_rate')} /></div>
+          <div><Label>per_km_rate (₹)</Label><Input type="number" placeholder="rate per km" value={form.per_km_rate} onChange={set('per_km_rate')} /></div>
+          <div><Label>overtime_rate (₹/hr)</Label><Input type="number" placeholder="hourly rate" value={form.overtime_rate} onChange={set('overtime_rate')} /></div>
+          <div><Label>payment_frequency</Label>
             <Select value={form.payment_frequency} onChange={set('payment_frequency')}>
               {PAYMENT_FREQUENCIES.map(f => <option key={f} value={f}>{f}</option>)}
             </Select>
           </div>
-          <div><Label>Allowances (₹)</Label><Input type="number" placeholder="e.g. 10000" value={form.allowances} onChange={set('allowances')} /></div>
-          <div><Label>Deductions (₹)</Label><Input type="number" placeholder="e.g. 5000" value={form.deductions} onChange={set('deductions')} /></div>
-          <div><Label required>Effective From</Label><Input type="date" value={form.effective_from} onChange={set('effective_from')} /></div>
-          <div><Label>Effective To</Label><Input type="date" value={form.effective_to} onChange={set('effective_to')} /></div>
+          <div><Label>allowances (₹)</Label><Input type="number" placeholder="total allowances" value={form.allowances} onChange={set('allowances')} /></div>
+          <div><Label>deductions (₹)</Label><Input type="number" placeholder="total deductions" value={form.deductions} onChange={set('deductions')} /></div>
+          <div><Label required>effective_from</Label><Input type="date" value={form.effective_from} onChange={set('effective_from')} /></div>
+          <div><Label>effective_to</Label><Input type="date" value={form.effective_to} onChange={set('effective_to')} /></div>
         </div>
         <NetSalaryPreview base={form.base_salary} allowances={form.allowances} deductions={form.deductions} />
         <div><Label>Notes</Label>
@@ -274,7 +274,7 @@ export const ViewSalaryModal = ({ salary, onClose }) => {
         {/* Core Info */}
         <div className="grid grid-cols-2 gap-4">
           <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Payment Frequency</p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">payment_frequency</p>
             <StatusBadge label={salary.payment_frequency_display || salary.payment_frequency} styles={FREQUENCY_STYLES[salary.payment_frequency]} />
           </div>
           <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
@@ -318,9 +318,9 @@ export const ViewSalaryModal = ({ salary, onClose }) => {
 
           {/* Rates */}
           <div className="grid grid-cols-3 gap-3 pt-3 border-t border-gray-100">
-             <div><p className="text-[9px] text-gray-400 uppercase font-bold">Trip Rate</p><p className="text-xs font-bold">{formatCurrency(salary.per_trip_rate)}</p></div>
-             <div><p className="text-[9px] text-gray-400 uppercase font-bold">KM Rate</p><p className="text-xs font-bold">{formatCurrency(salary.per_km_rate)}</p></div>
-             <div><p className="text-[9px] text-gray-400 uppercase font-bold">Overtime</p><p className="text-xs font-bold">{formatCurrency(salary.overtime_rate)}/hr</p></div>
+             <div><p className="text-[9px] text-gray-400 uppercase font-bold">per_trip_rate</p><p className="text-xs font-bold">{formatCurrency(salary.per_trip_rate)}</p></div>
+             <div><p className="text-[9px] text-gray-400 uppercase font-bold">per_km_rate</p><p className="text-xs font-bold">{formatCurrency(salary.per_km_rate)}</p></div>
+             <div><p className="text-[9px] text-gray-400 uppercase font-bold">overtime_rate</p><p className="text-xs font-bold">{formatCurrency(salary.overtime_rate)}/hr</p></div>
           </div>
         </div>
 

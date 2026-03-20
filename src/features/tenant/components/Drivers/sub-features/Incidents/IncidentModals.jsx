@@ -102,47 +102,47 @@ export const AddIncidentModal = ({ driverId, onClose }) => {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label required>Incident Type</Label>
+            <Label required>incident_type</Label>
             <Select value={form.incident_type} onChange={set('incident_type')}>
               <option value="">Select type</option>
               {INCIDENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
             </Select>
           </div>
           <div>
-            <Label>Vehicle</Label>
+            <Label>vehicle</Label>
             <VehicleSelect value={form.vehicle} onChange={(e) => setForm(p => ({ ...p, vehicle: e.target.value }))} />
           </div>
           <div>
-            <Label>Trip ID</Label>
+            <Label>trip_id</Label>
             <Input placeholder="Trip UUID" value={form.trip_id} onChange={set('trip_id')} />
           </div>
           <div>
-            <Label required>Severity</Label>
+            <Label required>severity</Label>
             <Select value={form.severity} onChange={set('severity')}>
               {SEVERITY_LIST.map(s => <option key={s} value={s}>{s}</option>)}
             </Select>
           </div>
           <div>
-            <Label required>Incident Date & Time</Label>
+            <Label required>incident_date</Label>
             <Input type="datetime-local" value={form.incident_date} onChange={set('incident_date')} />
           </div>
           <div>
-            <Label>Location</Label>
+            <Label>location</Label>
             <Input placeholder="Location" value={form.location} onChange={set('location')} />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label>Police Report No</Label>
+            <Label>police_report_number</Label>
             <Input placeholder="Police report no" value={form.police_report_number} onChange={set('police_report_number')} />
           </div>
           <div>
-            <Label>Insurance No</Label>
+            <Label>insurance_claim_number</Label>
             <Input placeholder="Insurance no" value={form.insurance_claim_number} onChange={set('insurance_claim_number')} />
           </div>
         </div>
         <div>
-          <Label required>Description</Label>
+          <Label required>description</Label>
           <textarea
             rows={2} placeholder="Describe what happened..."
             value={form.description} onChange={set('description')}
@@ -150,7 +150,7 @@ export const AddIncidentModal = ({ driverId, onClose }) => {
           />
         </div>
         <div className="border-t border-gray-100 pt-4 mt-4">
-          <Label>Resolution Status</Label>
+          <Label>resolution_status</Label>
           <div className="grid grid-cols-2 gap-4 mt-2">
             <Select value={form.resolution_status} onChange={set('resolution_status')}>
               {RESOLUTION_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
@@ -293,45 +293,45 @@ export const EditIncidentModal = ({ incident, driverId, onClose }) => {
         {error && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium">{error}</div>}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label required>Incident Type</Label>
+            <Label required>incident_type</Label>
             <Select value={form.incident_type} onChange={set('incident_type')}>
               <option value="">Select type</option>
               {INCIDENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
             </Select>
           </div>
-          <div><Label>Vehicle</Label>
+          <div><Label>vehicle</Label>
             <VehicleSelect value={form.vehicle} onChange={(e) => setForm(p => ({ ...p, vehicle: e.target.value }))} />
           </div>
-          <div><Label>Trip ID</Label>
+          <div><Label>trip_id</Label>
             <Input placeholder="Trip UUID" value={form.trip_id} onChange={set('trip_id')} />
           </div>
           <div>
-            <Label required>Severity</Label>
+            <Label required>severity</Label>
             <Select value={form.severity} onChange={set('severity')}>
               {SEVERITY_LIST.map(s => <option key={s} value={s}>{s}</option>)}
             </Select>
           </div>
           <div>
-            <Label required>Incident Date & Time</Label>
+            <Label required>incident_date</Label>
             <Input type="datetime-local" value={form.incident_date} onChange={set('incident_date')} />
           </div>
           <div>
-            <Label>Location</Label>
+            <Label>location</Label>
             <Input placeholder="Location" value={form.location} onChange={set('location')} />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label>Police Report No</Label>
+            <Label>police_report_number</Label>
             <Input placeholder="Police report no" value={form.police_report_number} onChange={set('police_report_number')} />
           </div>
           <div>
-            <Label>Insurance No</Label>
+            <Label>insurance_claim_number</Label>
             <Input placeholder="Insurance no" value={form.insurance_claim_number} onChange={set('insurance_claim_number')} />
           </div>
         </div>
         <div>
-          <Label required>Description</Label>
+          <Label required>description</Label>
           <textarea
             rows={2} placeholder="Describe what happened..."
             value={form.description} onChange={set('description')}
@@ -339,7 +339,7 @@ export const EditIncidentModal = ({ incident, driverId, onClose }) => {
           />
         </div>
         <div className="border-t border-gray-100 pt-4 mt-4">
-          <Label>Resolution Status</Label>
+          <Label>resolution_status</Label>
           <div className="grid grid-cols-2 gap-4 mt-2">
             <Select value={form.resolution_status} onChange={handleStatusChange}>
               {RESOLUTION_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
@@ -349,13 +349,13 @@ export const EditIncidentModal = ({ incident, driverId, onClose }) => {
           {(form.resolved_by || form.resolved_at) && (
             <div className="grid grid-cols-2 gap-4 mt-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
               <div>
-                <Label>Resolved By</Label>
+                <Label>resolved_by</Label>
                 <div className="text-xs font-semibold text-gray-600 mt-1">
                   {userMap[form.resolved_by] || form.resolved_by || '—'}
                 </div>
               </div>
               <div>
-                <Label>Resolved At</Label>
+                <Label>resolved_at</Label>
                 <div className="text-xs font-semibold text-gray-600 mt-1">
                   {form.resolved_at ? new Date(form.resolved_at).toLocaleString() : '—'}
                 </div>
