@@ -63,7 +63,7 @@ const IncidentTable = ({ incidents, onEdit, showDriver = false, driverMap = {}, 
               <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600">
                 {formatDate(inc.incident_date)}
               </td>
-              <td className="px-4 py-3 text-[12px] text-gray-600 max-w-37.5 truncate whitespace-nowrap">
+              <td className="px-4 py-3 text-[12px] text-gray-800 max-w-37.5 truncate whitespace-nowrap">
                 {inc.location ?? '—'}
               </td>
               <td className="px-4 py-3 whitespace-nowrap">
@@ -87,7 +87,7 @@ const IncidentTable = ({ incidents, onEdit, showDriver = false, driverMap = {}, 
               <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600">
                 {userMap[inc.resolved_by] || inc.resolved_by || '—'}
               </td>
-              <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-500">
+              <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-800">
                 {inc.resolved_at ? formatDate(inc.resolved_at) : '—'}
               </td>
               <td className="px-4 py-3 whitespace-nowrap">
