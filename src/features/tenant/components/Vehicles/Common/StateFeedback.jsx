@@ -24,18 +24,18 @@ export const ErrorState = ({ message = 'Failed to load data', error, onRetry }) 
   </div>
 );
 
-export const TableShimmer = ({ rows = 5, cols = 6 }) => (
+export const TableShimmer = ({ rows = 8, cols = 6 }) => (
   <div className="w-full bg-white rounded-xl border border-gray-100 overflow-hidden animate-pulse">
-    <div className="bg-gray-50 h-11 border-b border-gray-100 flex items-center px-4 gap-8">
+    <div className="bg-gray-50 h-11 border-b border-gray-100 flex items-center px-6 gap-10">
       {[...Array(cols)].map((_, i) => (
         <div key={i} className={`h-2.5 bg-gray-200 rounded ${i === 0 ? 'w-32' : 'w-20'}`} />
       ))}
     </div>
     <div className="divide-y divide-gray-50">
       {[...Array(rows)].map((_, i) => (
-        <div key={i} className="px-4 py-4 flex items-center gap-8">
+        <div key={i} className="px-6 py-4 flex items-center gap-10">
           {[...Array(cols)].map((_, j) => (
-            <div key={j} className={`h-3 bg-gray-100 rounded ${j === 0 ? 'w-36 h-4' : 'w-20'}`} />
+            <div key={j} className={`h-3 bg-gray-50 rounded ${j === 0 ? 'w-40 h-4' : 'w-20'}`} />
           ))}
         </div>
       ))}
@@ -58,16 +58,30 @@ export const CardShimmer = ({ count = 4 }) => (
 );
 
 export const TabContentShimmer = () => (
-  <div className="space-y-6 animate-pulse p-1">
-    <div className="flex justify-between items-center">
+  <div className="space-y-4 animate-pulse p-1">
+    <div className="flex justify-between items-center mb-2">
       <div className="space-y-2">
         <div className="h-5 bg-gray-200 rounded w-40" />
         <div className="h-3 bg-gray-100 rounded w-56" />
       </div>
       <div className="h-9 bg-gray-200 rounded-lg w-24" />
     </div>
-    <div className="h-64 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-center">
-       <Loader2 className="animate-spin text-gray-200" size={32} />
+    
+    <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+      <div className="bg-gray-50 h-10 border-b border-gray-50 flex items-center px-4 gap-6">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className={`h-2 bg-gray-200 rounded ${i === 0 ? 'w-24' : 'w-16'}`} />
+        ))}
+      </div>
+      <div className="divide-y divide-gray-50">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="px-4 py-3.5 flex items-center gap-6">
+            {[...Array(5)].map((_, j) => (
+              <div key={j} className={`h-2.5 bg-gray-50 rounded ${j === 0 ? 'w-28' : 'w-16'}`} />
+            ))}
+          </div>
+        ))}
+      </div>
     </div>
   </div>
 );

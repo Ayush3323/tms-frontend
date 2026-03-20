@@ -14,6 +14,7 @@ import {
 } from '../Common/VehicleCommon';
 import { VehicleFormModal } from '../Common/VehicleFormModal';
 import { useVehicle, useUpdateVehicle, useDeleteVehicle } from '../../../queries/vehicles/vehicleQuery';
+import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
 
 // Import Consolidated Features
 import VehicleDocuments from '../Features/Documents';
@@ -143,6 +144,9 @@ const OverviewTab = ({ v }) => {
 const VehicleHeader = ({ v, onEdit, onToggle, onDelete, updating }) => {
   const st = STATUS_STYLES[v.status] ?? STATUS_STYLES.RETIRED;
   const fuel = FUEL_COLORS[v.fuel_type] ?? 'bg-gray-100 text-gray-600 border-gray-200';
+  const lookup = useDriverLookup();
+  const driver = typeof v.assigned_driver === 'object' ? v.assigned_driver : lookup[v.assigned_driver];
+
   return (
     <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
       <div className="p-6 flex flex-col md:flex-row gap-6">
@@ -213,7 +217,7 @@ const VehicleHeader = ({ v, onEdit, onToggle, onDelete, updating }) => {
             {[
               { label: 'Odometer', value: fmtKm(v.current_odometer), icon: Gauge },
               { label: 'Tonnage', value: v.capacity_tonnage ? `${v.capacity_tonnage} T` : null, icon: Truck },
-              { label: 'Driver', value: driverName(v.assigned_driver), icon: User },
+              { label: 'Driver', value: driverName(driver ?? v.assigned_driver), icon: User },
               { label: 'Purchase', value: fmtINR(v.purchase_price), icon: IndianRupee },
             ].map(({ label, value, icon: Icon }) => (
               <div key={label} className="bg-gray-50 rounded-xl px-3 py-2.5 flex items-center gap-2.5 border border-gray-100">
