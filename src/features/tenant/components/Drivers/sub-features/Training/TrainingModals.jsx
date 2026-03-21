@@ -5,7 +5,7 @@ import Label from '../../common/Label';
 import Input from '../../common/Input';
 import Select from '../../common/Select';
 import DeleteConfirmDialog from '../../common/DeleteConfirmDialog';
-import { cleanObject } from '../../common/utils';
+import { cleanObject, formatError } from '../../common/utils';
 import {
   useCreateTrainingRecord,
   useUpdateTrainingRecord,
@@ -79,7 +79,7 @@ export const AddTrainingModal = ({ driverId, onClose }) => {
 
     createTraining.mutate(cleanObject(form), {
       onSuccess: onClose,
-      onError: (err) => setError(err.message || 'Failed to add training record.'),
+      onError: (err) => setError(formatError(err)),
     });
   };
 
@@ -144,7 +144,7 @@ export const EditTrainingModal = ({ record, driverId, onClose }) => {
 
     updateTraining.mutate(cleanObject(form), {
       onSuccess: onClose,
-      onError: (err) => setError(err.message || 'Failed to update training record.'),
+      onError: (err) => setError(formatError(err)),
     });
   };
 

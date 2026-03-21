@@ -6,7 +6,7 @@ import {
   ASSIGNMENT_STATUS_STYLES,
 } from '../../common/constants';
 
-const AssignmentTable = ({ assignments, onEdit, showDriver = false, driverMap = {}, userMap = {} }) => {
+const AssignmentTable = ({ assignments, onEdit, showDriver = false, driverMap = {}, userMap = {}, currentUser = null }) => {
   return (
     <div className="overflow-x-auto rounded-xl border border-gray-200 text-nowrap">
       <table className="w-full text-sm">
@@ -56,7 +56,9 @@ const AssignmentTable = ({ assignments, onEdit, showDriver = false, driverMap = 
                 />
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600">
-                {userMap[a.assigned_by] || a.assigned_by_name || a.assigned_by || '—'}
+                {userMap[a.assigned_by] || 
+                 (a.assigned_by === currentUser?.id ? `${currentUser?.first_name || ''} ${currentUser?.last_name || ''}`.trim() || currentUser?.username : null) || 
+                 a.assigned_by_name || a.assigned_by || '—'}
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-800 max-w-[150px] truncate" title={a.notes}>
                 {a.notes || '—'}

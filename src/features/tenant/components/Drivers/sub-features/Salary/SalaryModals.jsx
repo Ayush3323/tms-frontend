@@ -7,7 +7,7 @@ import Select from '../../common/Select';
 import DeleteConfirmDialog from '../../common/DeleteConfirmDialog';
 import StatusBadge from '../../common/StatusBadge';
 import { FREQUENCY_STYLES } from '../../common/constants';
-import { cleanObject } from '../../common/utils';
+import { cleanObject, formatError } from '../../common/utils';
 import {
   useCreateSalaryStructure,
   useUpdateSalaryStructure,
@@ -92,7 +92,7 @@ export const AddSalaryModal = ({ driverId, onClose }) => {
 
     createSalary.mutate(cleanObject(submissionData), {
       onSuccess: onClose,
-      onError: (err) => setError(err.message || 'Failed to add salary structure.'),
+      onError: (err) => setError(formatError(err)),
     });
   };
 
@@ -185,7 +185,7 @@ export const EditSalaryModal = ({ salary, driverId, onClose }) => {
 
     updateSalary.mutate(cleanObject(submissionData), {
       onSuccess: onClose,
-      onError: (err) => setError(err.message || 'Failed to update salary structure.'),
+      onError: (err) => setError(formatError(err)),
     });
   };
 

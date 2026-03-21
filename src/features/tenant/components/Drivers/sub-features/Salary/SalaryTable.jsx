@@ -16,8 +16,21 @@ const SalaryTable = ({ salaries, onEdit, showDriver = false, driverMap = {} }) =
                 <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Emp ID</th>
               </>
             )}
-            {['base_salary', 'allowances', 'deductions', 'Net Salary', 'per_trip_rate', 'per_km_rate', 'overtime_rate', 'payment_frequency', 'effective_from', 'effective_to', 'notes', 'Actions'].map(h => (
-              <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
+            {[
+              { key: 'base_salary', label: 'Base Salary' },
+              { key: 'allowances', label: 'Allowances' },
+              { key: 'deductions', label: 'Deductions' },
+              { key: 'net_salary', label: 'Net Salary' },
+              { key: 'per_trip_rate', label: 'Trip Rate' },
+              { key: 'per_km_rate', label: 'KM Rate' },
+              { key: 'overtime_rate', label: 'OT Rate' },
+              { key: 'payment_frequency', label: 'Frequency' },
+              { key: 'effective_from', label: 'Effective From' },
+              { key: 'effective_to', label: 'Effective To' },
+              { key: 'notes', label: 'Notes' },
+              { key: 'actions', label: 'Actions' }
+            ].map(h => (
+              <th key={h.key} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h.label}</th>
             ))}
           </tr>
         </thead>

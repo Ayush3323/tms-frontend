@@ -109,7 +109,6 @@ const EditDriverModal = ({ driver, onClose }) => {
     if (!form.license_number) return setError('License number is required.');
     if (!form.license_type) return setError('License type is required.');
     if (!form.license_expiry) return setError('License expiry date is required.');
-    if (!form.license_issuing_authority) return setError('License issuing authority is required.');
     if (!form.joined_date) return setError('Joined date is required.');
 
     const { first_name, middle_name, last_name, phone, email, date_of_birth, gender, ...driverFields } = form;
@@ -166,7 +165,7 @@ const EditDriverModal = ({ driver, onClose }) => {
             <div><Label required>First Name</Label><Input value={form.first_name} onChange={set('first_name')} placeholder="e.g. Rajesh" /></div>
             <div><Label required>Last Name</Label><Input value={form.last_name} onChange={set('last_name')} placeholder="e.g. Kumar" /></div>
             <div className="col-span-2"><Label>Middle Name</Label><Input value={form.middle_name} onChange={set('middle_name')} placeholder="e.g. Kumar" /></div>
-            <div><Label>Phone</Label><Input value={form.phone} onChange={set('phone')} placeholder="e.g. +919876543210" /></div>
+            <div><Label>Phone</Label><Input value={form.phone} onChange={set('phone')} placeholder="e.g. 9876543210 (Optional)" /></div>
             <div><Label>Email</Label><Input type="email" value={form.email} onChange={set('email')} placeholder="e.g. driver@example.com" /></div>
             <div><Label>Date of Birth</Label><Input type="date" value={form.date_of_birth} onChange={set('date_of_birth')} /></div>
             <div><Label>Gender</Label>
@@ -190,7 +189,7 @@ const EditDriverModal = ({ driver, onClose }) => {
               </Select>
             </div>
             <div><Label required>Expiry Date</Label><Input type="date" value={form.license_expiry} onChange={set('license_expiry')} /></div>
-            <div><Label required>Issuing Authority</Label><Input value={form.license_issuing_authority} onChange={set('license_issuing_authority')} placeholder="e.g. RTO Delhi" /></div>
+            <div><Label>Issuing Authority</Label><Input value={form.license_issuing_authority} onChange={set('license_issuing_authority')} placeholder="e.g. RTO Delhi (Optional)" /></div>
           </div>
         </div>
 

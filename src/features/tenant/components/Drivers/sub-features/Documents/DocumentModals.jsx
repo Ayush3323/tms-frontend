@@ -46,7 +46,7 @@ const DocumentFormFields = ({ form, setForm, error, userMap = {}, onStatusChange
         </div>
         <div><Label>Issue Date</Label><Input type="date" value={form.issue_date} onChange={set('issue_date')} /></div>
         <div><Label>Expiry Date</Label><Input type="date" value={form.expiry_date} onChange={set('expiry_date')} /></div>
-        <div><Label>Issuing Authority</Label><Input placeholder="e.g. UIDAI" value={form.issuing_authority} onChange={set('issuing_authority')} /></div>
+        <div><Label>Issuing Authority</Label><Input placeholder="e.g. UIDAI (Optional)" value={form.issuing_authority} onChange={set('issuing_authority')} /></div>
         <div>
           <Label>Verification Status</Label>
           <Select value={form.verification_status} onChange={handleStatusChange}>

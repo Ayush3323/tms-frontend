@@ -50,6 +50,74 @@ export const TableShimmer = ({ rows = 5, cols = 8 }) => (
   </div>
 );
 
+
+
+export const GenericTableShimmer = ({ rows = 10, columns = [] }) => (
+  <div className="w-full bg-white rounded-2xl border border-gray-100 overflow-hidden animate-pulse">
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="bg-gray-50 border-b border-gray-100">
+            {columns.map((col, i) => (
+              <th key={i} className={`px-4 py-3 ${col.width || ''} ${col.align === 'right' ? 'text-right' : 'text-left'}`}>
+                <div className={`h-3 bg-gray-200 rounded-full ${col.headerWidth || 'w-20'} ${col.align === 'right' ? 'ml-auto' : ''}`} />
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-50">
+          {[...Array(rows)].map((_, i) => (
+            <tr key={i}>
+              {columns.map((col, j) => (
+                <td key={j} className={`px-4 py-3 ${col.align === 'right' ? 'text-right' : 'text-left'}`}>
+                  {col.type === 'multiline' ? (
+                    <div className="space-y-1.5">
+                      <div className={`h-3.5 bg-gray-50/80 rounded-lg ${col.cellWidth || 'w-24'} ${col.align === 'right' ? 'ml-auto' : ''}`} />
+                      <div className={`h-2.5 bg-gray-50/50 rounded-full ${col.subWidth || 'w-16'} ${col.align === 'right' ? 'ml-auto' : ''}`} />
+                    </div>
+                  ) : col.type === 'badge' ? (
+                    <div className={`h-6 bg-gray-50/50 rounded-md border border-gray-100/50 ${col.cellWidth || 'w-24'} ${col.align === 'right' ? 'ml-auto' : ''}`} />
+                  ) : col.type === 'action' ? (
+                    <div className={`h-8 bg-gray-100/80 rounded-lg ${col.cellWidth || 'w-14'} ${col.align === 'right' ? 'ml-auto' : ''}`} />
+                  ) : (
+                    <div className={`h-4 bg-gray-50/80 rounded-lg ${col.cellWidth || 'w-24'} ${col.align === 'right' ? 'ml-auto' : ''} ${col.type === 'mono' ? 'opacity-60' : ''}`} />
+                  )}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+);
+
+export const PageLayoutShimmer = ({ title, subtitle, filterCount = 3, columns = [] }) => (
+  <div className="p-6 space-y-6 animate-pulse">
+    {/* Header Shimmer */}
+    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="space-y-3">
+        <div className="h-8 bg-gray-200 rounded-xl w-72" />
+        <div className="h-4 bg-gray-100 rounded-lg w-[450px]" />
+      </div>
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 bg-gray-100 rounded-xl border border-gray-200/50" />
+        <div className="h-11 bg-gray-200 rounded-xl w-44" />
+      </div>
+    </div>
+    {/* Filters Shimmer */}
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4 bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
+      {[...Array(filterCount)].map((_, i) => (
+        <div key={i} className="space-y-2">
+          <div className="h-2.5 bg-gray-200/80 rounded-full w-20 ml-1.5" />
+          <div className="h-11 bg-white border border-gray-100 rounded-xl w-full" />
+        </div>
+      ))}
+    </div>
+    <GenericTableShimmer columns={columns} />
+  </div>
+);
+
 export const PageShimmer = ({ columns = 5 }) => (
   <div className="p-6 space-y-6 animate-pulse">
     {/* Header Shimmer */}
@@ -105,19 +173,29 @@ export const CardShimmer = ({ count = 1 }) => (
   </div>
 );
 
-export const TabContentShimmer = () => (
-  <div className="p-6 space-y-6 animate-pulse">
-    <div className="flex justify-between items-start">
-      <div className="space-y-3">
-        <div className="h-7 bg-gray-200 rounded-xl w-56" />
-        <div className="h-4 bg-gray-100 rounded-lg w-80" />
+export const TabLayoutShimmer = ({ title, buttonText = "Add", columns = [] }) => (
+  <div className="animate-pulse">
+    <div className="flex items-center justify-between mb-4">
+      <div className="space-y-2">
+        <div className="h-4 bg-gray-200 rounded-lg w-32" />
+        <div className="h-3 bg-gray-100 rounded-full w-24" />
       </div>
-      <div className="h-11 bg-gray-200 rounded-xl w-36" />
+      <div className="h-9 bg-gray-200 rounded-lg shrink-0 w-36" />
     </div>
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
-      <TableShimmer rows={6} cols={7} />
-    </div>
+    <GenericTableShimmer rows={6} columns={columns} />
   </div>
+);
+
+export const TabContentShimmer = () => (
+  <TabLayoutShimmer 
+    columns={[
+      { headerWidth: 'w-24', cellWidth: 'w-32' },
+      { headerWidth: 'w-20', cellWidth: 'w-24' },
+      { headerWidth: 'w-20', cellWidth: 'w-24' },
+      { headerWidth: 'w-24', cellWidth: 'w-28' },
+      { headerWidth: 'w-20', cellWidth: 'w-24', align: 'right' }
+    ]} 
+  />
 );
 
 export const DetailShimmer = () => (

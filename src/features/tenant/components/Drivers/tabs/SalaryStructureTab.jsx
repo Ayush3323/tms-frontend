@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { Plus, Wallet } from 'lucide-react';
 import { useDriverSalaryStructures } from '../../../queries/drivers/salaryStructureQuery';
+import { useUsers } from '../../../queries/users/userQuery';
+import { useCurrentUser } from '../../../queries/users/userActionQuery';
+import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
 
-import { LoadingState, ErrorState, EmptyState, TabContentShimmer } from '../common/StateFeedback';
+import { LoadingState, ErrorState, EmptyState, TabLayoutShimmer } from '../common/StateFeedback';
 import SalaryTable from '../sub-features/Salary/SalaryTable';
 import { AddSalaryModal, EditSalaryModal, DeleteSalaryDialog, ViewSalaryModal } from '../sub-features/Salary/SalaryModals';
 
@@ -13,9 +16,39 @@ const SalaryTab = ({ driverId }) => {
   const [viewSalary,   setViewSalary]   = useState(null);
 
   const { data, isLoading, isError, error, refetch } = useDriverSalaryStructures(driverId);
+  const { data: usersData } = useUsers({ page_size: 1000 });
+  const { data: currentUser } = useCurrentUser();
+  const driverMap = useDriverLookup();
   const salaries = data?.results ?? [];
 
-  if (isLoading) return <TabContentShimmer />;
+  const userMap = React.useMemo(() => {
+    const map = {};
+    usersData?.results?.forEach(u => {
+      map[u.id] = `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username || 'System User';
+    });
+    return map;
+  }, [usersData]);
+
+  if (isLoading) return (
+     <TabLayoutShimmer
+      columns={[
+        { headerWidth: 'w-24', cellWidth: 'w-28' }, // Driver
+        { headerWidth: 'w-12', cellWidth: 'w-12', type: 'mono' }, // Emp ID
+        { headerWidth: 'w-24', cellWidth: 'w-32' }, // Base
+        { headerWidth: 'w-16', cellWidth: 'w-20' }, // Allow
+        { headerWidth: 'w-16', cellWidth: 'w-20' }, // Deduct
+        { headerWidth: 'w-16', cellWidth: 'w-20' }, // Net
+        { headerWidth: 'w-16', cellWidth: 'w-20', type: 'mono' }, // Trip
+        { headerWidth: 'w-16', cellWidth: 'w-20', type: 'mono' }, // Km
+        { headerWidth: 'w-16', cellWidth: 'w-20', type: 'mono' }, // OT
+        { headerWidth: 'w-16', cellWidth: 'w-20', type: 'badge' }, // Freq
+        { headerWidth: 'w-16', cellWidth: 'w-20' }, // From
+        { headerWidth: 'w-16', cellWidth: 'w-20' }, // To
+        { headerWidth: 'w-24', cellWidth: 'w-32' }, // Notes
+        { headerWidth: 'w-10', cellWidth: 'w-14', align: 'right', type: 'action' }, // Actions
+      ]}
+    />
+  );
   if (isError)   return <ErrorState message="Failed to load salary structures" error={error?.message} onRetry={() => refetch()} />;
 
   return (
@@ -54,7 +87,10 @@ const SalaryTab = ({ driverId }) => {
           onEdit={setEditSalary} 
           onDelete={setDeleteSalary} 
           onView={setViewSalary}
-          showDriver={false}
+          showDriver={true}
+          driverMap={driverMap}
+          userMap={userMap}
+          currentUser={currentUser}
         />
       )}
     </>

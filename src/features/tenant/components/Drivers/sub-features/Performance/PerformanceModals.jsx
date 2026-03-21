@@ -5,7 +5,7 @@ import Label from '../../common/Label';
 import Input from '../../common/Input';
 import Select from '../../common/Select';
 import DeleteConfirmDialog from '../../common/DeleteConfirmDialog';
-import { cleanObject } from '../../common/utils';
+import { cleanObject, formatError } from '../../common/utils';
 import {
   useCreatePerformanceMetric,
   useUpdatePerformanceMetric,
@@ -19,21 +19,21 @@ const PerformanceFormFields = ({ form, setForm, error }) => {
     return (
       <div className="space-y-4">
         {error && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium">{error}</div>}
-        <div className="grid grid-cols-2 gap-4">
-          <div><Label required>period_start</Label><Input type="date" value={form.period_start} onChange={set('period_start')} /></div>
-          <div><Label required>period_end</Label><Input type="date" value={form.period_end} onChange={set('period_end')} /></div>
-          <div><Label>trips_completed</Label><Input type="number" placeholder="e.g. 45" min="0" value={form.trips_completed} onChange={set('trips_completed')} /></div>
-          <div><Label>distance_covered</Label><Input type="number" placeholder="e.g. 12500" min="0" step="0.01" value={form.distance_covered} onChange={set('distance_covered')} /></div>
-          <div><Label>fuel_efficiency</Label><Input type="number" placeholder="e.g. 8.5" min="0" step="0.1" value={form.fuel_efficiency} onChange={set('fuel_efficiency')} /></div>
-          <div><Label>on_time_delivery_rate</Label><Input type="number" placeholder="e.g. 95.5" min="0" max="100" step="0.1" value={form.on_time_delivery_rate} onChange={set('on_time_delivery_rate')} /></div>
-          <div><Label>safety_score</Label><Input type="number" placeholder="e.g. 92.5" min="0" max="100" step="0.1" value={form.safety_score} onChange={set('safety_score')} /></div>
-          <div><Label>customer_rating</Label><Input type="number" placeholder="e.g. 4.5" min="0" max="5" step="0.1" value={form.customer_rating} onChange={set('customer_rating')} /></div>
-        </div>
-        <div><Label>notes</Label>
-          <textarea rows={2} placeholder="Any additional notes..." value={form.notes}
-            onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] placeholder:text-gray-300 resize-none" />
-        </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div><Label required>Period Start</Label><Input type="date" value={form.period_start} onChange={set('period_start')} /></div>
+        <div><Label required>Period End</Label><Input type="date" value={form.period_end} onChange={set('period_end')} /></div>
+        <div><Label>Trips Completed</Label><Input type="number" placeholder="e.g. 0" min="0" value={form.trips_completed} onChange={set('trips_completed')} /></div>
+        <div><Label>Distance Covered (km)</Label><Input type="number" placeholder="e.g. 0.00" min="0" step="0.5" value={form.distance_covered} onChange={set('distance_covered')} /></div>
+        <div><Label>Fuel Efficiency (km/L)</Label><Input type="number" placeholder="e.g. 8.5" min="0" step="0.1" value={form.fuel_efficiency} onChange={set('fuel_efficiency')} /></div>
+        <div><Label>On-Time Delivery Rate (%)</Label><Input type="number" placeholder="e.g. 95" min="0" max="100" step="0.1" value={form.on_time_delivery_rate} onChange={set('on_time_delivery_rate')} /></div>
+        <div><Label>Safety Score (0-100)</Label><Input type="number" placeholder="e.g. 90" min="0" max="100" step="0.1" value={form.safety_score} onChange={set('safety_score')} /></div>
+        <div><Label>Customer Rating (0-5)</Label><Input type="number" placeholder="e.g. 4.5" min="0" max="5" step="0.1" value={form.customer_rating} onChange={set('customer_rating')} /></div>
+      </div>
+      <div><Label>Notes</Label>
+        <textarea rows={2} placeholder="Any additional notes..." value={form.notes}
+          onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
+          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] placeholder:text-gray-300 resize-none" />
+      </div>
       </div>
     );
 };
@@ -87,9 +87,18 @@ export const AddPerformanceModal = ({ driverId, onClose }) => {
     const validationError = validate();
     if (validationError) return setError(validationError);
 
-    createMetric.mutate(cleanObject(form), {
+    const submissionData = cleanObject(form);
+    
+    // For fields with backend defaults, if empty, delete them to let backend defaults kick in
+    ['trips_completed', 'distance_covered', 'on_time_delivery_rate'].forEach(field => {
+      if (submissionData[field] === null || submissionData[field] === '') {
+        delete submissionData[field];
+      }
+    });
+
+    createMetric.mutate(submissionData, {
       onSuccess: onClose,
-      onError: (err) => setError(err.message || 'Failed to add performance metric.'),
+      onError: (err) => setError(formatError(err)),
     });
   };
 
@@ -170,9 +179,18 @@ export const EditPerformanceModal = ({ metric, driverId, onClose }) => {
     const validationError = validate();
     if (validationError) return setError(validationError);
 
-    updateMetric.mutate(cleanObject(form), {
+    const submissionData = cleanObject(form);
+    
+    // For fields with backend defaults, delete if empty to let backend defaults kick in
+    ['trips_completed', 'distance_covered', 'on_time_delivery_rate'].forEach(field => {
+      if (submissionData[field] === null || submissionData[field] === '') {
+        delete submissionData[field];
+      }
+    });
+
+    updateMetric.mutate(submissionData, {
       onSuccess: onClose,
-      onError: (err) => setError(err.message || 'Failed to update performance metric.'),
+      onError: (err) => setError(formatError(err)),
     });
   };
 
