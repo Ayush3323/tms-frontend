@@ -3,14 +3,7 @@ import StatusBadge from '../../common/StatusBadge';
 import TableActions from '../../common/TableActions';
 import { SEVERITY_STYLES, INCIDENT_TYPE_STYLES, STATUS_STYLES } from '../../common/constants';
 
-const IncidentTable = ({ incidents, onEdit, showDriver = false, driverMap = {}, vehicleMap = {}, userMap = {} }) => {
-  // Diagnostic log to see if backend is returning resolution data
-  React.useEffect(() => {
-    if (incidents.length > 0) {
-      console.log('DEBUG: Incidents from server:', incidents);
-    }
-  }, [incidents]);
-
+const IncidentTable = ({ incidents, onEdit, showDriver = false, driverMap = {}, vehicleMap = {}, userMap = {}, currentUser = null }) => {
   const formatDate = (dateStr) => {
     if (!dateStr) return '—';
     return new Date(dateStr).toLocaleString('en-IN', {
@@ -18,6 +11,23 @@ const IncidentTable = ({ incidents, onEdit, showDriver = false, driverMap = {}, 
       hour: '2-digit', minute: '2-digit',
     });
   };
+
+  const headers = [
+    { key: 'incident_type', label: 'Incident Type' },
+    { key: 'vehicle', label: 'Vehicle' },
+    { key: 'trip_id', label: 'Trip ID' },
+    { key: 'incident_date', label: 'Incident Date' },
+    { key: 'location', label: 'Location' },
+    { key: 'severity', label: 'Severity' },
+    { key: 'description', label: 'Description' },
+    { key: 'resolution_status', label: 'Status' },
+    { key: 'resolution_notes', label: 'Res. Notes' },
+    { key: 'resolved_by', label: 'Resolved By' },
+    { key: 'resolved_at', label: 'Resolved At' },
+    { key: 'police_report_number', label: 'Police Ref' },
+    { key: 'insurance_claim_number', label: 'Insurance Ref' },
+    { key: 'actions', label: 'Actions' }
+  ];
 
   return (
     <div className="overflow-x-auto rounded-xl border border-gray-200">
@@ -30,8 +40,8 @@ const IncidentTable = ({ incidents, onEdit, showDriver = false, driverMap = {}, 
                 <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Emp ID</th>
               </>
             )}
-            {['incident_type', 'vehicle', 'trip_id', 'incident_date', 'location', 'severity', 'description', 'resolution_status', 'resolution_notes', 'resolved_by', 'resolved_at', 'police_report_number', 'insurance_claim_number', 'actions'].map(h => (
-              <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h.replace(/_/g, ' ')}</th>
+            {headers.map(h => (
+              <th key={h.key} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h.label}</th>
             ))}
           </tr>
         </thead>
@@ -48,14 +58,16 @@ const IncidentTable = ({ incidents, onEdit, showDriver = false, driverMap = {}, 
                   </td>
                 </>
               )}
-              <td className="px-4 py-3 whitespace-nowrap font-semibold text-[#172B4D] text-[13px]">
+              <td className="px-4 py-3 whitespace-nowrap">
                 <StatusBadge
                   label={inc.incident_type_display ?? inc.incident_type}
                   styles={INCIDENT_TYPE_STYLES[inc.incident_type]}
                 />
               </td>
-              <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600 font-mono">
-                {vehicleMap[inc.vehicle] || inc.vehicle_registration_number || inc.vehicle || '—'}
+              <td className="px-4 py-3 whitespace-nowrap text-[12px] text-[#0052CC]">
+                <span className="bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100 font-mono">
+                  {vehicleMap[inc.vehicle] || inc.vehicle_registration_number || inc.vehicle || '—'}
+                </span>
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-500 font-mono">
                 {inc.trip_id || '—'}
@@ -85,7 +97,9 @@ const IncidentTable = ({ incidents, onEdit, showDriver = false, driverMap = {}, 
                 {inc.resolution_notes || '—'}
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600">
-                {userMap[inc.resolved_by] || inc.resolved_by || '—'}
+                {userMap[inc.resolved_by] || 
+                 (inc.resolved_by === currentUser?.id ? `${currentUser?.first_name || ''} ${currentUser?.last_name || ''}`.trim() || currentUser?.username : null) || 
+                 inc.resolved_by_name || inc.resolved_by || '—'}
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-800">
                 {inc.resolved_at ? formatDate(inc.resolved_at) : '—'}

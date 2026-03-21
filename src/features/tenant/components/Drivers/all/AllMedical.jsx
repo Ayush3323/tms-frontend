@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { HeartPulse, Plus, RefreshCw } from 'lucide-react';
+import { HeartPulse, Plus } from 'lucide-react';
 import { useMedicalRecords } from '../../../queries/drivers/trainingAndMedicalQuery';
 
-import { LoadingState, ErrorState, EmptyState, PageShimmer } from '../common/StateFeedback';
+import { LoadingState, ErrorState, EmptyState, PageLayoutShimmer } from '../common/StateFeedback';
 import MedicalTable from '../sub-features/Medical/MedicalTable';
 import { AddMedicalModal, EditMedicalModal, DeleteMedicalDialog } from '../sub-features/Medical/MedicalModals';
 import { FITNESS_STATUS } from '../common/constants';
@@ -39,7 +39,25 @@ const AllMedical = () => {
     });
   };
 
-  if (isLoading && !data) return <PageShimmer columns={4} />;
+  if (isLoading && !data) return (
+    <PageLayoutShimmer
+      filterCount={4}
+      columns={[
+        { headerWidth: 'w-24', cellWidth: 'w-28', width: 'w-40' }, // Driver
+        { headerWidth: 'w-12', cellWidth: 'w-12', width: 'w-20', type: 'mono' }, // Emp ID
+        { headerWidth: 'w-20', cellWidth: 'w-24', width: 'w-24' }, // Exam Date
+        { headerWidth: 'w-20', cellWidth: 'w-24', width: 'w-24', type: 'mono' }, // Next Due
+        { headerWidth: 'w-16', cellWidth: 'w-20', width: 'w-24', type: 'badge' }, // Status
+        { headerWidth: 'w-16', cellWidth: 'w-16', width: 'w-20', type: 'mono' }, // Blood Group
+        { headerWidth: 'w-24', cellWidth: 'w-32', width: 'w-32' }, // Doctor
+        { headerWidth: 'w-20', cellWidth: 'w-24', width: 'w-28' }, // Cert No
+        { headerWidth: 'w-16', cellWidth: 'w-16', width: 'w-24' }, // File
+        { headerWidth: 'w-24', cellWidth: 'w-32', width: 'w-32' }, // Restrictions
+        { headerWidth: 'w-24', cellWidth: 'w-32', width: 'w-32' }, // Notes
+        { headerWidth: 'w-10', cellWidth: 'w-14', width: 'w-16', align: 'right', type: 'action' }, // Actions
+      ]}
+    />
+  );
   if (isError)   return <div className="p-6"><ErrorState message="Failed to load records" error={error?.message} onRetry={() => refetch()} /></div>;
 
   return (
@@ -55,9 +73,6 @@ const AllMedical = () => {
           <p className="text-sm text-gray-500 mt-1">Manage health and medical history for all drivers</p>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={() => refetch()} disabled={isFetching} className="p-2 text-gray-400 hover:text-[#0052CC] hover:bg-blue-50 rounded-lg transition-all disabled:opacity-50">
-            <RefreshCw size={20} className={isFetching ? 'animate-spin' : ''} />
-          </button>
           <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-[#0052CC] rounded-xl hover:bg-[#0043A8] shadow-lg shadow-blue-200 transition-all active:scale-95">
             <Plus size={18} /> Add Record
           </button>

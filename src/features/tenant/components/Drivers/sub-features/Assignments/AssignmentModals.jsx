@@ -101,7 +101,7 @@ export const AddAssignmentModal = ({ driverId, onClose }) => {
         {!driverId && (
           <div>
             <Label required>Driver</Label>
-            <DriverSelect value={targetDriverId} onChange={setTargetDriverId} />
+            <DriverSelect value={targetDriverId} onChange={setTargetDriverId} disableBusy={true} />
           </div>
         )}
 

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { BarChart3, Plus, RefreshCw } from 'lucide-react';
+import { BarChart3, Plus } from 'lucide-react';
 import { usePerformanceMetrics } from '../../../queries/drivers/performanceMetricsQuery';
 
-import { LoadingState, ErrorState, EmptyState, TableShimmer, PageShimmer } from '../common/StateFeedback';
+import { LoadingState, ErrorState, EmptyState, GenericTableShimmer, PageLayoutShimmer } from '../common/StateFeedback';
 import PerformanceTable from '../sub-features/Performance/PerformanceTable';
 import { AddPerformanceModal, EditPerformanceModal, DeletePerformanceDialog } from '../sub-features/Performance/PerformanceModals';
 import DriverSelect from '../common/DriverSelect';
@@ -35,7 +35,24 @@ const AllPerformance = () => {
     });
   };
 
-  if (isLoading && !data) return <PageShimmer columns={3} />;
+  if (isLoading && !data) return (
+    <PageLayoutShimmer
+      filterCount={3}
+      columns={[
+        { headerWidth: 'w-24', cellWidth: 'w-28', type: 'multiline', subWidth: 'w-16' }, // Driver
+        { headerWidth: 'w-12', cellWidth: 'w-12', type: 'mono' }, // Emp ID
+        { headerWidth: 'w-20', cellWidth: 'w-20', type: 'multiline', subWidth: 'w-16' }, // Period
+        { headerWidth: 'w-12', cellWidth: 'w-12' }, // Trips
+        { headerWidth: 'w-16', cellWidth: 'w-16' }, // Distance
+        { headerWidth: 'w-16', cellWidth: 'w-16' }, // OT
+        { headerWidth: 'w-16', cellWidth: 'w-16' }, // Fuel
+        { headerWidth: 'w-16', cellWidth: 'w-16' }, // Safety
+        { headerWidth: 'w-16', cellWidth: 'w-12' }, // Rating
+        { headerWidth: 'w-24', cellWidth: 'w-32' }, // Notes
+        { headerWidth: 'w-10', cellWidth: 'w-14', align: 'right', type: 'action' }, // Actions
+      ]}
+    />
+  );
   if (isError) return <div className="p-6"><ErrorState message="Failed to load metrics" error={error?.message} onRetry={() => refetch()} /></div>;
 
   return (
@@ -51,9 +68,6 @@ const AllPerformance = () => {
           <p className="text-sm text-gray-500 mt-1">Global performance overview across all drivers</p>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={() => refetch()} disabled={isFetching} className="p-2 text-gray-400 hover:text-[#0052CC] hover:bg-blue-50 rounded-lg transition-all disabled:opacity-50">
-            <RefreshCw size={20} className={isFetching ? 'animate-spin' : ''} />
-          </button>
           <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-[#0052CC] rounded-xl hover:bg-[#0043A8] shadow-lg shadow-blue-200 transition-all active:scale-95">
             <Plus size={18} /> Add Metric
           </button>

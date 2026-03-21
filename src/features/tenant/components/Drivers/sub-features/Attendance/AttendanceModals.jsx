@@ -5,7 +5,7 @@ import Label from '../../common/Label';
 import Input from '../../common/Input';
 import Select from '../../common/Select';
 import DeleteConfirmDialog from '../../common/DeleteConfirmDialog';
-import { cleanObject } from '../../common/utils';
+import { cleanObject, formatError } from '../../common/utils';
 import {
   useCreateAttendance,
   useUpdateAttendance,
@@ -18,7 +18,7 @@ export const AddAttendanceModal = ({ driverId, onClose }) => {
   const [targetDriverId, setTargetDriverId] = useState(driverId || '');
   const [form, setForm] = useState({
     date: '',
-    status: '',
+    status: 'PRESENT',
     check_in: '',
     check_out: '',
     total_hours: '',
@@ -36,7 +36,7 @@ export const AddAttendanceModal = ({ driverId, onClose }) => {
 
     createAttendance.mutate(cleanObject(form), {
       onSuccess: onClose,
-      onError: (err) => setError(err.message || 'Failed to add attendance.'),
+      onError: (err) => setError(formatError(err)),
     });
   };
 
@@ -107,7 +107,7 @@ export const EditAttendanceModal = ({ record, driverId, onClose }) => {
 
     updateAttendance.mutate(cleanObject(form), {
       onSuccess: onClose,
-      onError: (err) => setError(err.message || 'Failed to update attendance.'),
+      onError: (err) => setError(formatError(err)),
     });
   };
 

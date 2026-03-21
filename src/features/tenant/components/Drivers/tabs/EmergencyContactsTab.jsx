@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { Plus, Phone } from 'lucide-react';
 import { useDriverContacts } from '../../../queries/drivers/driverContactQuery';
+import { useUsers } from '../../../queries/users/userQuery';
+import { useCurrentUser } from '../../../queries/users/userActionQuery';
+import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
 
-import { LoadingState, ErrorState, EmptyState } from '../common/StateFeedback';
+import { LoadingState, ErrorState, EmptyState, TabLayoutShimmer } from '../common/StateFeedback';
 import ContactTable from '../sub-features/Contacts/ContactTable';
 import { AddContactModal, EditContactModal, DeleteContactDialog } from '../sub-features/Contacts/ContactModals';
 
@@ -12,9 +15,34 @@ const EmergencyTab = ({ driverId }) => {
   const [deleteContact, setDeleteContact] = useState(null);
 
   const { data, isLoading, isError, error, refetch } = useDriverContacts(driverId);
+  const { data: usersData } = useUsers({ page_size: 1000 });
+  const { data: currentUser } = useCurrentUser();
+  const driverMap = useDriverLookup();
   const contacts = data?.results ?? [];
 
-  if (isLoading) return <LoadingState message="Loading contacts..." />;
+  const userMap = React.useMemo(() => {
+    const map = {};
+    usersData?.results?.forEach(u => {
+      map[u.id] = `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username || 'System User';
+    });
+    return map;
+  }, [usersData]);
+
+  if (isLoading) return (
+    <TabLayoutShimmer
+      columns={[
+        { headerWidth: 'w-24', cellWidth: 'w-28' }, // Driver
+        { headerWidth: 'w-12', cellWidth: 'w-12', type: 'mono' }, // Emp ID
+        { headerWidth: 'w-28', cellWidth: 'w-32' }, // Name
+        { headerWidth: 'w-20', cellWidth: 'w-24' }, // Relationship
+        { headerWidth: 'w-24', cellWidth: 'w-32', type: 'badge' }, // Phone
+        { headerWidth: 'w-24', cellWidth: 'w-32', type: 'badge' }, // Alt Phone
+        { headerWidth: 'w-48', cellWidth: 'w-56' }, // Address
+        { headerWidth: 'w-16', cellWidth: 'w-20', type: 'badge' }, // Status
+        { headerWidth: 'w-10', cellWidth: 'w-14', align: 'right', type: 'action' }, // Actions
+      ]}
+    />
+  );
   if (isError)   return <ErrorState message="Failed to load contacts" error={error?.message} onRetry={() => refetch()} />;
 
   return (
@@ -55,7 +83,10 @@ const EmergencyTab = ({ driverId }) => {
           contacts={contacts} 
           onEdit={setEditContact} 
           onDelete={setDeleteContact} 
-          showDriver={false}
+          showDriver={true}
+          driverMap={driverMap}
+          userMap={userMap}
+          currentUser={currentUser}
         />
       )}
     </>

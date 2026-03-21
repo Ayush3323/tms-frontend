@@ -2,8 +2,10 @@ import React, { useState, useMemo } from 'react';
 import { Plus, Truck } from 'lucide-react';
 import { useDriverVehicleAssignments } from '../../../queries/drivers/vehicleAssignmentQuery';
 import { useUsers } from '../../../queries/users/userQuery';
+import { useCurrentUser } from '../../../queries/users/userActionQuery';
+import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
 
-import { LoadingState, ErrorState, EmptyState, TabContentShimmer } from '../common/StateFeedback';
+import { LoadingState, ErrorState, EmptyState, TabLayoutShimmer } from '../common/StateFeedback';
 import AssignmentTable from '../sub-features/Assignments/AssignmentTable';
 import { AddAssignmentModal, EditAssignmentModal, DeleteAssignmentDialog } from '../sub-features/Assignments/AssignmentModals';
 
@@ -14,6 +16,8 @@ const VehicleTab = ({ driverId }) => {
 
   const { data, isLoading, isError, error, refetch } = useDriverVehicleAssignments(driverId);
   const { data: usersData } = useUsers({ page_size: 1000 });
+  const { data: currentUser } = useCurrentUser();
+  const driverMap = useDriverLookup();
 
   const userMap = useMemo(() => {
     const map = {};
@@ -26,7 +30,22 @@ const VehicleTab = ({ driverId }) => {
   const assignments = data?.results ?? [];
   const hasActiveAssignment = assignments.some(a => a.is_active === true);
 
-  if (isLoading) return <TabContentShimmer />;
+  if (isLoading) return (
+    <TabLayoutShimmer
+      columns={[
+        { headerWidth: 'w-24', cellWidth: 'w-28' }, // Driver
+        { headerWidth: 'w-12', cellWidth: 'w-12', type: 'mono' }, // Emp ID
+        { headerWidth: 'w-20', cellWidth: 'w-24', type: 'mono' }, // Vehicle
+        { headerWidth: 'w-16', cellWidth: 'w-20', type: 'badge' }, // Type
+        { headerWidth: 'w-20', cellWidth: 'w-24' }, // Assigned Date
+        { headerWidth: 'w-20', cellWidth: 'w-24' }, // Unassigned Date
+        { headerWidth: 'w-12', cellWidth: 'w-16', type: 'badge' }, // Active
+        { headerWidth: 'w-20', cellWidth: 'w-24' }, // Assigned By
+        { headerWidth: 'w-28', cellWidth: 'w-40' }, // Notes
+        { headerWidth: 'w-10', cellWidth: 'w-14', align: 'right', type: 'action' }, // Actions
+      ]}
+    />
+  );
   if (isError) return <ErrorState message="Failed to load vehicle assignments" error={error?.message} onRetry={() => refetch()} />;
 
   return (
@@ -73,8 +92,10 @@ const VehicleTab = ({ driverId }) => {
           assignments={assignments}
           onEdit={setEditAssignment}
           onDelete={setDeleteAssignment}
-          showDriver={false}
+          showDriver={true}
+          driverMap={driverMap}
           userMap={userMap}
+          currentUser={currentUser}
         />
       )}
     </>

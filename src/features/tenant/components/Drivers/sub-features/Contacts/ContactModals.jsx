@@ -75,7 +75,7 @@ export const AddContactModal = ({ driverId, onClose }) => {
     >
       <div className="space-y-4">
         {error && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium">{error}</div>}
-        
+
         {!driverId && (
           <div>
             <Label required>Driver</Label>
@@ -154,7 +154,7 @@ export const EditContactModal = ({ contact, driverId, onClose }) => {
       onClose={onClose}
       footer={
         <div className="flex items-center justify-between w-full">
-          <button 
+          <button
             onClick={() => setShowDelete(true)}
             className="px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
           >

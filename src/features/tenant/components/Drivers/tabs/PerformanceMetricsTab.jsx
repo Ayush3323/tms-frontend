@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { BarChart3 } from 'lucide-react';
 import { useDriverPerformanceMetrics } from '../../../queries/drivers/performanceMetricsQuery';
+import { useUsers } from '../../../queries/users/userQuery';
+import { useCurrentUser } from '../../../queries/users/userActionQuery';
+import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
 
-import { LoadingState, ErrorState, EmptyState, TabContentShimmer } from '../common/StateFeedback';
+import { LoadingState, ErrorState, EmptyState, TabLayoutShimmer } from '../common/StateFeedback';
 import PerformanceTable from '../sub-features/Performance/PerformanceTable';
 import { AddPerformanceModal, EditPerformanceModal, DeletePerformanceDialog } from '../sub-features/Performance/PerformanceModals';
 
@@ -12,9 +15,36 @@ const PerformanceTab = ({ driverId }) => {
   const [deleteRecord, setDeleteRecord] = useState(null);
 
   const { data, isLoading, isError, error, refetch } = useDriverPerformanceMetrics(driverId);
+  const { data: usersData } = useUsers({ page_size: 1000 });
+  const { data: currentUser } = useCurrentUser();
+  const driverMap = useDriverLookup();
   const metrics = data?.results ?? [];
 
-  if (isLoading) return <TabContentShimmer />;
+  const userMap = React.useMemo(() => {
+    const map = {};
+    usersData?.results?.forEach(u => {
+      map[u.id] = `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username || 'System User';
+    });
+    return map;
+  }, [usersData]);
+
+  if (isLoading) return (
+    <TabLayoutShimmer
+      columns={[
+        { headerWidth: 'w-24', cellWidth: 'w-28' }, // Driver
+        { headerWidth: 'w-12', cellWidth: 'w-12', type: 'mono' }, // Emp ID
+        { headerWidth: 'w-16', cellWidth: 'w-20', type: 'multiline' }, // Period
+        { headerWidth: 'w-10', cellWidth: 'w-12' }, // Trips
+        { headerWidth: 'w-12', cellWidth: 'w-16' }, // Distance
+        { headerWidth: 'w-12', cellWidth: 'w-16' }, // OT
+        { headerWidth: 'w-12', cellWidth: 'w-16' }, // Fuel
+        { headerWidth: 'w-12', cellWidth: 'w-16' }, // Safety
+        { headerWidth: 'w-10', cellWidth: 'w-12' }, // Rating
+        { headerWidth: 'w-24', cellWidth: 'w-32' }, // Notes
+        { headerWidth: 'w-10', cellWidth: 'w-14', align: 'right', type: 'action' }, // Actions
+      ]}
+    />
+  );
   if (isError)   return <ErrorState message="Failed to load performance metrics" error={error?.message} onRetry={() => refetch()} />;
 
   return (
@@ -51,7 +81,10 @@ const PerformanceTab = ({ driverId }) => {
           metrics={metrics} 
           onEdit={setEditMetric} 
           onDelete={setDeleteRecord} 
-          showDriver={false}
+          showDriver={true}
+          driverMap={driverMap}
+          userMap={userMap}
+          currentUser={currentUser}
         />
       )}
     </>

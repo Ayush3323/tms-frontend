@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { Plus, Activity } from 'lucide-react';
 import { useDriverMedicalRecords } from '../../../queries/drivers/trainingAndMedicalQuery';
+import { useUsers } from '../../../queries/users/userQuery';
+import { useCurrentUser } from '../../../queries/users/userActionQuery';
+import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
 
-import { LoadingState, ErrorState, EmptyState } from '../common/StateFeedback';
+import { LoadingState, ErrorState, EmptyState, TabLayoutShimmer } from '../common/StateFeedback';
 import MedicalTable from '../sub-features/Medical/MedicalTable';
 import { AddMedicalModal, EditMedicalModal, DeleteMedicalDialog } from '../sub-features/Medical/MedicalModals';
 
@@ -12,9 +15,37 @@ const MedicalRecordsTab = ({ driverId }) => {
   const [deleteRecord, setDeleteRecord] = useState(null);
 
   const { data, isLoading, isError, error, refetch } = useDriverMedicalRecords(driverId);
+  const { data: usersData } = useUsers({ page_size: 1000 });
+  const { data: currentUser } = useCurrentUser();
+  const driverMap = useDriverLookup();
   const records = data?.results ?? [];
 
-  if (isLoading) return <LoadingState message="Loading medical records..." />;
+  const userMap = React.useMemo(() => {
+    const map = {};
+    usersData?.results?.forEach(u => {
+      map[u.id] = `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username || 'System User';
+    });
+    return map;
+  }, [usersData]);
+
+  if (isLoading) return (
+    <TabLayoutShimmer
+      columns={[
+        { headerWidth: 'w-24', cellWidth: 'w-28' }, // Driver
+        { headerWidth: 'w-12', cellWidth: 'w-12', type: 'mono' }, // Emp ID
+        { headerWidth: 'w-20', cellWidth: 'w-24' }, // Exam Date
+        { headerWidth: 'w-20', cellWidth: 'w-24', type: 'mono' }, // Next Due
+        { headerWidth: 'w-16', cellWidth: 'w-20', type: 'badge' }, // Status
+        { headerWidth: 'w-16', cellWidth: 'w-20', type: 'mono' }, // Blood
+        { headerWidth: 'w-24', cellWidth: 'w-28' }, // Doctor
+        { headerWidth: 'w-20', cellWidth: 'w-28' }, // Cert No
+        { headerWidth: 'w-16', cellWidth: 'w-20' }, // File
+        { headerWidth: 'w-28', cellWidth: 'w-32' }, // Restrictions
+        { headerWidth: 'w-28', cellWidth: 'w-32' }, // Notes
+        { headerWidth: 'w-10', cellWidth: 'w-14', align: 'right', type: 'action' }, // Actions
+      ]}
+    />
+  );
   if (isError) return <ErrorState message="Failed to load medical records" error={error?.message} onRetry={() => refetch()} />;
 
   return (
@@ -51,7 +82,10 @@ const MedicalRecordsTab = ({ driverId }) => {
           records={records} 
           onEdit={setEditRecord} 
           onDelete={setDeleteRecord} 
-          showDriver={false}
+          showDriver={true}
+          driverMap={driverMap}
+          userMap={userMap}
+          currentUser={currentUser}
         />
       )}
     </>

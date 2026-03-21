@@ -4,7 +4,7 @@ import TableActions from '../../common/TableActions';
 import { STATUS_STYLES as VERIFICATION_STYLES } from '../../common/constants';
 import { getExpiryColor } from '../../common/utils';
 
-const DocumentTable = ({ documents, onEdit, showDriver = false, driverMap = {}, userMap = {} }) => {
+const DocumentTable = ({ documents, onEdit, showDriver = false, driverMap = {}, userMap = {}, currentUser = null }) => {
   return (
     <div className="overflow-x-auto rounded-xl border border-gray-200">
       <table className="w-full text-sm">
@@ -60,7 +60,11 @@ const DocumentTable = ({ documents, onEdit, showDriver = false, driverMap = {}, 
                 />
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600">
-                {doc.verification_status === 'VERIFIED' ? (userMap[doc.verified_by]?.name || doc.verified_by || '—') : '—'}
+                {doc.verification_status === 'VERIFIED' ? (
+                  userMap[doc.verified_by]?.name || 
+                  (doc.verified_by === currentUser?.id ? `${currentUser?.first_name || ''} ${currentUser?.last_name || ''}`.trim() || currentUser?.username : null) ||
+                  doc.verified_by || '—'
+                ) : '—'}
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600">
                 {doc.verification_status === 'VERIFIED' && doc.verified_at ? new Date(doc.verified_at).toLocaleString() : '—'}

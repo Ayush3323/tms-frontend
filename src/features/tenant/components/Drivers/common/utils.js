@@ -23,7 +23,7 @@ export const cleanObject = (obj) => {
   return Object.fromEntries(
     Object.entries(obj).map(([k, v]) => {
       // Basic text fields that should be "" instead of null
-      if (k === 'middle_name' && v === '') return [k, ''];
+      if (['middle_name', 'phone', 'alternate_phone', 'issuing_authority', 'license_issuing_authority'].includes(k) && v === '') return [k, ''];
       return [k, v === '' ? null : v];
     })
   );
@@ -57,7 +57,7 @@ export const getScoreColor = (val, max = 100) => {
  */
 export const formatError = (error) => {
   if (!error) return 'An unexpected error occurred.';
-  
+
   const data = error.response?.data;
   if (!data) return error.message || 'An unexpected error occurred.';
 
@@ -72,13 +72,13 @@ export const formatError = (error) => {
   // If backend returns structured details (VALIDATION_ERROR style)
   if (errObj.details && typeof errObj.details === 'object') {
     const messages = [];
-    
+
     const extract = (obj, prefix = '') => {
       Object.entries(obj).forEach(([key, value]) => {
         const fieldName = key.replace(/_/g, ' ');
         // Avoid redundant prefixes like "driver driver type"
         const label = prefix ? `${prefix} ${fieldName}` : fieldName;
-        
+
         if (Array.isArray(value)) {
           // Flatten array of error strings
           const valStr = value.map(v => typeof v === 'object' ? JSON.stringify(v) : v).join(' ');
@@ -91,7 +91,7 @@ export const formatError = (error) => {
         }
       });
     };
-    
+
     extract(errObj.details);
     if (messages.length > 0) return messages.join(' | ');
   }

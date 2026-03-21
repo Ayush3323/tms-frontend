@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Wallet, Plus, RefreshCw } from 'lucide-react';
+import { Wallet, Plus } from 'lucide-react';
 import { useSalaryStructures } from '../../../queries/drivers/salaryStructureQuery';
 
-import { LoadingState, ErrorState, EmptyState, TableShimmer, PageShimmer } from '../common/StateFeedback';
+import { LoadingState, ErrorState, EmptyState, GenericTableShimmer, PageLayoutShimmer } from '../common/StateFeedback';
 import SalaryTable from '../sub-features/Salary/SalaryTable';
 import { AddSalaryModal, EditSalaryModal, DeleteSalaryDialog, ViewSalaryModal, PAYMENT_FREQUENCIES } from '../sub-features/Salary/SalaryModals';
 import DriverSelect from '../common/DriverSelect';
@@ -38,7 +38,27 @@ const AllSalaryStructures = () => {
     });
   };
 
-  if (isLoading && !data) return <PageShimmer columns={4} />;
+  if (isLoading && !data) return (
+    <PageLayoutShimmer
+      filterCount={4}
+      columns={[
+        { headerWidth: 'w-24', cellWidth: 'w-28', width: 'w-40' }, // Driver
+        { headerWidth: 'w-12', cellWidth: 'w-12', width: 'w-20', type: 'mono' }, // Emp ID
+        { headerWidth: 'w-16', cellWidth: 'w-20', width: 'w-32' }, // Base
+        { headerWidth: 'w-16', cellWidth: 'w-20', width: 'w-24' }, // Allow
+        { headerWidth: 'w-16', cellWidth: 'w-20', width: 'w-24' }, // Deduct
+        { headerWidth: 'w-16', cellWidth: 'w-20', width: 'w-24' }, // Net
+        { headerWidth: 'w-16', cellWidth: 'w-16', width: 'w-24', type: 'mono' }, // Trip
+        { headerWidth: 'w-16', cellWidth: 'w-16', width: 'w-24', type: 'mono' }, // Km
+        { headerWidth: 'w-16', cellWidth: 'w-16', width: 'w-24', type: 'mono' }, // OT
+        { headerWidth: 'w-16', cellWidth: 'w-20', width: 'w-24', type: 'badge' }, // Freq
+        { headerWidth: 'w-16', cellWidth: 'w-20', width: 'w-24' }, // From
+        { headerWidth: 'w-16', cellWidth: 'w-20', width: 'w-24' }, // To
+        { headerWidth: 'w-24', cellWidth: 'w-32', width: 'w-32' }, // Notes
+        { headerWidth: 'w-10', cellWidth: 'w-14', width: 'w-16', align: 'right', type: 'action' }, // Actions
+      ]}
+    />
+  );
   if (isError)   return <div className="p-6"><ErrorState message="Failed to load salary structures" error={error?.message} onRetry={() => refetch()} /></div>;
 
   return (
@@ -54,9 +74,6 @@ const AllSalaryStructures = () => {
           <p className="text-sm text-gray-500 mt-1">Manage salary structures for all drivers</p>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={() => refetch()} disabled={isFetching} className="p-2 text-gray-400 hover:text-[#0052CC] hover:bg-blue-50 rounded-lg transition-all disabled:opacity-50">
-            <RefreshCw size={20} className={isFetching ? 'animate-spin' : ''} />
-          </button>
           <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-[#0052CC] rounded-xl hover:bg-[#0043A8] shadow-lg shadow-blue-200 transition-all active:scale-95">
             <Plus size={18} /> Add Salary
           </button>
