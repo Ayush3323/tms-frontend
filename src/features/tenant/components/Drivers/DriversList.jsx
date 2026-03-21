@@ -14,7 +14,7 @@ import Input from './common/Input';
 import Select from './common/Select';
 import ModalWrapper from './common/ModalWrapper';
 import StatusBadge from './common/StatusBadge';
-import { LoadingState, ErrorState, EmptyState } from './common/StateFeedback';
+import { LoadingState, ErrorState, EmptyState, GenericTableShimmer } from './common/StateFeedback';
 
 import {
   LICENSE_TYPES,
@@ -109,7 +109,6 @@ const AddDriverModal = ({ onClose }) => {
     if (!driverForm.license_number) return setError('License number is required.');
     if (!driverForm.license_type)   return setError('License type is required.');
     if (!driverForm.license_expiry) return setError('License expiry date is required.');
-    if (!driverForm.license_issuing_authority) return setError('License issuing authority is required.');
     if (!driverForm.joined_date)    return setError('Joined date is required.');
 
     // Auto-generate username from email prefix + short unique suffix
@@ -172,7 +171,7 @@ const AddDriverModal = ({ onClose }) => {
                 </button>
               </div>
             </div>
-            <div><Label>Phone</Label><Input placeholder="e.g. 9876543210" value={userForm.phone} onChange={setUser('phone')} /></div>
+            <div><Label>Phone</Label><Input placeholder="e.g. 9876543210 (Optional)" value={userForm.phone} onChange={setUser('phone')} /></div>
             <div><Label>Date of Birth</Label><Input type="date" value={userForm.date_of_birth} onChange={setUser('date_of_birth')} /></div>
             <div><Label>Gender</Label>
               <Select value={userForm.gender} onChange={setUser('gender')}>
@@ -195,7 +194,7 @@ const AddDriverModal = ({ onClose }) => {
               </Select>
             </div>
             <div><Label required>Expiry Date</Label><Input type="date" value={driverForm.license_expiry} onChange={setDriver('license_expiry')} /></div>
-            <div className="col-span-2"><Label required>Issuing Authority</Label><Input placeholder="e.g. RTO Delhi" value={driverForm.license_issuing_authority} onChange={setDriver('license_issuing_authority')} /></div>
+            <div className="col-span-2"><Label>Issuing Authority</Label><Input placeholder="e.g. RTO Delhi (Optional)" value={driverForm.license_issuing_authority} onChange={setDriver('license_issuing_authority')} /></div>
             <div><Label>Driver Type</Label>
               <Select value={driverForm.driver_type} onChange={setDriver('driver_type')}>
                 {DRIVER_TYPES.map(t => <option key={t} value={t}>{t.replaceAll('_', ' ')}</option>)}
@@ -221,7 +220,7 @@ const AddDriverModal = ({ onClose }) => {
 // ── Stat Card ─────────────────────────────────────────────────────────
 // eslint-disable-next-line no-unused-vars
 const StatCard = ({ label, value, color, IconComponent, loading }) => (
-  <div className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-2">
+  <div className={`bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-2 border-t-4 ${color.border}`}>
     <div className="flex items-center justify-between">
       <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{label}</span>
       <span className={`w-8 h-8 rounded-lg flex items-center justify-center ${color.iconBg}`}>
@@ -243,7 +242,7 @@ const DriversList = () => {
   const [licFilter, setLic] = useState('');
   const [joinedFrom, setJoinedFrom] = useState('');
   const [joinedTo, setJoinedTo] = useState('');
-  const [ordering, setOrdering] = useState('');
+  const [ordering, setOrdering] = useState('-id');
   const [addOpen, setAddOpen] = useState(false);  // ← Add Driver modal
   const navigate = useNavigate();
 
@@ -396,10 +395,10 @@ const DriversList = () => {
 
       {/* ── Stat Cards ── */}
       <div className="grid grid-cols-4 gap-4">
-        <StatCard loading={isLoading} label="Total Drivers" value={total} IconComponent={Users} color={{ value: 'text-[#172B4D]', iconBg: 'bg-blue-50', iconText: 'text-blue-500' }} />
-        <StatCard loading={isLoading} label="Active" value={active} IconComponent={UserCheck} color={{ value: 'text-green-600', iconBg: 'bg-green-50', iconText: 'text-green-500' }} />
-        <StatCard loading={isLoading} label="Inactive" value={inactive} IconComponent={UserMinus} color={{ value: 'text-orange-500', iconBg: 'bg-orange-50', iconText: 'text-orange-500' }} />
-        <StatCard loading={isLoading} label="Suspended" value={suspended} IconComponent={UserX} color={{ value: 'text-red-500', iconBg: 'bg-red-50', iconText: 'text-red-400' }} />
+        <StatCard loading={isLoading} label="Total Drivers" value={total} IconComponent={Users} color={{ value: 'text-[#172B4D]', iconBg: 'bg-blue-50', iconText: 'text-blue-500', border: 'border-t-[#0052CC]' }} />
+        <StatCard loading={isLoading} label="Active" value={active} IconComponent={UserCheck} color={{ value: 'text-green-600', iconBg: 'bg-green-50', iconText: 'text-green-500', border: 'border-t-green-500' }} />
+        <StatCard loading={isLoading} label="Inactive" value={inactive} IconComponent={UserMinus} color={{ value: 'text-orange-500', iconBg: 'bg-orange-50', iconText: 'text-orange-500', border: 'border-t-orange-500' }} />
+        <StatCard loading={isLoading} label="Suspended" value={suspended} IconComponent={UserX} color={{ value: 'text-red-500', iconBg: 'bg-red-50', iconText: 'text-red-400', border: 'border-t-red-500' }} />
       </div>
 
       {/* ── Table Card ── */}
@@ -493,7 +492,22 @@ const DriversList = () => {
         </div>
 
         {/* Loading */}
-        {isLoading && <LoadingState message="Loading drivers..." />}
+        {isLoading && (
+          <GenericTableShimmer 
+            rows={10} 
+            columns={[
+              { headerWidth: 'w-24', cellWidth: 'w-32', width: 'w-40', type: 'multiline', subWidth: 'w-16' }, // Name/ID
+              { headerWidth: 'w-24', cellWidth: 'w-28', width: 'w-32', type: 'badge' }, // License No
+              { headerWidth: 'w-20', cellWidth: 'w-24', width: 'w-28', type: 'badge' }, // License Type
+              { headerWidth: 'w-20', cellWidth: 'w-24', width: 'w-28', type: 'badge' }, // Driver Type
+              { headerWidth: 'w-24', cellWidth: 'w-28', width: 'w-32' }, // Expiry
+              { headerWidth: 'w-16', cellWidth: 'w-16', width: 'w-24' }, // Exp
+              { headerWidth: 'w-16', cellWidth: 'w-16', width: 'w-24' }, // Joined
+              { headerWidth: 'w-16', cellWidth: 'w-20', width: 'w-24', type: 'badge' }, // Status
+              { headerWidth: 'w-10', cellWidth: 'w-14', width: 'w-24', align: 'right', type: 'action' }, // Actions
+            ]}
+          />
+        )}
 
         {/* Error */}
         {isError && (

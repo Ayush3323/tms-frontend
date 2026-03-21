@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { FileText, Plus, RefreshCw } from 'lucide-react';
+import { FileText, Plus } from 'lucide-react';
 import { useDocuments } from '../../../queries/drivers/driverDocumentQuery';
 
-import { LoadingState, ErrorState, EmptyState, TableShimmer, PageShimmer } from '../common/StateFeedback';
+import { LoadingState, ErrorState, EmptyState, GenericTableShimmer, PageLayoutShimmer } from '../common/StateFeedback';
 import DocumentTable from '../sub-features/Documents/DocumentTable';
 import { AddDocumentModal, EditDocumentModal, DeleteDocumentDialog } from '../sub-features/Documents/DocumentModals';
 import DriverSelect from '../common/DriverSelect';
 import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
 import { useUsers as useSystemUsers } from '../../../queries/users/userQuery';
+import { useCurrentUser } from '../../../queries/users/userActionQuery';
 import { DOCUMENT_TYPES, VERIFICATION_LIST } from '../common/constants';
 import Select from '../common/Select';
 import Input from '../common/Input';
@@ -35,7 +36,8 @@ const AllDocuments = () => {
 
   const { data, isLoading, isError, error, refetch, isFetching } = useDocuments(filters);
   const driverMap = useDriverLookup();
-  const { data: usersData, isLoading: isLoadingUsers } = useSystemUsers();
+  const { data: usersData, isLoading: isLoadingUsers } = useSystemUsers({ page_size: 100 });
+  const { data: currentUser } = useCurrentUser();
   
   const userMap = React.useMemo(() => {
     return usersData?.results?.reduce((acc, u) => ({ 
@@ -64,7 +66,26 @@ const AllDocuments = () => {
     });
   };
 
-  if (isLoading && !data) return <PageShimmer columns={5} />;
+  if (isLoading && !data) return (
+    <PageLayoutShimmer
+      filterCount={5}
+      columns={[
+        { headerWidth: 'w-24', cellWidth: 'w-28', width: 'w-40' }, // Driver
+        { headerWidth: 'w-12', cellWidth: 'w-12', width: 'w-20', type: 'mono' }, // Emp ID
+        { headerWidth: 'w-20', cellWidth: 'w-24', width: 'w-32', type: 'multiline' }, // Doc Type
+        { headerWidth: 'w-20', cellWidth: 'w-20', width: 'w-28', type: 'mono' }, // Doc Num
+        { headerWidth: 'w-16', cellWidth: 'w-16', width: 'w-24' }, // Issue Date
+        { headerWidth: 'w-16', cellWidth: 'w-16', width: 'w-24', type: 'mono' }, // Expiry
+        { headerWidth: 'w-24', cellWidth: 'w-28', width: 'w-32' }, // Authority
+        { headerWidth: 'w-16', cellWidth: 'w-20', width: 'w-24', type: 'badge' }, // Verification
+        { headerWidth: 'w-20', cellWidth: 'w-24', width: 'w-24' }, // Verified By
+        { headerWidth: 'w-28', cellWidth: 'w-32', width: 'w-32' }, // Verified At
+        { headerWidth: 'w-16', cellWidth: 'w-16', width: 'w-24' }, // File URL
+        { headerWidth: 'w-24', cellWidth: 'w-32', width: 'w-40' }, // Notes
+        { headerWidth: 'w-10', cellWidth: 'w-14', width: 'w-16', align: 'right', type: 'action' }, // Actions
+      ]}
+    />
+  );
   if (isError) return <div className="p-6"><ErrorState message="Failed to load documents" error={error?.message} onRetry={() => refetch()} /></div>;
 
   return (
@@ -80,13 +101,6 @@ const AllDocuments = () => {
           <p className="text-sm text-gray-500 mt-1">Manage all documents across all registered drivers</p>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="p-2 text-gray-400 hover:text-[#0052CC] hover:bg-blue-50 rounded-lg transition-all disabled:opacity-50"
-          >
-            <RefreshCw size={20} className={isFetching ? 'animate-spin' : ''} />
-          </button>
           <button
             onClick={() => setAddOpen(true)}
             className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-[#0052CC] rounded-xl hover:bg-[#0043A8] shadow-lg shadow-blue-200 transition-all active:scale-95"
@@ -152,6 +166,7 @@ const AllDocuments = () => {
               showDriver={true}
               driverMap={driverMap}
               userMap={userMap}
+              currentUser={currentUser}
             />
           </div>
         )}

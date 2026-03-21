@@ -1,13 +1,14 @@
 import React, { useState, useMemo } from 'react';
-import { Truck, Plus, RefreshCw } from 'lucide-react';
+import { Truck, Plus } from 'lucide-react';
 import { useVehicleAssignments } from '../../../queries/drivers/vehicleAssignmentQuery';
 
-import { LoadingState, ErrorState, EmptyState, TableShimmer, PageShimmer } from '../common/StateFeedback';
+import { LoadingState, ErrorState, EmptyState, GenericTableShimmer, PageLayoutShimmer } from '../common/StateFeedback';
 import AssignmentTable from '../sub-features/Assignments/AssignmentTable';
 import { AddAssignmentModal, EditAssignmentModal, DeleteAssignmentDialog, VehicleSelect } from '../sub-features/Assignments/AssignmentModals';
 import DriverSelect from '../common/DriverSelect';
 import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
 import { useUsers } from '../../../queries/users/userQuery';
+import { useCurrentUser } from '../../../queries/users/userActionQuery';
 import { ASSIGNMENT_TYPES } from '../common/constants';
 import Select from '../common/Select';
 import Input from '../common/Input';
@@ -28,6 +29,7 @@ const AllAssignments = () => {
   const { data, isLoading, isError, error, refetch, isFetching } = useVehicleAssignments(filters);
   const driverMap = useDriverLookup();
   const { data: usersData } = useUsers({ page_size: 1000 });
+  const { data: currentUser } = useCurrentUser();
   
   const userMap = useMemo(() => {
     const map = {};
@@ -53,7 +55,23 @@ const AllAssignments = () => {
     });
   };
 
-  if (isLoading && !data) return <PageShimmer columns={6} />;
+  if (isLoading && !data) return (
+    <PageLayoutShimmer
+      filterCount={6}
+      columns={[
+        { headerWidth: 'w-24', cellWidth: 'w-28', width: 'w-40' }, // Driver
+        { headerWidth: 'w-12', cellWidth: 'w-12', width: 'w-20', type: 'mono' }, // Emp ID
+        { headerWidth: 'w-16', cellWidth: 'w-20', width: 'w-24', type: 'mono' }, // Vehicle
+        { headerWidth: 'w-16', cellWidth: 'w-20', width: 'w-24', type: 'badge' }, // Type
+        { headerWidth: 'w-16', cellWidth: 'w-20', width: 'w-24' }, // Assigned Date
+        { headerWidth: 'w-16', cellWidth: 'w-20', width: 'w-24' }, // Unassigned Date
+        { headerWidth: 'w-16', cellWidth: 'w-20', width: 'w-24', type: 'badge' }, // Active
+        { headerWidth: 'w-20', cellWidth: 'w-24', width: 'w-24' }, // By
+        { headerWidth: 'w-24', cellWidth: 'w-32', width: 'w-40' }, // Notes
+        { headerWidth: 'w-10', cellWidth: 'w-14', width: 'w-16', align: 'right', type: 'action' }, // Actions
+      ]}
+    />
+  );
   if (isError) return <div className="p-6"><ErrorState message="Failed to load assignments" error={error?.message} onRetry={() => refetch()} /></div>;
 
   return (
@@ -69,9 +87,6 @@ const AllAssignments = () => {
           <p className="text-sm text-gray-500 mt-1">Manage vehicle assignments for all drivers</p>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={() => refetch()} disabled={isFetching} className="p-2 text-gray-400 hover:text-[#0052CC] hover:bg-blue-50 rounded-lg transition-all disabled:opacity-50">
-            <RefreshCw size={20} className={isFetching ? 'animate-spin' : ''} />
-          </button>
           <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-[#0052CC] rounded-xl hover:bg-[#0043A8] shadow-lg shadow-blue-200 transition-all active:scale-95">
             <Plus size={18} /> Assign Vehicle
           </button>
@@ -126,7 +141,7 @@ const AllAssignments = () => {
           </div>
         ) : (
           <div className="p-4">
-            <AssignmentTable assignments={assignments} onEdit={setEditAssignment} showDriver={true} driverMap={driverMap} userMap={userMap} />
+             <AssignmentTable assignments={assignments} onEdit={setEditAssignment} showDriver={true} driverMap={driverMap} userMap={userMap} currentUser={currentUser} />
           </div>
         )}
       </div>

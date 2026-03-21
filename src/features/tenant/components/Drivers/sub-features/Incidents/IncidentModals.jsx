@@ -350,7 +350,9 @@ export const EditIncidentModal = ({ incident, driverId, onClose }) => {
               <div>
                 <Label>Resolved By</Label>
                 <div className="text-xs font-semibold text-gray-600 mt-1">
-                  {userMap[form.resolved_by] || form.resolved_by || '—'}
+                  {userMap[form.resolved_by] || 
+                   (form.resolved_by === currentUser?.id ? (`${currentUser?.first_name || ''} ${currentUser?.last_name || ''}`.trim() || currentUser?.username) : null) || 
+                   form.resolved_by || '—'}
                 </div>
               </div>
               <div>

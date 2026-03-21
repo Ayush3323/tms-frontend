@@ -9,8 +9,8 @@ import { getDriverName } from './utils';
  * A centralized Driver Selection component to be used across all filter bars
  * and modals. It automatically fetches the driver list.
  */
-const DriverSelect = ({ value, onChange, placeholder = "Select a driver", className = "", currentVehicleId = null }) => {
-  const { data, isLoading } = useDrivers({ page_size: 100 });
+const DriverSelect = ({ value, onChange, placeholder = "Select a driver", className = "", currentVehicleId = null, disableBusy = false }) => {
+  const { data, isLoading } = useDrivers({ page_size: 1000 });
   const { data: assignmentsData } = useVehicleAssignments({ is_active: true });
   const { data: vehiclesData } = useVehicles({ page_size: 1000 });
 
@@ -49,9 +49,9 @@ const DriverSelect = ({ value, onChange, placeholder = "Select a driver", classN
         const isBusy = !!busyWith;
         
         return (
-          <option key={d.id} value={d.id} disabled={isBusy}>
+          <option key={d.id} value={d.id} disabled={disableBusy && isBusy}>
             {getDriverName(d)} ({d.employee_id || 'No ID'})
-            {isBusy ? ` — [Assigned to ${busyWith}]` : ''}
+            {(disableBusy && isBusy) ? ` — [Assigned to ${busyWith}]` : ''}
           </option>
         );
       })}

@@ -66,12 +66,10 @@ export const useDrivers = (params = {}) => {
     queryKey: driverKeys.list(params),
     queryFn: async () => {
       try {
-        const response = await driverApi.getDrivers({ ...params, ordering: 'id' });
-        const data = response.data;
-        if (data?.results) {
-          data.results = [...data.results].sort((a, b) => b.id.localeCompare(a.id));
-        }
-        return data;
+        // Use params.ordering if provided, otherwise default to '-id' for newest first
+        const effectiveParams = { ordering: '-id', ...params };
+        const response = await driverApi.getDrivers(effectiveParams);
+        return response.data;
       } catch (error) {
         handleError(error);
       }

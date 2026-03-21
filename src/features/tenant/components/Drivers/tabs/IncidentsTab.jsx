@@ -2,8 +2,11 @@ import React, { useState, useMemo } from 'react';
 import { Plus, AlertTriangle } from 'lucide-react';
 import { useDriverIncidents } from '../../../queries/drivers/incidentsAndAttendance';
 import { useUsers } from '../../../queries/users/userQuery';
+import { useCurrentUser } from '../../../queries/users/userActionQuery';
+import { useVehiclesList } from '../../../queries/drivers/vehicleAssignmentQuery';
+import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
 
-import { LoadingState, ErrorState, EmptyState, TabContentShimmer } from '../common/StateFeedback';
+import { LoadingState, ErrorState, EmptyState, TabLayoutShimmer } from '../common/StateFeedback';
 import IncidentTable from '../sub-features/Incidents/IncidentTable';
 import { AddIncidentModal, EditIncidentModal, DeleteIncidentDialog } from '../sub-features/Incidents/IncidentModals';
 
@@ -14,6 +17,15 @@ const IncidentsTab = ({ driverId }) => {
 
   const { data, isLoading, isError, error, refetch } = useDriverIncidents(driverId);
   const { data: usersData } = useUsers({ page_size: 1000 });
+  const { data: currentUser } = useCurrentUser();
+  const { data: vehiclesData } = useVehiclesList();
+  const driverMap = useDriverLookup();
+
+  const vehicleMap = useMemo(() => {
+    return (vehiclesData?.results ?? []).reduce((acc, v) => ({
+      ...acc, [v.id]: v.registration_number
+    }), {});
+  }, [vehiclesData]);
 
   const userMap = useMemo(() => {
     const map = {};
@@ -25,7 +37,28 @@ const IncidentsTab = ({ driverId }) => {
 
   const incidents = data?.results ?? [];
 
-  if (isLoading) return <TabContentShimmer />;
+  if (isLoading) return (
+     <TabLayoutShimmer
+      columns={[
+        { headerWidth: 'w-24', cellWidth: 'w-28' }, // Driver
+        { headerWidth: 'w-12', cellWidth: 'w-12', type: 'mono' }, // Emp ID
+        { headerWidth: 'w-20', cellWidth: 'w-24', type: 'badge' }, // Type
+        { headerWidth: 'w-16', cellWidth: 'w-20', type: 'mono' }, // Vehicle
+        { headerWidth: 'w-10', cellWidth: 'w-12', type: 'mono' }, // Trip ID
+        { headerWidth: 'w-28', cellWidth: 'w-32' }, // Date
+        { headerWidth: 'w-20', cellWidth: 'w-24' }, // Location
+        { headerWidth: 'w-16', cellWidth: 'w-20', type: 'badge' }, // Severity
+        { headerWidth: 'w-32', cellWidth: 'w-40' }, // Description
+        { headerWidth: 'w-20', cellWidth: 'w-24', type: 'badge' }, // Status
+        { headerWidth: 'w-32', cellWidth: 'w-40' }, // Res. Notes
+        { headerWidth: 'w-24', cellWidth: 'w-28' }, // Res. By
+        { headerWidth: 'w-28', cellWidth: 'w-32' }, // Res. At
+        { headerWidth: 'w-16', cellWidth: 'w-20', type: 'mono' }, // Police Ref
+        { headerWidth: 'w-16', cellWidth: 'w-20', type: 'mono' }, // Insurance Ref
+        { headerWidth: 'w-10', cellWidth: 'w-14', align: 'right', type: 'action' }, // Actions
+      ]}
+    />
+  );
   if (isError)   return <ErrorState message="Failed to load incidents" error={error?.message} onRetry={() => refetch()} />;
 
   return (
@@ -58,12 +91,15 @@ const IncidentsTab = ({ driverId }) => {
 
       {/* ── Table ── */}
       {incidents.length > 0 && (
-        <IncidentTable 
-          incidents={incidents} 
-          onEdit={setEditIncident} 
-          onDelete={setDeleteIncident} 
-          showDriver={false}
+        <IncidentTable
+          incidents={incidents}
+          onEdit={setEditIncident}
+          onDelete={setDeleteIncident}
+          showDriver={true}
+          driverMap={driverMap}
+          vehicleMap={vehicleMap}
           userMap={userMap}
+          currentUser={currentUser}
         />
       )}
     </>

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Users, Plus, RefreshCw } from 'lucide-react';
+import { Users, Plus } from 'lucide-react';
 import { useEmergencyContacts } from '../../../queries/drivers/driverContactQuery';
 import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
-import { LoadingState, ErrorState, EmptyState, PageShimmer } from '../common/StateFeedback';
+import { LoadingState, ErrorState, EmptyState, PageLayoutShimmer } from '../common/StateFeedback';
 import ContactTable from '../sub-features/Contacts/ContactTable';
 import { AddContactModal, EditContactModal, DeleteContactDialog } from '../sub-features/Contacts/ContactModals';
 import DriverSelect from '../common/DriverSelect';
@@ -31,7 +31,22 @@ const AllContacts = () => {
     });
   };
 
-  if (isLoading && !data) return <PageShimmer columns={2} />;
+  if (isLoading && !data) return (
+    <PageLayoutShimmer
+      filterCount={2}
+      columns={[
+        { headerWidth: 'w-24', cellWidth: 'w-28', width: 'w-32' }, // Driver
+        { headerWidth: 'w-12', cellWidth: 'w-12', width: 'w-24', type: 'mono' }, // Emp ID
+        { headerWidth: 'w-24', cellWidth: 'w-28', width: 'w-32', type: 'bold' }, // Contact Name
+        { headerWidth: 'w-16', cellWidth: 'w-16', width: 'w-24' }, // Relationship
+        { headerWidth: 'w-24', cellWidth: 'w-28', width: 'w-32', type: 'badge' }, // Phone
+        { headerWidth: 'w-24', cellWidth: 'w-28', width: 'w-32', type: 'badge' }, // Alt Phone
+        { headerWidth: 'w-48', cellWidth: 'w-56', width: 'w-64' }, // Address
+        { headerWidth: 'w-16', cellWidth: 'w-20', width: 'w-28', type: 'badge' }, // Status
+        { headerWidth: 'w-10', cellWidth: 'w-14', width: 'w-24', align: 'right', type: 'action' }, // Actions
+      ]}
+    />
+  );
   if (isError)   return <div className="p-6"><ErrorState message="Failed to load contacts" error={error?.message} onRetry={() => refetch()} /></div>;
 
   return (
@@ -47,9 +62,6 @@ const AllContacts = () => {
           <p className="text-sm text-gray-500 mt-1">Manage emergency contacts for all drivers</p>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={() => refetch()} disabled={isFetching} className="p-2 text-gray-400 hover:text-[#0052CC] hover:bg-blue-50 rounded-lg transition-all disabled:opacity-50">
-            <RefreshCw size={20} className={isFetching ? 'animate-spin' : ''} />
-          </button>
           <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-[#0052CC] rounded-xl hover:bg-[#0043A8] shadow-lg shadow-blue-200 transition-all active:scale-95">
             <Plus size={18} /> Add Contact
           </button>
