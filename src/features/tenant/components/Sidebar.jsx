@@ -9,7 +9,6 @@ import { NavLink, useLocation } from 'react-router-dom';
 
 const vehicleSubItems = [
   { name: 'All Vehicles', icon: <Truck size={13} />, path: '/tenant/dashboard/vehicles', badge: null },
-  { name: 'Vehicle Types', icon: <LayoutGrid size={13} />, path: '/tenant/dashboard/vehicles/types', badge: null },
   { name: 'Documents', icon: <FileText size={13} />, path: '/tenant/dashboard/vehicles/documents', badge: 2, badgeVariant: 'danger' },
   { name: 'Insurance', icon: <Shield size={13} />, path: '/tenant/dashboard/vehicles/insurance', badge: null },
   { name: 'Maintenance', icon: <Wrench size={13} />, path: '/tenant/dashboard/vehicles/maintenance', badge: 3, badgeVariant: 'warn' },

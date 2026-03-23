@@ -223,11 +223,7 @@ const VehicleAccessories = ({ vehicleId, isTab }) => {
             <h1 className="text-2xl font-black text-[#172B4D] tracking-tight">Accessories</h1>
             <p className="text-sm text-gray-400 font-medium">Manage on-board devices and equipment</p>
           </div>
-          <button
-            onClick={() => setModal({ mode: 'add' })}
-            className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-[#0052CC] rounded-xl hover:bg-[#0043A8] transition-all shadow-sm shadow-blue-200">
-            <Plus size={16} /> Add Accessory
-          </button>
+
         </div>
       )}
 
@@ -273,8 +269,8 @@ const VehicleAccessories = ({ vehicleId, isTab }) => {
             <table className="w-full border-collapse text-left">
               <thead className="sticky top-0 bg-gray-50/80 backdrop-blur-md z-10">
                 <tr className="border-b border-gray-100">
-                  <th className="px-5 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Asset</th>
                   {!vehicleId && <th className="px-5 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Vehicle</th>}
+                  <th className="px-5 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Asset</th>
                   <th className="px-5 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Type</th>
                   <th className="px-5 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Warranty</th>
                   <th className="px-5 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Status</th>
@@ -284,17 +280,17 @@ const VehicleAccessories = ({ vehicleId, isTab }) => {
               <tbody className="divide-y divide-gray-50">
                 {accessories.map(a => (
                   <tr key={a.id} className="hover:bg-blue-50/30 transition-colors group">
-                    <td className="px-5 py-4">
-                      <p className="text-sm font-bold text-[#172B4D]">{a.accessory_name || 'Unnamed Asset'}</p>
-                      <p className="text-[10px] font-mono font-medium text-gray-400 mt-0.5">#{a.serial_number || 'No Serial'}</p>
-                    </td>
                     {!vehicleId && (
                       <td className="px-5 py-4 text-sm font-medium text-gray-600 truncate max-w-[150px]">
-                        <span className="font-bold text-[#172B4D] font-mono text-[13px] uppercase">
+                        <button onClick={() => setViewing(a)}
+                          className="font-bold text-[#172B4D] font-mono text-[13px] hover:text-[#0052CC] transition-all text-left uppercase hover:underline decoration-blue-400/30 underline-offset-4">
                           {a.vehicle_registration_number ?? a.vehicle_registration ?? a.vehicle_display ?? a.vehicle ?? '—'}
-                        </span>
+                        </button>
                       </td>
                     )}
+                    <td className="px-5 py-4">
+                      <p className="text-sm font-bold text-[#172B4D]">{a.accessory_name || 'Unnamed Asset'}</p>
+                    </td>
                     <td className="px-5 py-4">
                       <Badge className={TYPE_COLORS[a.accessory_type] ?? 'bg-gray-100 text-gray-600 border-gray-200'}>
                         {a.accessory_type_display ?? a.accessory_type}

@@ -5,7 +5,7 @@ import {
   Fuel, Zap, Palette, Calendar, IndianRupee, Hash,
   ToggleRight, ToggleLeft
 } from 'lucide-react';
-import { useVehicle, useUpdateVehicle, useCreateVehicle } from '../../../queries/vehicles/vehicleQuery';
+import { useVehicle, useUpdateVehicle, useCreateVehicle, useVehicles } from '../../../queries/vehicles/vehicleQuery';
 import { useVehicleTypes } from '../../../queries/vehicles/vehicletypeQuery';
 import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
 import DriverSelect from '../../Drivers/common/DriverSelect';
@@ -166,7 +166,19 @@ export const VehicleFormModal = ({ initial, onClose, isView }) => {
     if (errors[f]) setErrors(p => ({ ...p, [f]: null }));
   };
 
+  const { data: allVehiclesData } = useVehicles({ page_size: 1000 });
+
   const handleSubmit = () => {
+    // Check for duplicate driver assignment (redundant but safe)
+    if (form.assigned_driver) {
+      const allVehicles = allVehiclesData?.results ?? allVehiclesData ?? [];
+      const busy = allVehicles.find(v => (v.assigned_driver?.id ?? v.assigned_driver) === form.assigned_driver && v.id !== initial?.id);
+      if (busy) {
+        setErrors(p => ({ ...p, assigned_driver: `Driver already assigned to ${busy.registration_number}` }));
+        return;
+      }
+    }
+
     const clean = Object.fromEntries(
       Object.entries(form).map(([k, v]) => [k, v === '' ? null : v])
     );
@@ -271,6 +283,7 @@ export const VehicleFormModal = ({ initial, onClose, isView }) => {
                     if (errors.assigned_driver) setErrors(p => ({ ...p, assigned_driver: null }));
                   }} 
                   currentVehicleId={initial?.id}
+                  disableBusy={true}
                 />
               </div>
             </div>
