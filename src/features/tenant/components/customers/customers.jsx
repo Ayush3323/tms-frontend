@@ -5,7 +5,8 @@ import {
   ChevronDown, Loader2, AlertTriangle, Building2, Pencil, X, Save, Trash2
 } from 'lucide-react';
 import { useCustomers, useCustomer, useCreateCustomer, useUpdateCustomer } from '../../queries/customers/customersQuery';
-import { StatCard, Modal, Field, Input, Sel, Section } from '../Vehicles/Common/VehicleCommon';
+import { StatCard, Modal, Field, Input, Sel, Section, EmptyState, Badge } from '../Vehicles/Common/VehicleCommon';
+import { TableShimmer, ErrorState } from '../Vehicles/Common/StateFeedback';
 
 // ── Status Styles ────────────────────────────────────────────────────
 const STATUS_STYLES = {
@@ -156,9 +157,9 @@ const CustomersDashboard = () => {
     {
       header: 'Customer Type',
       render: c => (
-        <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 text-blue-600 w-fit">
+        <Badge className="bg-blue-50 text-blue-600 border-blue-100">
           {c.customer_type ?? '—'}
-        </span>
+        </Badge>
       ),
     },
     {
@@ -166,9 +167,9 @@ const CustomersDashboard = () => {
       render: c => {
         const t = c.customer_tier ?? 'STANDARD';
         return (
-          <span className={`px-2 py-0.5 rounded text-[11px] font-bold border ${TIER_STYLES[t] || TIER_STYLES.STANDARD}`}>
+          <Badge className={TIER_STYLES[t] || TIER_STYLES.STANDARD}>
             {t}
-          </span>
+          </Badge>
         );
       },
     },
@@ -185,10 +186,10 @@ const CustomersDashboard = () => {
       render: c => {
         const st = getStatusStyle(c.status);
         return (
-          <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold w-fit whitespace-nowrap ${st.bg} ${st.text}`}>
+          <Badge className={`${st.bg} ${st.text} border-transparent`}>
             <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
             {c.status}
-          </span>
+          </Badge>
         );
       },
     },
@@ -281,21 +282,11 @@ const CustomersDashboard = () => {
         </div>
 
         {/* Loading State */}
-        {isLoading && (
-          <div className="flex items-center justify-center py-16 gap-3 text-gray-400">
-            <Loader2 size={20} className="animate-spin text-[#0052CC]" />
-            <span className="text-sm">Loading customers...</span>
-          </div>
-        )}
+        {isLoading && <TableShimmer rows={8} cols={6} />}
 
         {/* Error State */}
         {isError && (
-          <div className="flex flex-col items-center justify-center py-16 gap-3 text-red-400">
-            <AlertTriangle size={32} />
-            <p className="text-sm font-medium">Failed to load customers</p>
-            <p className="text-xs text-gray-400">{error?.response?.data?.detail || error?.message}</p>
-            <button onClick={() => refetch()} className="mt-2 px-4 py-2 text-sm font-semibold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8]">Try Again</button>
-          </div>
+          <ErrorState message="Failed to load customers" error={error?.response?.data?.detail || error?.message} onRetry={() => refetch()} />
         )}
 
         {/* Data Table */}
@@ -319,12 +310,8 @@ const CustomersDashboard = () => {
                 ))}
                 {customers.length === 0 && (
                   <tr>
-                    <td colSpan={COLUMNS.length} className="px-4 py-16 text-center text-gray-400">
-                      <Building2 size={32} className="mx-auto mb-2 opacity-30" />
-                      <p className="text-sm">No customers found</p>
-                      <button onClick={openCreate} className="mt-3 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8]">
-                        <Plus size={14} className="inline mr-1" /> Add Your First Customer
-                      </button>
+                    <td colSpan={COLUMNS.length} className="px-4 py-8">
+                      <EmptyState icon={Building2} text="No customers found" onAdd={openCreate} addLabel="Add Your First Customer" />
                     </td>
                   </tr>
                 )}

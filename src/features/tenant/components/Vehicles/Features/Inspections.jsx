@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   ClipboardCheck, Plus, Pencil, Trash2, X, Search,
   RefreshCw, Loader2, AlertCircle, CheckCircle,
@@ -12,7 +12,7 @@ import {
 } from '../../../queries/vehicles/vehicleInfoQuery';
 import {
   Badge, InfoCard, SectionHeader, EmptyState, Modal, DeleteConfirm, ItemActions,
-  Label, Input, Sel, Field, StatCard, Textarea, VehicleSelect,
+  Label, Input, Sel, Field, StatCard, Textarea, VehicleSelect, DriverSelect,
   fmtDate, fmtKm, driverName
 } from '../Common/VehicleCommon';
 import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
@@ -126,17 +126,17 @@ const InspectionModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest 
     return initial.vehicle;
   };
 
-  const lookup = useDriverLookup();
-  const resolveDriver = (d) => {
+  // Resolve driver: always store UUID. If the API returns an object, extract its id.
+  const resolveDriverId = (d) => {
     if (!d) return '';
-    if (typeof d === 'object') return driverName(d);
-    return lookup[d]?.name ?? d;
+    if (typeof d === 'object') return d.id ?? '';
+    return d;
   };
 
   const [form, setForm] = useState(
     initial ? {
       vehicle: resolveVehicleId(),
-      driver: resolveDriver(initial.driver),
+      driver: resolveDriverId(initial.driver),
       inspection_type: initial.inspection_type ?? '',
       inspection_date: initial.inspection_date ? initial.inspection_date.slice(0, 16) : '',
       odometer_reading: initial.odometer_reading ?? '',
@@ -147,13 +147,6 @@ const InspectionModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest 
       defects_found: Array.isArray(initial.defects_found) ? initial.defects_found.join(', ') : (initial.defects_found ?? ''),
     } : { ...EMPTY_FORM, vehicle: vehicleId ?? '' }
   );
-
-  // Auto-resolve ID to Name once lookup is ready
-  useEffect(() => {
-    if (form.driver && lookup[form.driver]) {
-      setForm(p => ({ ...p, driver: lookup[form.driver].name }));
-    }
-  }, [lookup, form.driver]);
 
   const create = useCreateVehicleInspection();
   const update = useUpdateVehicleInspection();
@@ -212,7 +205,10 @@ const InspectionModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest 
                 <Input placeholder="e.g. John Doe" value={form.inspector_signature} onChange={set('inspector_signature')} />
               </Field>
               <Field label="Driver">
-                <Input placeholder="e.g. Mike Smith" value={form.driver} onChange={set('driver')} />
+                <DriverSelect
+                  value={form.driver}
+                  onChange={(id) => setForm(p => ({ ...p, driver: id ?? '' }))}
+                />
               </Field>
               <Field label="Type" required>
                 <Sel value={form.inspection_type} onChange={set('inspection_type')}>
