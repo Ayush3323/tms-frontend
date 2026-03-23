@@ -31,11 +31,11 @@ const MAINTENANCE_TYPES = [
 const STATUS_OPTIONS = ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'OVERDUE'];
 
 const STATUS_STYLES = {
-  SCHEDULED:   { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-200', dot: 'bg-blue-500' },
+  SCHEDULED: { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-200', dot: 'bg-blue-500' },
   IN_PROGRESS: { bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-200', dot: 'bg-purple-500' },
-  COMPLETED:   { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-200', dot: 'bg-emerald-500' },
-  OVERDUE:     { bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-200', dot: 'bg-red-500' },
-  CANCELLED:   { bg: 'bg-gray-50', text: 'text-gray-500', border: 'border-gray-200', dot: 'bg-gray-400' },
+  COMPLETED: { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-200', dot: 'bg-emerald-500' },
+  OVERDUE: { bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-200', dot: 'bg-red-500' },
+  CANCELLED: { bg: 'bg-gray-50', text: 'text-gray-500', border: 'border-gray-200', dot: 'bg-gray-400' },
 };
 
 const EMPTY_SCHEDULE = {
@@ -245,23 +245,23 @@ const ScheduleModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest })
 
   const [form, setForm] = useState(
     initial ? {
-      vehicle:           resolveVehicleId(),
-      maintenance_type:  initial.maintenance_type   ?? '',
-      description:       initial.description        ?? '',
-      scheduled_date:    initial.scheduled_date     ?? '',
-      completed_date:    initial.completed_date     ?? '',
-      odometer_reading:  initial.odometer_reading   ?? '',
-      next_due_date:     initial.next_due_date      ?? '',
-      next_due_odometer: initial.next_due_odometer  ?? '',
+      vehicle: resolveVehicleId(),
+      maintenance_type: initial.maintenance_type ?? '',
+      description: initial.description ?? '',
+      scheduled_date: initial.scheduled_date ?? '',
+      completed_date: initial.completed_date ?? '',
+      odometer_reading: initial.odometer_reading ?? '',
+      next_due_date: initial.next_due_date ?? '',
+      next_due_odometer: initial.next_due_odometer ?? '',
       service_interval_km: initial.service_interval_km ?? '',
-      status:            initial.status             ?? 'SCHEDULED',
+      status: initial.status ?? 'SCHEDULED',
     } : { ...EMPTY_SCHEDULE, vehicle: vehicleId ?? '' }
   );
 
-  const create    = useCreateMaintenanceSchedule();
-  const update    = useUpdateMaintenanceSchedule();
+  const create = useCreateMaintenanceSchedule();
+  const update = useUpdateMaintenanceSchedule();
   const isPending = create.isPending || update.isPending;
-  const set       = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
+  const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
   const [errors, setErrors] = useState({});
 
   const handleSubmit = () => {
@@ -274,11 +274,11 @@ const ScheduleModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest })
 
     const clean = Object.fromEntries(Object.entries(form).map(([k, v]) => [k, v === '' ? null : v]));
     if (isEdit) update.mutate({ id: initial.id, data: clean }, { onSuccess: onClose });
-    else        create.mutate(clean, { onSuccess: onClose });
+    else create.mutate(clean, { onSuccess: onClose });
   };
 
   return (
-    <Modal 
+    <Modal
       title={isView ? 'Schedule Details' : isEdit ? 'Edit Schedule' : 'Add Schedule'}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -361,24 +361,24 @@ const RecordModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) =
 
   const [form, setForm] = useState(
     initial ? {
-      vehicle:           resolveVehicleId(),
-      schedule:          initial.schedule?.id       ?? initial.schedule ?? '',
-      service_type:      initial.service_type       ?? '',
-      service_provider:  initial.service_provider   ?? '',
-      odometer_reading:  initial.odometer_reading   ?? '',
-      labor_hours:       initial.labor_hours        ?? '',
-      total_cost:        initial.total_cost         ?? '',
-      service_date:      initial.service_date       ?? '',
-      next_service_due:  initial.next_service_due  ?? '',
-      notes:             initial.notes             ?? '',
-      parts_replaced:    initial.parts_replaced    ?? [],
+      vehicle: resolveVehicleId(),
+      schedule: initial.schedule?.id ?? initial.schedule ?? '',
+      service_type: initial.service_type ?? '',
+      service_provider: initial.service_provider ?? '',
+      odometer_reading: initial.odometer_reading ?? '',
+      labor_hours: initial.labor_hours ?? '',
+      total_cost: initial.total_cost ?? '',
+      service_date: initial.service_date ?? '',
+      next_service_due: initial.next_service_due ?? '',
+      notes: initial.notes ?? '',
+      parts_replaced: initial.parts_replaced ?? [],
     } : { ...EMPTY_RECORD, vehicle: vehicleId ?? '' }
   );
 
-  const create    = useCreateMaintenanceRecord();
-  const update    = useUpdateMaintenanceRecord();
+  const create = useCreateMaintenanceRecord();
+  const update = useUpdateMaintenanceRecord();
   const isPending = create.isPending || update.isPending;
-  const set       = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
+  const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
   const [errors, setErrors] = useState({});
 
   const [newPart, setNewPart] = useState({ part_name: '', quantity: '', cost: '' });
@@ -399,11 +399,11 @@ const RecordModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) =
 
     const clean = Object.fromEntries(Object.entries(form).map(([k, v]) => [k, v === '' ? null : v]));
     if (isEdit) update.mutate({ id: initial.id, data: clean }, { onSuccess: onClose });
-    else        create.mutate(clean, { onSuccess: onClose });
+    else create.mutate(clean, { onSuccess: onClose });
   };
 
   return (
-    <Modal 
+    <Modal
       title={isView ? 'Record Details' : isEdit ? 'Edit Record' : 'Add Record'}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -539,10 +539,10 @@ const SchedulesTab = ({ onEdit, onDelete, onView, vehicleId }) => {
 
       {isLoading && <TabContentShimmer />}
       {isError && (
-        <ErrorState 
-          message="Failed to load schedules" 
-          error={error?.response?.data?.detail || error?.message} 
-          onRetry={() => refetch()} 
+        <ErrorState
+          message="Failed to load schedules"
+          error={error?.response?.data?.detail || error?.message}
+          onRetry={() => refetch()}
         />
       )}
 
@@ -551,27 +551,27 @@ const SchedulesTab = ({ onEdit, onDelete, onView, vehicleId }) => {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
-                  {!vehicleId && <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Vehicle</th>}
-                  {['Maintenance Type', 'Scheduled', 'Next Due', 'Odometer', 'Status', 'Actions'].map(h => (
-                    <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {schedules.map(row => {
-                  const st = STATUS_STYLES[row.status] ?? STATUS_STYLES.SCHEDULED;
-                  const days = daysUntil(row.next_due_date);
-                  const urgency = days !== null && days <= 7 && row.status === 'SCHEDULED';
-                  return (
-                    <tr key={row.id} className={`hover:bg-blue-50/30 transition-colors ${urgency ? 'bg-orange-50/30' : ''}`}>
-                      {!vehicleId && (
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <button onClick={() => onView(row)}
-                            className="font-bold text-[#172B4D] font-mono text-[13px] hover:text-[#0052CC] transition-colors text-left uppercase">
-                            {vehicleDisplay(row.vehicle, row)}
-                          </button>
-                        </td>
-                      )}
+                {!vehicleId && <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Vehicle</th>}
+                {['Maintenance Type', 'Next Due', 'Status', 'Actions'].map(h => (
+                  <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {schedules.map(row => {
+                const st = STATUS_STYLES[row.status] ?? STATUS_STYLES.SCHEDULED;
+                const days = daysUntil(row.next_due_date);
+                const urgency = days !== null && days <= 7 && row.status === 'SCHEDULED';
+                return (
+                  <tr key={row.id} className={`hover:bg-blue-50/30 transition-colors ${urgency ? 'bg-orange-50/30' : ''}`}>
+                    {!vehicleId && (
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <button onClick={() => onView(row)}
+                          className="font-bold text-[#172B4D] font-mono text-[13px] hover:text-[#0052CC] transition-all text-left uppercase hover:underline decoration-blue-400/30 underline-offset-4">
+                          {vehicleDisplay(row.vehicle, row)}
+                        </button>
+                      </td>
+                    )}
                     <td className="px-4 py-3 whitespace-nowrap text-left">
                       <button onClick={() => onView(row)} className="flex items-center gap-1.5 hover:scale-105 active:scale-95 transition-all text-left">
                         <div className="w-6 h-6 rounded-md bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
@@ -579,9 +579,6 @@ const SchedulesTab = ({ onEdit, onDelete, onView, vehicleId }) => {
                         </div>
                         <span className="text-[12px] font-bold text-[#172B4D] hover:text-[#0052CC]">{row.maintenance_type_display ?? row.maintenance_type?.replace(/_/g, ' ') ?? '—'}</span>
                       </button>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <span className="flex items-center gap-1 text-gray-600 text-[12px]"><Calendar size={11} className="text-gray-300" />{fmtDate(row.scheduled_date)}</span>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       {row.next_due_date ? (
@@ -594,11 +591,6 @@ const SchedulesTab = ({ onEdit, onDelete, onView, vehicleId }) => {
                           )}
                         </div>
                       ) : <span className="text-gray-300 text-[12px]">—</span>}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      {row.odometer_reading
-                        ? <span className="flex items-center gap-1 text-gray-600 font-mono text-[12px]"><Gauge size={11} className="text-gray-300" />{fmtKm(row.odometer_reading)}</span>
-                        : <span className="text-gray-300 text-[12px]">—</span>}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       {row.service_interval_km
@@ -634,7 +626,7 @@ const SchedulesTab = ({ onEdit, onDelete, onView, vehicleId }) => {
       {!isLoading && !isError && (
         <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
           <span>Showing <span className="font-bold text-gray-600">{schedules.length}</span>{data?.count && data.count !== schedules.length && <> of <span className="font-bold text-gray-600">{data.count}</span></>} schedules</span>
-          <span className="text-[11px]">Fleet Management System</span>
+
         </div>
       )}
     </div>
@@ -669,10 +661,10 @@ const RecordsTab = ({ onEdit, onDelete, onView, vehicleId }) => {
 
       {isLoading && <TabContentShimmer />}
       {isError && (
-        <ErrorState 
-          message="Failed to load records" 
-          error={error?.response?.data?.detail || error?.message} 
-          onRetry={() => refetch()} 
+        <ErrorState
+          message="Failed to load records"
+          error={error?.response?.data?.detail || error?.message}
+          onRetry={() => refetch()}
         />
       )}
 
@@ -682,7 +674,7 @@ const RecordsTab = ({ onEdit, onDelete, onView, vehicleId }) => {
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
                 {!vehicleId && <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Vehicle</th>}
-                {['Service Type', 'Provider', 'Date', 'Odometer', 'Labor Hrs', 'Total Cost', 'Next Service', 'Parts', 'Actions'].map(h => (
+                {['Service Type', 'Date', 'Total Cost', 'Next Service', 'Actions'].map(h => (
                   <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -693,7 +685,7 @@ const RecordsTab = ({ onEdit, onDelete, onView, vehicleId }) => {
                   {!vehicleId && (
                     <td className="px-4 py-3 whitespace-nowrap">
                       <button onClick={() => onView(r)}
-                        className="font-bold text-[#172B4D] font-mono text-[13px] hover:text-[#0052CC] transition-colors text-left uppercase">
+                        className="font-bold text-[#172B4D] font-mono text-[13px] hover:text-[#0052CC] transition-all text-left uppercase hover:underline decoration-blue-400/30 underline-offset-4">
                         {vehicleDisplay(r.vehicle, r)}
                       </button>
                     </td>
@@ -706,18 +698,6 @@ const RecordsTab = ({ onEdit, onDelete, onView, vehicleId }) => {
                       <span className="text-[12px] font-bold text-[#172B4D] hover:text-[#0052CC]">{r.service_type}</span>
                     </button>
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap"><span className="text-[12px] text-gray-600">{r.service_provider}</span></td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <span className="flex items-center gap-1 text-gray-600 text-[12px]"><Calendar size={11} className="text-gray-300" />{fmtDate(r.service_date)}</span>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    {r.odometer_reading
-                      ? <span className="flex items-center gap-1 text-gray-600 font-mono text-[12px]"><Gauge size={11} className="text-gray-300" />{fmtKm(r.odometer_reading)}</span>
-                      : <span className="text-gray-300 text-[12px]">—</span>}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <span className="text-[12px] text-gray-600">{r.labor_hours ? `${r.labor_hours} hrs` : '—'}</span>
-                  </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     {r.total_cost
                       ? <span className="flex items-center gap-0.5 text-emerald-600 font-bold text-[12px]">{fmtINR(r.total_cost)}</span>
@@ -725,13 +705,6 @@ const RecordsTab = ({ onEdit, onDelete, onView, vehicleId }) => {
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <span className="flex items-center gap-1 text-gray-600 text-[12px]"><Calendar size={11} className="text-gray-300" />{fmtDate(r.next_service_due)}</span>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    {r.parts_replaced?.length > 0
-                      ? <span className="flex items-center gap-1 text-[12px] font-semibold text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full w-fit">
-                        <Package size={11} /> {r.parts_replaced.length}
-                      </span>
-                      : <span className="text-gray-300 text-[12px]">—</span>}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center gap-2">
@@ -767,36 +740,36 @@ const RecordsTab = ({ onEdit, onDelete, onView, vehicleId }) => {
 
 // ── Main Page ─────────────────────────────────────────────────────────
 const MaintenanceSchedules = ({ vehicleId, tab: initialTab = 'schedules', isTab }) => {
-  const [activeTab, setActiveTab ] = useState(initialTab);
-  const [search, setSearch]        = useState('');
-  const [modal, setModal]          = useState(null); // { type, mode, data }
-  const [viewTarget, setView]      = useState(null); // { type, data }
-  const [deleteTarget, setDelete]  = useState(null); // { type, data }
+  const [activeTab, setActiveTab] = useState(initialTab);
+  const [search, setSearch] = useState('');
+  const [modal, setModal] = useState(null); // { type, mode, data }
+  const [viewTarget, setView] = useState(null); // { type, data }
+  const [deleteTarget, setDelete] = useState(null); // { type, data }
 
-  const delSched  = useDeleteMaintenanceSchedule();
+  const delSched = useDeleteMaintenanceSchedule();
   const delRecord = useDeleteMaintenanceRecord();
 
   const schedulesQ = useMaintenanceSchedules({
     ...(vehicleId && { vehicle: vehicleId }),
     ...(search && { search }),
   });
-  const recordsQ   = useMaintenanceRecords({
+  const recordsQ = useMaintenanceRecords({
     ...(vehicleId && { vehicle: vehicleId }),
     ...(search && { search }),
   });
 
   const isLoading = activeTab === 'schedules' ? schedulesQ.isLoading : recordsQ.isLoading;
-  const isError   = activeTab === 'schedules' ? schedulesQ.isError   : recordsQ.isError;
-  const refetch   = () => { schedulesQ.refetch(); recordsQ.refetch(); };
+  const isError = activeTab === 'schedules' ? schedulesQ.isError : recordsQ.isError;
+  const refetch = () => { schedulesQ.refetch(); recordsQ.refetch(); };
 
   const schedules = schedulesQ.data?.results ?? schedulesQ.data ?? [];
-  const records   = recordsQ.data?.results   ?? recordsQ.data   ?? [];
+  const records = recordsQ.data?.results ?? recordsQ.data ?? [];
 
   // Stats logic
-  const schedCount  = schedules.length;
-  const overdue     = schedules.filter(s => s.status === 'OVERDUE').length;
-  const upcoming    = schedules.filter(s => s.status === 'SCHEDULED' && daysUntil(s.next_due_date) <= 7).length;
-  const totalCost   = records.reduce((acc, r) => acc + parseFloat(r.total_cost || 0), 0);
+  const schedCount = schedules.length;
+  const overdue = schedules.filter(s => s.status === 'OVERDUE').length;
+  const upcoming = schedules.filter(s => s.status === 'SCHEDULED' && daysUntil(s.next_due_date) <= 7).length;
+  const totalCost = records.reduce((acc, r) => acc + parseFloat(r.total_cost || 0), 0);
 
   const content = (
     <div className={!isTab ? "p-6 space-y-6 bg-[#F8FAFC] min-h-screen" : "space-y-4"}>
@@ -839,10 +812,7 @@ const MaintenanceSchedules = ({ vehicleId, tab: initialTab = 'schedules', isTab 
               className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
               <RefreshCw size={14} />
             </button>
-            <button onClick={() => setModal({ type: activeTab === 'schedules' ? 'schedule' : 'record', mode: 'add' })}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] shadow-sm">
-              <Plus size={15} /> Add {activeTab === 'schedules' ? 'Schedule' : 'Record'}
-            </button>
+
           </div>
         </div>
       )}
@@ -850,9 +820,9 @@ const MaintenanceSchedules = ({ vehicleId, tab: initialTab = 'schedules', isTab 
       {/* Stat Cards — hidden in tab mode */}
       {!isTab && (
         <div className="grid grid-cols-4 gap-4">
-          <StatCard loading={isLoading} label="Schedules"  value={schedCount} icon={ClipboardList} color="blue" />
-          <StatCard loading={isLoading} label="Overdue"    value={overdue}    icon={AlertTriangle} color="red" />
-          <StatCard loading={isLoading} label="Upcoming"   value={upcoming}   icon={Clock}         color="orange" />
+          <StatCard loading={isLoading} label="Schedules" value={schedCount} icon={ClipboardList} color="blue" />
+          <StatCard loading={isLoading} label="Overdue" value={overdue} icon={AlertTriangle} color="red" />
+          <StatCard loading={isLoading} label="Upcoming" value={upcoming} icon={Clock} color="orange" />
           <StatCard loading={isLoading} label="Total Cost" value={fmtINR(totalCost)} icon={IndianRupee} color="green" />
         </div>
       )}

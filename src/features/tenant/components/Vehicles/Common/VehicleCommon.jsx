@@ -65,17 +65,17 @@ export const driverName = (d) => {
 };
 
 // ── Generic Badge ─────────────────────────────────────────────────────
-export const StatCard = ({ label, value, icon: Icon, color, loading }) => (
-  <div className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-2 shadow-sm hover:shadow-md transition-all">
+export const StatCard = ({ label, value, icon: Icon, color, loading, className = '' }) => (
+  <div className={`bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-1 shadow-sm hover:shadow-md transition-all w-full max-w-[240px] ${className}`}>
     <div className="flex items-center justify-between">
-      <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{label}</span>
+      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{label}</span>
       <span className={`w-8 h-8 rounded-lg flex items-center justify-center ${color?.iconBg || 'bg-gray-50'}`}>
         {Icon && <Icon size={15} className={color?.iconText || 'text-gray-400'} />}
       </span>
     </div>
     {loading
       ? <div className="h-9 w-12 bg-gray-100 rounded animate-pulse" />
-      : <span className={`text-3xl font-black ${color?.value || 'text-[#172B4D]'}`}>{value}</span>
+      : <span className={`text-2xl font-black ${color?.value || 'text-[#172B4D]'}`}>{value}</span>
     }
   </div>
 );
@@ -328,7 +328,7 @@ export const VehicleSelect = ({ value, onChange }) => {
             )}
             {vehicles.map(v => (
               <li key={v.id}
-                onClick={() => { onChange(v.id); setOpen(false); setQuery(''); }}
+                onClick={() => { onChange(v.id, v); setOpen(false); setQuery(''); }}
                 className={`px-4 py-2.5 cursor-pointer hover:bg-blue-50 transition-colors
                   flex items-center justify-between gap-2 ${v.id === value ? 'bg-blue-50' : ''}`}>
                 <span className="font-mono font-bold text-[#172B4D] text-sm">{v.registration_number}</span>

@@ -4,16 +4,16 @@ import {
   Search, Plus, Download, RefreshCw, Eye, PauseCircle,
   PlayCircle, Truck, CheckCircle, Wrench, ArchiveX,
   ChevronDown, Loader2, AlertCircle, X,
-  Pencil
+  Pencil, LayoutGrid
 } from 'lucide-react';
 import { useVehicles, useVehicle, useUpdateVehicle, useCreateVehicle } from '../../../queries/vehicles/vehicleQuery';
 import { useVehicleTypes } from '../../../queries/vehicles/vehicletypeQuery';
 
-import { 
-  VehicleFormModal 
+import {
+  VehicleFormModal
 } from '../Common/VehicleFormModal';
-import { 
-  StatCard, FUEL_COLORS, STATUS_STYLES, OWNERSHIP_COLORS, fmtKm 
+import {
+  StatCard, FUEL_COLORS, STATUS_STYLES, OWNERSHIP_COLORS, fmtKm
 } from '../Common/VehicleCommon';
 import { TableShimmer, CardShimmer, ErrorState } from '../Common/StateFeedback';
 
@@ -42,27 +42,27 @@ const EditVehicleButton = ({ vehicleId, onEdit }) => {
 
 // ── Main Component ────────────────────────────────────────────────────
 const Vehicles = () => {
-  const [search, setSearch]       = useState('');
+  const [search, setSearch] = useState('');
   const [statusFilter, setStatus] = useState('');
-  const [fuelFilter, setFuel]     = useState('');
-  const [ownerFilter, setOwner]   = useState('');
+  const [fuelFilter, setFuel] = useState('');
+  const [ownerFilter, setOwner] = useState('');
   const [formModal, setFormModal] = useState(null);
   const [viewModal, setViewModal] = useState(null);
-  const navigate                  = useNavigate();
+  const navigate = useNavigate();
 
   const { data, isLoading, isError, error, refetch } = useVehicles({
     ...(statusFilter && { status: statusFilter }),
-    ...(fuelFilter   && { fuel_type: fuelFilter }),
-    ...(ownerFilter  && { ownership_type: ownerFilter }),
-    ...(search       && { search }),
+    ...(fuelFilter && { fuel_type: fuelFilter }),
+    ...(ownerFilter && { ownership_type: ownerFilter }),
+    ...(search && { search }),
   });
 
   const updateVehicle = useUpdateVehicle();
-  const vehicles      = data?.results ?? data ?? [];
-  const total         = data?.count ?? vehicles.length;
-  const active        = vehicles.filter(v => v.status === 'ACTIVE').length;
-  const maintenance   = vehicles.filter(v => v.status === 'MAINTENANCE').length;
-  const retired       = vehicles.filter(v => ['RETIRED','SOLD','SCRAPPED'].includes(v.status)).length;
+  const vehicles = data?.results ?? data ?? [];
+  const total = data?.count ?? vehicles.length;
+  const active = vehicles.filter(v => v.status === 'ACTIVE').length;
+  const maintenance = vehicles.filter(v => v.status === 'MAINTENANCE').length;
+  const retired = vehicles.filter(v => ['RETIRED', 'SOLD', 'SCRAPPED'].includes(v.status)).length;
 
   const handleStatusToggle = (v) =>
     updateVehicle.mutate({ id: v.id, data: { status: v.status === 'ACTIVE' ? 'MAINTENANCE' : 'ACTIVE' } });
@@ -75,19 +75,17 @@ const Vehicles = () => {
       render: v => (
         <div className="text-left">
           <button onClick={() => setViewModal(v)}
-             className="font-bold text-[#172B4D] font-mono text-[13px] hover:text-[#0052CC] transition-all hover:scale-105 active:scale-95 text-left block">
+            className="font-bold text-[#172B4D] font-mono text-[13px] hover:text-[#0052CC] transition-all text-left block hover:underline decoration-blue-400/30 underline-offset-4">
             {v.registration_number ?? '—'}
           </button>
-          {v.year && <div className="text-[11px] text-gray-400">{v.year}</div>}
         </div>
       ),
     },
     {
-      header: 'Make / Model',
+      header: 'Make',
       render: v => (
         <div>
           <span className="font-semibold text-gray-800">{v.make ?? '—'}</span>
-          <div className="text-[11px] text-gray-400">{v.model ?? ''}</div>
         </div>
       ),
     },
@@ -139,7 +137,7 @@ const Vehicles = () => {
       header: 'Actions',
       render: v => {
         const isActive = v.status === 'ACTIVE';
-        const isMaint  = v.status === 'MAINTENANCE';
+        const isMaint = v.status === 'MAINTENANCE';
         return (
           <div className="flex items-center gap-2">
             <button onClick={() => navigate(`/tenant/dashboard/vehicles/${v.id}`)}
@@ -189,6 +187,10 @@ const Vehicles = () => {
             All registered vehicles — click <span className="text-[#0052CC] font-semibold">View</span> for full details
           </p>
         </div>
+        <button onClick={() => navigate('/tenant/dashboard/vehicles/types')}
+          className=" ml-auto mr-4 flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all hover:scale-105 active:scale-95 shadow-md hover:shadow-lg">
+          <LayoutGrid size={14} /> Vehicle Types
+        </button>
         <div className="flex items-center gap-2">
           <button onClick={() => refetch()}
             className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all">
@@ -197,10 +199,7 @@ const Vehicles = () => {
           <button className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all">
             <Download size={14} /> Export
           </button>
-          <button onClick={() => setFormModal('add')}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all shadow-sm">
-            <Plus size={15} /> Add Vehicle
-          </button>
+
         </div>
       </div>
 
@@ -210,10 +209,10 @@ const Vehicles = () => {
           <CardShimmer count={4} />
         ) : (
           <>
-            <StatCard loading={isLoading} label="Total"          value={total}       icon={Truck}       color={{ value: 'text-[#172B4D]', iconBg: 'bg-blue-50',   iconText: 'text-blue-500' }} />
-            <StatCard loading={isLoading} label="Active"         value={active}      icon={CheckCircle} color={{ value: 'text-green-600',  iconBg: 'bg-green-50',  iconText: 'text-green-500' }} />
-            <StatCard loading={isLoading} label="Maintenance"    value={maintenance} icon={Wrench}      color={{ value: 'text-orange-500', iconBg: 'bg-orange-50', iconText: 'text-orange-500' }} />
-            <StatCard loading={isLoading} label="Retired / Sold" value={retired}     icon={ArchiveX}    color={{ value: 'text-red-500',    iconBg: 'bg-red-50',    iconText: 'text-red-400' }} />
+            <StatCard loading={isLoading} label="Total" value={total} icon={Truck} color={{ value: 'text-[#172B4D]', iconBg: 'bg-blue-50', iconText: 'text-blue-500' }} />
+            <StatCard loading={isLoading} label="Active" value={active} icon={CheckCircle} color={{ value: 'text-green-600', iconBg: 'bg-green-50', iconText: 'text-green-500' }} />
+            <StatCard loading={isLoading} label="Maintenance" value={maintenance} icon={Wrench} color={{ value: 'text-orange-500', iconBg: 'bg-orange-50', iconText: 'text-orange-500' }} />
+            <StatCard loading={isLoading} label="Retired / Sold" value={retired} icon={ArchiveX} color={{ value: 'text-red-500', iconBg: 'bg-red-50', iconText: 'text-red-400' }} />
           </>
         )}
       </div>
@@ -225,6 +224,7 @@ const Vehicles = () => {
             <h2 className="font-bold text-[#172B4D]">🚛 Vehicle Registry</h2>
             <p className="text-xs text-gray-400 mt-0.5">Click View to see complete vehicle profile</p>
           </div>
+
           <button onClick={() => setFormModal('add')}
             className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all">
             <Plus size={14} /> Add Vehicle
@@ -240,9 +240,9 @@ const Vehicles = () => {
               className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] bg-gray-50" />
           </div>
           {[
-            { val: statusFilter, set: setStatus, opts: ['ACTIVE','MAINTENANCE','RETIRED','SOLD','SCRAPPED'], ph: 'All Status' },
-            { val: fuelFilter,   set: setFuel,   opts: ['DIESEL','PETROL','CNG','LPG','ELECTRIC','HYBRID'], ph: 'All Fuel' },
-            { val: ownerFilter,  set: setOwner,  opts: ['OWNED','LEASED','RENTED'],                                 ph: 'All Ownership' },
+            { val: statusFilter, set: setStatus, opts: ['ACTIVE', 'MAINTENANCE', 'RETIRED', 'SOLD', 'SCRAPPED'], ph: 'All Status' },
+            { val: fuelFilter, set: setFuel, opts: ['DIESEL', 'PETROL', 'CNG', 'LPG', 'ELECTRIC', 'HYBRID'], ph: 'All Fuel' },
+            { val: ownerFilter, set: setOwner, opts: ['OWNED', 'LEASED', 'RENTED'], ph: 'All Ownership' },
           ].map(({ val, set, opts, ph }) => (
             <div key={ph} className="relative">
               <select value={val} onChange={e => set(e.target.value)}
@@ -266,10 +266,10 @@ const Vehicles = () => {
         )}
 
         {isError && (
-          <ErrorState 
-            message="Failed to load vehicles" 
-            error={error?.response?.data?.detail || error?.message} 
-            onRetry={() => refetch()} 
+          <ErrorState
+            message="Failed to load vehicles"
+            error={error?.response?.data?.detail || error?.message}
+            onRetry={() => refetch()}
           />
         )}
 

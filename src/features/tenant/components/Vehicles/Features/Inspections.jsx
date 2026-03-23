@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   ClipboardCheck, Plus, Pencil, Trash2, X, Search,
   RefreshCw, Loader2, AlertCircle, CheckCircle,
@@ -13,8 +13,9 @@ import {
 import {
   Badge, InfoCard, SectionHeader, EmptyState, Modal, DeleteConfirm, ItemActions,
   Label, Input, Sel, Field, StatCard, Textarea, VehicleSelect,
-  fmtDate, fmtKm
+  fmtDate, fmtKm, driverName
 } from '../Common/VehicleCommon';
+import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
 import { TabContentShimmer, ErrorState } from '../Common/StateFeedback';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -54,7 +55,15 @@ const FormSec = ({ title }) => (
 
 // ─── Components ───────────────────────────────────────────────────────────────
 const ViewDetail = ({ data, onClose }) => {
+  const lookup = useDriverLookup();
   const defects = Array.isArray(data.defects_found) ? data.defects_found : [];
+  
+  const resolveDriver = (d) => {
+    if (!d) return '—';
+    if (typeof d === 'object') return driverName(d);
+    return lookup[d]?.name ?? d;
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-6">
@@ -73,7 +82,7 @@ const ViewDetail = ({ data, onClose }) => {
           })()}
         </div>
         <InfoCard label="Inspector" value={data.inspector_signature || '—'} />
-        <InfoCard label="Driver" value={data.driver || '—'} />
+        <InfoCard label="Driver" value={resolveDriver(data.driver)} />
         <InfoCard label="Date" value={fmtDate(data.inspection_date)} icon={Calendar} />
         <InfoCard label="Odometer" value={fmtKm(data.odometer_reading)} icon={Gauge} />
       </div>
@@ -117,10 +126,17 @@ const InspectionModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest 
     return initial.vehicle;
   };
 
+  const lookup = useDriverLookup();
+  const resolveDriver = (d) => {
+    if (!d) return '';
+    if (typeof d === 'object') return driverName(d);
+    return lookup[d]?.name ?? d;
+  };
+
   const [form, setForm] = useState(
     initial ? {
       vehicle: resolveVehicleId(),
-      driver: initial.driver ?? '',
+      driver: resolveDriver(initial.driver),
       inspection_type: initial.inspection_type ?? '',
       inspection_date: initial.inspection_date ? initial.inspection_date.slice(0, 16) : '',
       odometer_reading: initial.odometer_reading ?? '',
@@ -131,6 +147,13 @@ const InspectionModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest 
       defects_found: Array.isArray(initial.defects_found) ? initial.defects_found.join(', ') : (initial.defects_found ?? ''),
     } : { ...EMPTY_FORM, vehicle: vehicleId ?? '' }
   );
+
+  // Auto-resolve ID to Name once lookup is ready
+  useEffect(() => {
+    if (form.driver && lookup[form.driver]) {
+      setForm(p => ({ ...p, driver: lookup[form.driver].name }));
+    }
+  }, [lookup, form.driver]);
 
   const create = useCreateVehicleInspection();
   const update = useUpdateVehicleInspection();
@@ -176,7 +199,13 @@ const InspectionModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest 
               {!vehicleId && (
                 <div className="col-span-2">
                   <Label required={!isEdit}>Vehicle</Label>
-                  <VehicleSelect value={form.vehicle} onChange={(id) => setForm(p => ({ ...p, vehicle: id }))} />
+                  <VehicleSelect value={form.vehicle} onChange={(id, v) => {
+                    setForm(p => ({ 
+                      ...p, 
+                      vehicle: id,
+                      driver: v ? (v.assigned_driver_name ?? resolveDriver(v.assigned_driver)) : p.driver
+                    }));
+                  }} />
                 </div>
               )}
               <Field label="Inspector Name" required>
@@ -261,11 +290,7 @@ const VehicleInspections = ({ vehicleId, isTab }) => {
             <h1 className="text-2xl font-black text-[#172B4D] tracking-tight">Inspections</h1>
             <p className="text-sm text-gray-400 font-medium">Record and track vehicle condition checks</p>
           </div>
-          <button
-            onClick={() => setModal({ mode: 'add' })}
-            className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-[#0052CC] rounded-xl hover:bg-[#0043A8] transition-all shadow-sm shadow-blue-200">
-            <Plus size={16} /> Add Inspection
-          </button>
+
         </div>
       )}
 
@@ -325,8 +350,8 @@ const VehicleInspections = ({ vehicleId, isTab }) => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Inspection Info</th>
                   {!vehicleId && <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Vehicle</th>}
+                  <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Inspection Info</th>
                   <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Inspector</th>
                   <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Date</th>
                   <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Status</th>
@@ -336,19 +361,20 @@ const VehicleInspections = ({ vehicleId, isTab }) => {
               <tbody className="divide-y divide-gray-50">
                 {inspections.map(i => (
                   <tr key={i.id} className="hover:bg-blue-50/30 transition-colors">
+                    {!vehicleId && (
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <button onClick={() => setViewing(i)}
+                          className="font-bold text-[#172B4D] font-mono text-[13px] hover:text-[#0052CC] transition-all text-left uppercase hover:underline decoration-blue-400/30 underline-offset-4">
+                          {i.vehicle_registration_number ?? i.vehicle_registration ?? i.vehicle_display ?? i.vehicle ?? '—'}
+                        </button>
+                      </td>
+                    )}
                     <td className="px-4 py-3 whitespace-nowrap">
                       <Badge className={TYPE_COLORS[i.inspection_type] ?? 'bg-gray-100 text-gray-600 border-gray-200'}>
                         {i.inspection_type_display ?? i.inspection_type}
                       </Badge>
                       <p className="text-[10px] font-mono font-medium text-gray-400 mt-1">{fmtKm(i.odometer_reading)}</p>
                     </td>
-                    {!vehicleId && (
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span className="font-bold text-[#172B4D] font-mono text-[13px] uppercase">
-                          {i.vehicle_registration_number ?? i.vehicle_registration ?? i.vehicle_display ?? i.vehicle ?? '—'}
-                        </span>
-                      </td>
-                    )}
                     <td className="px-4 py-3 whitespace-nowrap text-sm font-bold text-[#172B4D]">
                       {i.inspector_signature || '—'}
                     </td>

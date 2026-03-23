@@ -10,7 +10,7 @@ import {
   useUpdateVehicleInsurance,
   useDeleteVehicleInsurance,
 } from '../../../queries/vehicles/vehicleInfoQuery';
-import { 
+import {
   Badge, InfoCard, SectionHeader, EmptyState, Modal, DeleteConfirm,
   Label, Input, Sel, Section, Field, StatCard, Textarea, VehicleSelect,
   fmtDate, fmtINR, ItemActions
@@ -19,44 +19,44 @@ import { TabContentShimmer, ErrorState } from '../Common/StateFeedback';
 
 // ── Constants ─────────────────────────────────────────────────────────
 const POLICY_TYPES = ['COMPREHENSIVE', 'THIRD_PARTY', 'FIRE_THEFT'];
-const STATUS_OPTIONS = ['ACTIVE','EXPIRED', 'CANCELLED'];
+const STATUS_OPTIONS = ['ACTIVE', 'EXPIRED', 'CANCELLED'];
 
 const TYPE_COLORS = {
   COMPREHENSIVE: 'bg-blue-50 text-blue-600 border-blue-200',
-  THIRD_PARTY:   'bg-purple-50 text-purple-600 border-purple-200',
-  FIRE_THEFT:    'bg-orange-50 text-orange-600 border-orange-200',
+  THIRD_PARTY: 'bg-purple-50 text-purple-600 border-purple-200',
+  FIRE_THEFT: 'bg-orange-50 text-orange-600 border-orange-200',
 };
 
 const STATUS_COLORS = {
-  ACTIVE:    'bg-green-50 text-green-600 border-green-200',
-  INACTIVE:  'bg-gray-50 text-gray-500 border-gray-200',
-  EXPIRED:   'bg-red-50 text-red-600 border-red-200',
+  ACTIVE: 'bg-green-50 text-green-600 border-green-200',
+  INACTIVE: 'bg-gray-50 text-gray-500 border-gray-200',
+  EXPIRED: 'bg-red-50 text-red-600 border-red-200',
   CANCELLED: 'bg-yellow-50 text-yellow-600 border-yellow-200',
 };
 
 const EMPTY_FORM = {
-  vehicle:           '',
-  policy_number:     '',
-  policy_type:       '',
+  vehicle: '',
+  policy_number: '',
+  policy_type: '',
   insurance_company: '',
-  premium_amount:    '',
-  coverage_amount:   '',
-  issue_date:        '',
-  expiry_date:       '',
-  status:            'ACTIVE',
-  notes:             '',
+  premium_amount: '',
+  coverage_amount: '',
+  issue_date: '',
+  expiry_date: '',
+  status: 'ACTIVE',
+  notes: '',
 };
 
 // ── Expiry status helper ──────────────────────────────────────────────
 const getExpiryStatus = (expiryDate) => {
   if (!expiryDate) return null;
-  const today    = new Date();
-  const expiry   = new Date(expiryDate);
+  const today = new Date();
+  const expiry = new Date(expiryDate);
   const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
 
-  if (diffDays < 0)   return { label: 'Expired',      color: 'bg-red-50 text-red-600 border-red-200',           dot: 'bg-red-500' };
-  if (diffDays <= 30) return { label: `${diffDays}d`, color: 'bg-orange-50 text-orange-600 border-orange-200',  dot: 'bg-orange-500' };
-  return               { label: 'Active',              color: 'bg-green-50 text-green-600 border-green-200',    dot: 'bg-green-500' };
+  if (diffDays < 0) return { label: 'Expired', color: 'bg-red-50 text-red-600 border-red-200', dot: 'bg-red-500' };
+  if (diffDays <= 30) return { label: `${diffDays}d`, color: 'bg-orange-50 text-orange-600 border-orange-200', dot: 'bg-orange-500' };
+  return { label: 'Active', color: 'bg-green-50 text-green-600 border-green-200', dot: 'bg-green-500' };
 };
 
 // ── Field components ──────────────────────────────────────────────────
@@ -67,11 +67,11 @@ const getExpiryStatus = (expiryDate) => {
 const InsuranceDetailView = ({ data, onClose }) => {
   const expiryStatus = getExpiryStatus(data.expiry_date);
   const statusColor = STATUS_COLORS[data.status] ?? expiryStatus?.color ?? 'bg-green-50 text-green-600 border-green-200';
-  const statusDot   = data.status === 'ACTIVE'   ? 'bg-green-500'
-                    : data.status === 'EXPIRED'  ? 'bg-red-500'
-                    : data.status === 'INACTIVE' ? 'bg-gray-400'
-                    : data.status === 'CANCELLED'? 'bg-yellow-500'
-                    : (expiryStatus?.dot ?? 'bg-green-500');
+  const statusDot = data.status === 'ACTIVE' ? 'bg-green-500'
+    : data.status === 'EXPIRED' ? 'bg-red-500'
+      : data.status === 'INACTIVE' ? 'bg-gray-400'
+        : data.status === 'CANCELLED' ? 'bg-yellow-500'
+          : (expiryStatus?.dot ?? 'bg-green-500');
   const statusLabel = data.status_display ?? data.status ?? expiryStatus?.label ?? '—';
 
   return (
@@ -109,10 +109,10 @@ const InsuranceDetailView = ({ data, onClose }) => {
 
       <div className="grid grid-cols-2 gap-4">
         <Field label="Premium Amount">
-            {fmtINR(data.premium_amount)}
+          {fmtINR(data.premium_amount)}
         </Field>
         <Field label="Coverage Amount">
-            {fmtINR(data.coverage_amount)}
+          {fmtINR(data.coverage_amount)}
         </Field>
       </div>
 
@@ -153,27 +153,27 @@ const InsuranceModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }
 
   const [form, setForm] = useState(
     initial ? {
-      vehicle:           resolveVehicleId(),
-      policy_number:     initial.policy_number     ?? '',
-      policy_type:       initial.policy_type       ?? '',
+      vehicle: resolveVehicleId(),
+      policy_number: initial.policy_number ?? '',
+      policy_type: initial.policy_type ?? '',
       insurance_company: initial.insurance_company ?? '',
-      premium_amount:    initial.premium_amount    ?? '',
-      coverage_amount:   initial.coverage_amount   ?? '',
-      issue_date:        initial.issue_date        ?? '',
-      expiry_date:       initial.expiry_date       ?? '',
-      status:            initial.status            ?? 'ACTIVE',
-      notes:             initial.notes             ?? '',
+      premium_amount: initial.premium_amount ?? '',
+      coverage_amount: initial.coverage_amount ?? '',
+      issue_date: initial.issue_date ?? '',
+      expiry_date: initial.expiry_date ?? '',
+      status: initial.status ?? 'ACTIVE',
+      notes: initial.notes ?? '',
     } : { ...EMPTY_FORM, vehicle: vehicleId ?? '' }
   );
 
-  const create    = useCreateVehicleInsurance();
-  const update    = useUpdateVehicleInsurance();
+  const create = useCreateVehicleInsurance();
+  const update = useUpdateVehicleInsurance();
   const isPending = create.isPending || update.isPending;
-  const set       = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
+  const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
   const [errors, setErrors] = useState({});
 
   const { data: checkData } = useVehicleInsurances(
-    { vehicle: form.vehicle }, 
+    { vehicle: form.vehicle },
     { enabled: !!form.vehicle && !isEdit }
   );
   const hasExisting = (checkData?.results?.length ?? checkData?.length ?? 0) > 0;
@@ -192,7 +192,7 @@ const InsuranceModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }
 
     const clean = Object.fromEntries(Object.entries(form).map(([k, v]) => [k, v === '' ? null : v]));
     if (isEdit) update.mutate({ id: initial.id, data: clean }, { onSuccess: onClose });
-    else        create.mutate(clean, { onSuccess: onClose });
+    else create.mutate(clean, { onSuccess: onClose });
   };
 
   return (
@@ -286,11 +286,11 @@ const InsuranceModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }
 
 // ── Main Page ─────────────────────────────────────────────────────────
 const VehicleInsurance = ({ vehicleId, isTab }) => {
-  const [search, setSearch]           = useState('');
-  const [typeFilter, setType]         = useState('');
-  const [modal, setModal]             = useState(null);
-  const [viewTarget, setView]         = useState(null);
-  const [deleteTarget, setDelete]     = useState(null);
+  const [search, setSearch] = useState('');
+  const [typeFilter, setType] = useState('');
+  const [modal, setModal] = useState(null);
+  const [viewTarget, setView] = useState(null);
+  const [deleteTarget, setDelete] = useState(null);
 
   const del = useDeleteVehicleInsurance();
 
@@ -300,16 +300,16 @@ const VehicleInsurance = ({ vehicleId, isTab }) => {
     ...(typeFilter && { policy_type: typeFilter }),
   });
 
-  const docs     = data?.results ?? data ?? [];
-  const total    = data?.count   ?? docs.length;
+  const docs = data?.results ?? data ?? [];
+  const total = data?.count ?? docs.length;
   // Summary logic
-  const active   = docs.filter(d => d.status === 'ACTIVE').length;
+  const active = docs.filter(d => d.status === 'ACTIVE').length;
   const expiring = docs.filter(d => {
     if (!d.expiry_date) return false;
     const diff = new Date(d.expiry_date) - new Date();
     return diff > 0 && diff <= (30 * 24 * 60 * 60 * 1000);
   }).length;
-  const expired  = docs.filter(d => d.status === 'EXPIRED' || (d.expiry_date && new Date(d.expiry_date) < new Date())).length;
+  const expired = docs.filter(d => d.status === 'EXPIRED' || (d.expiry_date && new Date(d.expiry_date) < new Date())).length;
   const hasInsurance = docs.length > 0;
 
   if (isLoading) return <TabContentShimmer />;
@@ -346,10 +346,7 @@ const VehicleInsurance = ({ vehicleId, isTab }) => {
               className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all">
               <RefreshCw size={14} />
             </button>
-            <button onClick={() => setModal('add')}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all shadow-sm">
-              <Plus size={15} /> Add Insurance
-            </button>
+
           </div>
         </div>
       )}
@@ -357,22 +354,22 @@ const VehicleInsurance = ({ vehicleId, isTab }) => {
       {/* Stat Cards — hidden in tab mode */}
       {!isTab && (
         <div className="grid grid-cols-4 gap-4">
-          <StatCard loading={isLoading} label="Total Policies" value={total}    icon={Shield}      color="blue" />
-          <StatCard loading={isLoading} label="Active"         value={active}   icon={ShieldCheck} color="green" />
-          <StatCard loading={isLoading} label="Expiring Soon"  value={expiring} icon={ShieldAlert} color="orange" />
-          <StatCard loading={isLoading} label="Expired"        value={expired}  icon={ShieldOff}   color="red" />
+          <StatCard loading={isLoading} label="Total Policies" value={total} icon={Shield} color="blue" />
+          <StatCard loading={isLoading} label="Active" value={active} icon={ShieldCheck} color="green" />
+          <StatCard loading={isLoading} label="Expiring Soon" value={expiring} icon={ShieldAlert} color="orange" />
+          <StatCard loading={isLoading} label="Expired" value={expired} icon={ShieldOff} color="red" />
         </div>
       )}
 
       {/* Table Card */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {isTab ? (
-          <SectionHeader 
-            icon={Shield} 
-            title="Insurance Policies" 
-            count={docs.length} 
-            onAdd={(vehicleId && hasInsurance) ? null : () => setModal('add')} 
-            addLabel="Add Policy" 
+          <SectionHeader
+            icon={Shield}
+            title="Insurance Policies"
+            count={docs.length}
+            onAdd={(vehicleId && hasInsurance) ? null : () => setModal('add')}
+            addLabel="Add Policy"
           />
         ) : (
           <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
@@ -420,7 +417,7 @@ const VehicleInsurance = ({ vehicleId, isTab }) => {
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
                   {!vehicleId && <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Vehicle</th>}
-                  {['Policy #', 'Type', 'Company', 'Premium', 'Coverage', 'Issue Date', 'Expiry Date', 'Status', 'Actions'].map(h => (
+                  {['Policy #', 'Type', 'Expiry Date', 'Status', 'Actions'].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -430,11 +427,11 @@ const VehicleInsurance = ({ vehicleId, isTab }) => {
                   const expiryStatus = getExpiryStatus(doc.expiry_date);
                   // Use API status first, fallback to expiry calculation
                   const statusColor = STATUS_COLORS[doc.status] ?? expiryStatus?.color ?? 'bg-green-50 text-green-600 border-green-200';
-                  const statusDot   = doc.status === 'ACTIVE'   ? 'bg-green-500'
-                                    : doc.status === 'EXPIRED'  ? 'bg-red-500'
-                                    : doc.status === 'INACTIVE' ? 'bg-gray-400'
-                                    : doc.status === 'CANCELLED'? 'bg-yellow-500'
-                                    : (expiryStatus?.dot ?? 'bg-green-500');
+                  const statusDot = doc.status === 'ACTIVE' ? 'bg-green-500'
+                    : doc.status === 'EXPIRED' ? 'bg-red-500'
+                      : doc.status === 'INACTIVE' ? 'bg-gray-400'
+                        : doc.status === 'CANCELLED' ? 'bg-yellow-500'
+                          : (expiryStatus?.dot ?? 'bg-green-500');
                   const statusLabel = doc.status_display ?? doc.status ?? expiryStatus?.label ?? '—';
 
                   return (
@@ -444,7 +441,7 @@ const VehicleInsurance = ({ vehicleId, isTab }) => {
                       {!vehicleId && (
                         <td className="px-4 py-3 whitespace-nowrap text-left">
                           <button onClick={() => setView(doc)}
-                            className="font-bold text-[#172B4D] font-mono text-[13px] hover:text-[#0052CC] transition-colors text-left uppercase">
+                            className="font-bold text-[#172B4D] font-mono text-[13px] hover:text-[#0052CC] transition-all text-left uppercase hover:underline decoration-blue-400/30 underline-offset-4">
                             {typeof doc.vehicle === 'object'
                               ? (doc.vehicle?.registration_number ?? '—')
                               : (doc.vehicle_registration_number ?? doc.vehicle_registration ?? doc.vehicle_display ?? doc.vehicle ?? '—')}
@@ -462,39 +459,6 @@ const VehicleInsurance = ({ vehicleId, isTab }) => {
                         <Badge className={`${TYPE_COLORS[doc.policy_type] ?? 'bg-gray-50 text-gray-600 border-gray-200'}`}>
                           {doc.policy_type_display ?? doc.policy_type?.replace(/_/g, ' ') ?? '—'}
                         </Badge>
-                      </td>
-
-                      {/* Insurance Company */}
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span className="text-gray-700 text-[13px] font-medium">{doc.insurance_company ?? '—'}</span>
-                      </td>
-
-                      {/* Premium */}
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {doc.premium_amount
-                          ? <span className="flex items-center gap-0.5 text-gray-700 font-semibold text-[13px]">
-                              {fmtINR(doc.premium_amount)}
-                            </span>
-                          : <span className="text-gray-300">—</span>
-                        }
-                      </td>
-
-                      {/* Coverage */}
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {doc.coverage_amount
-                          ? <span className="flex items-center gap-0.5 text-green-600 font-semibold text-[13px]">
-                              {fmtINR(doc.coverage_amount)}
-                            </span>
-                          : <span className="text-gray-300">—</span>
-                        }
-                      </td>
-
-                      {/* Issue Date */}
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span className="flex items-center gap-1 text-gray-500 text-[12px]">
-                          <Calendar size={12} className="text-gray-300" />
-                          {fmtDate(doc.issue_date)}
-                        </span>
                       </td>
 
                       {/* Expiry Date */}
