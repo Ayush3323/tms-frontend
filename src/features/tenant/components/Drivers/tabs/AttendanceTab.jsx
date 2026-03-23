@@ -56,8 +56,10 @@ const AttendanceTab = ({ driverId }) => {
           <h3 className="font-bold text-[#172B4D] text-sm">Attendance</h3>
           <p className="text-xs text-gray-400 mt-0.5">{records.length} record{records.length !== 1 ? 's' : ''} found</p>
         </div>
-        <button onClick={() => setAddOpen(true)}
-          className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all">
+        <button
+          onClick={() => setAddOpen(true)}
+          className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-gradient-to-r from-[#2563eb] to-[#4f46e5] rounded-lg shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+        >
           <Plus size={14} /> Add Attendance
         </button>
       </div>
@@ -77,7 +79,7 @@ const AttendanceTab = ({ driverId }) => {
           records={records} 
           onEdit={setEditRecord} 
           onDelete={setDeleteRecord} 
-          showDriver={true}
+          showDriver={false}
           driverMap={driverMap}
           userMap={userMap}
           currentUser={currentUser}

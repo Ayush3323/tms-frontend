@@ -74,7 +74,7 @@ const AllTraining = () => {
           <p className="text-sm text-gray-500 mt-1">Manage training and certifications for all drivers</p>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-[#0052CC] rounded-xl hover:bg-[#0043A8] shadow-lg shadow-blue-200 transition-all active:scale-95">
+          <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-[#2563eb] to-[#4f46e5] rounded-xl shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
             <Plus size={18} /> Add Record
           </button>
         </div>
@@ -84,30 +84,52 @@ const AllTraining = () => {
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4 bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
         <div>
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Driver</p>
-          <DriverSelect value={filters.driver} onChange={(val) => handleFilterChange('driver', val)} />
+          <DriverSelect 
+            value={filters.driver} 
+            onChange={(val) => handleFilterChange('driver', val)} 
+            className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
+          />
         </div>
         <div>
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Training Type</p>
-          <Select value={filters.training_type} onChange={(e) => handleFilterChange('training_type', e.target.value)}>
+          <Select 
+            value={filters.training_type} 
+            onChange={(e) => handleFilterChange('training_type', e.target.value)}
+            className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
+          >
             <option value="">All Types</option>
             {TRAINING_TYPES.map(t => <option key={t} value={t}>{t.replaceAll('_', ' ')}</option>)}
           </Select>
         </div>
         <div>
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Status</p>
-          <Select value={filters.status} onChange={(e) => handleFilterChange('status', e.target.value)}>
+          <Select 
+            value={filters.status} 
+            onChange={(e) => handleFilterChange('status', e.target.value)}
+            className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
+          >
             <option value="">All Status</option>
             {TRAINING_STATUS.map(s => <option key={s} value={s}>{s.replaceAll('_', ' ')}</option>)}
           </Select>
         </div>
         <div>
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Training Date</p>
-          <Input type="date" value={filters.training_date} onChange={(e) => handleFilterChange('training_date', e.target.value)} />
+          <Input 
+            type="date" 
+            value={filters.training_date} 
+            onChange={(e) => handleFilterChange('training_date', e.target.value)}
+            className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
+          />
         </div>
         <div className="flex items-end gap-2">
           <div className="flex-1">
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Expiry Date</p>
-            <Input type="date" value={filters.expiry_date} onChange={(e) => handleFilterChange('expiry_date', e.target.value)} />
+            <Input 
+              type="date" 
+              value={filters.expiry_date} 
+              onChange={(e) => handleFilterChange('expiry_date', e.target.value)}
+              className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
+            />
           </div>
           <button
             onClick={clearFilters}

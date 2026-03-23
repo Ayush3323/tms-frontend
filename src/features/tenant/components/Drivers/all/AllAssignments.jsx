@@ -87,8 +87,8 @@ const AllAssignments = () => {
           <p className="text-sm text-gray-500 mt-1">Manage vehicle assignments for all drivers</p>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-[#0052CC] rounded-xl hover:bg-[#0043A8] shadow-lg shadow-blue-200 transition-all active:scale-95">
-            <Plus size={18} /> Assign Vehicle
+          <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-[#2563eb] to-[#4f46e5] rounded-xl shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
+            <Plus size={18} /> Add Assignment
           </button>
         </div>
       </div>
@@ -98,22 +98,38 @@ const AllAssignments = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <div>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Driver</p>
-            <DriverSelect value={filters.driver} onChange={(val) => handleFilterChange('driver', val)} />
+            <DriverSelect 
+              value={filters.driver} 
+              onChange={(val) => handleFilterChange('driver', val)} 
+              className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
+            />
           </div>
           <div>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Vehicle</p>
-            <VehicleSelect value={filters.vehicle} onChange={(e) => handleFilterChange('vehicle', e.target.value)} />
+            <VehicleSelect 
+              value={filters.vehicle} 
+              onChange={(e) => handleFilterChange('vehicle', e.target.value)} 
+              className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg shadow-none"
+            />
           </div>
           <div>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Assignment Type</p>
-            <Select value={filters.assignment_type} onChange={(e) => handleFilterChange('assignment_type', e.target.value)}>
+            <Select 
+              value={filters.assignment_type} 
+              onChange={(e) => handleFilterChange('assignment_type', e.target.value)}
+              className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
+            >
               <option value="">All Types</option>
               {ASSIGNMENT_TYPES.map(t => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
             </Select>
           </div>
           <div>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Status</p>
-            <Select value={filters.is_active} onChange={(e) => handleFilterChange('is_active', e.target.value)}>
+            <Select 
+              value={filters.is_active} 
+              onChange={(e) => handleFilterChange('is_active', e.target.value)}
+              className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
+            >
               <option value="">All Status</option>
               <option value="true">Active Only</option>
               <option value="false">Inactive Only</option>
@@ -122,7 +138,12 @@ const AllAssignments = () => {
           <div className="flex items-end gap-2 lg:col-span-2">
             <div className="flex-1">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Assigned Date</p>
-              <Input type="date" value={filters.assigned_date} onChange={(e) => handleFilterChange('assigned_date', e.target.value)} />
+              <Input 
+                type="date" 
+                value={filters.assigned_date} 
+                onChange={(e) => handleFilterChange('assigned_date', e.target.value)} 
+                className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
+              />
             </div>
             <button
               onClick={clearFilters}

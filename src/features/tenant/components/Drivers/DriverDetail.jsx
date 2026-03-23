@@ -149,7 +149,7 @@ const EditDriverModal = ({ driver, onClose }) => {
         <>
           <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
           <button onClick={handleSubmit} disabled={updateDriver.isPending || updateUser.isPending}
-            className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed">
+            className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-gradient-to-r from-[#2563eb] to-[#4f46e5] rounded-xl shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed">
             {(updateDriver.isPending || updateUser.isPending) ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Save size={14} /> Save Changes</>}
           </button>
         </>
@@ -372,7 +372,7 @@ const DriverDetail = () => {
       {/* Hero Card */}
       <div className="bg-white border border-gray-200 rounded-xl p-5">
         <div className="flex items-start gap-5 flex-wrap">
-          <div className="w-20 h-20 rounded-xl bg-[#0052CC] flex flex-col items-center justify-center text-white shrink-0">
+          <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-[#2563eb] to-[#4f46e5] flex flex-col items-center justify-center text-white shrink-0 shadow-lg shadow-blue-500/20">
             <span className="text-2xl font-black leading-none">{getInitials(driver)}</span>
             <span className="text-[9px] font-bold uppercase tracking-wider mt-1 opacity-70">Driver</span>
           </div>
@@ -415,7 +415,7 @@ const DriverDetail = () => {
           <div className="flex flex-col gap-2 items-end">
             {activeTab === 'overview' && (
               <button onClick={() => setEditOpen(true)}
-                className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all">
+                className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-gradient-to-r from-[#2563eb] to-[#4f46e5] rounded-lg shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
                 <Pencil size={13} /> Edit Driver
               </button>
             )}
@@ -452,7 +452,7 @@ const DriverDetail = () => {
                 <button key={tab.id} onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-1.5 px-4 py-3 text-xs font-semibold transition-all border-b-2 whitespace-nowrap
                     ${isActive
-                      ? 'border-[#0052CC] text-[#0052CC] bg-blue-50/50'
+                      ? 'border-[#2563eb] text-[#2563eb] bg-blue-50/50'
                       : 'border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50'
                     }`}>
                   <Icon size={13} />
