@@ -273,14 +273,9 @@ const VehicleOwnership = ({ vehicleId, isTab }) => {
                       </Badge>
                     </td>
                     <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         <div className="flex flex-col">
-                          <p className="text-xs text-gray-400 font-bold uppercase tracking-tight leading-none mb-1">From</p>
-                          <p className="text-sm font-bold text-gray-400">{h.previous_owner || 'Initial'}</p>
-                        </div>
-                        <ArrowRightLeft size={12} className="text-gray-300 mt-4" />
-                        <div className="flex flex-col">
-                          <p className="text-xs text-blue-400 font-bold uppercase tracking-tight leading-none mb-1">To</p>
+                          <p className="text-[10px] font-black text-[#0052CC] uppercase tracking-tight mb-0.5">New Owner</p>
                           <p className="text-sm font-black text-[#172B4D]">{h.new_owner || '—'}</p>
                         </div>
                       </div>

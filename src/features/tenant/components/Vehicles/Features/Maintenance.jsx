@@ -593,11 +593,6 @@ const SchedulesTab = ({ onEdit, onDelete, onView, vehicleId }) => {
                       ) : <span className="text-gray-300 text-[12px]">—</span>}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      {row.service_interval_km
-                        ? <span className="text-[12px] text-gray-600 font-mono">{fmtKm(row.service_interval_km)}</span>
-                        : <span className="text-gray-300 text-[12px]">—</span>}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
                       <Badge className={`${st.bg} ${st.text} ${st.border}`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
                         {row.status_display ?? row.status}
@@ -699,6 +694,9 @@ const RecordsTab = ({ onEdit, onDelete, onView, vehicleId }) => {
                     </button>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
+                    <span className="flex items-center gap-1 text-gray-600 text-[12px]"><Calendar size={11} className="text-gray-300" />{fmtDate(r.service_date)}</span>
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
                     {r.total_cost
                       ? <span className="flex items-center gap-0.5 text-emerald-600 font-bold text-[12px]">{fmtINR(r.total_cost)}</span>
                       : <span className="text-gray-300 text-[12px]">—</span>}
@@ -710,9 +708,6 @@ const RecordsTab = ({ onEdit, onDelete, onView, vehicleId }) => {
                     <div className="flex items-center gap-2">
                       <button onClick={() => onEdit(r)} className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100">
                         <Pencil size={12} /> Edit
-                      </button>
-                      <button onClick={() => onDelete(r)} className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100">
-                        <Trash2 size={12} /> Delete
                       </button>
                     </div>
                   </td>
