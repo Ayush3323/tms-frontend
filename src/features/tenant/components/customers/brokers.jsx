@@ -51,14 +51,7 @@ const BrokersDashboard = () => {
         </div>
       ),
     },
-    {
-      header: 'Customer Type',
-      render: c => (
-        <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 text-blue-600 w-fit">
-          {c.type ?? '—'}
-        </span>
-      ),
-    },
+
     {
       header: 'Tier',
       render: c => (
@@ -91,9 +84,6 @@ const BrokersDashboard = () => {
       header: 'Actions',
       render: c => (
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all">
-            <Eye size={12} /> View
-          </button>
           <button className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-all">
             <Pencil size={12} /> Edit
           </button>

@@ -9,51 +9,53 @@ import { StatCard, Modal, Field, Input, Sel, Section } from '../Vehicles/Common/
 
 // ── Status Styles ────────────────────────────────────────────────────
 const STATUS_STYLES = {
-  ACTIVE:      { bg: 'bg-green-50',  text: 'text-green-700',  dot: 'bg-green-500' },
-  INACTIVE:    { bg: 'bg-orange-50', text: 'text-orange-700', dot: 'bg-orange-500' },
-  SUSPENDED:   { bg: 'bg-red-50',    text: 'text-red-700',    dot: 'bg-red-500' },
-  BLACKLISTED: { bg: 'bg-gray-100',  text: 'text-gray-700',   dot: 'bg-gray-500' },
+  ACTIVE: { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500' },
+  INACTIVE: { bg: 'bg-orange-50', text: 'text-orange-700', dot: 'bg-orange-500' },
+  SUSPENDED: { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' },
+  BLACKLISTED: { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-500' },
 };
 const getStatusStyle = (s) => STATUS_STYLES[s] || STATUS_STYLES.INACTIVE;
 
 // ── Tier badge colors ────────────────────────────────────────────────
 const TIER_STYLES = {
   PLATINUM: 'bg-cyan-50 text-cyan-700 border-cyan-200',
-  GOLD:     'bg-amber-50 text-amber-700 border-amber-200',
-  SILVER:   'bg-gray-50 text-gray-600 border-gray-200',
+  GOLD: 'bg-amber-50 text-amber-700 border-amber-200',
+  SILVER: 'bg-gray-50 text-gray-600 border-gray-200',
   STANDARD: 'bg-gray-50 text-gray-500 border-gray-200',
 };
 
 // ── Empty form template ──────────────────────────────────────────────
 const EMPTY_FORM = {
   customer_code: '', customer_type: 'OTHER', legal_name: '', trading_name: '',
-  tax_id: '', pan_number: '', status: 'ACTIVE', customer_tier: 'STANDARD',
+  tax_id: '', pan_number: '', registration_number: '', incorporation_date: '',
+  status: 'ACTIVE', customer_tier: 'STANDARD',
   credit_limit: '', payment_terms: '', credit_rating: '', credit_score: '',
   business_type: '', industry_sector: '', website: '', notes: '',
+  sales_person_id: '', account_manager_id: '', parent_customer_id: '', user_id: ''
 };
 
 // ═══════════════════════════════════════════════════════════════════════
 // ── MAIN COMPONENT ───────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════
 const CustomersDashboard = () => {
-  const [search, setSearch]           = useState('');
-  const [statusFilter, setStatus]     = useState('');
-  const [modal, setModal]             = useState(null);   // { type: 'view'|'create'|'edit', id?: string }
-  const [form, setForm]               = useState(EMPTY_FORM);
-  const [errors, setErrors]           = useState({});
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatus] = useState('');
+  const [modal, setModal] = useState(null);   // { type: 'view'|'create'|'edit', id?: string }
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [errors, setErrors] = useState({});
 
   // ── API Hooks ───────────────────────────────────────────────────────
   const { data, isLoading, isError, error, refetch } = useCustomers({
     ...(statusFilter && { status: statusFilter }),
-    ...(search       && { search }),
+    ...(search && { search }),
   });
   const createMutation = useCreateCustomer();
   const updateMutation = useUpdateCustomer();
 
   const customers = data?.results ?? data ?? [];
-  const total     = data?.count ?? customers.length;
-  const active    = customers.filter(c => c.status === 'ACTIVE').length;
-  const inactive  = customers.filter(c => c.status === 'INACTIVE').length;
+  const total = data?.count ?? customers.length;
+  const active = customers.filter(c => c.status === 'ACTIVE').length;
+  const inactive = customers.filter(c => c.status === 'INACTIVE').length;
   const suspended = customers.filter(c => c.status === 'SUSPENDED').length;
 
   const resetFilters = () => { setSearch(''); setStatus(''); };
@@ -71,22 +73,28 @@ const CustomersDashboard = () => {
 
   const openEdit = (c) => {
     setForm({
-      customer_code:   c.customer_code   ?? '',
-      customer_type:   c.customer_type   ?? 'OTHER',
-      legal_name:      c.legal_name      ?? '',
-      trading_name:    c.trading_name    ?? '',
-      tax_id:          c.tax_id          ?? '',
-      pan_number:      c.pan_number      ?? '',
-      status:          c.status          ?? 'ACTIVE',
-      customer_tier:   c.customer_tier   ?? 'STANDARD',
-      credit_limit:    c.credit_limit    ?? '',
-      payment_terms:   c.payment_terms   ?? '',
-      credit_rating:   c.credit_rating   ?? '',
-      credit_score:    c.credit_score    ?? '',
-      business_type:   c.business_type   ?? '',
+      customer_code: c.customer_code ?? '',
+      customer_type: c.customer_type ?? 'OTHER',
+      legal_name: c.legal_name ?? '',
+      trading_name: c.trading_name ?? '',
+      tax_id: c.tax_id ?? '',
+      pan_number: c.pan_number ?? '',
+      registration_number: c.registration_number ?? '',
+      incorporation_date: c.incorporation_date ?? '',
+      status: c.status ?? 'ACTIVE',
+      customer_tier: c.customer_tier ?? 'STANDARD',
+      credit_limit: c.credit_limit ?? '',
+      payment_terms: c.payment_terms ?? '',
+      credit_rating: c.credit_rating ?? '',
+      credit_score: c.credit_score ?? '',
+      business_type: c.business_type ?? '',
       industry_sector: c.industry_sector ?? '',
-      website:         c.website         ?? '',
-      notes:           c.notes           ?? '',
+      website: c.website ?? '',
+      notes: c.notes ?? '',
+      sales_person_id: c.sales_person_id ?? '',
+      account_manager_id: c.account_manager_id ?? '',
+      parent_customer_id: c.parent_customer_id ?? '',
+      user_id: c.user_id ?? ''
     });
     setErrors({});
     setModal({ type: 'edit', id: c.id, customer: c });
@@ -96,9 +104,9 @@ const CustomersDashboard = () => {
 
   const validate = () => {
     const e = {};
-    if (!form.legal_name.trim())      e.legal_name = 'Legal name is required';
-    if (!form.customer_code.trim())   e.customer_code = 'Customer code is required';
-    if (!form.customer_type)          e.customer_type = 'Select a type';
+    if (!form.legal_name.trim()) e.legal_name = 'Legal name is required';
+    if (!form.customer_code.trim()) e.customer_code = 'Customer code is required';
+    if (!form.customer_type) e.customer_type = 'Select a type';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -106,9 +114,16 @@ const CustomersDashboard = () => {
   const handleSubmit = () => {
     if (!validate()) return;
     const payload = { ...form };
+    
+    // Convert numbers/nulls correctly
     if (payload.credit_limit) payload.credit_limit = String(payload.credit_limit);
     if (payload.credit_score) payload.credit_score = Number(payload.credit_score);
     else delete payload.credit_score;
+    
+    // Nullify empty ID or Date strings
+    ['user_id', 'sales_person_id', 'account_manager_id', 'parent_customer_id', 'incorporation_date'].forEach(key => {
+      if (!payload[key]?.trim()) payload[key] = null;
+    });
 
     if (modal.type === 'create') {
       createMutation.mutate(payload, { onSuccess: () => closeModal() });
@@ -181,10 +196,6 @@ const CustomersDashboard = () => {
       header: 'Actions',
       render: c => (
         <div className="flex items-center gap-2">
-          <button onClick={() => openView(c)}
-            className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all">
-            <Eye size={12} /> View
-          </button>
           <button onClick={() => openEdit(c)}
             className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-all">
             <Pencil size={12} /> Edit
@@ -225,10 +236,10 @@ const CustomersDashboard = () => {
 
       {/* ── Stat Cards ─────────────────────────────────────────────── */}
       <div className="grid grid-cols-4 gap-4">
-        <StatCard loading={isLoading} label="Total"     value={total}     icon={Users}       color={{ value: 'text-[#172B4D]', iconBg: 'bg-blue-50',   iconText: 'text-blue-500' }} />
-        <StatCard loading={isLoading} label="Active"    value={active}    icon={CheckCircle} color={{ value: 'text-green-600',  iconBg: 'bg-green-50',  iconText: 'text-green-500' }} />
-        <StatCard loading={isLoading} label="Inactive"  value={inactive}  icon={AlertCircle} color={{ value: 'text-orange-500', iconBg: 'bg-orange-50', iconText: 'text-orange-500' }} />
-        <StatCard loading={isLoading} label="Suspended" value={suspended} icon={PauseCircle} color={{ value: 'text-red-500',    iconBg: 'bg-red-50',    iconText: 'text-red-400' }} />
+        <StatCard loading={isLoading} label="Total" value={total} icon={Users} color={{ value: 'text-[#172B4D]', iconBg: 'bg-blue-50', iconText: 'text-blue-500' }} />
+        <StatCard loading={isLoading} label="Active" value={active} icon={CheckCircle} color={{ value: 'text-green-600', iconBg: 'bg-green-50', iconText: 'text-green-500' }} />
+        <StatCard loading={isLoading} label="Inactive" value={inactive} icon={AlertCircle} color={{ value: 'text-orange-500', iconBg: 'bg-orange-50', iconText: 'text-orange-500' }} />
+        <StatCard loading={isLoading} label="Suspended" value={suspended} icon={PauseCircle} color={{ value: 'text-red-500', iconBg: 'bg-red-50', iconText: 'text-red-400' }} />
       </div>
 
       {/* ── Table Card ─────────────────────────────────────────────── */}
@@ -392,6 +403,13 @@ const CustomersDashboard = () => {
               <Input value={form.pan_number} onChange={e => setField('pan_number', e.target.value)}
                 placeholder="e.g. AAACR5055K" />
             </Field>
+            <Field label="Registration No.">
+              <Input value={form.registration_number} onChange={e => setField('registration_number', e.target.value)}
+                placeholder="e.g. U52100DL..." />
+            </Field>
+            <Field label="Incorporation Date">
+              <Input type="date" value={form.incorporation_date} onChange={e => setField('incorporation_date', e.target.value)} />
+            </Field>
 
             <Section title="Financial Details" className="col-span-2" />
 
@@ -434,6 +452,26 @@ const CustomersDashboard = () => {
               <Input value={form.website} onChange={e => setField('website', e.target.value)}
                 placeholder="https://example.com" />
             </Field>
+
+            <Section title="Assignments & Meta" className="col-span-2" />
+
+            <Field label="Sales Person ID">
+              <Input value={form.sales_person_id} onChange={e => setField('sales_person_id', e.target.value)}
+                placeholder="UUID" />
+            </Field>
+            <Field label="Account Mgr ID">
+              <Input value={form.account_manager_id} onChange={e => setField('account_manager_id', e.target.value)}
+                placeholder="UUID" />
+            </Field>
+            <Field label="Parent Customer ID">
+              <Input value={form.parent_customer_id} onChange={e => setField('parent_customer_id', e.target.value)}
+                placeholder="UUID" />
+            </Field>
+            <Field label="User ID">
+              <Input value={form.user_id} onChange={e => setField('user_id', e.target.value)}
+                placeholder="UUID" />
+            </Field>
+
             <Field label="Notes" className="col-span-2">
               <Input value={form.notes} onChange={e => setField('notes', e.target.value)}
                 placeholder="Additional notes..." />
@@ -460,35 +498,46 @@ const DetailRow = ({ label, value, mono }) => (
 const ViewCustomerContent = ({ customer: c, onEdit }) => (
   <div className="space-y-5">
     <div className="grid grid-cols-2 gap-4">
-      <DetailRow label="Legal Name"    value={c.legal_name} />
+      <DetailRow label="Legal Name" value={c.legal_name} />
       <DetailRow label="Customer Code" value={c.customer_code} mono />
-      <DetailRow label="Trading Name"  value={c.trading_name} />
-      <DetailRow label="Type"          value={c.customer_type} />
+      <DetailRow label="Trading Name" value={c.trading_name} />
+      <DetailRow label="Type" value={c.customer_type} />
     </div>
 
     <Section title="Tax & Registration" />
     <div className="grid grid-cols-2 gap-4">
-      <DetailRow label="Tax ID (GSTIN)"    value={c.tax_id} mono />
-      <DetailRow label="PAN Number"        value={c.pan_number} mono />
-      <DetailRow label="Registration No."  value={c.registration_number} mono />
+      <DetailRow label="Tax ID (GSTIN)" value={c.tax_id} mono />
+      <DetailRow label="PAN Number" value={c.pan_number} mono />
+      <DetailRow label="Registration No." value={c.registration_number} mono />
+      <DetailRow label="Incorporation Date" value={c.incorporation_date} />
     </div>
 
     <Section title="Financial Details" />
     <div className="grid grid-cols-2 gap-4">
-      <DetailRow label="Credit Limit"  value={c.credit_limit ? `₹${Number(c.credit_limit).toLocaleString('en-IN')}` : null} />
+      <DetailRow label="Credit Limit" value={c.credit_limit ? `₹${Number(c.credit_limit).toLocaleString('en-IN')}` : null} />
       <DetailRow label="Customer Tier" value={c.customer_tier} />
       <DetailRow label="Payment Terms" value={c.payment_terms} />
       <DetailRow label="Credit Rating" value={c.credit_rating} />
-      <DetailRow label="Credit Score"  value={c.credit_score} />
-      <DetailRow label="Status"        value={c.status} />
+      <DetailRow label="Credit Score" value={c.credit_score} />
+      <DetailRow label="Status" value={c.status} />
+    </div>
+
+    <Section title="Assignments & Meta" />
+    <div className="grid grid-cols-2 gap-4">
+      <DetailRow label="Sales Person ID" value={c.sales_person_id} mono />
+      <DetailRow label="Account Mgr ID" value={c.account_manager_id} mono />
+      <DetailRow label="Parent Customer ID" value={c.parent_customer_id} mono />
+      <DetailRow label="User ID" value={c.user_id} mono />
+      <DetailRow label="Created At" value={c.created_at ? new Date(c.created_at).toLocaleString() : null} />
+      <DetailRow label="Updated At" value={c.updated_at ? new Date(c.updated_at).toLocaleString() : null} />
     </div>
 
     <Section title="Other" />
     <div className="grid grid-cols-2 gap-4">
-      <DetailRow label="Business Type"   value={c.business_type} />
+      <DetailRow label="Business Type" value={c.business_type} />
       <DetailRow label="Industry Sector" value={c.industry_sector} />
-      <DetailRow label="Website"         value={c.website} />
-      <DetailRow label="Notes"           value={c.notes} />
+      <DetailRow label="Website" value={c.website} />
+      <DetailRow label="Notes" value={c.notes} className="col-span-2" />
     </div>
 
     <div className="pt-3 border-t border-gray-100 flex justify-end">
