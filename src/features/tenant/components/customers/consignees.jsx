@@ -5,7 +5,8 @@ import {
   ChevronDown, Loader2, AlertTriangle, UserMinus, Pencil
 } from 'lucide-react';
 import { useConsignees, useCreateConsignee, useUpdateConsignee, useDeleteConsignee, useCustomers } from '../../queries/customers/customersQuery';
-import { StatCard, Modal, Field, Input, Sel, Section, DeleteConfirm, fmtDate } from '../Vehicles/Common/VehicleCommon';
+import { StatCard, Modal, Field, Input, Sel, Section, DeleteConfirm, fmtDate, EmptyState, Badge } from '../Vehicles/Common/VehicleCommon';
+import { TableShimmer, ErrorState } from '../Vehicles/Common/StateFeedback';
 
 const EMPTY_FORM = {
   customer_id: '',
@@ -173,10 +174,10 @@ const ConsigneesDashboard = () => {
         const status = c.customer?.status;
         const st = getStatusStyle(status);
         return (
-          <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold w-fit whitespace-nowrap ${st.bg} ${st.text}`}>
+          <Badge className={`${st.bg} ${st.text} border-transparent`}>
             <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
             {status || '—'}
-          </span>
+          </Badge>
         );
       },
     },
@@ -261,20 +262,10 @@ const ConsigneesDashboard = () => {
           </button>
         </div>
 
-        {isLoading && (
-          <div className="flex items-center justify-center py-16 gap-3 text-gray-400">
-            <Loader2 size={20} className="animate-spin text-[#0052CC]" />
-            <span className="text-sm">Loading consignees...</span>
-          </div>
-        )}
+        {isLoading && <TableShimmer rows={8} cols={5} />}
 
         {isError && (
-          <div className="flex flex-col items-center justify-center py-16 gap-3 text-red-400">
-            <AlertTriangle size={32} />
-            <p className="text-sm font-medium">Failed to load consignees</p>
-            <p className="text-xs text-gray-400">{error?.response?.data?.detail || error?.message}</p>
-            <button onClick={() => refetch()} className="mt-2 px-4 py-2 text-sm font-semibold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8]">Try Again</button>
-          </div>
+          <ErrorState message="Failed to load consignees" error={error?.response?.data?.detail || error?.message} onRetry={() => refetch()} />
         )}
 
         {!isLoading && !isError && (
@@ -297,9 +288,8 @@ const ConsigneesDashboard = () => {
                 ))}
                 {consignees.length === 0 && (
                   <tr>
-                    <td colSpan={COLUMNS.length} className="px-4 py-16 text-center text-gray-400">
-                      <UserMinus size={32} className="mx-auto mb-2 opacity-30" />
-                      <p className="text-sm">No consignees found</p>
+                    <td colSpan={COLUMNS.length} className="px-4 py-8">
+                      <EmptyState icon={UserMinus} text="No consignees found" />
                     </td>
                   </tr>
                 )}

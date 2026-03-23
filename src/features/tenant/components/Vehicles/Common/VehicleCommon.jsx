@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useVehicles } from '../../../queries/vehicles/vehicleQuery';
 import { useVehicleTypes } from '../../../queries/vehicles/vehicletypeQuery';
+import { useDrivers } from '../../../queries/drivers/driverCoreQuery';
 
 // ── Generic Badge ─────────────────────────────────────────────────────
 export const Badge = ({ children, className = '' }) => (
@@ -393,6 +394,92 @@ export const VehicleTypeSelect = ({ value, onChange }) => {
                   flex items-center justify-between gap-2 ${t.id === value ? 'bg-blue-50' : ''}`}>
                 <span className="font-semibold text-[#172B4D] text-sm">{t.type_name ?? t.name}</span>
                 {t.category && <span className="text-[10px] text-gray-400 uppercase tracking-widest">{t.category}</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── Driver Searchable Dropdown ────────────────────────────────────────
+export const DriverSelect = ({ value, onChange }) => {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  const { data: dData, isLoading } = useDrivers({ page_size: 1000, ordering: 'id' });
+  const allDrivers = dData?.results ?? [];
+
+  const getDriverName = (d) => {
+    const name = `${d.user?.first_name || ''} ${d.user?.last_name || ''}`.trim();
+    return name || d.employee_id || 'Unknown Driver';
+  };
+
+  const drivers = query
+    ? allDrivers.filter(d => {
+        const name = getDriverName(d);
+        return (
+          name.toLowerCase().includes(query.toLowerCase()) ||
+          d.employee_id?.toLowerCase().includes(query.toLowerCase())
+        );
+      })
+    : allDrivers;
+
+  useEffect(() => {
+    const fn = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', fn);
+    return () => document.removeEventListener('mousedown', fn);
+  }, []);
+
+  const selected = allDrivers.find(d => d.id === value);
+
+  return (
+    <div className="relative" ref={ref}>
+      <div onClick={() => setOpen(o => !o)}
+        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50
+          cursor-pointer flex items-center justify-between gap-2 transition-all hover:border-[#0052CC]/40">
+        <span className={`truncate ${selected ? 'text-[#172B4D] font-bold' : 'text-gray-300'}`}>
+          {selected
+            ? `${getDriverName(selected)}${selected.employee_id ? ' — ' + selected.employee_id : ''}`
+            : 'Select driver...'}
+        </span>
+        <ChevronDown size={13} className={`text-gray-400 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </div>
+
+      {open && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+          <div className="p-2 border-b border-gray-100">
+            <div className="relative">
+              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input autoFocus value={query} onChange={e => setQuery(e.target.value)}
+                placeholder="Search driver name or ID..."
+                className="w-full pl-7 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-gray-50
+                  focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC]" />
+            </div>
+          </div>
+          <ul className="max-h-48 overflow-y-auto divide-y divide-gray-50">
+            <li
+              onClick={() => { onChange(null); setOpen(false); setQuery(''); }}
+              className="px-4 py-2 cursor-pointer hover:bg-red-50 transition-colors text-xs text-gray-400 italic">
+              — None / Clear —
+            </li>
+            {isLoading && (
+              <li className="px-4 py-3 flex items-center gap-2 text-xs text-gray-400">
+                <Loader2 size={12} className="animate-spin text-[#0052CC]" /> Loading...
+              </li>
+            )}
+            {!isLoading && drivers.length === 0 && (
+              <li className="px-4 py-3 text-xs text-gray-400 text-center">No drivers found</li>
+            )}
+            {drivers.map(d => (
+              <li key={d.id}
+                onClick={() => { onChange(d.id, d); setOpen(false); setQuery(''); }}
+                className={`px-4 py-2.5 cursor-pointer hover:bg-blue-50 transition-colors
+                  flex items-center justify-between gap-2 ${d.id === value ? 'bg-blue-50' : ''}`}>
+                <span className="font-semibold text-[#172B4D] text-sm">{getDriverName(d)}</span>
+                <span className="text-xs text-gray-400 font-mono">{d.employee_id}</span>
               </li>
             ))}
           </ul>
