@@ -350,12 +350,9 @@ const VehicleInspections = ({ vehicleId, isTab }) => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
-                  {!vehicleId && <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Vehicle</th>}
-                  <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Inspection Info</th>
-                  <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Inspector</th>
-                  <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Date</th>
-                  <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Status</th>
-                  <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Actions</th>
+                  {['Inspection Info', 'Date', 'Status', 'Actions'].map(h => (
+                    <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -374,9 +371,6 @@ const VehicleInspections = ({ vehicleId, isTab }) => {
                         {i.inspection_type_display ?? i.inspection_type}
                       </Badge>
                       <p className="text-[10px] font-mono font-medium text-gray-400 mt-1">{fmtKm(i.odometer_reading)}</p>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-bold text-[#172B4D]">
-                      {i.inspector_signature || '—'}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span className="flex items-center gap-1.5 text-[12px] font-medium text-gray-500">

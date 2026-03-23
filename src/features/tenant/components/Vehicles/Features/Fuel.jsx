@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import {
-  Fuel, Plus, Edit2, Trash2, X, Search, 
+  Fuel, Plus, Edit2, Trash2, X, 
   RefreshCw, Loader2, AlertCircle, Calendar, 
-  IndianRupee, Zap, Gauge, MapPin
+  IndianRupee, Zap, Gauge, MapPin, Pencil
 } from 'lucide-react';
 import {
   useVehicleFuelLogs,
@@ -305,10 +305,12 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
                     <td className="px-5 py-4">
                       <p className="text-sm font-black text-[#0052CC]">{fmtINR(l.total_cost)}</p>
                     </td>
-                    <td className="px-5 py-4">
-                      <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => setViewing(l)} className="p-2 text-gray-400 hover:text-[#0052CC] hover:bg-white rounded-lg transition-all shadow-sm"><Search size={14} /></button>
-                        <button onClick={() => setModal({ mode: 'edit', data: l })} className="p-2 text-gray-400 hover:text-[#0052CC] hover:bg-white rounded-lg transition-all shadow-sm"><Edit2 size={14} /></button>
+                    <td className="px-5 py-4 text-right">
+                      <div className="flex justify-end">
+                        <button onClick={() => setModal({ mode: 'edit', data: l })}
+                          className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all">
+                          <Pencil size={12} /> Edit
+                        </button>
                       </div>
                     </td>
                   </tr>

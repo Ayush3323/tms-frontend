@@ -330,7 +330,7 @@ const VehicleDocuments = ({ vehicleId, isTab }) => {
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
                   {!vehicleId && <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Vehicle</th>}
-                  {['Doc Type', 'Doc Number', 'Issue Date', 'Expiry Date', 'Issuing Authority', 'Status', 'Actions'].map(h => (
+                  {['Doc Type', 'Doc Number', 'Expiry Date', 'Status', 'Actions'].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -370,23 +370,11 @@ const VehicleDocuments = ({ vehicleId, isTab }) => {
                         <span className="font-mono font-bold text-[#172B4D] text-[13px]">{doc.document_number ?? '—'}</span>
                       </td>
 
-                      {/* Issue Date */}
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span className="flex items-center gap-1 text-gray-500 text-[12px]">
-                          <Calendar size={11} className="text-gray-300" />{fmtDate(doc.issue_date)}
-                        </span>
-                      </td>
-
                       {/* Expiry Date */}
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span className="flex items-center gap-1 text-gray-500 text-[12px]">
                           <Calendar size={11} className="text-gray-300" />{fmtDate(doc.expiry_date)}
                         </span>
-                      </td>
-
-                      {/* Issuing Authority */}
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span className="text-gray-600 text-[12px] font-medium">{doc.issuing_authority ?? '—'}</span>
                       </td>
 
                       {/* Status — from API directly */}
