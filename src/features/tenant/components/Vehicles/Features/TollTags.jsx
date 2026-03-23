@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
-  Tag, Plus, Edit2, Trash2, X, Search, 
+  Tag, Plus, Edit2, Trash2, X, Search,
   RefreshCw, Loader2, CreditCard, Building2,
   Calendar, Hash, FileText, CheckCircle, XCircle,
   IndianRupee
@@ -21,14 +21,14 @@ import { TabContentShimmer, ErrorState } from '../Common/StateFeedback';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const PROVIDER_OPTIONS = [
-  { value: 'HDFC',      label: 'HDFC Bank' },
-  { value: 'ICICI',     label: 'ICICI Bank' },
-  { value: 'SBI',       label: 'SBI' },
-  { value: 'AXIS',      label: 'Axis Bank' },
-  { value: 'PAYTM',     label: 'Paytm' },
-  { value: 'KOTAK',     label: 'Kotak Bank' },
-  { value: 'IDFC',      label: 'IDFC First' },
-  { value: 'OTHER',     label: 'Other' },
+  { value: 'HDFC', label: 'HDFC Bank' },
+  { value: 'ICICI', label: 'ICICI Bank' },
+  { value: 'SBI', label: 'SBI' },
+  { value: 'AXIS', label: 'Axis Bank' },
+  { value: 'PAYTM', label: 'Paytm' },
+  { value: 'KOTAK', label: 'Kotak Bank' },
+  { value: 'IDFC', label: 'IDFC First' },
+  { value: 'OTHER', label: 'Other' },
 ];
 
 const EMPTY_FORM = {
@@ -88,15 +88,15 @@ const TollTagModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) 
 
   const [form, setForm] = useState(
     initial ? {
-      vehicle:            resolveVehicleId(),
-      tag_number:          initial.tag_number     ?? '',
-      tag_provider:        initial.tag_provider   ?? '',
-      recharge_balance:    initial.recharge_balance ?? '',
-      issue_date:          initial.issue_date     ?? '',
-      expiry_date:         initial.expiry_date    ?? '',
-      is_active:           initial.is_active      ?? true,
+      vehicle: resolveVehicleId(),
+      tag_number: initial.tag_number ?? '',
+      tag_provider: initial.tag_provider ?? '',
+      recharge_balance: initial.recharge_balance ?? '',
+      issue_date: initial.issue_date ?? '',
+      expiry_date: initial.expiry_date ?? '',
+      is_active: initial.is_active ?? true,
       linked_bank_account: initial.linked_bank_account ?? '',
-      notes:               initial.notes          ?? '',
+      notes: initial.notes ?? '',
     } : { ...EMPTY_FORM, vehicle: vehicleId ?? '' }
   );
 
@@ -116,7 +116,7 @@ const TollTagModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) 
 
     const clean = Object.fromEntries(Object.entries(form).map(([k, v]) => [k, v === '' ? null : v]));
     if (isEdit) update.mutate({ id: initial.id, data: clean }, { onSuccess: onClose });
-    else        create.mutate(clean, { onSuccess: onClose });
+    else create.mutate(clean, { onSuccess: onClose });
   };
 
   return (
@@ -228,11 +228,7 @@ const VehicleTollTags = ({ vehicleId, isTab }) => {
             <h1 className="text-2xl font-black text-[#172B4D] tracking-tight">Toll Tags</h1>
             <p className="text-sm text-gray-400 font-medium">Manage FASTags and electronic toll accounts</p>
           </div>
-          <button
-            onClick={() => setModal({ mode: 'add' })}
-            className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-[#0052CC] rounded-xl hover:bg-[#0043A8] transition-all shadow-sm shadow-blue-200">
-            <Plus size={16} /> Add Tag
-          </button>
+
         </div>
       )}
 
@@ -258,6 +254,11 @@ const VehicleTollTags = ({ vehicleId, isTab }) => {
               <option value="">All Providers</option>
               {PROVIDER_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </Sel>
+            <button
+              onClick={() => setModal({ mode: 'add' })}
+              className="ml-auto flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-[#0052CC] rounded-xl hover:bg-[#0043A8] transition-all shadow-sm shadow-blue-200">
+              <Plus size={16} /> Add Tag
+            </button>
           </div>
           {isTab && (
             <button
@@ -275,8 +276,8 @@ const VehicleTollTags = ({ vehicleId, isTab }) => {
             <table className="w-full border-collapse text-left">
               <thead className="sticky top-0 bg-gray-50/80 backdrop-blur-md z-10">
                 <tr className="border-b border-gray-100">
-                  <th className="px-5 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Tag Info</th>
                   {!vehicleId && <th className="px-5 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Vehicle</th>}
+                  <th className="px-5 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Tag Info</th>
                   <th className="px-5 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Provider</th>
                   <th className="px-5 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Balance</th>
                   <th className="px-5 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Status</th>
@@ -286,17 +287,17 @@ const VehicleTollTags = ({ vehicleId, isTab }) => {
               <tbody className="divide-y divide-gray-50">
                 {tags.map(t => (
                   <tr key={t.id} className="hover:bg-blue-50/30 transition-colors group">
-                    <td className="px-5 py-4">
-                      <p className="text-sm font-bold text-[#172B4D] font-mono tracking-tight">{t.tag_number || 'Unnamed'}</p>
-                      <p className="text-[10px] font-medium text-gray-400 mt-0.5">{fmtDate(t.issue_date)}</p>
-                    </td>
                     {!vehicleId && (
                       <td className="px-5 py-4 text-sm font-medium text-gray-600 truncate max-w-[150px]">
-                        <span className="font-bold text-[#172B4D] font-mono text-[13px] uppercase">
+                        <button onClick={() => setViewing(t)}
+                          className="font-bold text-[#172B4D] font-mono text-[13px] hover:text-[#0052CC] transition-all text-left uppercase hover:underline decoration-blue-400/30 underline-offset-4">
                           {t.vehicle_registration_number ?? t.vehicle_registration ?? t.vehicle_display ?? t.vehicle ?? '—'}
-                        </span>
+                        </button>
                       </td>
                     )}
+                    <td className="px-5 py-4">
+                      <p className="text-sm font-bold text-[#172B4D] font-mono tracking-tight">{t.tag_number || 'Unnamed'}</p>
+                    </td>
                     <td className="px-5 py-4">
                       <span className="flex items-center gap-1.5 text-xs font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">
                         <Building2 size={11} className="text-gray-300" />
@@ -328,25 +329,25 @@ const VehicleTollTags = ({ vehicleId, isTab }) => {
       </div>
 
       {modal && (
-        <TollTagModal 
-          initial={modal.data} 
-          onClose={() => setModal(null)} 
+        <TollTagModal
+          initial={modal.data}
+          onClose={() => setModal(null)}
           vehicleId={vehicleId}
           onDeleteRequest={() => { setModal(null); setDeleting(modal.data); }}
         />
       )}
       {viewing && (
-        <TollTagModal 
-          initial={viewing} 
-          onClose={() => setViewing(null)} 
-          isView 
+        <TollTagModal
+          initial={viewing}
+          onClose={() => setViewing(null)}
+          isView
           vehicleId={vehicleId}
         />
       )}
       {deleting && (
-        <DeleteConfirm 
-          label="Toll Tag" 
-          onClose={() => setDeleting(null)} 
+        <DeleteConfirm
+          label="Toll Tag"
+          onClose={() => setDeleting(null)}
           onConfirm={() => del.mutate(deleting.id, { onSuccess: () => setDeleting(null) })}
           deleting={del.isPending}
         />

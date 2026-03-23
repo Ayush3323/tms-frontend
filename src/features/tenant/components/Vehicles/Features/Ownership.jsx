@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
-  Users, Plus, Edit2, Trash2, X, Search, 
-  RefreshCw, Loader2, AlertCircle, Calendar, 
+  Users, Plus, Edit2, Trash2, X, Search,
+  RefreshCw, Loader2, AlertCircle, Calendar,
   FileText, UserPlus, FileCheck, ArrowRightLeft,
   Link as LinkIcon
 } from 'lucide-react';
@@ -11,7 +11,7 @@ import {
   useUpdateVehicleOwnership,
   useDeleteVehicleOwnership,
 } from '../../../queries/vehicles/vehicleInfoQuery';
-import { 
+import {
   Badge, InfoCard, SectionHeader, EmptyState, Modal, DeleteConfirm, ItemActions,
   Label, Input, Sel, Field, StatCard, Textarea, VehicleSelect,
   fmtDate, fmtINR
@@ -20,21 +20,21 @@ import { TabContentShimmer, ErrorState } from '../Common/StateFeedback';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const TRANSFER_TYPE_OPTIONS = [
-  { value: 'LEASE_START',  label: 'Lease Start' },
-  { value: 'LEASE_END',    label: 'Lease End' },
-  { value: 'PURCHASE',     label: 'Purchase' },
-  { value: 'SALE',         label: 'Sale' },
-  { value: 'INTERNAL',     label: 'Internal Transfer' },
-  { value: 'OTHER',        label: 'Other' },
+  { value: 'LEASE_START', label: 'Lease Start' },
+  { value: 'LEASE_END', label: 'Lease End' },
+  { value: 'PURCHASE', label: 'Purchase' },
+  { value: 'SALE', label: 'Sale' },
+  { value: 'INTERNAL', label: 'Internal Transfer' },
+  { value: 'OTHER', label: 'Other' },
 ];
 
 const TRANSFER_COLORS = {
   LEASE_START: 'bg-blue-50 text-blue-700 border-blue-200',
-  LEASE_END:   'bg-gray-100 text-gray-700 border-gray-200',
-  PURCHASE:    'bg-emerald-50 text-emerald-700 border-emerald-200',
-  SALE:        'bg-red-50 text-red-700 border-red-200',
-  INTERNAL:    'bg-indigo-50 text-indigo-700 border-indigo-200',
-  OTHER:       'bg-gray-50 text-gray-600 border-gray-100',
+  LEASE_END: 'bg-gray-100 text-gray-700 border-gray-200',
+  PURCHASE: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  SALE: 'bg-red-50 text-red-700 border-red-200',
+  INTERNAL: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+  OTHER: 'bg-gray-50 text-gray-600 border-gray-100',
 };
 
 const EMPTY_FORM = {
@@ -64,7 +64,7 @@ const ViewDetail = ({ data, onClose }) => (
     {data.transfer_document_url && (
       <div className="pt-4 border-t border-gray-100">
         <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 italic">Transfer Document</p>
-        <a 
+        <a
           href={data.transfer_document_url} target="_blank" rel="noreferrer"
           className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-[#0052CC] bg-blue-50 border border-blue-100 rounded-xl hover:bg-blue-100 transition-all shadow-sm">
           <FileText size={14} /> View Document
@@ -93,13 +93,13 @@ const OwnershipModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }
 
   const [form, setForm] = useState(
     initial ? {
-      vehicle:            resolveVehicleId(),
-      previous_owner:      initial.previous_owner      ?? '',
-      new_owner:           initial.new_owner           ?? '',
-      transfer_date:       initial.transfer_date       ?? '',
-      transfer_type:       initial.transfer_type       ?? '',
+      vehicle: resolveVehicleId(),
+      previous_owner: initial.previous_owner ?? '',
+      new_owner: initial.new_owner ?? '',
+      transfer_date: initial.transfer_date ?? '',
+      transfer_type: initial.transfer_type ?? '',
       transfer_document_url: initial.transfer_document_url ?? '',
-      notes:               initial.notes               ?? '',
+      notes: initial.notes ?? '',
     } : { ...EMPTY_FORM, vehicle: vehicleId ?? '' }
   );
 
@@ -111,11 +111,11 @@ const OwnershipModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }
   const handleSubmit = () => {
     const clean = Object.fromEntries(Object.entries(form).map(([k, v]) => [k, v === '' ? null : v]));
     if (isEdit) update.mutate({ id: initial.id, data: clean }, { onSuccess: onClose });
-    else        create.mutate(clean, { onSuccess: onClose });
+    else create.mutate(clean, { onSuccess: onClose });
   };
 
   return (
-    <Modal 
+    <Modal
       title={isView ? 'Ownership Details' : isEdit ? 'Edit Record' : 'Add Record'}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -177,7 +177,7 @@ const VehicleOwnership = ({ vehicleId, isTab }) => {
   const [modal, setModal] = useState(null);
   const [viewing, setViewing] = useState(null);
   const [deleting, setDeleting] = useState(null);
-  
+
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
 
@@ -198,11 +198,7 @@ const VehicleOwnership = ({ vehicleId, isTab }) => {
             <h1 className="text-2xl font-black text-[#172B4D] tracking-tight">Ownership History</h1>
             <p className="text-sm text-gray-400 font-medium">Track transfers, leases and titles</p>
           </div>
-          <button
-            onClick={() => setModal({ mode: 'add' })}
-            className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-[#0052CC] rounded-xl hover:bg-[#0043A8] transition-all shadow-sm shadow-blue-200">
-            <Plus size={16} /> Add Ownership Record
-          </button>
+
         </div>
       )}
 
@@ -218,7 +214,7 @@ const VehicleOwnership = ({ vehicleId, isTab }) => {
           <div className="flex items-center gap-3 flex-1 min-w-[240px]">
             <div className="relative flex-1 max-w-xs">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input 
+              <input
                 type="text" placeholder="Search records..."
                 className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border-none rounded-lg focus:ring-2 focus:ring-[#0052CC]/10"
                 value={search} onChange={e => setSearch(e.target.value)} />
@@ -228,6 +224,11 @@ const VehicleOwnership = ({ vehicleId, isTab }) => {
               {TRANSFER_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </Sel>
           </div>
+          <button
+            onClick={() => setModal({ mode: 'add' })}
+            className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-[#0052CC] rounded-xl hover:bg-[#0043A8] transition-all shadow-sm shadow-blue-200">
+            <Plus size={16} /> Add Ownership Record
+          </button>
           {isTab && (
             <button
               onClick={() => setModal({ mode: 'add' })}
@@ -248,8 +249,8 @@ const VehicleOwnership = ({ vehicleId, isTab }) => {
             <table className="w-full border-collapse text-left">
               <thead className="sticky top-0 bg-gray-50/80 backdrop-blur-md z-10">
                 <tr className="border-b border-gray-100">
-                  <th className="px-5 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Type</th>
                   {!vehicleId && <th className="px-5 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Vehicle</th>}
+                  <th className="px-5 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Type</th>
                   <th className="px-5 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Transfer Info</th>
                   <th className="px-5 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest">Date</th>
                   <th className="px-5 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
@@ -258,18 +259,19 @@ const VehicleOwnership = ({ vehicleId, isTab }) => {
               <tbody className="divide-y divide-gray-50">
                 {history.map(h => (
                   <tr key={h.id} className="hover:bg-blue-50/30 transition-colors group">
+                    {!vehicleId && (
+                      <td className="px-5 py-4 text-sm font-medium text-gray-600 truncate max-w-[150px]">
+                        <button onClick={() => setViewing(h)}
+                          className="font-bold text-[#172B4D] font-mono text-[13px] hover:text-[#0052CC] transition-all text-left uppercase hover:underline decoration-blue-400/30 underline-offset-4">
+                          {h.vehicle_registration_number ?? h.vehicle_registration ?? h.vehicle_display ?? h.vehicle ?? '—'}
+                        </button>
+                      </td>
+                    )}
                     <td className="px-5 py-4 whitespace-nowrap">
                       <Badge className={TRANSFER_COLORS[h.transfer_type] ?? 'bg-gray-100 text-gray-600 border-gray-200'}>
                         {h.transfer_type_display ?? h.transfer_type}
                       </Badge>
                     </td>
-                    {!vehicleId && (
-                      <td className="px-5 py-4 text-sm font-medium text-gray-600 truncate max-w-[150px]">
-                        <span className="font-bold text-[#172B4D] font-mono text-[13px] uppercase">
-                          {h.vehicle_registration_number ?? h.vehicle_registration ?? h.vehicle_display ?? h.vehicle ?? '—'}
-                        </span>
-                      </td>
-                    )}
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         <div className="flex flex-col">
@@ -305,25 +307,25 @@ const VehicleOwnership = ({ vehicleId, isTab }) => {
       </div>
 
       {modal && (
-        <OwnershipModal 
-          initial={modal.data} 
-          onClose={() => setModal(null)} 
+        <OwnershipModal
+          initial={modal.data}
+          onClose={() => setModal(null)}
           vehicleId={vehicleId}
           onDeleteRequest={() => { setModal(null); setDeleting(modal.data); }}
         />
       )}
       {viewing && (
-        <OwnershipModal 
-          initial={viewing} 
-          onClose={() => setViewing(null)} 
-          isView 
+        <OwnershipModal
+          initial={viewing}
+          onClose={() => setViewing(null)}
+          isView
           vehicleId={vehicleId}
         />
       )}
       {deleting && (
-        <DeleteConfirm 
-          label="Record" 
-          onClose={() => setDeleting(null)} 
+        <DeleteConfirm
+          label="Record"
+          onClose={() => setDeleting(null)}
           onConfirm={() => del.mutate(deleting.id, { onSuccess: () => setDeleting(null) })}
           deleting={del.isPending}
         />

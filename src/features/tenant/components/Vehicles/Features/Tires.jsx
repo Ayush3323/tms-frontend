@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
-  CircleDot, Plus, Pencil, Trash2, X, Search, 
-  RefreshCw, Loader2, AlertTriangle, Calendar, 
+  CircleDot, Plus, Pencil, Trash2, X, Search,
+  RefreshCw, Loader2, AlertTriangle, Calendar,
   Gauge, Hash, ChevronDown
 } from 'lucide-react';
 import {
@@ -19,25 +19,25 @@ import { TabContentShimmer, ErrorState } from '../Common/StateFeedback';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const POSITION_OPTIONS = [
-  { value: 'FRONT_LEFT',  label: 'Front Left' },
+  { value: 'FRONT_LEFT', label: 'Front Left' },
   { value: 'FRONT_RIGHT', label: 'Front Right' },
-  { value: 'REAR_LEFT',   label: 'Rear Left' },
-  { value: 'REAR_RIGHT',  label: 'Rear Right' },
-  { value: 'SPARE',       label: 'Spare' },
+  { value: 'REAR_LEFT', label: 'Rear Left' },
+  { value: 'REAR_RIGHT', label: 'Rear Right' },
+  { value: 'SPARE', label: 'Spare' },
 ];
 
 const POSITION_COLORS = {
-  FRONT_LEFT:  'bg-blue-50 text-blue-700 border-blue-200',
+  FRONT_LEFT: 'bg-blue-50 text-blue-700 border-blue-200',
   FRONT_RIGHT: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-  REAR_LEFT:   'bg-purple-50 text-purple-700 border-purple-200',
-  REAR_RIGHT:  'bg-violet-50 text-violet-700 border-violet-200',
-  SPARE:       'bg-gray-100 text-gray-600 border-gray-200',
+  REAR_LEFT: 'bg-purple-50 text-purple-700 border-purple-200',
+  REAR_RIGHT: 'bg-violet-50 text-violet-700 border-violet-200',
+  SPARE: 'bg-gray-100 text-gray-600 border-gray-200',
 };
 
 const STATUS_CONFIG = {
   INSTALLED: { label: 'Installed', dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50' },
-  REMOVED:   { label: 'Removed',   dot: 'bg-gray-400',    text: 'text-gray-600',    bg: 'bg-gray-100' },
-  REPLACED:  { label: 'Replaced',  dot: 'bg-red-400',     text: 'text-red-700',     bg: 'bg-red-50' },
+  REMOVED: { label: 'Removed', dot: 'bg-gray-400', text: 'text-gray-600', bg: 'bg-gray-100' },
+  REPLACED: { label: 'Replaced', dot: 'bg-red-400', text: 'text-red-700', bg: 'bg-red-50' },
 };
 
 const EMPTY_FORM = {
@@ -109,17 +109,17 @@ const TireModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => 
 
   const [form, setForm] = useState(
     initial ? {
-      vehicle:            resolveVehicleId(),
-      tire_serial_number:  initial.tire_serial_number ?? '',
-      tire_brand:          initial.tire_brand         ?? '',
-      tire_position:       initial.tire_position      ?? '',
-      status:              initial.status             ?? 'INSTALLED',
-      tread_depth:         initial.tread_depth        ?? '',
-      installation_date:   initial.installation_date  ?? '',
+      vehicle: resolveVehicleId(),
+      tire_serial_number: initial.tire_serial_number ?? '',
+      tire_brand: initial.tire_brand ?? '',
+      tire_position: initial.tire_position ?? '',
+      status: initial.status ?? 'INSTALLED',
+      tread_depth: initial.tread_depth ?? '',
+      installation_date: initial.installation_date ?? '',
       installation_odometer: initial.installation_odometer ?? '',
-      removal_date:        initial.removal_date       ?? '',
-      removal_odometer:    initial.removal_odometer   ?? '',
-      removal_reason:      initial.removal_reason     ?? '',
+      removal_date: initial.removal_date ?? '',
+      removal_odometer: initial.removal_odometer ?? '',
+      removal_reason: initial.removal_reason ?? '',
     } : { ...EMPTY_FORM, vehicle: vehicleId ?? '' }
   );
 
@@ -139,7 +139,7 @@ const TireModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => 
 
     const clean = Object.fromEntries(Object.entries(form).map(([k, v]) => [k, v === '' ? null : v]));
     if (isEdit) update.mutate({ id: initial.id, data: clean }, { onSuccess: onClose });
-    else        create.mutate(clean, { onSuccess: onClose });
+    else create.mutate(clean, { onSuccess: onClose });
   };
 
   return (
@@ -261,11 +261,7 @@ const VehicleTires = ({ vehicleId, isTab }) => {
             <h1 className="text-2xl font-black text-[#172B4D] tracking-tight">Vehicle Tires</h1>
             <p className="text-sm text-gray-400 font-medium">Manage tire inventory and status across fleet</p>
           </div>
-          <button
-            onClick={() => setModal({ mode: 'add' })}
-            className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-[#0052CC] rounded-xl hover:bg-[#0043A8] transition-all shadow-sm shadow-blue-200">
-            <Plus size={16} /> Add Tire
-          </button>
+
         </div>
       )}
 
@@ -334,8 +330,8 @@ const VehicleTires = ({ vehicleId, isTab }) => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Tire Info</th>
                   {!vehicleId && <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Vehicle</th>}
+                  <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Tire Info</th>
                   <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Position</th>
                   <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Tread Depth</th>
                   <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Status</th>
@@ -345,17 +341,17 @@ const VehicleTires = ({ vehicleId, isTab }) => {
               <tbody className="divide-y divide-gray-50">
                 {tires.map(t => (
                   <tr key={t.id} className="hover:bg-blue-50/30 transition-colors">
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <p className="text-sm font-bold text-[#172B4D]">{t.tire_brand || 'Unknown'}</p>
-                      <p className="text-[10px] font-mono font-medium text-gray-400 mt-0.5">#{t.tire_serial_number}</p>
-                    </td>
                     {!vehicleId && (
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span className="font-bold text-[#172B4D] font-mono text-[13px] uppercase">
+                        <button onClick={() => setViewing(t)}
+                          className="font-bold text-[#172B4D] font-mono text-[13px] hover:text-[#0052CC] transition-all text-left uppercase hover:underline decoration-blue-400/30 underline-offset-4">
                           {t.vehicle_registration_number ?? t.vehicle_registration ?? t.vehicle_display ?? t.vehicle ?? '—'}
-                        </span>
+                        </button>
                       </td>
                     )}
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <p className="text-sm font-bold text-[#172B4D]">{t.tire_brand || 'Unknown'}</p>
+                    </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <Badge className={POSITION_COLORS[t.tire_position] ?? 'bg-gray-100 text-gray-600 border-gray-200'}>
                         {t.tire_position_display ?? t.tire_position}
@@ -406,25 +402,25 @@ const VehicleTires = ({ vehicleId, isTab }) => {
       </div>
 
       {modal && (
-        <TireModal 
-          initial={modal.data} 
-          onClose={() => setModal(null)} 
+        <TireModal
+          initial={modal.data}
+          onClose={() => setModal(null)}
           vehicleId={vehicleId}
           onDeleteRequest={() => { setModal(null); setDeleting(modal.data); }}
         />
       )}
       {viewing && (
-        <TireModal 
-          initial={viewing} 
-          onClose={() => setViewing(null)} 
-          isView 
+        <TireModal
+          initial={viewing}
+          onClose={() => setViewing(null)}
+          isView
           vehicleId={vehicleId}
         />
       )}
       {deleting && (
-        <DeleteConfirm 
-          label="Tire" 
-          onClose={() => setDeleting(null)} 
+        <DeleteConfirm
+          label="Tire"
+          onClose={() => setDeleting(null)}
           onConfirm={() => del.mutate(deleting.id, { onSuccess: () => setDeleting(null) })}
           deleting={del.isPending}
         />

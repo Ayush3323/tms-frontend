@@ -265,10 +265,7 @@ const VehicleDocuments = ({ vehicleId, isTab }) => {
               className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
               <RefreshCw size={14} />
             </button>
-            <button onClick={() => setModal('add')}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] shadow-sm">
-              <Plus size={15} /> Add Document
-            </button>
+
           </div>
         </div>
       )}
@@ -348,7 +345,7 @@ const VehicleDocuments = ({ vehicleId, isTab }) => {
                       {!vehicleId && (
                         <td className="px-4 py-3 whitespace-nowrap">
                           <button onClick={() => setView(doc)}
-                            className="font-bold text-[#172B4D] font-mono text-[13px] hover:text-[#0052CC] transition-colors text-left uppercase">
+                            className="font-bold text-[#172B4D] font-mono text-[13px] hover:text-[#0052CC] transition-all text-left uppercase hover:underline decoration-blue-400/30 underline-offset-4">
                             {typeof doc.vehicle === 'object'
                               ? (doc.vehicle?.registration_number ?? '—')
                               : (doc.vehicle_registration_number ?? doc.vehicle_registration ?? doc.vehicle_display ?? doc.vehicle ?? '—')}
