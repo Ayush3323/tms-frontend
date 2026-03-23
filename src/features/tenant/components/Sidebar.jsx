@@ -48,6 +48,13 @@ const customerSubItems = [
   { name: 'Brokers', icon: <Briefcase size={13} />, path: '/tenant/dashboard/customers/brokers', badge: null },
 ];
 
+const orderSubItems = [
+  { name: 'All Orders (LR)', icon: <FileText size={13} />, path: '/tenant/dashboard/orders', badge: null },
+  { name: 'Trips', icon: <Globe size={13} />, path: '/tenant/dashboard/orders/trips', badge: null },
+  { name: 'Cargo Items', icon: <LayoutGrid size={13} />, path: '/tenant/dashboard/orders/cargo', badge: null },
+  { name: 'Deliveries (POD)', icon: <Shield size={13} />, path: '/tenant/dashboard/orders/deliveries', badge: null },
+];
+
 const SubMenu = ({ items }) => (
   <div className="ml-5 pl-3 border-l-2 border-gray-200 mt-1 mb-1 space-y-0.5">
     {items.map((item) => (
@@ -83,11 +90,13 @@ const Sidebar = () => {
   const isDriverPath = location.pathname.startsWith('/tenant/dashboard/drivers');
   const isUserPath = location.pathname.startsWith('/tenant/dashboard/users');
   const isCustomerPath = location.pathname.startsWith('/tenant/dashboard/customers');
+  const isOrderPath = location.pathname.startsWith('/tenant/dashboard/orders');
 
   const [vehiclesOpen, setVehiclesOpen] = useState(isVehiclePath);
   const [driversOpen, setDriversOpen] = useState(isDriverPath);
   const [usersOpen, setUsersOpen] = useState(isUserPath);
   const [customersOpen, setCustomersOpen] = useState(isCustomerPath);
+  const [ordersOpen, setOrdersOpen] = useState(isOrderPath);
 
   return (
     <aside className="w-64 h-screen bg-[#F8FAFC] border-r border-gray-200 flex flex-col justify-between p-4 sticky top-0 z-50 overflow-y-auto flex-shrink-0">
@@ -185,6 +194,26 @@ const Sidebar = () => {
               </button>
               <div className={`overflow-hidden transition-all duration-300 ease-in-out ${customersOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
                 <SubMenu items={customerSubItems} />
+              </div>
+            </div>
+
+             {/* Orders Dropdown (NEW) */}
+            <div>
+              <button
+                onClick={() => setOrdersOpen((o) => !o)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all border ${isOrderPath
+                  ? 'bg-[#EBF3FF] text-[#0052CC] border-[#D0E2FF]'
+                  : 'text-gray-600 hover:bg-gray-100 border-transparent'
+                  }`}
+              >
+                <span className={isOrderPath ? 'text-[#0052CC]' : 'text-gray-400'}>
+                  <FileText size={18} />
+                </span>
+                <span className="text-sm font-semibold flex-1 text-left">Orders</span>
+                <ChevronDown size={15} className={`transition-transform duration-200 ${ordersOpen ? 'rotate-180' : 'rotate-0'} ${isOrderPath ? 'text-[#0052CC]' : 'text-gray-400'}`} />
+              </button>
+              <div className={`overflow-hidden transition-all duration-300 ease-in-out ${ordersOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                <SubMenu items={orderSubItems} />
               </div>
             </div>
 

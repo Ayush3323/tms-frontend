@@ -19,6 +19,11 @@ import CustomersDashboard from '../components/customers/customers'
 import Consigners from '../components/customers/consigners'
 import Consignees from '../components/customers/consignees'
 import Brokers from '../components/customers/brokers';
+import OrdersDashboard from '../components/orders/orders';
+import TripsDashboard from '../components/orders/trips'
+import CargoDashboard from '../components/orders/cargo'
+import DeliveriesDashboard from '../components/orders/deliveries'
+
 
 
 
@@ -93,6 +98,14 @@ const Routing = () => {
         <Route path="customers/consigners" element={<Consigners />} />
         <Route path="customers/consignees" element={<Consignees />} />
         <Route path="customers/brokers" element={<Brokers />} />
+
+
+        {/* Specific Orders Detail Route (Must be last to avoid catching sub-paths as IDs) */}
+         <Route path="orders" element={<OrdersDashboard />} />
+         <Route path="orders/trips" element={<TripsDashboard />} />
+         <Route path="orders/cargo" element={<CargoDashboard />} />
+         <Route path="orders/deliveries" element={<DeliveriesDashboard />} />
+
 
 
 
