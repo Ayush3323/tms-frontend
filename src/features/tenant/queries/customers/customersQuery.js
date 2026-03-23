@@ -59,8 +59,17 @@ export const useCreateCustomer = () => {
 }
 
 
-
-
+export const useDeleteCustomer = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id) => customersApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: customerKeys.lists() })
+      toast.success('Customer deleted')
+    },
+    onError: (err) => handleApiError(err, 'Could not delete customer'),
+  })
+}
 
 export const useUpdateCustomer = () => {
   const queryClient = useQueryClient()
@@ -84,6 +93,49 @@ export const useConsignors = (params) => {
   })
 }
 
+export const useCreateConsignor = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data) => consignorsApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: customerKeys.consignors() })
+      toast.success('Consignor created')
+    },
+    onError: (err) => handleApiError(err, 'Failed to create consignor'),
+  })
+}
+
+export const useUpdateConsignor = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => consignorsApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: customerKeys.consignors() })
+      toast.success('Consignor updated')
+    },
+    onError: (err) => handleApiError(err, 'Failed to update consignor'),
+  })
+}
+
+export const useDeleteConsignor = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id) => consignorsApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: customerKeys.consignors() })
+      toast.success('Consignor deleted')
+    },
+    onError: (err) => handleApiError(err, 'Failed to delete consignor'),
+  })
+}
+
+export const useConsignees = (params) => {
+  return useQuery({
+    queryKey: [customerKeys.consignees(), params],
+    queryFn: () => consigneesApi.list(params),
+  })
+}
+
 export const useCreateConsignee = () => {
   const queryClient = useQueryClient()
   return useMutation({
@@ -93,6 +145,30 @@ export const useCreateConsignee = () => {
       toast.success('Consignee profile created')
     },
     onError: (err) => handleApiError(err, 'Failed to create consignee'),
+  })
+}
+
+export const useUpdateConsignee = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => consigneesApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: customerKeys.consignees() })
+      toast.success('Consignee profile updated')
+    },
+    onError: (err) => handleApiError(err, 'Failed to update consignee'),
+  })
+}
+
+export const useDeleteConsignee = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id) => consigneesApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: customerKeys.consignees() })
+      toast.success('Consignee deleted')
+    },
+    onError: (err) => handleApiError(err, 'Failed to delete consignee'),
   })
 }
 

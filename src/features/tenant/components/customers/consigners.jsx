@@ -4,8 +4,20 @@ import {
   Users, CheckCircle, AlertCircle, PauseCircle,
   ChevronDown, Loader2, AlertTriangle, UserPlus, Pencil
 } from 'lucide-react';
-import { useConsignors } from '../../queries/customers/customersQuery';
-import { StatCard } from '../Vehicles/Common/VehicleCommon';
+import { useConsignors, useCreateConsignor, useUpdateConsignor, useDeleteConsignor, useCustomers } from '../../queries/customers/customersQuery';
+import { StatCard, Modal, Field, Input, Sel, Section, DeleteConfirm, fmtDate } from '../Vehicles/Common/VehicleCommon';
+
+const EMPTY_FORM = {
+  customer_id: '',
+  consignor_code: '',
+  hazardous_material_handling: false,
+  temperature_controlled: false,
+  business_volume_tons_per_month: '',
+  business_volume_value_per_month: '',
+  loading_bay_count: '',
+  avg_loading_time_minutes: '',
+  preferred_vehicle_types: '',
+};
 
 const STATUS_STYLES = {
   'ACTIVE':    { bg: 'bg-green-50',  text: 'text-green-700',  dot: 'bg-green-500' },
@@ -27,11 +39,99 @@ const Consignors = () => {
     ...(search       && { search }),
   });
 
+  const { data: customerData } = useCustomers({ limit: 1000 });
+  const allCustomers = customerData?.results ?? customerData ?? [];
+  const eligibleCustomers = allCustomers.filter(c => c.customer_type === 'CONSIGNOR' || c.customer_type === 'BOTH' || c.customer_type === 'OTHER');
+
+  const [modal, setModal]             = useState(null);   
+  const [deleteTarget, setDelete]     = useState(null);
+  const [form, setForm]               = useState(EMPTY_FORM);
+  const [errors, setErrors]           = useState({});
+
+  const createMutation = useCreateConsignor();
+  const updateMutation = useUpdateConsignor();
+  const deleteMutation = useDeleteConsignor();
+
+  const openCreate = () => {
+    setForm(EMPTY_FORM);
+    setErrors({});
+    setModal({ type: 'create' });
+  };
+
+  const openEdit = (c) => {
+    setForm({
+      customer_id: c.customer_id ?? '',
+      consignor_code: c.consignor_code ?? '',
+      business_volume_tons_per_month: c.business_volume_tons_per_month ?? '',
+      business_volume_value_per_month: c.business_volume_value_per_month ?? '',
+      hazardous_material_handling: c.hazardous_material_handling ?? false,
+      temperature_controlled: c.temperature_controlled ?? false,
+      loading_bay_count: c.loading_bay_count ?? '',
+      avg_loading_time_minutes: c.avg_loading_time_minutes ?? '',
+      preferred_vehicle_types: c.preferred_vehicle_types?.join(', ') || '',
+    });
+    setErrors({});
+    setModal({ type: 'edit', id: c.id, consignor: c });
+  };
+
+  const openView = (c) => {
+    openEdit(c);
+    setModal({ type: 'view', id: c.id, consignor: c });
+  };
+
+  const closeModal = () => { setModal(null); setErrors({}); };
+
+  const validate = () => {
+    const e = {};
+    if (!form.customer_id) e.customer_id = 'Customer ID is required';
+    if (!form.consignor_code?.trim()) e.consignor_code = 'Consignor code is required';
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const setField = (k, v) => {
+    setForm(prev => ({ ...prev, [k]: v }));
+    if (errors[k]) setErrors(prev => { const n = { ...prev }; delete n[k]; return n; });
+  };
+
+  const handleSubmit = () => {
+    if (!validate()) return;
+    
+    // Merge the selected customer's data into the payload
+    const selectedCustomer = eligibleCustomers.find(c => c.id === form.customer_id) || {};
+    const payload = { ...selectedCustomer, ...form };
+    
+    // Clean up to prevent sending the customer's nested object or original ID collision
+    delete payload.customer;
+    if (modal.type === 'create') delete payload.id;
+    
+    // Nullify empty number fields
+    if (!payload.business_volume_tons_per_month) payload.business_volume_tons_per_month = null;
+    if (!payload.business_volume_value_per_month) payload.business_volume_value_per_month = null;
+    if (!payload.loading_bay_count) payload.loading_bay_count = null;
+    if (!payload.avg_loading_time_minutes) payload.avg_loading_time_minutes = null;
+    
+    // Process preferred vehicle types as array
+    if (payload.preferred_vehicle_types) {
+      payload.preferred_vehicle_types = payload.preferred_vehicle_types.split(',').map(s => s.trim()).filter(Boolean);
+    } else {
+      payload.preferred_vehicle_types = [];
+    }
+
+    if (modal.type === 'create') {
+      createMutation.mutate(payload, { onSuccess: () => closeModal() });
+    } else {
+      updateMutation.mutate({ id: modal.id, data: payload }, { onSuccess: () => closeModal() });
+    }
+  };
+  
+  const submitting = createMutation.isPending || updateMutation.isPending;
+
   const consignors = data?.results ?? data ?? [];
   const total      = data?.count ?? consignors.length;
-  const active     = consignors.filter(c => c.status === 'ACTIVE' || c.status === 'Active').length;
-  const inactive   = consignors.filter(c => c.status === 'INACTIVE' || c.status === 'Inactive').length;
-  const suspended  = consignors.filter(c => c.status === 'SUSPENDED' || c.status === 'Suspended').length;
+  const active     = consignors.filter(c => c.customer?.status === 'ACTIVE' || c.customer?.status === 'Active').length;
+  const inactive   = consignors.filter(c => c.customer?.status === 'INACTIVE' || c.customer?.status === 'Inactive').length;
+  const suspended  = consignors.filter(c => c.customer?.status === 'SUSPENDED' || c.customer?.status === 'Suspended').length;
 
   const resetFilters = () => { setSearch(''); setStatus(''); };
 
@@ -40,45 +140,42 @@ const Consignors = () => {
       header: 'Legal Name',
       render: c => (
         <div className="text-left">
-          <button className="font-bold text-[#172B4D] text-[13px] hover:text-[#0052CC] transition-all hover:scale-105 active:scale-95 text-left block">
-            {c.name ?? '—'}
+          <button onClick={() => openView(c)} className="font-bold text-[#172B4D] text-[13px] hover:text-[#0052CC] transition-all hover:scale-105 active:scale-95 text-left block">
+            {c.customer?.legal_name ?? '—'}
           </button>
-          <div className="text-[11px] font-mono text-gray-400">{c.code ?? c.customer_code ?? ''}</div>
+          <div className="text-[11px] font-semibold text-gray-500 mt-0.5">
+            Consignor Code: <span className="font-mono text-[#0052CC]">{c.consignor_code ?? '—'}</span>
+          </div>
         </div>
       ),
     },
     {
-      header: 'Customer Type',
+      header: 'Operations',
       render: c => (
-        <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 text-blue-600 w-fit">
-          {c.customer_type_display ?? c.type ?? c.customer_type ?? '—'}
-        </span>
+        <div className="flex flex-col gap-1 text-[11px]">
+          <span className="font-semibold text-gray-600">Hazardous: <span className={c.hazardous_material_handling ? "text-red-500" : "text-green-600"}>{c.hazardous_material_handling ? 'Yes' : 'No'}</span></span>
+          <span className="font-semibold text-gray-600">Temp Ctrl: <span className={c.temperature_controlled ? "text-blue-500" : "text-gray-500"}>{c.temperature_controlled ? 'Yes' : 'No'}</span></span>
+        </div>
       ),
     },
     {
-      header: 'Tier',
+      header: 'Business Volume',
       render: c => (
-        <span className="text-[12px] font-bold text-gray-700">
-          {c.tier ?? '—'}
-        </span>
-      ),
-    },
-    {
-      header: 'Credit Limit',
-      render: c => (
-        <span className="font-bold text-gray-700 text-[13px]">
-          {c.credit_limit ? `₹${Number(c.credit_limit).toLocaleString('en-IN')}` : (c.credit ? `₹${Number(c.credit).toLocaleString('en-IN')}` : '—')}
-        </span>
+        <div className="flex flex-col gap-1 text-[11px]">
+          <span className="font-semibold text-gray-600">Tons/Mo: {c.business_volume_tons_per_month || '—'}</span>
+          <span className="font-semibold text-gray-600">Value/Mo: {c.business_volume_value_per_month ? `₹${Number(c.business_volume_value_per_month).toLocaleString('en-IN')}` : '—'}</span>
+        </div>
       ),
     },
     {
       header: 'Status',
       render: c => {
-        const st = getStatusStyle(c.status);
+        const status = c.customer?.status;
+        const st = getStatusStyle(status);
         return (
           <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold w-fit whitespace-nowrap ${st.bg} ${st.text}`}>
             <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
-            {c.status_display ?? c.status}
+            {status || '—'}
           </span>
         );
       },
@@ -87,10 +184,7 @@ const Consignors = () => {
       header: 'Actions',
       render: c => (
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all">
-            <Eye size={12} /> View
-          </button>
-          <button className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-all">
+          <button onClick={() => openEdit(c)} className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-all">
             <Pencil size={12} /> Edit
           </button>
         </div>
@@ -117,7 +211,7 @@ const Consignors = () => {
           <button className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all">
             <Download size={14} /> Export
           </button>
-          <button className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all shadow-sm">
+          <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all shadow-sm">
             <Plus size={15} /> Add Consignor
           </button>
         </div>
@@ -138,7 +232,7 @@ const Consignors = () => {
             <h2 className="font-bold text-[#172B4D]">📦 Consignor Registry</h2>
             <p className="text-xs text-gray-400 mt-0.5">Manage consignor profiles and credit details</p>
           </div>
-          <button className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all">
+          <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all">
             <Plus size={14} /> Add Consignor
           </button>
         </div>
@@ -226,6 +320,75 @@ const Consignors = () => {
           </div>
         )}
       </div>
+
+      {deleteTarget && (
+        <DeleteConfirm label="Consignor" onClose={() => setDelete(null)}
+          onConfirm={() => deleteMutation.mutate(deleteTarget.id, { onSuccess: () => setDelete(null) })}
+          deleting={deleteMutation.isPending} />
+      )}
+
+      {(modal?.type === 'create' || modal?.type === 'edit' || modal?.type === 'view') && (
+        <Modal
+          title={modal.type === 'create' ? 'Add New Consignor' : (modal.type === 'view' ? `View — ${modal.consignor?.customer?.legal_name || modal.consignor?.consignor_code}` : `Edit — ${modal.consignor?.customer?.legal_name || modal.consignor?.consignor_code}`)}
+          onClose={closeModal}
+          onSubmit={modal.type === 'view' ? null : handleSubmit}
+          submitting={submitting}
+          onDelete={modal.type === 'edit' ? () => { closeModal(); setDelete(modal.consignor); } : null}
+          maxWidth="max-w-2xl"
+        >
+          <div className="grid grid-cols-2 gap-4">
+            <Section title="Consignor Details" className="col-span-2" />
+            <Field label="Customer ID" required error={errors.customer_id}>
+              <Sel value={form.customer_id} onChange={e => setField('customer_id', e.target.value)} disabled={modal.type === 'edit' || modal.type === 'view'}>
+                <option value="">-- Select Customer --</option>
+                {eligibleCustomers.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.legal_name || c.trading_name || 'Unnamed'} ({c.customer_code})
+                  </option>
+                ))}
+              </Sel>
+            </Field>
+            <Field label="Consignor Code" required error={errors.consignor_code}>
+              <Input value={form.consignor_code} onChange={e => setField('consignor_code', e.target.value)} disabled={modal.type === 'view'}
+                placeholder="e.g. CONS-001" />
+            </Field>
+
+            <Section title="Operations" className="col-span-2" />
+            <div className="col-span-2 grid grid-cols-2 gap-4">
+              <label className="flex items-center gap-2 text-sm font-medium text-[#172B4D] bg-gray-50 border border-gray-200 p-3 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
+                <input type="checkbox" className="w-4 h-4 text-[#0052CC] border-gray-300 rounded focus:ring-[#0052CC]" disabled={modal.type === 'view'}
+                  checked={form.hazardous_material_handling} onChange={e => setField('hazardous_material_handling', e.target.checked)} />
+                <span className="flex-1">Hazardous Material Handling</span>
+              </label>
+              <label className="flex items-center gap-2 text-sm font-medium text-[#172B4D] bg-gray-50 border border-gray-200 p-3 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
+                <input type="checkbox" className="w-4 h-4 text-[#0052CC] border-gray-300 rounded focus:ring-[#0052CC]" disabled={modal.type === 'view'}
+                  checked={form.temperature_controlled} onChange={e => setField('temperature_controlled', e.target.checked)} />
+                <span className="flex-1">Temperature Controlled</span>
+              </label>
+            </div>
+
+            <Section title="Business Volume & Logistics" className="col-span-2" />
+            <Field label="Business Volume (Tons/Mo)">
+              <Input type="number" value={form.business_volume_tons_per_month || ''} disabled={modal.type === 'view'} onChange={e => setField('business_volume_tons_per_month', e.target.value)} />
+            </Field>
+            <Field label="Business Volume (Value/Mo)">
+              <Input type="number" value={form.business_volume_value_per_month || ''} disabled={modal.type === 'view'} onChange={e => setField('business_volume_value_per_month', e.target.value)} />
+            </Field>
+            
+            <Field label="Loading Bay Count">
+              <Input type="number" value={form.loading_bay_count || ''} disabled={modal.type === 'view'} onChange={e => setField('loading_bay_count', e.target.value)} />
+            </Field>
+            <Field label="Avg Loading Time (mins)">
+              <Input type="number" value={form.avg_loading_time_minutes || ''} disabled={modal.type === 'view'} onChange={e => setField('avg_loading_time_minutes', e.target.value)} />
+            </Field>
+            
+            <Field label="Preferred Vehicle Types" className="col-span-2">
+              <Input value={form.preferred_vehicle_types} onChange={e => setField('preferred_vehicle_types', e.target.value)} disabled={modal.type === 'view'}
+                placeholder="TRUCK, VAN, TRAILER (comma separated)" />
+            </Field>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

@@ -4,20 +4,28 @@ import {
   Users, CheckCircle, AlertCircle, PauseCircle,
   ChevronDown, Loader2, AlertTriangle, UserMinus, Pencil
 } from 'lucide-react';
-import { StatCard } from '../Vehicles/Common/VehicleCommon';
+import { useConsignees, useCreateConsignee, useUpdateConsignee, useDeleteConsignee, useCustomers } from '../../queries/customers/customersQuery';
+import { StatCard, Modal, Field, Input, Sel, Section, DeleteConfirm, fmtDate } from '../Vehicles/Common/VehicleCommon';
 
-const INITIAL_CONSIGNEES = [
-  {id:'CUST-001', name:'Kolkata Wholesale Hub', code:'CONE-KWH-001', type:'CONSIGNEE', tier:'PLATINUM', credit:500000, status:'ACTIVE'},
-  {id:'CUST-002', name:'Mumbai Distribution Centre', code:'CONE-MDC-002', type:'CONSIGNEE', tier:'GOLD', credit:1500000, status:'ACTIVE'},
-  {id:'CUST-003', name:'Delhi Retail Network', code:'CONE-DRN-003', type:'CONSIGNEE', tier:'GOLD', credit:800000, status:'ACTIVE'},
-  {id:'CUST-004', name:'Chennai Logistics Park', code:'CONE-CLP-004', type:'CONSIGNEE', tier:'SILVER', credit:2000000, status:'ACTIVE'},
-  {id:'CUST-005', name:'Bangalore Tech Hub', code:'CONE-BTH-005', type:'CONSIGNEE', tier:'STANDARD', credit:300000, status:'SUSPENDED'},
-];
+const EMPTY_FORM = {
+  customer_id: '',
+  consignee_code: '',
+  hazardous_material_handling: false,
+  temperature_controlled: false,
+  business_volume_tons_per_month: '',
+  business_volume_value_per_month: '',
+  loading_bay_count: '',
+  avg_loading_time_minutes: '',
+  preferred_vehicle_types: '',
+};
 
 const STATUS_STYLES = {
   'ACTIVE':    { bg: 'bg-green-50',  text: 'text-green-700',  dot: 'bg-green-500' },
+  'Active':    { bg: 'bg-green-50',  text: 'text-green-700',  dot: 'bg-green-500' },
   'INACTIVE':  { bg: 'bg-orange-50', text: 'text-orange-700', dot: 'bg-orange-500' },
+  'Inactive':  { bg: 'bg-orange-50', text: 'text-orange-700', dot: 'bg-orange-500' },
   'SUSPENDED': { bg: 'bg-red-50',    text: 'text-red-700',    dot: 'bg-red-500' },
+  'Suspended': { bg: 'bg-red-50',    text: 'text-red-700',    dot: 'bg-red-500' },
 };
 
 const getStatusStyle = (status) => STATUS_STYLES[status] || { bg: 'bg-gray-50', text: 'text-gray-600', dot: 'bg-gray-400' };
@@ -26,16 +34,104 @@ const ConsigneesDashboard = () => {
   const [search, setSearch]       = useState('');
   const [statusFilter, setStatus] = useState('');
 
-  const consignees = INITIAL_CONSIGNEES.filter(c => {
-    const matchesSearch = !search || [c.name, c.code].some(v => v.toLowerCase().includes(search.toLowerCase()));
-    const matchesStatus = !statusFilter || c.status === statusFilter;
-    return matchesSearch && matchesStatus;
+  const { data, isLoading, isError, error, refetch } = useConsignees({
+    ...(statusFilter && { status: statusFilter }),
+    ...(search       && { search }),
   });
 
-  const total     = INITIAL_CONSIGNEES.length;
-  const active    = INITIAL_CONSIGNEES.filter(c => c.status === 'ACTIVE').length;
-  const inactive  = INITIAL_CONSIGNEES.filter(c => c.status === 'INACTIVE').length;
-  const suspended = INITIAL_CONSIGNEES.filter(c => c.status === 'SUSPENDED').length;
+  const { data: customerData } = useCustomers({ limit: 1000 });
+  const allCustomers = customerData?.results ?? customerData ?? [];
+  const eligibleCustomers = allCustomers.filter(c => c.customer_type === 'CONSIGNEE' || c.customer_type === 'BOTH' || c.customer_type === 'OTHER');
+
+  const [modal, setModal]             = useState(null);   
+  const [deleteTarget, setDelete]     = useState(null);
+  const [form, setForm]               = useState(EMPTY_FORM);
+  const [errors, setErrors]           = useState({});
+
+  const createMutation = useCreateConsignee();
+  const updateMutation = useUpdateConsignee();
+  const deleteMutation = useDeleteConsignee();
+
+  const openCreate = () => {
+    setForm(EMPTY_FORM);
+    setErrors({});
+    setModal({ type: 'create' });
+  };
+
+  const openEdit = (c) => {
+    setForm({
+      customer_id: c.customer_id ?? '',
+      consignee_code: c.consignee_code ?? '',
+      business_volume_tons_per_month: c.business_volume_tons_per_month ?? '',
+      business_volume_value_per_month: c.business_volume_value_per_month ?? '',
+      hazardous_material_handling: c.hazardous_material_handling ?? false,
+      temperature_controlled: c.temperature_controlled ?? false,
+      loading_bay_count: c.loading_bay_count ?? '',
+      avg_loading_time_minutes: c.avg_loading_time_minutes ?? '',
+      preferred_vehicle_types: c.preferred_vehicle_types?.join(', ') || '',
+    });
+    setErrors({});
+    setModal({ type: 'edit', id: c.id, consignee: c });
+  };
+
+  const openView = (c) => {
+    openEdit(c);
+    setModal({ type: 'view', id: c.id, consignee: c });
+  };
+
+  const closeModal = () => { setModal(null); setErrors({}); };
+
+  const validate = () => {
+    const e = {};
+    if (!form.customer_id) e.customer_id = 'Customer ID is required';
+    if (!form.consignee_code?.trim()) e.consignee_code = 'Consignee code is required';
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const setField = (k, v) => {
+    setForm(prev => ({ ...prev, [k]: v }));
+    if (errors[k]) setErrors(prev => { const n = { ...prev }; delete n[k]; return n; });
+  };
+
+  const handleSubmit = () => {
+    if (!validate()) return;
+    
+    // Merge the selected customer's data into the payload
+    const selectedCustomer = eligibleCustomers.find(c => c.id === form.customer_id) || {};
+    const payload = { ...selectedCustomer, ...form };
+    
+    // Clean up to prevent sending the customer's nested object or original ID collision
+    delete payload.customer;
+    if (modal.type === 'create') delete payload.id;
+    
+    // Nullify empty number fields
+    if (!payload.business_volume_tons_per_month) payload.business_volume_tons_per_month = null;
+    if (!payload.business_volume_value_per_month) payload.business_volume_value_per_month = null;
+    if (!payload.loading_bay_count) payload.loading_bay_count = null;
+    if (!payload.avg_loading_time_minutes) payload.avg_loading_time_minutes = null;
+    
+    // Process preferred vehicle types as array
+    if (payload.preferred_vehicle_types) {
+      payload.preferred_vehicle_types = payload.preferred_vehicle_types.split(',').map(s => s.trim()).filter(Boolean);
+    } else {
+      payload.preferred_vehicle_types = [];
+    }
+
+    if (modal.type === 'create') {
+      createMutation.mutate(payload, { onSuccess: () => closeModal() });
+    } else {
+      updateMutation.mutate({ id: modal.id, data: payload }, { onSuccess: () => closeModal() });
+    }
+  };
+  
+  const submitting = createMutation.isPending || updateMutation.isPending;
+
+  const consignees = data?.results ?? data ?? [];
+  const total      = data?.count ?? consignees.length;
+  const active     = consignees.filter(c => c.customer?.status === 'ACTIVE' || c.customer?.status === 'Active').length;
+  const inactive   = consignees.filter(c => c.customer?.status === 'INACTIVE' || c.customer?.status === 'Inactive').length;
+  const suspended  = consignees.filter(c => c.customer?.status === 'SUSPENDED' || c.customer?.status === 'Suspended').length;
 
   const resetFilters = () => { setSearch(''); setStatus(''); };
 
@@ -44,45 +140,42 @@ const ConsigneesDashboard = () => {
       header: 'Legal Name',
       render: c => (
         <div className="text-left">
-          <button className="font-bold text-[#172B4D] text-[13px] hover:text-[#0052CC] transition-all hover:scale-105 active:scale-95 text-left block">
-            {c.name ?? '—'}
+          <button onClick={() => openView(c)} className="font-bold text-[#172B4D] text-[13px] hover:text-[#0052CC] transition-all hover:scale-105 active:scale-95 text-left block">
+            {c.customer?.legal_name ?? '—'}
           </button>
-          <div className="text-[11px] font-mono text-gray-400">{c.code ?? ''}</div>
+          <div className="text-[11px] font-semibold text-gray-500 mt-0.5">
+            Consignee Code: <span className="font-mono text-[#0052CC]">{c.consignee_code ?? '—'}</span>
+          </div>
         </div>
       ),
     },
     {
-      header: 'Customer Type',
+      header: 'Operations',
       render: c => (
-        <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 text-blue-600 w-fit">
-          {c.type ?? '—'}
-        </span>
+        <div className="flex flex-col gap-1 text-[11px]">
+          <span className="font-semibold text-gray-600">Hazardous: <span className={c.hazardous_material_handling ? "text-red-500" : "text-green-600"}>{c.hazardous_material_handling ? 'Yes' : 'No'}</span></span>
+          <span className="font-semibold text-gray-600">Temp Ctrl: <span className={c.temperature_controlled ? "text-blue-500" : "text-gray-500"}>{c.temperature_controlled ? 'Yes' : 'No'}</span></span>
+        </div>
       ),
     },
     {
-      header: 'Tier',
+      header: 'Business Volume',
       render: c => (
-        <span className="text-[12px] font-bold text-gray-700">
-          {c.tier ?? '—'}
-        </span>
-      ),
-    },
-    {
-      header: 'Credit Limit',
-      render: c => (
-        <span className="font-bold text-gray-700 text-[13px]">
-          {c.credit ? `₹${Number(c.credit).toLocaleString('en-IN')}` : '—'}
-        </span>
+        <div className="flex flex-col gap-1 text-[11px]">
+          <span className="font-semibold text-gray-600">Tons/Mo: {c.business_volume_tons_per_month || '—'}</span>
+          <span className="font-semibold text-gray-600">Value/Mo: {c.business_volume_value_per_month ? `₹${Number(c.business_volume_value_per_month).toLocaleString('en-IN')}` : '—'}</span>
+        </div>
       ),
     },
     {
       header: 'Status',
       render: c => {
-        const st = getStatusStyle(c.status);
+        const status = c.customer?.status;
+        const st = getStatusStyle(status);
         return (
           <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold w-fit whitespace-nowrap ${st.bg} ${st.text}`}>
             <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
-            {c.status}
+            {status || '—'}
           </span>
         );
       },
@@ -91,10 +184,7 @@ const ConsigneesDashboard = () => {
       header: 'Actions',
       render: c => (
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all">
-            <Eye size={12} /> View
-          </button>
-          <button className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-all">
+          <button onClick={() => openEdit(c)} className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-all">
             <Pencil size={12} /> Edit
           </button>
         </div>
@@ -110,18 +200,18 @@ const ConsigneesDashboard = () => {
         <div>
           <h1 className="text-2xl font-black text-[#172B4D]">Consignees</h1>
           <p className="text-sm text-gray-400 mt-0.5">
-            All registered consignees — click <span className="text-[#0052CC] font-semibold">View</span> for full details
+            All registered consignees — detailed operations overview
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
+          <button onClick={() => refetch()}
             className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all">
             <RefreshCw size={14} /> Refresh
           </button>
           <button className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all">
             <Download size={14} /> Export
           </button>
-          <button className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all shadow-sm">
+          <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all shadow-sm">
             <Plus size={15} /> Add Consignee
           </button>
         </div>
@@ -129,10 +219,10 @@ const ConsigneesDashboard = () => {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-4 gap-4">
-        <StatCard label="Total"     value={total}     icon={Users}       color={{ value: 'text-[#172B4D]', iconBg: 'bg-blue-50',   iconText: 'text-blue-500' }} />
-        <StatCard label="Active"    value={active}    icon={CheckCircle} color={{ value: 'text-green-600',  iconBg: 'bg-green-50',  iconText: 'text-green-500' }} />
-        <StatCard label="Inactive"  value={inactive}  icon={AlertCircle} color={{ value: 'text-orange-500', iconBg: 'bg-orange-50', iconText: 'text-orange-500' }} />
-        <StatCard label="Suspended" value={suspended} icon={PauseCircle} color={{ value: 'text-red-500',    iconBg: 'bg-red-50',    iconText: 'text-red-400' }} />
+        <StatCard loading={isLoading} label="Total"     value={total}     icon={Users}       color={{ value: 'text-[#172B4D]', iconBg: 'bg-blue-50',   iconText: 'text-blue-500' }} />
+        <StatCard loading={isLoading} label="Active"    value={active}    icon={CheckCircle} color={{ value: 'text-green-600',  iconBg: 'bg-green-50',  iconText: 'text-green-500' }} />
+        <StatCard loading={isLoading} label="Inactive"  value={inactive}  icon={AlertCircle} color={{ value: 'text-orange-500', iconBg: 'bg-orange-50', iconText: 'text-orange-500' }} />
+        <StatCard loading={isLoading} label="Suspended" value={suspended} icon={PauseCircle} color={{ value: 'text-red-500',    iconBg: 'bg-red-50',    iconText: 'text-red-400' }} />
       </div>
 
       {/* Table Card */}
@@ -140,9 +230,9 @@ const ConsigneesDashboard = () => {
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
             <h2 className="font-bold text-[#172B4D]">📦 Consignee Registry</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Manage consignee profiles and delivery locations</p>
+            <p className="text-xs text-gray-400 mt-0.5">Manage consignee profiles and credit details</p>
           </div>
-          <button className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all">
+          <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all">
             <Plus size={14} /> Add Consignee
           </button>
         </div>
@@ -171,43 +261,134 @@ const ConsigneesDashboard = () => {
           </button>
         </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-100">
-                {COLUMNS.map(c => (
-                  <th key={c.header} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{c.header}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {consignees.map(c => (
-                <tr key={c.id} className="hover:bg-blue-50/30 transition-colors">
-                  {COLUMNS.map(col => (
-                    <td key={col.header} className="px-4 py-3 whitespace-nowrap align-middle">{col.render(c)}</td>
+        {isLoading && (
+          <div className="flex items-center justify-center py-16 gap-3 text-gray-400">
+            <Loader2 size={20} className="animate-spin text-[#0052CC]" />
+            <span className="text-sm">Loading consignees...</span>
+          </div>
+        )}
+
+        {isError && (
+          <div className="flex flex-col items-center justify-center py-16 gap-3 text-red-400">
+            <AlertTriangle size={32} />
+            <p className="text-sm font-medium">Failed to load consignees</p>
+            <p className="text-xs text-gray-400">{error?.response?.data?.detail || error?.message}</p>
+            <button onClick={() => refetch()} className="mt-2 px-4 py-2 text-sm font-semibold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8]">Try Again</button>
+          </div>
+        )}
+
+        {!isLoading && !isError && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-100">
+                  {COLUMNS.map(c => (
+                    <th key={c.header} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{c.header}</th>
                   ))}
                 </tr>
-              ))}
-              {consignees.length === 0 && (
-                <tr>
-                  <td colSpan={COLUMNS.length} className="px-4 py-16 text-center text-gray-400">
-                    <UserMinus size={32} className="mx-auto mb-2 opacity-30" />
-                    <p className="text-sm">No consignees found</p>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {consignees.map(c => (
+                  <tr key={c.id || c.consignee_code} className="hover:bg-blue-50/30 transition-colors">
+                    {COLUMNS.map(col => (
+                      <td key={col.header} className="px-4 py-3 whitespace-nowrap align-middle">{col.render(c)}</td>
+                    ))}
+                  </tr>
+                ))}
+                {consignees.length === 0 && (
+                  <tr>
+                    <td colSpan={COLUMNS.length} className="px-4 py-16 text-center text-gray-400">
+                      <UserMinus size={32} className="mx-auto mb-2 opacity-30" />
+                      <p className="text-sm">No consignees found</p>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-        <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
-          <span>
-            Showing <span className="font-bold text-gray-600">{consignees.length}</span> of <span className="font-bold text-gray-600">{total}</span> consignees
-          </span>
-          <span className="text-[11px]">Fleet Management System</span>
-        </div>
+        {!isLoading && !isError && (
+          <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
+            <span>
+              Showing <span className="font-bold text-gray-600">{consignees.length}</span>
+              {data?.count && data.count !== consignees.length &&
+                <> of <span className="font-bold text-gray-600">{data.count}</span></>
+              } consignees
+            </span>
+            <span className="text-[11px]">Fleet Management System</span>
+          </div>
+        )}
       </div>
+
+      {deleteTarget && (
+        <DeleteConfirm label="Consignee" onClose={() => setDelete(null)}
+          onConfirm={() => deleteMutation.mutate(deleteTarget.id, { onSuccess: () => setDelete(null) })}
+          deleting={deleteMutation.isPending} />
+      )}
+
+      {(modal?.type === 'create' || modal?.type === 'edit') && (
+        <Modal
+          title={modal.type === 'create' ? 'Add New Consignee' : `Edit — ${modal.consignee?.customer?.legal_name || modal.consignee?.consignee_code}`}
+          onClose={closeModal}
+          onSubmit={handleSubmit}
+          submitting={submitting}
+          onDelete={modal.type === 'edit' ? () => { closeModal(); setDelete(modal.consignee); } : null}
+          maxWidth="max-w-2xl"
+        >
+          <div className="grid grid-cols-2 gap-4">
+            <Section title="Consignee Details" className="col-span-2" />
+            <Field label="Customer" required error={errors.customer_id}>
+              <Sel value={form.customer_id} onChange={e => setField('customer_id', e.target.value)} disabled={modal.type === 'edit'}>
+                <option value="">-- Select Customer --</option>
+                {eligibleCustomers.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.legal_name || c.trading_name || 'Unnamed'} ({c.customer_code})
+                  </option>
+                ))}
+              </Sel>
+            </Field>
+            <Field label="Consignee Code" required error={errors.consignee_code}>
+              <Input value={form.consignee_code} onChange={e => setField('consignee_code', e.target.value)} disabled={modal.type === 'view'}
+                placeholder="e.g. CONE-001" />
+            </Field>
+
+            <Section title="Operations" className="col-span-2" />
+            <div className="col-span-2 grid grid-cols-2 gap-4">
+              <label className="flex items-center gap-2 text-sm font-medium text-[#172B4D] bg-gray-50 border border-gray-200 p-3 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
+                <input type="checkbox" className="w-4 h-4 text-[#0052CC] border-gray-300 rounded focus:ring-[#0052CC]" disabled={modal.type === 'view'}
+                  checked={form.hazardous_material_handling} onChange={e => setField('hazardous_material_handling', e.target.checked)} />
+                <span className="flex-1">Hazardous Material Handling</span>
+              </label>
+              <label className="flex items-center gap-2 text-sm font-medium text-[#172B4D] bg-gray-50 border border-gray-200 p-3 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
+                <input type="checkbox" className="w-4 h-4 text-[#0052CC] border-gray-300 rounded focus:ring-[#0052CC]" disabled={modal.type === 'view'}
+                  checked={form.temperature_controlled} onChange={e => setField('temperature_controlled', e.target.checked)} />
+                <span className="flex-1">Temperature Controlled</span>
+              </label>
+            </div>
+
+            <Section title="Business Volume & Logistics" className="col-span-2" />
+            <Field label="Business Volume (Tons/Mo)">
+              <Input type="number" value={form.business_volume_tons_per_month || ''} disabled={modal.type === 'view'} onChange={e => setField('business_volume_tons_per_month', e.target.value)} />
+            </Field>
+            <Field label="Business Volume (Value/Mo)">
+              <Input type="number" value={form.business_volume_value_per_month || ''} disabled={modal.type === 'view'} onChange={e => setField('business_volume_value_per_month', e.target.value)} />
+            </Field>
+            
+            <Field label="Loading Bay Count">
+              <Input type="number" value={form.loading_bay_count || ''} disabled={modal.type === 'view'} onChange={e => setField('loading_bay_count', e.target.value)} />
+            </Field>
+            <Field label="Avg Loading Time (mins)">
+              <Input type="number" value={form.avg_loading_time_minutes || ''} disabled={modal.type === 'view'} onChange={e => setField('avg_loading_time_minutes', e.target.value)} />
+            </Field>
+            
+            <Field label="Preferred Vehicle Types" className="col-span-2">
+              <Input value={form.preferred_vehicle_types} onChange={e => setField('preferred_vehicle_types', e.target.value)} disabled={modal.type === 'view'}
+                placeholder="TRUCK, VAN, TRAILER (comma separated)" />
+            </Field>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

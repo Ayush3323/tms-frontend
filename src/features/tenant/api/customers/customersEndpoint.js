@@ -23,6 +23,9 @@ export const customersApi = {
   // Added put specifically as per your requirements list
   replace: (id, data) =>
     axiosInstance.put(`${BASE_CUSTOMERS}/${id}/`, data).then(r => r.data),
+
+  delete: (id) =>
+    axiosInstance.delete(`${BASE_CUSTOMERS}/${id}/`).then(r => r.data),
 }
 
 // ─── 2. CONSIGNORS ───────────────────────────────────────────────────────────
@@ -38,6 +41,12 @@ export const consignorsApi = {
 
   create: (data) =>
     axiosInstance.post(`${BASE_CONSIGNORS}/`, data).then(r => r.data),
+
+  update: (id, data) =>
+    axiosInstance.patch(`${BASE_CONSIGNORS}/${id}/`, data).then(r => r.data),
+
+  delete: (id) =>
+    axiosInstance.delete(`${BASE_CONSIGNORS}/${id}/`).then(r => r.data),
 }
 
 // ─── 3. CONSIGNEES ───────────────────────────────────────────────────────────
