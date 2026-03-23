@@ -2,7 +2,7 @@ import React from 'react';
 import StatusBadge from '../../common/StatusBadge';
 import TableActions from '../../common/TableActions';
 import { STATUS_STYLES as VERIFICATION_STYLES } from '../../common/constants';
-import { getExpiryColor } from '../../common/utils';
+import { getExpiryColor, getInitials, getAvatarColor } from '../../common/utils';
 
 const DocumentTable = ({ documents, onEdit, showDriver = false, driverMap = {}, userMap = {}, currentUser = null }) => {
   return (
@@ -11,17 +11,14 @@ const DocumentTable = ({ documents, onEdit, showDriver = false, driverMap = {}, 
         <thead>
           <tr className="bg-gray-50 border-b border-gray-100">
             {showDriver && (
-              <>
-                <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Driver Name</th>
-                <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Emp ID</th>
-              </>
+              <th className="text-left px-4 py-3 text-[10px] font-bold text-[#94a3b8] uppercase tracking-[0.1em] whitespace-nowrap bg-[#fafbff] shadow-[inset_0_-1px_0_#e2e8f0]">Driver</th>
             )}
             {[
               'Document Type', 'Document Number', 'Issue Date', 'Expiry Date', 
               'Issuing Authority', 'Verification', 'Verified By', 'Verified At', 
               'File URL', 'Notes', 'Actions'
             ].map(h => (
-              <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
+              <th key={h} className="text-left px-4 py-3 text-[10px] font-bold text-[#94a3b8] uppercase tracking-[0.1em] whitespace-nowrap bg-[#fafbff] shadow-[inset_0_-1px_0_#e2e8f0]">{h}</th>
             ))}
           </tr>
         </thead>
@@ -29,14 +26,21 @@ const DocumentTable = ({ documents, onEdit, showDriver = false, driverMap = {}, 
           {documents.map(doc => (
             <tr key={doc.id} className="hover:bg-blue-50/30 transition-colors">
               {showDriver && (
-                <>
-                  <td className="px-4 py-3 whitespace-nowrap font-medium text-gray-700 text-[12px]">
-                    {driverMap[doc.driver]?.name || doc.driver_name || 'System Driver'}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-500 font-mono">
-                    {driverMap[doc.driver]?.employee_id || doc.employee_id || '—'}
-                  </td>
-                </>
+                <td className="px-4 py-3 whitespace-nowrap">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-[9px] flex items-center justify-center font-bold text-xs text-white shadow-sm font-syne ${getAvatarColor(driverMap[doc.driver]?.name || doc.driver_name || 'System Driver')}`}>
+                      {getInitials(driverMap[doc.driver]?.name || doc.driver_name || 'System Driver')}
+                    </div>
+                    <div>
+                      <div className="font-semibold text-[#1a202c] text-[13px] line-height-1">
+                        {driverMap[doc.driver]?.name || doc.driver_name || 'System Driver'}
+                      </div>
+                      <div className="text-[10px] text-[#94a3b8] font-mono mt-0.5 uppercase">
+                        {driverMap[doc.driver]?.employee_id || doc.employee_id || '—'}
+                      </div>
+                    </div>
+                  </div>
+                </td>
               )}
               <td className="px-4 py-3 whitespace-nowrap font-semibold text-[#172B4D] text-[13px]">
                 {doc.document_type_display ?? doc.document_type}
@@ -60,11 +64,22 @@ const DocumentTable = ({ documents, onEdit, showDriver = false, driverMap = {}, 
                 />
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600">
-                {doc.verification_status === 'VERIFIED' ? (
-                  userMap[doc.verified_by]?.name || 
-                  (doc.verified_by === currentUser?.id ? `${currentUser?.first_name || ''} ${currentUser?.last_name || ''}`.trim() || currentUser?.username : null) ||
-                  doc.verified_by || '—'
-                ) : '—'}
+                {doc.verification_status === 'VERIFIED' ? (() => {
+                  const verifier = userMap[doc.verified_by]?.name || 
+                    (doc.verified_by === currentUser?.id ? `${currentUser?.first_name || ''} ${currentUser?.last_name || ''}`.trim() || currentUser?.username : null) ||
+                    doc.verified_by || '—';
+                  
+                  if (verifier === '—') return '—';
+
+                  return (
+                    <div className="flex items-center gap-2">
+                       <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold text-white shadow-sm ${getAvatarColor(verifier)}`}>
+                         {getInitials(verifier)}
+                       </div>
+                       <span className="text-[12px] font-semibold text-[#1a202c]">{verifier}</span>
+                    </div>
+                  );
+                })() : '—'}
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600">
                 {doc.verification_status === 'VERIFIED' && doc.verified_at ? new Date(doc.verified_at).toLocaleString() : '—'}

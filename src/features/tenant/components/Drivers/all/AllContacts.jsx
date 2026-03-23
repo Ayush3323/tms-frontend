@@ -12,13 +12,22 @@ const AllContacts = () => {
   const [addOpen,       setAddOpen]       = useState(false);
   const [editContact,   setEditContact]   = useState(null);
   const [filters, setFilters] = useState({
+    search: '',
     driver: '',
     is_primary: '',
+    relationship: '',
   });
 
   const { data, isLoading, isError, error, refetch, isFetching } = useEmergencyContacts(filters);
   const driverMap = useDriverLookup();
   const contacts = data?.results ?? [];
+
+  // Extract unique relationships for the filter
+  const relationships = React.useMemo(() => {
+    const rs = new Set();
+    contacts.forEach(c => { if (c.relationship) rs.add(c.relationship); });
+    return Array.from(rs).sort();
+  }, [contacts]);
 
   const handleFilterChange = (field, value) => {
     setFilters(prev => ({ ...prev, [field]: value }));
@@ -26,17 +35,18 @@ const AllContacts = () => {
 
   const clearFilters = () => {
     setFilters({
+      search: '',
       driver: '',
       is_primary: '',
+      relationship: '',
     });
   };
 
   if (isLoading && !data) return (
     <PageLayoutShimmer
-      filterCount={2}
+      filterCount={4}
       columns={[
         { headerWidth: 'w-24', cellWidth: 'w-28', width: 'w-32' }, // Driver
-        { headerWidth: 'w-12', cellWidth: 'w-12', width: 'w-24', type: 'mono' }, // Emp ID
         { headerWidth: 'w-24', cellWidth: 'w-28', width: 'w-32', type: 'bold' }, // Contact Name
         { headerWidth: 'w-16', cellWidth: 'w-16', width: 'w-24' }, // Relationship
         { headerWidth: 'w-24', cellWidth: 'w-28', width: 'w-32', type: 'badge' }, // Phone
@@ -56,40 +66,86 @@ const AllContacts = () => {
       {editContact   && <EditContactModal   contact={editContact} driverId={editContact.driver} onClose={() => setEditContact(null)} />}
 
       {/* ── Header ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-[#172B4D] tracking-tight">Emergency Contacts</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage emergency contacts for all drivers</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-[20px] border border-[#e2e8f0] shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-[#dc2626]/10 rounded-[12px] flex items-center justify-center border border-[#dc2626]/20 shadow-sm shadow-red-50">
+            <span className="text-2xl">🚨</span>
+          </div>
+          <div>
+            <h1 className="text-[26px] font-black text-[#1a202c] tracking-tight font-syne">Emergency Contacts</h1>
+            <p className="text-[13px] text-[#64748b] mt-0.5 font-medium">Manage emergency contacts for all drivers — primary contact is notified first</p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-[#0052CC] rounded-xl hover:bg-[#0043A8] shadow-lg shadow-blue-200 transition-all active:scale-95">
-            <Plus size={18} /> Add Contact
+          <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#2563eb] to-[#4f46e5] text-white rounded-lg text-sm font-semibold shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
+            <Plus size={16} /> Add Contact
           </button>
         </div>
       </div>
 
       {/* ── Filters ── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
-        <div>
-           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Driver</p>
-           <DriverSelect value={filters.driver} onChange={(val) => handleFilterChange('driver', val)} />
+      <div className="flex flex-wrap items-center gap-3 bg-white p-4 rounded-[14px] border border-[#e2e8f0] shadow-sm">
+        <div className="flex items-center gap-2 px-3 py-1.5 text-[10px] font-black text-[#94a3b8] uppercase tracking-widest border-r border-[#e2e8f0] mr-1">
+          FILTER
         </div>
-        <div>
-           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Primary Status</p>
-           <Select value={filters.is_primary} onChange={(e) => handleFilterChange('is_primary', e.target.value)}>
-             <option value="">All Contacts</option>
-             <option value="true">Primary Only</option>
-             <option value="false">Secondary Only</option>
-           </Select>
+        
+        {/* Search */}
+        <div className="relative flex-1 min-w-[240px]">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]">🔍</span>
+          <input 
+            type="text"
+            placeholder="Search contact name, driver name..."
+            value={filters.search}
+            onChange={(e) => handleFilterChange('search', e.target.value)}
+            className="w-full pl-9 pr-4 py-2 text-[12px] bg-[#f0f3f9] border border-[#e2e8f0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3b7ef8]/10 focus:border-[#3b7ef8] transition-all placeholder:text-[#94a3b8] font-medium"
+          />
         </div>
-        <div className="flex items-end">
-           <button 
-             onClick={clearFilters}
-             className="px-3 py-2 text-xs font-bold text-gray-500 hover:text-red-500 transition-colors"
-           >
-             Clear Filters
-           </button>
+
+        {/* Driver Select */}
+        <div className="min-w-[160px]">
+          <DriverSelect 
+            value={filters.driver} 
+            onChange={(val) => handleFilterChange('driver', val)}
+            className="rounded-lg border-[#e2e8f0] text-[12px] py-2 bg-[#f0f3f9] font-medium text-[#1a202c]"
+          />
         </div>
+
+        {/* Status Select */}
+        <div className="min-w-[140px]">
+          <select 
+            value={filters.is_primary} 
+            onChange={(e) => handleFilterChange('is_primary', e.target.value)}
+            className="w-full px-3 py-2 text-[12px] bg-[#f0f3f9] border border-[#e2e8f0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3b7ef8]/10 focus:border-[#3b7ef8] transition-all font-medium text-[#1a202c] appearance-none"
+            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
+          >
+            <option value="">All Contacts</option>
+            <option value="true">Primary Only</option>
+            <option value="false">Secondary Only</option>
+          </select>
+        </div>
+
+        {/* Relationship Select */}
+        <div className="min-w-[140px]">
+          <select 
+            value={filters.relationship} 
+            onChange={(e) => handleFilterChange('relationship', e.target.value)}
+            className="w-full px-3 py-2 text-[12px] bg-[#f0f3f9] border border-[#e2e8f0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3b7ef8]/10 focus:border-[#3b7ef8] transition-all font-medium text-[#1a202c] appearance-none"
+            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
+          >
+            <option value="">All Relations</option>
+            {relationships.map(r => (
+              <option key={r} value={r}>{r}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Clear */}
+        <button 
+          onClick={clearFilters}
+          className="px-4 py-2 text-[12px] font-bold text-[#64748b] hover:text-[#dc2626] border border-dashed border-[#e2e8f0] rounded-lg transition-all active:scale-95"
+        >
+          ✕ Clear
+        </button>
       </div>
 
       {/* ── Content ── */}

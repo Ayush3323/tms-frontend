@@ -25,7 +25,7 @@ import {
   LICENSE_COLORS,
   DRIVER_TYPE_COLORS,
 } from './common/constants';
-import { getDriverName, cleanObject, getExpiryColor, formatError } from './common/utils';
+import { getDriverName, cleanObject, getExpiryColor, formatError, getInitials, getAvatarColor } from './common/utils';
 
 // ── Constants handled via centralized common/constants.js ─────────────
 
@@ -138,7 +138,7 @@ const AddDriverModal = ({ onClose }) => {
         <>
           <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
           <button onClick={handleSubmit} disabled={registerDriver.isPending}
-            className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed">
+            className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-gradient-to-r from-[#2563eb] to-[#4f46e5] rounded-xl shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed">
             {registerDriver.isPending ? <><Loader2 size={14} className="animate-spin" /> Registering...</> : <><Plus size={14} /> Register Driver</>}
           </button>
         </>
@@ -287,12 +287,20 @@ const DriversList = () => {
     {
       header: 'Driver',
       sortField: 'employee_id',
-      render: d => (
-        <div>
-          <span className="font-bold text-[#172B4D] text-[13px]">{getDriverName(d)}</span>
-          <div className="text-[11px] text-gray-400 font-mono mt-0.5">{d.employee_id}</div>
-        </div>
-      ),
+      render: d => {
+        const name = getDriverName(d);
+        return (
+          <div className="flex items-center gap-3">
+            <div className={`w-9 h-9 rounded-[9px] flex items-center justify-center font-bold text-xs text-white shadow-sm font-syne ${getAvatarColor(name)}`}>
+              {getInitials(name)}
+            </div>
+            <div>
+              <div className="font-bold text-[#172B4D] text-[13px] line-height-1">{name}</div>
+              <div className="text-[10px] text-gray-400 font-mono mt-0.5 uppercase">{d.employee_id}</div>
+            </div>
+          </div>
+        );
+      },
     },
     {
       header: 'License No.',
@@ -355,9 +363,9 @@ const DriversList = () => {
       render: d => (
         <button
           onClick={() => navigate(`/tenant/dashboard/drivers/${d.id}`)}
-          className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-bold text-[#3b7ef8] bg-white border border-[#e2e8f0] rounded-[7px] hover:bg-gray-50 transition-all shadow-sm group-hover:border-[#3b7ef8]/30"
         >
-          <Eye size={12} /> View
+          <Eye size={12} className="text-[#4f46e5]" /> View
         </button>
       ),
     },
@@ -381,12 +389,7 @@ const DriversList = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => refetch()}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all"
-          >
-            <RefreshCw size={14} /> Refresh
-          </button>
+
           <button className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all">
             <Download size={14} /> Export
           </button>
@@ -412,9 +415,9 @@ const DriversList = () => {
           </div>
           <button
             onClick={() => setAddOpen(true)}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all"
+            className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-[#2563eb] to-[#4f46e5] rounded-xl shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
           >
-            <Plus size={14} /> Add Driver
+            <Plus size={18} /> Add Driver
           </button>
         </div>
 
@@ -427,7 +430,7 @@ const DriversList = () => {
               placeholder="Search employee ID, license number..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] bg-gray-50"
+              className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3b7ef8]/20 focus:border-[#3b7ef8] bg-[#f0f3f9] font-medium transition-all"
             />
           </div>
           {[
@@ -439,7 +442,7 @@ const DriversList = () => {
               <select
                 value={val}
                 onChange={e => set(e.target.value)}
-                className="appearance-none pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none cursor-pointer"
+                className="appearance-none pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-[#f0f3f9] focus:outline-none focus:ring-2 focus:ring-[#3b7ef8]/10 focus:border-[#3b7ef8] cursor-pointer font-medium transition-all"
               >
                 <option value="">{ph}</option>
                 {opts.map(o => <option key={o} value={o}>{o.replaceAll('_', ' ')}</option>)}
@@ -449,7 +452,7 @@ const DriversList = () => {
           ))}
           <button
             onClick={resetFilters}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-500 border border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100 transition-all"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-bold text-[#64748b] border border-gray-200 rounded-lg bg-[#f0f3f9] hover:bg-gray-100 transition-all active:scale-95"
           >
             <RefreshCw size={13} /> Reset
           </button>
@@ -463,14 +466,14 @@ const DriversList = () => {
               type="date"
               value={joinedFrom}
               onChange={e => setJoinedFrom(e.target.value)}
-              className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC]"
+              className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#3b7ef8]/10 focus:border-[#3b7ef8] transition-all"
             />
             <span className="text-gray-400 text-xs">to</span>
             <input
               type="date"
               value={joinedTo}
               onChange={e => setJoinedTo(e.target.value)}
-              className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC]"
+              className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#3b7ef8]/10 focus:border-[#3b7ef8] transition-all"
             />
           </div>
           {(joinedFrom || joinedTo) && (
@@ -481,14 +484,7 @@ const DriversList = () => {
               ✕ Clear dates
             </button>
           )}
-          {ordering && (
-            <span className="ml-auto text-[11px] text-gray-400">
-              Sorted by: <span className="font-semibold text-[#0052CC]">
-                {ordering.replace('-', '')} {ordering.startsWith('-') ? '↓' : '↑'}
-              </span>
-              <button onClick={() => setOrdering('')} className="ml-2 text-red-400 hover:text-red-600">✕</button>
-            </span>
-          )}
+
         </div>
 
         {/* Loading */}
@@ -534,7 +530,7 @@ const DriversList = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {drivers.map(d => (
-                    <tr key={d.id} className="hover:bg-blue-50/30 transition-colors">
+                    <tr key={d.id} className="hover:bg-[#f7f9ff] transition-colors group">
                       {COLUMNS.map(c => (
                         <td key={c.header} className="px-4 py-3 whitespace-nowrap align-middle">
                           {c.render(d)}
