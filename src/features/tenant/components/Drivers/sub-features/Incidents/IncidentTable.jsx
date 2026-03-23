@@ -2,6 +2,7 @@ import React from 'react';
 import StatusBadge from '../../common/StatusBadge';
 import TableActions from '../../common/TableActions';
 import { SEVERITY_STYLES, INCIDENT_TYPE_STYLES, STATUS_STYLES } from '../../common/constants';
+import { getInitials, getAvatarColor } from '../../common/utils';
 
 const IncidentTable = ({ incidents, onEdit, showDriver = false, driverMap = {}, vehicleMap = {}, userMap = {}, currentUser = null }) => {
   const formatDate = (dateStr) => {
@@ -35,13 +36,10 @@ const IncidentTable = ({ incidents, onEdit, showDriver = false, driverMap = {}, 
         <thead>
           <tr className="bg-gray-50 border-b border-gray-100">
             {showDriver && (
-              <>
-                <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap text-nowrap">Driver Name</th>
-                <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Emp ID</th>
-              </>
+              <th className="text-left px-4 py-3 text-[10px] font-bold text-[#94a3b8] uppercase tracking-[0.1em] whitespace-nowrap bg-[#fafbff] shadow-[inset_0_-1px_0_#e2e8f0]">Driver</th>
             )}
             {headers.map(h => (
-              <th key={h.key} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h.label}</th>
+              <th key={h.key} className="text-left px-4 py-3 text-[10px] font-bold text-[#94a3b8] uppercase tracking-[0.1em] whitespace-nowrap bg-[#fafbff] shadow-[inset_0_-1px_0_#e2e8f0]">{h.label}</th>
             ))}
           </tr>
         </thead>
@@ -49,14 +47,21 @@ const IncidentTable = ({ incidents, onEdit, showDriver = false, driverMap = {}, 
           {incidents.map(inc => (
             <tr key={inc.id} className="hover:bg-blue-50/30 transition-colors text-nowrap">
               {showDriver && (
-                <>
-                  <td className="px-4 py-3 whitespace-nowrap font-medium text-gray-700 text-[12px]">
-                    {driverMap[inc.driver]?.name || inc.driver_name || 'System Driver'}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-500 font-mono">
-                    {driverMap[inc.driver]?.employee_id || inc.employee_id || '—'}
-                  </td>
-                </>
+                <td className="px-4 py-3 whitespace-nowrap">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-[9px] flex items-center justify-center font-bold text-xs text-white shadow-sm font-syne ${getAvatarColor(driverMap[inc.driver]?.name || inc.driver_name || 'System Driver')}`}>
+                      {getInitials(driverMap[inc.driver]?.name || inc.driver_name || 'System Driver')}
+                    </div>
+                    <div>
+                      <div className="font-semibold text-[#1a202c] text-[13px] line-height-1">
+                        {driverMap[inc.driver]?.name || inc.driver_name || 'System Driver'}
+                      </div>
+                      <div className="text-[10px] text-[#94a3b8] font-mono mt-0.5 uppercase">
+                        {driverMap[inc.driver]?.employee_id || inc.employee_id || '—'}
+                      </div>
+                    </div>
+                  </div>
+                </td>
               )}
               <td className="px-4 py-3 whitespace-nowrap">
                 <StatusBadge
@@ -97,9 +102,22 @@ const IncidentTable = ({ incidents, onEdit, showDriver = false, driverMap = {}, 
                 {inc.resolution_notes || '—'}
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600">
-                {userMap[inc.resolved_by] || 
-                 (inc.resolved_by === currentUser?.id ? `${currentUser?.first_name || ''} ${currentUser?.last_name || ''}`.trim() || currentUser?.username : null) || 
-                 inc.resolved_by_name || inc.resolved_by || '—'}
+                {(() => {
+                  const resolvedBy = userMap[inc.resolved_by] || 
+                    (inc.resolved_by === currentUser?.id ? `${currentUser?.first_name || ''} ${currentUser?.last_name || ''}`.trim() || currentUser?.username : null) || 
+                    inc.resolved_by_name || inc.resolved_by || '—';
+                  
+                  if (resolvedBy === '—') return '—';
+
+                  return (
+                    <div className="flex items-center gap-2">
+                       <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold text-white shadow-sm ${getAvatarColor(resolvedBy)}`}>
+                         {getInitials(resolvedBy)}
+                       </div>
+                       <span className="text-[12px] font-semibold text-[#1a202c]">{resolvedBy}</span>
+                    </div>
+                  );
+                })()}
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-800">
                 {inc.resolved_at ? formatDate(inc.resolved_at) : '—'}

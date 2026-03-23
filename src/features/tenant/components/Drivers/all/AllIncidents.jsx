@@ -100,7 +100,7 @@ const AllIncidents = () => {
           <p className="text-sm text-gray-500 mt-1">Monitor and manage incidents across all drivers</p>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-[#0052CC] rounded-xl hover:bg-[#0043A8] shadow-lg shadow-blue-200 transition-all active:scale-95">
+          <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-[#2563eb] to-[#4f46e5] rounded-xl shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
             <Plus size={18} /> Add Incident
           </button>
         </div>
@@ -111,33 +111,58 @@ const AllIncidents = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-4">
           <div>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Driver</p>
-            <DriverSelect value={filters.driver} onChange={(val) => handleFilterChange('driver', val)} />
+            <DriverSelect 
+              value={filters.driver} 
+              onChange={(val) => handleFilterChange('driver', val)} 
+              className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
+            />
           </div>
           <div>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Vehicle</p>
-            <VehicleSelect value={filters.vehicle} onChange={(e) => handleFilterChange('vehicle', e.target.value)} />
+            <VehicleSelect 
+              value={filters.vehicle} 
+              onChange={(e) => handleFilterChange('vehicle', e.target.value)} 
+              className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg shadow-none"
+            />
           </div>
           <div>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Trip ID</p>
-            <Input placeholder="Search trip..." value={filters.trip_id} onChange={(e) => handleFilterChange('trip_id', e.target.value)} />
+            <Input 
+              placeholder="Search trip..." 
+              value={filters.trip_id} 
+              onChange={(e) => handleFilterChange('trip_id', e.target.value)} 
+              className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
+            />
           </div>
           <div>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Incident Type</p>
-            <Select value={filters.incident_type} onChange={(e) => handleFilterChange('incident_type', e.target.value)}>
+            <Select 
+              value={filters.incident_type} 
+              onChange={(e) => handleFilterChange('incident_type', e.target.value)}
+              className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
+            >
               <option value="">All Types</option>
               {INCIDENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
             </Select>
           </div>
           <div>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Severity</p>
-            <Select value={filters.severity} onChange={(e) => handleFilterChange('severity', e.target.value)}>
+            <Select 
+              value={filters.severity} 
+              onChange={(e) => handleFilterChange('severity', e.target.value)}
+              className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
+            >
               <option value="">All Severities</option>
               {SEVERITY_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
             </Select>
           </div>
           <div>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Resolution Status</p>
-            <Select value={filters.resolution_status} onChange={(e) => handleFilterChange('resolution_status', e.target.value)}>
+            <Select 
+              value={filters.resolution_status} 
+              onChange={(e) => handleFilterChange('resolution_status', e.target.value)}
+              className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
+            >
               <option value="">All Status</option>
               {RESOLUTION_LIST.map(s => <option key={s} value={s}>{s}</option>)}
             </Select>
@@ -145,7 +170,12 @@ const AllIncidents = () => {
           <div className="flex items-end gap-2">
             <div className="flex-1">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Incident Date</p>
-              <Input type="date" value={filters.incident_date} onChange={(e) => handleFilterChange('incident_date', e.target.value)} />
+              <Input 
+                type="date" 
+                value={filters.incident_date} 
+                onChange={(e) => handleFilterChange('incident_date', e.target.value)} 
+                className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
+              />
             </div>
             <button
               onClick={clearFilters}

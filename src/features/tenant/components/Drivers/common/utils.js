@@ -11,7 +11,39 @@ export const getDriverName = (driver) => {
   const u = driver.user ?? driver;
   const parts = [u.first_name, u.middle_name, u.last_name].filter(Boolean);
   if (parts.length > 0) return parts.join(' ');
-  return driver.driver_name || driver.employee_id || 'System Driver';
+  return driver.driver_name || (driver.employee_id ? `Driver ${driver.employee_id}` : 'System Driver');
+};
+
+/**
+ * Returns initials for a given name.
+ */
+export const getInitials = (name) => {
+  if (!name || typeof name !== 'string') return '??';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  return parts[0].slice(0, 2).toUpperCase();
+};
+
+/**
+ * Returns a consistent color background class for an avatar based on a string (e.g. name).
+ */
+export const getAvatarColor = (name) => {
+  const colors = [
+    'bg-[#3b7ef8]', // Premium Blue
+    'bg-[#16a34a]', // Green
+    'bg-[#f59e0b]', // Amber
+    'bg-[#d946ef]', // Fuchsia
+    'bg-[#8b5cf6]', // Violet
+    'bg-[#ec4899]', // Pink
+    'bg-[#ef4444]', // Red
+    'bg-[#06b6d4]', // Cyan
+  ];
+  if (!name) return colors[0];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
 };
 
 /**
