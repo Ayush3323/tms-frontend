@@ -238,7 +238,7 @@ const Permission = () => {
           </button>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: 'calc(100vh - 310px)' }}>
           <table className="w-full text-left">
             <thead className="bg-[#F8FAFC] border-b border-gray-100">
               <tr className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">

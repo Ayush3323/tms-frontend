@@ -516,7 +516,7 @@ const DriversList = () => {
 
         {/* Table */}
         {!isLoading && !isError && (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: 'calc(100vh - 310px)' }}>
             {drivers.length > 0 ? (
               <table className="w-full text-sm">
                 <thead>

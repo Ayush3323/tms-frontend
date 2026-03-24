@@ -226,7 +226,7 @@ const Sidebar = () => {
         <div className="w-10 h-10 bg-[#4C9AFF] rounded flex items-center justify-center text-white font-bold text-xs uppercase">
           PA
         </div>
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-y-auto">
           <p className="text-xs font-bold text-[#172B4D] truncate">Platform Admin</p>
           <p className="text-[10px] text-gray-400 truncate">Super Admin</p>
         </div>
