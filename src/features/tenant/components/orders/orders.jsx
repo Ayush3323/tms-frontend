@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
 import { 
-  FileText, Plus, Search, Filter, Download, 
-  MoreHorizontal, Eye, Edit2, Truck, XCircle, 
-  Trash2, Calendar, ChevronRight, Package,
-  CheckCircle2, Clock, AlertCircle, RefreshCcw
+  Plus, Search, Download, Edit2, Truck, XCircle, 
+  Trash2, Package, CheckCircle2, Clock, RefreshCcw, X, Eye
 } from 'lucide-react';
+import { 
+  useOrders, useCreateOrder, useUpdateOrder, 
+  useCancelOrder, useAssignTrip 
+} from '../../queries/orders/ordersQuery';
+import { useCustomers } from '../../queries/customers/customersQuery';
+import { useDrivers } from '../../queries/drivers/driverCoreQuery';
+import { useVehicles } from '../../queries/vehicles/vehicleQuery';
 
-// --- Configuration & Helpers (Based on your OrdersDashboard.jsx) ---
+// --- Configuration & Helpers ---
 const STATUS_CONFIG = {
   DRAFT: { color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100', icon: <Clock size={14} /> },
   CONFIRMED: { color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100', icon: <CheckCircle2 size={14} /> },
@@ -25,12 +30,16 @@ const TYPE_COLORS = {
 };
 
 // --- Sub-components ---
-const StatCard = ({ label, value, colorClass, icon: Icon, emoji }) => (
+const StatCard = ({ label, value, colorClass, icon: Icon, emoji, isLoading }) => (
   <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between hover:border-blue-300 transition-colors">
     <div>
       <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">{label}</p>
       <div className="flex items-baseline gap-2">
-        <h3 className={`text-3xl font-extrabold ${colorClass}`}>{value}</h3>
+        {isLoading ? (
+          <div className="h-8 w-16 bg-gray-200 animate-pulse rounded"></div>
+        ) : (
+          <h3 className={`text-3xl font-extrabold ${colorClass}`}>{value}</h3>
+        )}
       </div>
     </div>
     <div className="text-3xl opacity-20">{emoji}</div>
@@ -47,21 +56,87 @@ const StatusBadge = ({ status }) => {
   );
 };
 
+// --- Modal Component ---
+const Modal = ({ isOpen, onClose, title, children }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+          <h2 className="text-lg font-bold text-gray-800">{title}</h2>
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="p-6 overflow-y-auto">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 // --- Main Body Component ---
 export default function OrdersMainBody() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("All Status");
+  const [page, setPage] = useState(1);
 
-  // Mock data for demo
-  const orders = [
-    { id: "ord-001", lr_number: "LR-DEMO-0001", reference: "PO-2024-001", type: "FTL", status: "CONFIRMED", customer: "Reliance Ind.", pickup: "2026-03-12" },
-    { id: "ord-002", lr_number: "LR-DEMO-0002", reference: "PO-2024-002", type: "LTL", status: "IN_TRANSIT", customer: "Tata Motors", pickup: "2026-03-13" },
-    { id: "ord-006", lr_number: "LR-DEMO-0006", reference: "PO-2024-006", type: "MULTI_DROP", status: "ASSIGNED", customer: "Amazon IN", pickup: "2026-03-20" },
-  ];
+  // Modals state
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isAssignOpen, setIsAssignOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+
+  // Data for dropdowns
+  const { data: customersData } = useCustomers({ page_size: 100 });
+  const customers = customersData?.results || (Array.isArray(customersData) ? customersData : []);
+
+  const getCustomerName = (id) => {
+    if (!id) return '-';
+    const c = customers.find(cust => cust.id === id);
+    if (!c) return 'Unknown';
+    return c.legal_name || c.trading_name || c.customer_code || id.slice(-6);
+  };
+
+  // Queries
+  const queryParams = { page, ordering: '-created_at' };
+  if (search) queryParams.search = search;
+  if (filterStatus !== 'All Status') queryParams.status = filterStatus;
+
+  const { data: ordersData, isLoading, refetch } = useOrders(queryParams);
+  const orders = ordersData?.results || [];
+  const totalCount = ordersData?.count || 0;
+
+  // Global counts for stats (using the API count for total, mocked stats for the rest due to no aggregate API)
+  const stats = {
+    total: totalCount,
+    confirmed: orders.filter(o => o.status === 'CONFIRMED').length,
+    inTransit: orders.filter(o => o.status === 'IN_TRANSIT').length,
+    cancelled: orders.filter(o => o.status === 'CANCELLED').length,
+  };
+
+  // Actions
+  const handleEditClick = (order) => {
+    setSelectedOrder(order);
+    setIsEditOpen(true);
+  };
+
+  const handleAssignClick = (order) => {
+    setSelectedOrder(order);
+    setIsAssignOpen(true);
+  };
+
+  const cancelOrderMutation = useCancelOrder();
+  const handleCancelOrder = (id) => {
+    if (window.confirm("Are you sure you want to cancel this order?")) {
+      cancelOrderMutation.mutate(id);
+    }
+  };
 
   return (
     <div className="flex-1 overflow-auto bg-[#F8FAFC]">
-      {/* Page Header (No sidebar/header, only page title) */}
       <div className="p-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
@@ -69,10 +144,16 @@ export default function OrdersMainBody() {
             <p className="text-sm text-gray-500 font-medium mt-1">Manage Lorry Receipts, shipments, and trip assignments.</p>
           </div>
           <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 transition-all shadow-sm">
-              <Download size={16} /> Export
+            <button 
+              onClick={() => refetch()}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 transition-all shadow-sm"
+            >
+              <RefreshCcw size={16} className={isLoading ? "animate-spin" : ""} /> Refresh
             </button>
-            <button className="flex items-center gap-2 px-5 py-2.5 bg-[#4a6cf7] text-white rounded-lg text-sm font-bold hover:bg-[#3b59d9] shadow-md shadow-blue-200 transition-all">
+            <button 
+              onClick={() => setIsCreateOpen(true)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#4a6cf7] text-white rounded-lg text-sm font-bold hover:bg-[#3b59d9] shadow-md shadow-blue-200 transition-all"
+            >
               <Plus size={18} /> Add Order
             </button>
           </div>
@@ -80,10 +161,10 @@ export default function OrdersMainBody() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <StatCard label="Total Orders" value="1,284" colorClass="text-[#4a6cf7]" emoji="📦" />
-          <StatCard label="Confirmed" value="412" colorClass="text-[#43a047]" emoji="✅" />
-          <StatCard label="In Transit" value="89" colorClass="text-[#ffa000]" emoji="🚛" />
-          <StatCard label="Cancelled" value="12" colorClass="text-[#e53935]" emoji="🚫" />
+          <StatCard label="Total Orders" value={stats.total} colorClass="text-[#4a6cf7]" emoji="📦" isLoading={isLoading} />
+          <StatCard label="Confirmed (Page)" value={stats.confirmed} colorClass="text-[#43a047]" emoji="✅" isLoading={isLoading} />
+          <StatCard label="In Transit (Page)" value={stats.inTransit} colorClass="text-[#ffa000]" emoji="🚛" isLoading={isLoading} />
+          <StatCard label="Cancelled (Page)" value={stats.cancelled} colorClass="text-[#e53935]" emoji="🚫" isLoading={isLoading} />
         </div>
 
         {/* Main Table Container */}
@@ -104,88 +185,602 @@ export default function OrdersMainBody() {
               <select 
                 className="flex-1 md:w-40 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 outline-none focus:border-[#4a6cf7]"
                 value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
+                onChange={(e) => {
+                  setFilterStatus(e.target.value);
+                  setPage(1); // reset to page 1 on filter
+                }}
               >
                 <option>All Status</option>
                 <option>DRAFT</option>
                 <option>CONFIRMED</option>
                 <option>ASSIGNED</option>
                 <option>IN_TRANSIT</option>
+                <option>DELIVERED</option>
+                <option>CANCELLED</option>
               </select>
-              <button className="p-2 bg-white border border-gray-200 rounded-lg text-gray-500 hover:text-[#4a6cf7] hover:bg-blue-50 transition-colors">
-                <RefreshCcw size={18} />
-              </button>
             </div>
           </div>
 
           {/* Table Content */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[1000px]">
-              <thead>
-                <tr className="bg-gray-50/50">
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Order / LR ↕</th>
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Reference</th>
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Type</th>
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Status</th>
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Pickup Date</th>
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {orders.map((order) => (
-                  <tr key={order.id} className="hover:bg-blue-50/30 transition-colors group">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-[#4a6cf7] font-bold text-xs">
-                          {order.lr_number.slice(-2)}
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-[#172B4D]">{order.lr_number}</p>
-                          <p className="text-[10px] text-gray-400 font-medium">{order.id}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm font-semibold text-[#4a6cf7]">{order.reference}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${TYPE_COLORS[order.type] || 'bg-gray-100'}`}>
-                        {order.type}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <StatusBadge status={order.status} />
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600 font-medium">{order.pickup}</td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg">
-                          <Eye size={16} />
-                        </button>
-                        <button className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg">
-                          <Edit2 size={16} />
-                        </button>
-                        <button className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
+          <div className="overflow-x-auto min-h-[400px]">
+            {isLoading ? (
+              <div className="flex justify-center items-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4a6cf7]"></div>
+              </div>
+            ) : orders.length === 0 ? (
+              <div className="flex flex-col justify-center items-center h-64 text-gray-400">
+                <Package size={48} className="mb-4 opacity-20" />
+                <p>No orders found matching your criteria</p>
+              </div>
+            ) : (
+              <table className="w-full text-left border-collapse min-w-[1000px]">
+                <thead>
+                  <tr className="bg-gray-50/50">
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Order / LR ↕</th>
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Billing / Ref</th>
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Consignor / Consignee</th>
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Type</th>
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Status</th>
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Pickup Date</th>
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {orders.map((order) => (
+                    <tr key={order.id} className="hover:bg-blue-50/30 transition-colors group">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-[#4a6cf7] font-bold text-xs truncate">
+                            {order.lr_number?.slice(-3) || 'LR'}
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-[#172B4D]">{order.lr_number}</p>
+                            <p className="text-[10px] text-gray-400 font-medium truncate w-32" title={order.id}>{order.id}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-sm font-semibold text-[#172B4D] truncate w-32" title={getCustomerName(order.billing_customer_id)}>
+                          {getCustomerName(order.billing_customer_id)}
+                        </p>
+                        <p className="text-[10px] text-gray-400 font-mono mt-0.5">Ref: {order.reference_number || 'N/A'}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-sm font-medium text-gray-700 truncate w-32" title={`From: ${getCustomerName(order.consigner_id)}`}>
+                          <span className="text-[10px] text-gray-400 mr-1">F:</span>{getCustomerName(order.consigner_id)}
+                        </p>
+                        <p className="text-sm font-medium text-gray-700 truncate w-32 mt-0.5" title={`To: ${getCustomerName(order.consignee_id)}`}>
+                          <span className="text-[10px] text-gray-400 mr-1">T:</span>{getCustomerName(order.consignee_id)}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${TYPE_COLORS[order.order_type] || 'bg-gray-100'}`}>
+                          {order.order_type}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <StatusBadge status={order.status} />
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600 font-medium">
+                        {order.pickup_date || '-'}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2 transition-opacity">
+                          
+                          {(order.status === 'CONFIRMED' || order.status === 'DRAFT') && (
+                            <button 
+                              onClick={() => handleAssignClick(order)}
+                              title="Assign Trip"
+                              className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg flex items-center gap-1 text-xs font-bold"
+                            >
+                              <Truck size={16} /> Assign
+                            </button>
+                          )}
+
+                          <button 
+                            onClick={() => handleEditClick(order)}
+                            title="Edit Order"
+                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          
+                          {order.status !== 'CANCELLED' && (
+                            <button 
+                              onClick={() => handleCancelOrder(order.id)}
+                              title="Cancel Order"
+                              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                            >
+                              <XCircle size={16} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
 
           {/* Pagination Footer */}
           <div className="px-6 py-4 border-t border-gray-100 bg-white flex items-center justify-between text-xs font-bold text-gray-400 uppercase tracking-widest">
-            <span>Showing {orders.length} of 1,284 Orders</span>
+            <span>Showing {orders.length} of {totalCount} Orders</span>
             <div className="flex gap-2">
-              <button className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-50">Prev</button>
-              <button className="px-3 py-1 border border-gray-200 rounded bg-[#4a6cf7] text-white">1</button>
-              <button className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-50">2</button>
-              <button className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-50">Next</button>
+              <button 
+                disabled={page === 1}
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50"
+              >
+                Prev
+              </button>
+              <button className="px-3 py-1 border border-gray-200 rounded bg-[#4a6cf7] text-white">
+                {page}
+              </button>
+              <button 
+                disabled={!ordersData?.next}
+                onClick={() => setPage(p => p + 1)}
+                className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50"
+              >
+                Next
+              </button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      <CreateOrderModal 
+        isOpen={isCreateOpen} 
+        onClose={() => setIsCreateOpen(false)} 
+      />
+
+      {selectedOrder && (
+        <EditOrderModal 
+          isOpen={isEditOpen} 
+          onClose={() => setIsEditOpen(false)} 
+          order={selectedOrder} 
+        />
+      )}
+
+      {selectedOrder && (
+        <AssignTripModal
+          isOpen={isAssignOpen}
+          onClose={() => setIsAssignOpen(false)}
+          order={selectedOrder}
+        />
+      )}
+
     </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Sub-components for Modals (to keep things organized)
+// -----------------------------------------------------------------------------
+
+function CreateOrderModal({ isOpen, onClose }) {
+  const createOrderMutation = useCreateOrder();
+  
+  // Data for dropdowns
+  const { data: customersData } = useCustomers({ page_size: 100 });
+  const customers = customersData?.results || (Array.isArray(customersData) ? customersData : []);
+
+  const [formData, setFormData] = useState({
+    billing_customer_id: "",
+    consigner_id: "",
+    consignee_id: "",
+    order_type: "FTL",
+    reference_number: "",
+    pickup_date: "",
+    delivery_date: "",
+    notes: ""
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    // Clean empty optional UUID fields by removing them or setting to null
+    const payload = { ...formData };
+    if (!payload.consigner_id) payload.consigner_id = null;
+    if (!payload.consignee_id) payload.consignee_id = null;
+
+    createOrderMutation.mutate(payload, {
+      onSuccess: () => {
+        setFormData({
+          billing_customer_id: "", consigner_id: "", consignee_id: "",
+          order_type: "FTL", reference_number: "", pickup_date: "", delivery_date: "", notes: ""
+        });
+        onClose();
+      }
+    });
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Create New Order (LR)">
+      <form onSubmit={handleSubmit} className="space-y-4 text-sm">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Billing Customer *</label>
+            <select
+              required
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              value={formData.billing_customer_id}
+              onChange={e => setFormData({ ...formData, billing_customer_id: e.target.value })}
+            >
+              <option value="">Select Customer</option>
+              {customers.map(c => (
+                <option key={c.id} value={c.id}>{c.legal_name || c.trading_name || c.customer_code || c.id}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Order Type</label>
+            <select
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              value={formData.order_type}
+              onChange={e => setFormData({ ...formData, order_type: e.target.value })}
+            >
+              <option value="FTL">FTL</option>
+              <option value="LTL">LTL</option>
+              <option value="CONTAINER">CONTAINER</option>
+              <option value="COURIER">COURIER</option>
+              <option value="MULTI_DROP">MULTI_DROP</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+           <div>
+            <label className="block text-gray-700 font-medium mb-1">Consigner (Optional)</label>
+            <select
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              value={formData.consigner_id}
+              onChange={e => setFormData({ ...formData, consigner_id: e.target.value })}
+            >
+              <option value="">Select Consigner</option>
+              {customers.map(c => (
+                 <option key={c.id} value={c.id}>{c.legal_name || c.trading_name || c.customer_code || c.id}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Consignee (Optional)</label>
+            <select
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              value={formData.consignee_id}
+              onChange={e => setFormData({ ...formData, consignee_id: e.target.value })}
+            >
+              <option value="">Select Consignee</option>
+              {customers.map(c => (
+                 <option key={c.id} value={c.id}>{c.legal_name || c.trading_name || c.customer_code || c.id}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Reference Number</label>
+            <input 
+              type="text" 
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              placeholder="PO-001..."
+              value={formData.reference_number}
+              onChange={e => setFormData({ ...formData, reference_number: e.target.value })}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-gray-700 font-medium mb-1">Pickup Date</label>
+              <input 
+                type="date" 
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+                value={formData.pickup_date}
+                onChange={e => setFormData({ ...formData, pickup_date: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-gray-700 font-medium mb-1">Delivery Date</label>
+              <input 
+                type="date" 
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+                value={formData.delivery_date}
+                onChange={e => setFormData({ ...formData, delivery_date: e.target.value })}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-gray-700 font-medium mb-1">Notes</label>
+          <textarea 
+            className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+            rows="3"
+            placeholder="Additional instructions..."
+            value={formData.notes}
+            onChange={e => setFormData({ ...formData, notes: e.target.value })}
+          />
+        </div>
+
+        <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+          <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
+          <button 
+            type="submit" 
+            disabled={createOrderMutation.isPending}
+            className="px-4 py-2 text-white bg-[#4a6cf7] rounded-lg hover:bg-[#3b59d9] disabled:opacity-50"
+          >
+            {createOrderMutation.isPending ? 'Creating...' : 'Create Order'}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function EditOrderModal({ isOpen, onClose, order }) {
+  const updateOrderMutation = useUpdateOrder();
+  const { data: customersData } = useCustomers({ page_size: 100 });
+  const customers = customersData?.results || (Array.isArray(customersData) ? customersData : []);
+
+  const [formData, setFormData] = useState({
+    billing_customer_id: order?.billing_customer_id || "",
+    order_type: order?.order_type || "FTL",
+    status: order?.status || 'DRAFT',
+    consigner_id: order?.consigner_id || "",
+    consignee_id: order?.consignee_id || "",
+    reference_number: order?.reference_number || "",
+    pickup_date: order?.pickup_date || "",
+    delivery_date: order?.delivery_date || "",
+    notes: order?.notes || ""
+  });
+
+  // Reset form when order changes
+  React.useEffect(() => {
+    if (order && isOpen) {
+      setFormData({
+        billing_customer_id: order.billing_customer_id || "",
+        order_type: order.order_type || "FTL",
+        status: order.status,
+        consigner_id: order.consigner_id || "",
+        consignee_id: order.consignee_id || "",
+        reference_number: order.reference_number || "",
+        pickup_date: order.pickup_date || "",
+        delivery_date: order.delivery_date || "",
+        notes: order.notes || ""
+      });
+    }
+  }, [order, isOpen]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const payload = { ...formData };
+    if (!payload.consigner_id) payload.consigner_id = null;
+    if (!payload.consignee_id) payload.consignee_id = null;
+
+    updateOrderMutation.mutate({ id: order.id, data: payload, fullReplace: true }, {
+      onSuccess: () => onClose()
+    });
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={`Edit Order: ${order?.lr_number}`}>
+      <form onSubmit={handleSubmit} className="space-y-4 text-sm">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Billing Customer *</label>
+            <select
+              required
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              value={formData.billing_customer_id}
+              onChange={e => setFormData({ ...formData, billing_customer_id: e.target.value })}
+            >
+              <option value="">Select Customer</option>
+              {customers.map(c => (
+                <option key={c.id} value={c.id}>{c.legal_name || c.trading_name || c.customer_code || c.id}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Order Type</label>
+            <select
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              value={formData.order_type}
+              onChange={e => setFormData({ ...formData, order_type: e.target.value })}
+            >
+              <option value="FTL">FTL</option>
+              <option value="LTL">LTL</option>
+              <option value="CONTAINER">CONTAINER</option>
+              <option value="COURIER">COURIER</option>
+              <option value="MULTI_DROP">MULTI_DROP</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Status</label>
+            <select
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              value={formData.status}
+              onChange={e => setFormData({ ...formData, status: e.target.value })}
+            >
+              <option value="DRAFT">DRAFT</option>
+              <option value="CONFIRMED">CONFIRMED</option>
+              <option value="ASSIGNED">ASSIGNED</option>
+              <option value="IN_TRANSIT">IN_TRANSIT</option>
+              <option value="DELIVERED">DELIVERED</option>
+            </select>
+          </div>
+          <div>
+             <label className="block text-gray-700 font-medium mb-1">Reference Number</label>
+             <input 
+               type="text" 
+               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+               value={formData.reference_number}
+               onChange={e => setFormData({ ...formData, reference_number: e.target.value })}
+             />
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+           <div>
+            <label className="block text-gray-700 font-medium mb-1">Consigner (Optional)</label>
+            <select
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              value={formData.consigner_id}
+              onChange={e => setFormData({ ...formData, consigner_id: e.target.value })}
+            >
+              <option value="">Select Consigner</option>
+              {customers.map(c => (
+                 <option key={c.id} value={c.id}>{c.legal_name || c.trading_name || c.customer_code || c.id}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Consignee (Optional)</label>
+            <select
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              value={formData.consignee_id}
+              onChange={e => setFormData({ ...formData, consignee_id: e.target.value })}
+            >
+              <option value="">Select Consignee</option>
+              {customers.map(c => (
+                 <option key={c.id} value={c.id}>{c.legal_name || c.trading_name || c.customer_code || c.id}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+           <div>
+             <label className="block text-gray-700 font-medium mb-1">Pickup Date</label>
+             <input 
+               type="date" 
+               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+               value={formData.pickup_date}
+               onChange={e => setFormData({ ...formData, pickup_date: e.target.value })}
+             />
+           </div>
+           <div>
+             <label className="block text-gray-700 font-medium mb-1">Delivery Date</label>
+             <input 
+               type="date" 
+               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+               value={formData.delivery_date}
+               onChange={e => setFormData({ ...formData, delivery_date: e.target.value })}
+             />
+           </div>
+        </div>
+
+        <div>
+          <label className="block text-gray-700 font-medium mb-1">Notes</label>
+          <textarea 
+            className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+            rows="3"
+            value={formData.notes}
+            onChange={e => setFormData({ ...formData, notes: e.target.value })}
+          />
+        </div>
+
+        <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+          <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
+          <button 
+            type="submit" 
+            disabled={updateOrderMutation.isPending}
+            className="px-4 py-2 text-white bg-[#4a6cf7] rounded-lg hover:bg-[#3b59d9] disabled:opacity-50"
+          >
+            {updateOrderMutation.isPending ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function AssignTripModal({ isOpen, onClose, order }) {
+  const assignTripMutation = useAssignTrip();
+  
+  const { data: driversData } = useDrivers({ page_size: 100 });
+  const drivers = driversData?.results || (Array.isArray(driversData) ? driversData : []);
+
+  const { data: vehiclesData } = useVehicles({ page_size: 100 });
+  const vehicles = vehiclesData?.results || (Array.isArray(vehiclesData) ? vehiclesData : []);
+
+  const [formData, setFormData] = useState({
+    driver_id: "",
+    vehicle_id: "",
+    trip_number: ""
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    assignTripMutation.mutate({ id: order.id, data: formData }, {
+      onSuccess: () => onClose()
+    });
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={`Assign Trip for: ${order?.lr_number}`}>
+      <div className="mb-4 p-3 bg-amber-50 text-amber-800 rounded-lg border border-amber-200 text-sm">
+        Assigning a trip will change order status to <strong>ASSIGNED</strong> and create a Trip record.
+      </div>
+      <form onSubmit={handleSubmit} className="space-y-4 text-sm">
+        <div>
+          <label className="block text-gray-700 font-medium mb-1">Driver *</label>
+          <select
+            required
+            className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+            value={formData.driver_id}
+            onChange={e => setFormData({ ...formData, driver_id: e.target.value })}
+          >
+            <option value="">Select Driver</option>
+            {drivers.map(d => (
+              <option key={d.id} value={d.id}>
+                {d.user?.first_name || 'Driver'} {d.user?.last_name || ''} ({d.employee_id || d.id})
+              </option>
+            ))}
+          </select>
+        </div>
+        
+        <div>
+          <label className="block text-gray-700 font-medium mb-1">Vehicle *</label>
+          <select
+            required
+            className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+            value={formData.vehicle_id}
+            onChange={e => setFormData({ ...formData, vehicle_id: e.target.value })}
+          >
+            <option value="">Select Vehicle</option>
+            {vehicles.map(v => (
+              <option key={v.id} value={v.id}>
+                {v.registration_number || v.registration || v.id}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-gray-700 font-medium mb-1">Trip Number (Optional)</label>
+          <input 
+            type="text" 
+            className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+            placeholder="Auto-generated if left blank"
+            value={formData.trip_number}
+            onChange={e => setFormData({ ...formData, trip_number: e.target.value })}
+          />
+        </div>
+
+        <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+          <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
+          <button 
+            type="submit" 
+            disabled={assignTripMutation.isPending}
+            className="px-4 py-2 text-white bg-amber-600 rounded-lg hover:bg-amber-700 disabled:opacity-50"
+          >
+            {assignTripMutation.isPending ? 'Assigning...' : 'Assign Trip'}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }

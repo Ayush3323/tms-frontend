@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { 
   Globe, Plus, Search, Filter, Download, 
-  MoreHorizontal, Eye, Edit2, Truck, CheckCircle2, 
-  MapPin, Calendar, ChevronRight, ArrowRight,
-  User, Hash, RefreshCcw, Clock, AlertTriangle
+  MapPin, Calendar, Truck, CheckCircle2, 
+  Clock, AlertTriangle, RefreshCcw, User, Hash, X, Eye
 } from 'lucide-react';
+import { useTrips, useCreateTrip } from '../../queries/orders/ordersQuery';
+import { useDrivers } from '../../queries/drivers/driverCoreQuery';
+import { useVehicles } from '../../queries/vehicles/vehicleQuery';
 
 // --- Configuration & Status Badges ---
 const TRIP_STATUS_CONFIG = {
@@ -16,11 +18,15 @@ const TRIP_STATUS_CONFIG = {
 };
 
 // --- Sub-components ---
-const TripStatCard = ({ label, value, colorClass, icon: Icon }) => (
-  <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+const TripStatCard = ({ label, value, colorClass, icon: Icon, isLoading }) => (
+  <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between hover:border-blue-300 transition-colors">
     <div>
       <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">{label}</p>
-      <h3 className={`text-2xl font-black ${colorClass}`}>{value}</h3>
+      {isLoading ? (
+        <div className="h-8 w-16 bg-gray-200 animate-pulse rounded"></div>
+      ) : (
+        <h3 className={`text-2xl font-black ${colorClass}`}>{value}</h3>
+      )}
     </div>
     <div className={`p-3 rounded-lg ${colorClass.replace('text', 'bg')}/10`}>
       <Icon className={colorClass} size={20} />
@@ -38,37 +44,76 @@ const StatusBadge = ({ status }) => {
   );
 };
 
+// Modal Component
+const Modal = ({ isOpen, onClose, title, children }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+          <h2 className="text-lg font-bold text-gray-800">{title}</h2>
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="p-6 overflow-y-auto">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // --- Main Body Component ---
 export default function TripsMainBody() {
   const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("All Status");
+  const [page, setPage] = useState(1);
 
-  // Mock data based on your Trip Endpoints documentation
-  const trips = [
-    { 
-      id: "uuid-1", 
-      trip_number: "TRIP-2026-001", 
-      lr_number: "LR-DEMO-0001", 
-      trip_type: "FTL", 
-      status: "CREATED", 
-      primary_vehicle_id: "VH-9921", 
-      primary_driver_id: "DR-552", 
-      origin: "Mumbai Warehouse",
-      destination: "Delhi DC",
-      pickup: "2026-03-12"
-    },
-    { 
-      id: "uuid-2", 
-      trip_number: "TRIP-2026-002", 
-      lr_number: "LR-DEMO-0002", 
-      trip_type: "LTL", 
-      status: "IN_TRANSIT", 
-      primary_vehicle_id: "VH-8812", 
-      primary_driver_id: "DR-102", 
-      origin: "Pune Hub",
-      destination: "Bangalore Warehouse",
-      pickup: "2026-03-14"
-    }
-  ];
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [selectedTrip, setSelectedTrip] = useState(null);
+
+  // Queries
+  const queryParams = { page, ordering: '-created_at' };
+  if (search) queryParams.search = search;
+  if (filterStatus !== 'All Status') queryParams.status = filterStatus;
+
+  const { data: tripsData, isLoading, refetch } = useTrips(queryParams);
+  const trips = tripsData?.results || [];
+  const totalCount = tripsData?.count || 0;
+
+  // Additional Queries for Resolving IDs
+  const { data: driversData } = useDrivers({ page_size: 100 });
+  const drivers = driversData?.results || (Array.isArray(driversData) ? driversData : []);
+  
+  const { data: vehiclesData } = useVehicles({ page_size: 100 });
+  const vehicles = vehiclesData?.results || (Array.isArray(vehiclesData) ? vehiclesData : []);
+
+  // Stats mapped directly
+  const activeCount = trips.filter(t => t.status !== 'COMPLETED').length;
+  const inTransitCount = trips.filter(t => t.status === 'IN_TRANSIT').length;
+  const completedCount = trips.filter(t => t.status === 'COMPLETED').length;
+
+  // Resolvers
+  const getDriverDisplay = (id) => {
+    if (!id) return 'Unassigned';
+    const d = drivers.find(dr => dr.id === id);
+    if (!d) return id.slice(-6);
+    return `${d.user?.first_name || 'Driver'} ${d.user?.last_name || ''}`.trim() || d.employee_id || id.slice(-6);
+  };
+
+  const getVehicleDisplay = (id) => {
+    if (!id) return 'Unassigned';
+    const v = vehicles.find(vh => vh.id === id);
+    if (!v) return id.slice(-6);
+    return v.registration_number || v.registration || id.slice(-6);
+  };
+
+  const handleEditClick = (trip) => {
+    setSelectedTrip(trip);
+    setIsEditOpen(true);
+  };
 
   return (
     <div className="flex-1 overflow-auto bg-[#F8FAFC]">
@@ -80,10 +125,16 @@ export default function TripsMainBody() {
             <p className="text-sm text-gray-500 font-medium mt-1">Track vehicle journeys, driver assignments, and trip status.</p>
           </div>
           <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 transition-all shadow-sm">
-              <Download size={16} /> Export
+            <button 
+              onClick={() => refetch()}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 shadow-sm transition-all"
+            >
+              <RefreshCcw size={16} className={isLoading ? "animate-spin" : ""} /> Refresh
             </button>
-            <button className="flex items-center gap-2 px-5 py-2.5 bg-[#0052CC] text-white rounded-lg text-sm font-bold hover:bg-[#0747A6] shadow-md shadow-blue-200 transition-all">
+            <button 
+              onClick={() => setIsCreateOpen(true)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#0052CC] text-white rounded-lg text-sm font-bold hover:bg-[#0747A6] shadow-md shadow-blue-200 transition-all"
+            >
               <Plus size={18} /> Plan New Trip
             </button>
           </div>
@@ -91,111 +142,263 @@ export default function TripsMainBody() {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <TripStatCard label="Active Trips" value="24" colorClass="text-blue-600" icon={Globe} />
-          <TripStatCard label="In Transit" value="18" colorClass="text-indigo-600" icon={Truck} />
-          <TripStatCard label="Scheduled" value="42" colorClass="text-amber-600" icon={Calendar} />
-          <TripStatCard label="Completed" value="156" colorClass="text-green-600" icon={CheckCircle2} />
+          <TripStatCard label="Total Trips" value={totalCount} colorClass="text-blue-600" icon={Globe} isLoading={isLoading} />
+          <TripStatCard label="Active" value={activeCount} colorClass="text-amber-600" icon={Calendar} isLoading={isLoading} />
+          <TripStatCard label="In Transit" value={inTransitCount} colorClass="text-indigo-600" icon={Truck} isLoading={isLoading} />
+          <TripStatCard label="Completed Page" value={completedCount} colorClass="text-green-600" icon={CheckCircle2} isLoading={isLoading} />
         </div>
 
         {/* Filters and Search */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="p-5 border-b border-gray-100 flex flex-col md:flex-row gap-4 bg-white">
-            <div className="relative flex-1">
+          <div className="p-5 border-b border-gray-100 flex flex-col md:flex-row gap-4 items-center bg-white">
+            <div className="relative flex-1 w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <input 
                 type="text"
-                placeholder="Search by Trip ID, LR No, Vehicle or Driver..."
-                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-[#0052CC] transition-all"
+                placeholder="Search by Trip ID, Route..."
+                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] transition-all"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <div className="flex items-center gap-2">
-              <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50">
-                <Filter size={16} /> Filters
-              </button>
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              <select 
+                className="flex-1 md:w-48 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 outline-none focus:border-[#0052CC]"
+                value={filterStatus}
+                onChange={(e) => {
+                  setFilterStatus(e.target.value);
+                  setPage(1);
+                }}
+              >
+                <option value="All Status">All Status</option>
+                <option value="CREATED">CREATED</option>
+                <option value="STARTED">STARTED</option>
+                <option value="IN_TRANSIT">IN_TRANSIT</option>
+                <option value="COMPLETED">COMPLETED</option>
+                <option value="DELAYED">DELAYED</option>
+              </select>
             </div>
           </div>
 
           {/* Trips Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[1100px]">
-              <thead>
-                <tr className="bg-gray-50/50 border-b border-gray-100">
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Trip Details</th>
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Route (Origin → Destination)</th>
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Fleet Info</th>
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Status</th>
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {trips.map((trip) => (
-                  <tr key={trip.id} className="hover:bg-blue-50/20 transition-colors group">
-                    <td className="px-6 py-5">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-bold text-[#172B4D] flex items-center gap-2">
-                          <Hash size={14} className="text-gray-400" /> {trip.trip_number}
-                        </span>
-                        <span className="text-[11px] text-gray-500 font-semibold mt-1 bg-gray-100 px-1.5 py-0.5 rounded w-fit uppercase">
-                          LR: {trip.lr_number}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-5">
-                      <div className="flex items-center gap-3">
-                        <div className="flex flex-col text-xs font-medium text-gray-700">
-                          <span className="flex items-center gap-1"><MapPin size={12} className="text-blue-500" /> {trip.origin}</span>
-                          <div className="h-4 border-l-2 border-dashed border-gray-200 ml-1.5 my-1"></div>
-                          <span className="flex items-center gap-1"><MapPin size={12} className="text-red-500" /> {trip.destination}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-5">
-                      <div className="flex flex-col gap-1.5">
-                        <div className="flex items-center gap-2 text-[12px] font-bold text-gray-600">
-                          <Truck size={14} className="text-gray-400" /> {trip.primary_vehicle_id}
-                        </div>
-                        <div className="flex items-center gap-2 text-[12px] font-bold text-gray-600">
-                          <User size={14} className="text-gray-400" /> {trip.primary_driver_id}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-5">
-                      <StatusBadge status={trip.status} />
-                    </td>
-                    <td className="px-6 py-5 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button className="p-2 text-gray-400 hover:text-[#0052CC] hover:bg-blue-50 rounded-lg transition-all">
-                          <Eye size={16} />
-                        </button>
-                        <button className="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all">
-                          <Edit2 size={16} />
-                        </button>
-                        <button className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg">
-                          <MoreHorizontal size={16} />
-                        </button>
-                      </div>
-                    </td>
+          <div className="overflow-x-auto min-h-[400px]">
+            {isLoading ? (
+              <div className="flex justify-center items-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0052CC]"></div>
+              </div>
+            ) : trips.length === 0 ? (
+              <div className="flex flex-col justify-center items-center h-64 text-gray-400">
+                <Truck size={48} className="mb-4 opacity-20" />
+                <p>No trips found matching your criteria</p>
+              </div>
+            ) : (
+              <table className="w-full text-left border-collapse min-w-[1100px]">
+                <thead>
+                  <tr className="bg-gray-50/50 border-b border-gray-100">
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Trip Details</th>
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Route (Origin → Destination)</th>
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Fleet Info</th>
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Status</th>
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {trips.map((trip) => (
+                    <tr key={trip.id} className="hover:bg-blue-50/20 transition-colors group">
+                      <td className="px-6 py-5">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-[#172B4D] flex items-center gap-2">
+                            <Hash size={14} className="text-[#0052CC]" /> {trip.trip_number || 'TRIP-' + trip.id.slice(-6)}
+                          </span>
+                          <span className="text-[11px] text-gray-500 font-semibold mt-1 bg-gray-100 px-1.5 py-0.5 rounded w-fit uppercase" title={trip.id}>
+                            ID: {trip.id.slice(-8)}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-3">
+                          <div className="flex flex-col text-xs font-medium text-gray-700">
+                            <span className="flex items-center gap-1.5"><MapPin size={12} className="text-blue-500" /> {trip.origin || 'Not Specified'}</span>
+                            <div className="h-4 border-l-2 border-dashed border-gray-200 ml-[5px] my-1"></div>
+                            <span className="flex items-center gap-1.5"><MapPin size={12} className="text-red-500" /> {trip.destination || 'Not Specified'}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className="flex flex-col gap-1.5">
+                          <div className="flex items-center gap-2 text-[12px] font-bold text-gray-600" title={trip.vehicle_id || trip.primary_vehicle_id}>
+                            <Truck size={14} className="text-gray-400" /> {getVehicleDisplay(trip.vehicle_id || trip.primary_vehicle_id)}
+                          </div>
+                          <div className="flex items-center gap-2 text-[12px] font-bold text-gray-600" title={trip.driver_id || trip.primary_driver_id}>
+                            <User size={14} className="text-gray-400" /> {getDriverDisplay(trip.driver_id || trip.primary_driver_id)}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <StatusBadge status={trip.status} />
+                      </td>
+                      <td className="px-6 py-5 text-right">
+                        <div className="flex items-center justify-end gap-2 transition-opacity">
+                          {/* Trip editing disabled per API capabilities */}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
 
-          {/* Footer Info */}
-          <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
-            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
-              Showing {trips.length} active trips
-            </span>
-            <div className="flex gap-1">
-              <button className="px-3 py-1 text-xs font-bold border border-gray-200 rounded text-gray-400 cursor-not-allowed">Previous</button>
-              <button className="px-3 py-1 text-xs font-bold bg-[#0052CC] text-white rounded shadow-sm">1</button>
-              <button className="px-3 py-1 text-xs font-bold border border-gray-200 rounded text-gray-600 hover:bg-gray-50">Next</button>
+          {/* Pagination Footer */}
+          <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+            <span>Showing {trips.length} of {totalCount} Trips</span>
+            <div className="flex gap-2">
+              <button 
+                disabled={page === 1}
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                className="px-3 py-1.5 border border-gray-200 rounded hover:bg-gray-100 disabled:opacity-50 text-gray-600 transition-colors"
+              >
+                Prev
+              </button>
+              <button className="px-3 py-1.5 border border-[#0052CC] bg-[#0052CC] rounded text-white shadow-sm">
+                {page}
+              </button>
+              <button 
+                disabled={!tripsData?.next}
+                onClick={() => setPage(p => p + 1)}
+                className="px-3 py-1.5 border border-gray-200 rounded hover:bg-gray-100 disabled:opacity-50 text-gray-600 transition-colors"
+              >
+                Next
+              </button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      <CreateTripModal 
+        isOpen={isCreateOpen} 
+        onClose={() => setIsCreateOpen(false)} 
+        drivers={drivers}
+        vehicles={vehicles}
+      />
     </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Sub-components for Modals
+// -----------------------------------------------------------------------------
+
+function CreateTripModal({ isOpen, onClose, drivers, vehicles }) {
+  const createTripMutation = useCreateTrip();
+
+  const [formData, setFormData] = useState({
+    trip_number: "",
+    primary_driver_id: "",
+    primary_vehicle_id: "",
+    origin: "",
+    destination: "",
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const payload = { ...formData };
+    if (!payload.origin) payload.origin = null;
+    if (!payload.destination) payload.destination = null;
+    if (!payload.trip_number) payload.trip_number = null;
+
+    createTripMutation.mutate(payload, {
+      onSuccess: () => {
+        setFormData({ trip_number: "", primary_driver_id: "", primary_vehicle_id: "", origin: "", destination: "" });
+        onClose();
+      }
+    });
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Plan New Trip">
+      <form onSubmit={handleSubmit} className="space-y-4 text-sm">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Driver *</label>
+            <select
+               required
+               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
+               value={formData.primary_driver_id}
+               onChange={e => setFormData({ ...formData, primary_driver_id: e.target.value })}
+            >
+              <option value="">Select Driver</option>
+              {drivers.map(d => (
+                <option key={d.id} value={d.id}>
+                  {d.user?.first_name || 'Driver'} {d.user?.last_name || ''} ({d.employee_id || d.id.slice(-6)})
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Vehicle *</label>
+             <select
+               required
+               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
+               value={formData.primary_vehicle_id}
+               onChange={e => setFormData({ ...formData, primary_vehicle_id: e.target.value })}
+            >
+              <option value="">Select Vehicle</option>
+              {vehicles.map(v => (
+                <option key={v.id} value={v.id}>
+                  {v.registration_number || v.registration || v.id.slice(-6)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Origin (Optional)</label>
+            <input 
+              type="text" 
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
+              placeholder="E.g., Mumbai Warehouse"
+              value={formData.origin}
+              onChange={e => setFormData({ ...formData, origin: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Destination (Optional)</label>
+            <input 
+              type="text" 
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
+              placeholder="E.g., Delhi DC"
+              value={formData.destination}
+              onChange={e => setFormData({ ...formData, destination: e.target.value })}
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-gray-700 font-medium mb-1">Trip Number (Optional)</label>
+          <input 
+            type="text" 
+            className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
+            placeholder="Auto-generated if left blank"
+            value={formData.trip_number}
+            onChange={e => setFormData({ ...formData, trip_number: e.target.value })}
+          />
+        </div>
+
+        <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+          <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
+          <button 
+            type="submit" 
+            disabled={createTripMutation.isPending}
+            className="px-4 py-2 text-white bg-[#0052CC] rounded-lg hover:bg-[#0747A6] shadow-sm disabled:opacity-50"
+          >
+            {createTripMutation.isPending ? 'Planning...' : 'Create Trip'}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }
