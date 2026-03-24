@@ -16,7 +16,7 @@ const TenantDashboard = () => {
         <Header />
 
         {/* Main Body Content */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-scroll scrollbar-hide h-[100vh]">
           <Outlet />
         </div>
       </div>
