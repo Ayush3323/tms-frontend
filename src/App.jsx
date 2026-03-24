@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { lazy, Suspense, useEffect } from "react";
 import { resolveTenantContext } from "./features/tenant/context/tenantContext";
+import NetworkStatusNotifier from "./shared/components/NetworkStatusNotifier";
 
 const AdminRoutes = lazy(() => import("./app/router/Router"));
 const TenantRoutes = lazy(() => import("./features/tenant/Router/Routing"));
@@ -24,6 +25,7 @@ function App() {
   return (
     <BrowserRouter>
       <Toaster position="top-center" />
+      <NetworkStatusNotifier />
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/" element={<Navigate to="/tenant/login" replace />} />
