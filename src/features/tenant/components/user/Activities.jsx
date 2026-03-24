@@ -118,7 +118,7 @@ const Activities = () => {
 
       {/* Activities Table */}
       <div className="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: 'calc(100vh - 310px)' }}>
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50/50">

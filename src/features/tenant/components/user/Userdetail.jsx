@@ -21,10 +21,10 @@ const UserDetail = () => {
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
-  const { data: usersData, isLoading, isError, error } = useUsers({ 
-    page: currentPage, 
+  const { data: usersData, isLoading, isError, error } = useUsers({
+    page: currentPage,
     page_size: 10,
-    search: debouncedSearch 
+    search: debouncedSearch
   });
   const updateMutation = useUpdateUser();
   const createMutation = useCreateUser();
@@ -40,10 +40,10 @@ const UserDetail = () => {
     reason: 'Account locked by administrator',
     duration_minutes: 30
   });
-  
+
   // Fetch full user details when a user is selected
   const { data: fullUserData, isLoading: isUserLoading } = useUser(selectedUser?.id);
-  
+
   const [formErrors, setFormErrors] = useState({});
   const [lastSyncedId, setLastSyncedId] = useState(null);
 
@@ -195,7 +195,7 @@ const UserDetail = () => {
     if (formData.date_of_birth) {
       const dob = new Date(formData.date_of_birth);
       const today = new Date();
-      
+
       if (dob > today) {
         errors.date_of_birth = "Date of birth cannot be in the future";
       } else {
@@ -227,10 +227,10 @@ const UserDetail = () => {
 
     // 2. Handle string errors or generic Error objects (e.g. 500 or DB constraints)
     const errorMsg = err.message || (typeof err === 'string' ? err : "An unexpected error occurred");
-    
+
     // Auto-detect specific DB constraints or general 500 errors as "username already exists" for creation
     if (
-      errorMsg.includes('users_username_key') || 
+      errorMsg.includes('users_username_key') ||
       (errorMsg.includes('username') && (errorMsg.includes('already exists') || errorMsg.includes('unique constraint'))) ||
       (modalType === 'create' && (errorMsg.includes('Internal Server Error') || errorMsg.includes('500') || errorMsg === "An error occurred on the server"))
     ) {
@@ -264,7 +264,7 @@ const UserDetail = () => {
         delete submissionData.password;
         delete submissionData.password_confirm;
       }
-      
+
       updateMutation.mutate({ id: selectedUser.id, data: submissionData }, {
         onSuccess: () => handleCloseModal(),
         onError: (err) => handleErrorResponse(err)
@@ -275,7 +275,7 @@ const UserDetail = () => {
   const handleToggleLock = (user) => {
     const isLocked = user.status === 'SUSPENDED' || user.status === 'LOCKED';
     setSelectedUser(user);
-    
+
     if (isLocked) {
       if (window.confirm(`Are you sure you want to unlock ${user.first_name}?`)) {
         unlockMutation.mutate(user.id);
@@ -293,8 +293,8 @@ const UserDetail = () => {
     e.preventDefault();
     if (!selectedUser) return;
 
-    lockMutation.mutate({ 
-      id: selectedUser.id, 
+    lockMutation.mutate({
+      id: selectedUser.id,
       payload: {
         reason: lockFormData.reason,
         duration_minutes: parseInt(lockFormData.duration_minutes)
@@ -327,7 +327,7 @@ const UserDetail = () => {
   );
 
   return (
-    <main className="p-8 bg-[#F4F5F7] min-h-screen relative">
+    <main className="p-6 bg-[#F4F5F7] overflow-hidden flex flex-col relative">
       {/* Page Title Section */}
       <div className="flex justify-between items-start mb-8">
         <div>
@@ -365,16 +365,16 @@ const UserDetail = () => {
           <div className="flex gap-3 items-center">
             <div className="relative">
               <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
-              <input 
-                type="text" 
-                placeholder="Search users by name, email..." 
+              <input
+                type="text"
+                placeholder="Search users by name, email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-100" 
+                className="pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-100"
               />
             </div>
           </div>
-          <button 
+          <button
             onClick={() => { setSearchTerm(''); setCurrentPage(1); }}
             className="text-gray-500 hover:text-gray-700 text-sm flex items-center gap-2 font-medium"
           >
@@ -383,9 +383,9 @@ const UserDetail = () => {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: 'calc(100vh - 310px)' }}>
           <table className="w-full text-left">
-            <thead className="bg-[#F8FAFC] border-b border-gray-100">
+            <thead className="bg-[#F8FAFC] border-b border-gray-100 sticky top-0 z-10">
               <tr className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
                 <th className="px-6 py-4">User Name</th>
                 <th className="px-6 py-4">Role / Type</th>
@@ -417,12 +417,11 @@ const UserDetail = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
-                        user.status === 'ACTIVE' ? 'bg-green-50 text-green-600 border-green-100' : 
-                        user.status === 'INACTIVE' ? 'bg-gray-50 text-gray-600 border-gray-100' : 
-                        (user.status === 'SUSPENDED' || user.status === 'LOCKED') ? 'bg-red-50 text-red-600 border-red-100' :
-                        'bg-red-50 text-red-600 border-red-100'
-                      }`}>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${user.status === 'ACTIVE' ? 'bg-green-50 text-green-600 border-green-100' :
+                        user.status === 'INACTIVE' ? 'bg-gray-50 text-gray-600 border-gray-100' :
+                          (user.status === 'SUSPENDED' || user.status === 'LOCKED') ? 'bg-red-50 text-red-600 border-red-100' :
+                            'bg-red-50 text-red-600 border-red-100'
+                        }`}>
                         {user.status || 'ACTIVE'}
                       </span>
                     </td>
@@ -431,11 +430,10 @@ const UserDetail = () => {
                         <button
                           onClick={() => handleToggleLock(user)}
                           title={(user.status === 'SUSPENDED' || user.status === 'LOCKED') ? 'Unlock User' : 'Lock User'}
-                          className={`p-1.5 rounded border transition-colors ${
-                            (user.status === 'SUSPENDED' || user.status === 'LOCKED') 
-                              ? 'bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100' 
-                              : 'hover:bg-gray-100 text-gray-400 border-gray-200'
-                          }`}
+                          className={`p-1.5 rounded border transition-colors ${(user.status === 'SUSPENDED' || user.status === 'LOCKED')
+                            ? 'bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100'
+                            : 'hover:bg-gray-100 text-gray-400 border-gray-200'
+                            }`}
                         >
                           {(user.status === 'SUSPENDED' || user.status === 'LOCKED') ? <Unlock size={14} /> : <Lock size={14} />}
                         </button>
@@ -459,7 +457,7 @@ const UserDetail = () => {
           <div className="text-sm text-gray-500">
             Showing <span className="font-bold text-[#172B4D]">{users.length}</span> of <span className="font-bold text-[#172B4D]">{usersData?.count || 0}</span> users
           </div>
-          
+
           <div className="flex items-center gap-3">
             <button
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
@@ -468,7 +466,7 @@ const UserDetail = () => {
             >
               Previous
             </button>
-            
+
             <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
               {currentPage}
             </div>
@@ -558,8 +556,8 @@ const UserDetail = () => {
                   {/* Global Errors */}
                   {formErrors.non_field_errors && (
                     <div className="p-3 bg-red-50 border border-red-100 rounded-lg flex items-center gap-2 text-red-600 text-xs font-bold animate-in fade-in slide-in-from-top-2">
-                       <ShieldAlert size={16} />
-                       {formErrors.non_field_errors}
+                      <ShieldAlert size={16} />
+                      {formErrors.non_field_errors}
                     </div>
                   )}
 
@@ -807,7 +805,7 @@ const UserDetail = () => {
                 <X size={20} />
               </button>
             </div>
-            
+
             <form onSubmit={handleLockSubmit} className="p-6 space-y-4">
               <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3">
                 <ShieldAlert className="text-red-500 shrink-0 mt-0.5" size={20} />
