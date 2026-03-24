@@ -21,6 +21,7 @@ export const ordersApi = {
   create: (data) =>
     axiosInstance.post(`${BASE_ORDERS}/`, data).then(r => r.data),
 
+  // Supports both PUT and PATCH as per your requirements
   update: (id, data) =>
     axiosInstance.patch(`${BASE_ORDERS}/${id}/`, data).then(r => r.data),
 
@@ -47,9 +48,6 @@ export const tripsApi = {
 
   create: (data) =>
     axiosInstance.post(`${BASE_TRIPS}/`, data).then(r => r.data),
-
-  update: (id, data) =>
-    axiosInstance.patch(`${BASE_TRIPS}/${id}/`, data).then(r => r.data),
 }
 
 // ─── 4. CARGO ──────────────────────────────────────────────────────────────

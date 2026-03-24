@@ -21,14 +21,33 @@ export const orderKeys = {
   tripDetail: (id) => [...orderKeys.trips(), 'detail', id],
 
   cargo: () => ['cargo'],
+  cargoList: (params) => [...orderKeys.cargo(), 'list', { params }],
+  cargoDetail: (id) => [...orderKeys.cargo(), 'detail', id],
+
   deliveries: () => ['deliveries'],
+  deliveryList: (params) => [...orderKeys.deliveries(), 'list', { params }],
+  deliveryDetail: (id) => [...orderKeys.deliveries(), 'detail', id],
 }
 
 // ─── ERROR HANDLER ───────────────────────────────────────────────────────────
 const handleApiError = (error, customMessage) => {
-  const message = error.response?.data?.detail || error.response?.data?.message || error.message || customMessage
-  toast.error(message)
-  console.error(`Order Service Error [${customMessage}]:`, error)
+  let message = customMessage;
+  if (error.response?.data) {
+    if (error.response.data.detail) {
+      message = error.response.data.detail;
+    } else if (error.response.data.message) {
+      message = error.response.data.message;
+    } else if (typeof error.response.data === 'object') {
+      const fields = Object.entries(error.response.data)
+        .map(([k, v]) => `${k}: ${Array.isArray(v) ? v[0] : v}`);
+      if (fields.length > 0) message = fields.join(' | ');
+    }
+  } else if (error.message) {
+    message = error.message;
+  }
+  
+  toast.error(message, { duration: 5000 })
+  console.error(`Order Service Error [${customMessage}]:`, JSON.stringify(error.response?.data || error, null, 2))
 }
 
 // ─── 1. ORDER (LR) HOOKS ─────────────────────────────────────────────────────
@@ -65,7 +84,9 @@ export const useCreateOrder = () => {
 export const useUpdateOrder = () => {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, data }) => ordersApi.update(id, data),
+    // logic to switch between patch (update) and put (replace) if needed
+    mutationFn: ({ id, data, fullReplace = false }) => 
+      fullReplace ? ordersApi.replace(id, data) : ordersApi.update(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: orderKeys.lists() })
       queryClient.invalidateQueries({ queryKey: orderKeys.detail(id) })
@@ -119,13 +140,34 @@ export const useTripDetail = (id) => {
   })
 }
 
+export const useCreateTrip = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data) => tripsApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.trips() })
+      toast.success('Trip created successfully')
+    },
+    onError: (err) => handleApiError(err, 'Could not create trip'),
+  })
+}
+
 // ─── 3. CARGO HOOKS ──────────────────────────────────────────────────────────
 
 export const useCargoItems = (params) => {
   return useQuery({
-    queryKey: [orderKeys.cargo(), params],
+    queryKey: orderKeys.cargoList(params),
     queryFn: () => cargoApi.list(params),
     onError: (err) => handleApiError(err, 'Failed to fetch cargo items'),
+  })
+}
+
+export const useCargoDetail = (id) => {
+  return useQuery({
+    queryKey: orderKeys.cargoDetail(id),
+    queryFn: () => cargoApi.get(id),
+    enabled: !!id,
+    onError: (err) => handleApiError(err, 'Failed to fetch cargo detail'),
   })
 }
 
@@ -145,9 +187,18 @@ export const useCreateCargo = () => {
 
 export const useDeliveries = (params) => {
   return useQuery({
-    queryKey: [orderKeys.deliveries(), params],
+    queryKey: orderKeys.deliveryList(params),
     queryFn: () => deliveriesApi.list(params),
     onError: (err) => handleApiError(err, 'Failed to fetch POD records'),
+  })
+}
+
+export const useDeliveryDetail = (id) => {
+  return useQuery({
+    queryKey: orderKeys.deliveryDetail(id),
+    queryFn: () => deliveriesApi.get(id),
+    enabled: !!id,
+    onError: (err) => handleApiError(err, 'Failed to fetch delivery record'),
   })
 }
 
