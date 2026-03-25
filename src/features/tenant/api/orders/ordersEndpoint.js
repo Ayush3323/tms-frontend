@@ -48,6 +48,30 @@ export const tripsApi = {
 
   create: (data) =>
     axiosInstance.post(`${BASE_TRIPS}/`, data).then(r => r.data),
+
+  // --- Sub-resources ---
+  listStops: (tripId) =>
+    axiosInstance.get(`${BASE_TRIPS}/${tripId}/stops/`).then(r => r.data),
+  createStop: (tripId, data) =>
+    axiosInstance.post(`${BASE_TRIPS}/${tripId}/stops/`, data).then(r => r.data),
+
+  listStatusHistory: (tripId) =>
+    axiosInstance.get(`${BASE_TRIPS}/${tripId}/status-history/`).then(r => r.data),
+
+  listDocuments: (tripId) =>
+    axiosInstance.get(`${BASE_TRIPS}/${tripId}/documents/`).then(r => r.data),
+  createDocument: (tripId, data) =>
+    axiosInstance.post(`${BASE_TRIPS}/${tripId}/documents/`, data).then(r => r.data),
+
+  listExpenses: (tripId) =>
+    axiosInstance.get(`${BASE_TRIPS}/${tripId}/expenses/`).then(r => r.data),
+  createExpense: (tripId, data) =>
+    axiosInstance.post(`${BASE_TRIPS}/${tripId}/expenses/`, data).then(r => r.data),
+
+  listCharges: (tripId) =>
+    axiosInstance.get(`${BASE_TRIPS}/${tripId}/charges/`).then(r => r.data),
+  createCharge: (tripId, data) =>
+    axiosInstance.post(`${BASE_TRIPS}/${tripId}/charges/`, data).then(r => r.data),
 }
 
 // ─── 4. CARGO ──────────────────────────────────────────────────────────────

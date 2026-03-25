@@ -4,7 +4,7 @@ import {
   MapPin, Calendar, Truck, CheckCircle2, 
   Clock, AlertTriangle, RefreshCcw, User, Hash, X, Eye
 } from 'lucide-react';
-import { useTrips, useCreateTrip } from '../../queries/orders/ordersQuery';
+import { useTrips, useCreateTrip, useTripDetail } from '../../queries/orders/ordersQuery';
 import { useDrivers } from '../../queries/drivers/driverCoreQuery';
 import { useVehicles } from '../../queries/vehicles/vehicleQuery';
 
@@ -57,6 +57,7 @@ export default function TripsMainBody() {
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isViewOpen, setIsViewOpen] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState(null);
 
   // Queries
@@ -98,6 +99,11 @@ export default function TripsMainBody() {
   const handleEditClick = (trip) => {
     setSelectedTrip(trip);
     setIsEditOpen(true);
+  };
+
+  const handleViewClick = (trip) => {
+    setSelectedTrip(trip);
+    setIsViewOpen(true);
   };
 
   return (
@@ -265,6 +271,13 @@ export default function TripsMainBody() {
                       </td>
                       <td className="px-6 py-5 text-right">
                         <div className="flex items-center justify-end gap-2 transition-opacity">
+                          <button 
+                            onClick={() => handleViewClick(trip)}
+                            title="View Details"
+                            className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg"
+                          >
+                            <Eye size={16} />
+                          </button>
                           {/* Trip editing disabled per API capabilities */}
                         </div>
                       </td>
@@ -291,6 +304,14 @@ export default function TripsMainBody() {
         drivers={drivers}
         vehicles={vehicles}
       />
+
+      <ViewTripModal
+        isOpen={isViewOpen}
+        onClose={() => setIsViewOpen(false)}
+        tripId={selectedTrip?.id}
+        drivers={drivers}
+        vehicles={vehicles}
+      />
     </div>
   );
 }
@@ -303,23 +324,39 @@ function CreateTripModal({ isOpen, onClose, drivers, vehicles }) {
   const createTripMutation = useCreateTrip();
 
   const [formData, setFormData] = useState({
+    order_id: "",
     trip_number: "",
+    lr_number: "",
+    reference_number: "",
+    trip_type: "FTL",
+    scheduled_pickup_date: "",
+    scheduled_delivery_date: "",
     primary_driver_id: "",
     primary_vehicle_id: "",
-    origin: "",
-    destination: "",
+    status: "CREATED",
+    origin_address: "",
+    destination_address: "",
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const payload = { ...formData };
-    if (!payload.origin) payload.origin = null;
-    if (!payload.destination) payload.destination = null;
-    if (!payload.trip_number) payload.trip_number = null;
+    
+    // Clean up empty optional fields
+    Object.keys(payload).forEach(key => {
+      if (payload[key] === "" || payload[key] === null) {
+        delete payload[key];
+      }
+    });
 
     createTripMutation.mutate(payload, {
       onSuccess: () => {
-        setFormData({ trip_number: "", primary_driver_id: "", primary_vehicle_id: "", origin: "", destination: "" });
+        setFormData({ 
+          order_id: "", trip_number: "", lr_number: "", reference_number: "",
+          trip_type: "FTL", scheduled_pickup_date: "", scheduled_delivery_date: "",
+          primary_driver_id: "", primary_vehicle_id: "", status: "CREATED",
+          origin_address: "", destination_address: "" 
+        });
         onClose();
       }
     });
@@ -365,36 +402,119 @@ function CreateTripModal({ isOpen, onClose, drivers, vehicles }) {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-gray-700 font-medium mb-1">Origin (Optional)</label>
+            <label className="block text-gray-700 font-medium mb-1">Trip Number</label>
             <input 
               type="text" 
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
-              placeholder="E.g., Mumbai Warehouse"
-              value={formData.origin}
-              onChange={e => setFormData({ ...formData, origin: e.target.value })}
+              placeholder="Auto-generated if empty"
+              value={formData.trip_number}
+              onChange={e => setFormData({ ...formData, trip_number: e.target.value })}
             />
           </div>
           <div>
-            <label className="block text-gray-700 font-medium mb-1">Destination (Optional)</label>
+            <label className="block text-gray-700 font-medium mb-1">Trip Type</label>
+            <select
+               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
+               value={formData.trip_type}
+               onChange={e => setFormData({ ...formData, trip_type: e.target.value })}
+            >
+              <option value="FTL">FTL</option>
+              <option value="LTL">LTL</option>
+              <option value="CONTAINER">CONTAINER</option>
+              <option value="COURIER">COURIER</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Order ID (Linked)</label>
             <input 
               type="text" 
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
-              placeholder="E.g., Delhi DC"
-              value={formData.destination}
-              onChange={e => setFormData({ ...formData, destination: e.target.value })}
+              placeholder="Optional Order UUID"
+              value={formData.order_id}
+              onChange={e => setFormData({ ...formData, order_id: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Status</label>
+            <select
+               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
+               value={formData.status}
+               onChange={e => setFormData({ ...formData, status: e.target.value })}
+            >
+              <option value="CREATED">CREATED</option>
+              <option value="STARTED">STARTED</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">LR Number</label>
+            <input 
+              type="text" 
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
+              placeholder="LR-000X"
+              value={formData.lr_number}
+              onChange={e => setFormData({ ...formData, lr_number: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Reference Number</label>
+            <input 
+              type="text" 
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
+              placeholder="PO-XXXX"
+              value={formData.reference_number}
+              onChange={e => setFormData({ ...formData, reference_number: e.target.value })}
             />
           </div>
         </div>
 
-        <div>
-          <label className="block text-gray-700 font-medium mb-1">Trip Number (Optional)</label>
-          <input 
-            type="text" 
-            className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
-            placeholder="Auto-generated if left blank"
-            value={formData.trip_number}
-            onChange={e => setFormData({ ...formData, trip_number: e.target.value })}
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Origin Address</label>
+            <input 
+              type="text" 
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
+              placeholder="Mumbai Warehouse"
+              value={formData.origin_address}
+              onChange={e => setFormData({ ...formData, origin_address: e.target.value })}
+            />
+          </div>
+          <div>
+             <label className="block text-gray-700 font-medium mb-1">Destination Address</label>
+             <input 
+               type="text" 
+               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
+               placeholder="Delhi DC"
+               value={formData.destination_address}
+               onChange={e => setFormData({ ...formData, destination_address: e.target.value })}
+             />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+           <div>
+             <label className="block text-gray-700 font-medium mb-1">Scheduled Pickup</label>
+             <input 
+               type="date" 
+               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
+               value={formData.scheduled_pickup_date}
+               onChange={e => setFormData({ ...formData, scheduled_pickup_date: e.target.value })}
+             />
+           </div>
+           <div>
+             <label className="block text-gray-700 font-medium mb-1">Scheduled Delivery</label>
+             <input 
+               type="date" 
+               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
+               value={formData.scheduled_delivery_date}
+               onChange={e => setFormData({ ...formData, scheduled_delivery_date: e.target.value })}
+             />
+           </div>
         </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
@@ -408,6 +528,114 @@ function CreateTripModal({ isOpen, onClose, drivers, vehicles }) {
           </button>
         </div>
       </form>
+    </Modal>
+  );
+}
+
+function ViewTripModal({ isOpen, onClose, tripId, drivers, vehicles }) {
+  const { data: trip, isLoading } = useTripDetail(tripId);
+
+  const getDriverDisplay = (id) => {
+    if (!id) return 'Unassigned';
+    const d = drivers.find(dr => dr.id === id);
+    if (!d) return id.slice(-6);
+    return `${d.user?.first_name || 'Driver'} ${d.user?.last_name || ''}`.trim() || d.employee_id || id.slice(-6);
+  };
+
+  const getVehicleDisplay = (id) => {
+    if (!id) return 'Unassigned';
+    const v = vehicles.find(vh => vh.id === id);
+    if (!v) return id.slice(-6);
+    return v.registration_number || v.registration || id.slice(-6);
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Trip Details">
+      {isLoading ? (
+        <div className="flex justify-center items-center h-40">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0052CC]"></div>
+        </div>
+      ) : trip ? (
+        <div className="space-y-6 text-sm">
+          {/* Main Info */}
+          <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+             <div className="grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-6">
+                <div>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Trip Number</p>
+                  <p className="font-semibold text-gray-800">{trip.trip_number || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Status</p>
+                  <StatusBadge status={trip.status} />
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Start Time</p>
+                  <p className="font-semibold text-gray-800">{trip.start_time ? new Date(trip.start_time).toLocaleString() : '-'}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">End Time</p>
+                  <p className="font-semibold text-gray-800">{trip.end_time ? new Date(trip.end_time).toLocaleString() : '-'}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Origin</p>
+                  <p className="font-semibold text-gray-800">{trip.origin || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Destination</p>
+                  <p className="font-semibold text-gray-800">{trip.destination || '-'}</p>
+                </div>
+             </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+             {/* Fleet Info */}
+             <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                <h3 className="font-bold text-gray-800 border-b pb-2 mb-3">Fleet Information</h3>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Primary Driver</p>
+                    <p className="font-medium text-gray-700">{getDriverDisplay(trip.primary_driver_id || trip.driver_id)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Vehicle</p>
+                    <p className="font-medium text-gray-700">{getVehicleDisplay(trip.primary_vehicle_id || trip.vehicle_id)}</p>
+                  </div>
+                </div>
+             </div>
+
+             {/* System Details */}
+             <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+                <h3 className="font-bold text-gray-800 border-b pb-2 mb-3">System Details</h3>
+                <div className="space-y-3 flex-1">
+                  <div>
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Trip ID</p>
+                    <p className="font-mono text-xs text-gray-600 truncate" title={trip.id}>{trip.id}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Created By</p>
+                    <p className="font-mono text-xs text-gray-600 truncate">{trip.created_by || 'System'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Created At</p>
+                    <p className="font-medium text-gray-700">{trip.created_at ? new Date(trip.created_at).toLocaleString() : '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Last Updated</p>
+                    <p className="font-medium text-gray-700">{trip.updated_at ? new Date(trip.updated_at).toLocaleString() : '-'}</p>
+                  </div>
+                </div>
+             </div>
+          </div>
+        </div>
+      ) : (
+        <div className="text-center text-gray-500 py-8">Failed to load trip details</div>
+      )}
+      
+      <div className="flex justify-end pt-4 border-t border-gray-100 mt-6">
+        <button onClick={onClose} className="px-4 py-2 text-white bg-[#0052CC] rounded-lg hover:bg-[#0747A6] shadow-sm font-medium transition-colors">
+          Close
+        </button>
+      </div>
     </Modal>
   );
 }
