@@ -8,6 +8,29 @@ import {
   subscribeTenantContext,
 } from '../context/tenantContext';
 
+const getLoginErrorMessage = (error) => {
+  const data = error?.response?.data;
+  if (!data) return "Invalid credentials. Please try again.";
+
+  if (typeof data === "string" && data.trim()) return data;
+  if (typeof data?.message === "string" && data.message.trim()) return data.message;
+  if (typeof data?.detail === "string" && data.detail.trim()) {
+    const detail = data.detail.trim();
+    if (detail.toLowerCase().includes("no active account")) {
+      return "Login failed: this account may be locked/inactive or credentials are incorrect. Contact admin to unlock if needed.";
+    }
+    return detail;
+  }
+  if (Array.isArray(data?.non_field_errors) && data.non_field_errors.length > 0) {
+    return data.non_field_errors[0];
+  }
+  if (Array.isArray(data?.errors) && data.errors.length > 0) {
+    return String(data.errors[0]);
+  }
+
+  return "Invalid credentials. Please try again.";
+};
+
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -127,15 +150,21 @@ const Login = () => {
             )}
 
             {tenantState?.status === "error" && (
-              <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
-                Unable to resolve tenant for this domain. Use a valid tenant domain or set <code>tenant_domain</code> query param locally.
+              <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2 space-y-1">
+                <p>
+                  Unable to resolve tenant for this domain. Use a valid <code>tenant_domain</code> query param or clear stale{" "}
+                  <code>tenant_domain_override</code> in local storage.
+                </p>
+                {tenantState?.error?.message && (
+                  <p className="text-red-700 whitespace-pre-wrap break-words">{tenantState.error.message}</p>
+                )}
               </div>
             )}
 
             {/* Error Message */}
             {isError && (
               <div className="text-red-500 text-sm mt-2">
-                {error?.response?.data?.message || "Invalid credentials. Please try again."}
+                {getLoginErrorMessage(error)}
               </div>
             )}
 

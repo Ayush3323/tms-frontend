@@ -63,7 +63,9 @@ export const AddAssignmentModal = ({ driverId, onClose }) => {
 
   const handleSubmit = () => {
     setError('');
-    const hasActive = assignmentsData?.results?.some(a => a.is_active === true);
+    const hasActive = assignmentsData?.results?.some(
+      (a) => a.is_active === true || a.is_active === 'true' || a.is_active === 1 || a.is_active === '1'
+    );
     if (hasActive) return setError('You cannot add more than 1 vehicle to driver at one time.');
 
     if (!targetDriverId) return setError('Please select a driver.');
@@ -169,7 +171,11 @@ export const EditAssignmentModal = ({ assignment, driverId, onClose }) => {
     
     // Check if trying to activate this one while another is already active
     if (form.is_active) {
-      const otherActive = assignmentsData?.results?.some(a => a.is_active === true && a.id !== assignment.id);
+      const otherActive = assignmentsData?.results?.some(
+        (a) =>
+          (a.is_active === true || a.is_active === 'true' || a.is_active === 1 || a.is_active === '1') &&
+          a.id !== assignment.id
+      );
       if (otherActive) return setError('Another vehicle is already active for this driver. Please deactivate it first.');
     }
 

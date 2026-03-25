@@ -2,6 +2,7 @@ import { API_BASE_URL } from "../../../config/apiConfig";
 
 const TENANT_STORAGE_KEY = "resolved_tenant_context";
 const TENANT_DOMAIN_OVERRIDE_KEY = "tenant_domain_override";
+const RESOLVE_TIMEOUT_MS = 15000;
 
 let tenantState = {
   status: "idle", // idle | loading | resolved | error
@@ -11,6 +12,18 @@ let tenantState = {
 
 let inflightResolve = null;
 const listeners = new Set();
+
+// Small helper to avoid hanging requests during tenant resolve.
+async function fetchWithTimeout(url, options = {}, timeoutMs = RESOLVE_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 function notify() {
   listeners.forEach((listener) => listener(tenantState));
@@ -121,11 +134,11 @@ export async function resolveTenantContext(force = false) {
     throw err;
   }
 
-  inflightResolve = fetch(
-    `${API_BASE_URL}/api/v1/public/tenant/resolve/?domain=${encodeURIComponent(
-      resolvedDomain
-    )}`
-  )
+  const resolveUrl = `${API_BASE_URL}/api/v1/public/tenant/resolve/?domain=${encodeURIComponent(
+    resolvedDomain
+  )}`;
+
+  inflightResolve = fetchWithTimeout(resolveUrl)
     .then(async (res) => {
       if (!res.ok) {
         throw new Error(`Tenant resolve failed with status ${res.status}`);
@@ -138,9 +151,15 @@ export async function resolveTenantContext(force = false) {
       return withDomain;
     })
     .catch((error) => {
-      tenantState = { status: "error", data: null, error };
+      const err =
+        error?.name === "AbortError"
+          ? new Error(
+              `Tenant resolve timed out after ${RESOLVE_TIMEOUT_MS / 1000}s. Is the API gateway reachable at ${API_BASE_URL}? Set VITE_API_BASE_URL if the gateway uses another host or port.`
+            )
+          : error;
+      tenantState = { status: "error", data: null, error: err };
       notify();
-      throw error;
+      throw err;
     })
     .finally(() => {
       inflightResolve = null;

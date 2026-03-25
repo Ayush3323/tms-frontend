@@ -41,6 +41,9 @@ export const vehiclesApi = {
   delete: (id) =>
     axiosInstance.delete(`${BASE_VEHICLES}/${id}/`).then(r => r.data),
 
+  restore: (id) =>
+    axiosInstance.post(`${BASE_VEHICLES}/${id}/restore/`).then(r => r.data),
+
   getDocuments: (id) =>
     axiosInstance.get(`${BASE_VEHICLES}/${id}/documents/`).then(r => r.data),
 

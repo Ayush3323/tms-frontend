@@ -48,6 +48,10 @@ function setAccessToken(token) {
 
 let refreshPromise = null;
 
+function isAuthEndpoint(url = "") {
+    return url.includes("/api/v1/auth/login/") || url.includes("/api/v1/auth/refresh/");
+}
+
 
 // Request interceptor to attach access token
 axiosInstance.interceptors.request.use(async (config) => {
@@ -72,17 +76,20 @@ axiosInstance.interceptors.response.use(
     },
     async (error) => {
         const originalRequest = error.config;
+        const requestUrl = originalRequest?.url || "";
+        const refreshToken = getRefreshToken();
 
-        // If error is 401 (Unauthorized) and we haven't tried refreshing yet
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        // Do not attempt token refresh on auth endpoints (login/refresh),
+        // or when no refresh token exists.
+        if (
+            error.response?.status === 401 &&
+            !originalRequest?._retry &&
+            !isAuthEndpoint(requestUrl) &&
+            refreshToken
+        ) {
             originalRequest._retry = true;
 
             try {
-                const refreshToken = getRefreshToken();
-                if (!refreshToken) {
-                    throw new Error("Missing refresh token");
-                }
-
                 // Single-flight refresh: if multiple requests 401 together, only refresh once.
                 if (!refreshPromise) {
                     const tenant = await ensureTenantContext();
