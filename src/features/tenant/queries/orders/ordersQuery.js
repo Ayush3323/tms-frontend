@@ -16,9 +16,14 @@ export const orderKeys = {
   details: () => [...orderKeys.all, 'detail'],
   detail: (id) => [...orderKeys.details(), id],
 
-  trips: () => ['trips'],
-  tripList: (params) => [...orderKeys.trips(), 'list', { params }],
-  tripDetail: (id) => [...orderKeys.trips(), 'detail', id],
+   trips: () => ['trips'],
+   tripList: (params) => [...orderKeys.trips(), 'list', { params }],
+   tripDetail: (id) => [...orderKeys.trips(), 'detail', id],
+   tripStops: (id) => [...orderKeys.tripDetail(id), 'stops'],
+   tripStatusHistory: (id) => [...orderKeys.tripDetail(id), 'status-history'],
+   tripDocuments: (id) => [...orderKeys.tripDetail(id), 'documents'],
+   tripExpenses: (id) => [...orderKeys.tripDetail(id), 'expenses'],
+   tripCharges: (id) => [...orderKeys.tripDetail(id), 'charges'],
 
   cargo: () => ['cargo'],
   cargoList: (params) => [...orderKeys.cargo(), 'list', { params }],
@@ -38,9 +43,12 @@ const handleApiError = (error, customMessage) => {
     } else if (error.response.data.message) {
       message = error.response.data.message;
     } else if (typeof error.response.data === 'object') {
-      const fields = Object.entries(error.response.data)
-        .map(([k, v]) => `${k}: ${Array.isArray(v) ? v[0] : v}`);
-      if (fields.length > 0) message = fields.join(' | ');
+      const ObjectStrings = [];
+      for (const [key, value] of Object.entries(error.response.data)) {
+        const valStr = typeof value === 'object' ? JSON.stringify(value) : value;
+        ObjectStrings.push(`${key}: ${valStr}`);
+      }
+      if (ObjectStrings.length > 0) message = ObjectStrings.join(' | ');
     }
   } else if (error.message) {
     message = error.message;
@@ -151,6 +159,102 @@ export const useCreateTrip = () => {
     onError: (err) => handleApiError(err, 'Could not create trip'),
   })
 }
+
+// ─── 2.1 TRIP SUB-RESOURCE HOOKS ─────────────────────────────────────────────
+
+export const useTripStops = (tripId) => {
+  return useQuery({
+    queryKey: orderKeys.tripStops(tripId),
+    queryFn: () => tripsApi.listStops(tripId),
+    enabled: !!tripId,
+    onError: (err) => handleApiError(err, 'Failed to fetch trip stops'),
+  })
+}
+
+export const useCreateTripStop = (tripId) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data) => tripsApi.createStop(tripId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.tripStops(tripId) })
+      toast.success('Trip stop added')
+    },
+    onError: (err) => handleApiError(err, 'Failed to add trip stop'),
+  })
+}
+
+export const useTripStatusHistory = (tripId) => {
+  return useQuery({
+    queryKey: orderKeys.tripStatusHistory(tripId),
+    queryFn: () => tripsApi.listStatusHistory(tripId),
+    enabled: !!tripId,
+    onError: (err) => handleApiError(err, 'Failed to fetch trip history'),
+  })
+}
+
+export const useTripDocuments = (tripId) => {
+  return useQuery({
+    queryKey: orderKeys.tripDocuments(tripId),
+    queryFn: () => tripsApi.listDocuments(tripId),
+    enabled: !!tripId,
+    onError: (err) => handleApiError(err, 'Failed to fetch trip documents'),
+  })
+}
+
+export const useCreateTripDocument = (tripId) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data) => tripsApi.createDocument(tripId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.tripDocuments(tripId) })
+      toast.success('Document uploaded')
+    },
+    onError: (err) => handleApiError(err, 'Failed to upload document'),
+  })
+}
+
+export const useTripExpenses = (tripId) => {
+  return useQuery({
+    queryKey: orderKeys.tripExpenses(tripId),
+    queryFn: () => tripsApi.listExpenses(tripId),
+    enabled: !!tripId,
+    onError: (err) => handleApiError(err, 'Failed to fetch trip expenses'),
+  })
+}
+
+export const useCreateTripExpense = (tripId) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data) => tripsApi.createExpense(tripId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.tripExpenses(tripId) })
+      toast.success('Expense recorded')
+    },
+    onError: (err) => handleApiError(err, 'Failed to record expense'),
+  })
+}
+
+export const useTripCharges = (tripId) => {
+  return useQuery({
+    queryKey: orderKeys.tripCharges(tripId),
+    queryFn: () => tripsApi.listCharges(tripId),
+    enabled: !!tripId,
+    onError: (err) => handleApiError(err, 'Failed to fetch trip charges'),
+  })
+}
+
+export const useCreateTripCharge = (tripId) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data) => tripsApi.createCharge(tripId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.tripCharges(tripId) })
+      toast.success('Charge added')
+    },
+    onError: (err) => handleApiError(err, 'Failed to add charge'),
+  })
+}
+
 
 // ─── 3. CARGO HOOKS ──────────────────────────────────────────────────────────
 
