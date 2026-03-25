@@ -342,24 +342,25 @@ const UserDetail = () => {
         </button>
       </div>
 
-      {/* Metric Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {isLoading
-          ? Array(2).fill(0).map((_, i) => <ShimmerCard key={i} />)
-          : stats.map((stat, i) => (
-            <div key={i} className="bg-white p-4 lg:p-5 rounded-xl border border-gray-100 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-blue-200 w-full max-w-[240px]">
-              <p className="text-[10px] font-bold text-gray-400 tracking-wider mb-1.5 uppercase">{stat.label}</p>
-              <div className="flex items-baseline gap-2">
-                <span className={`text-3xl font-black ${stat.textColor || 'text-[#172B4D]'}`}>{stat.value}</span>
-              </div>
-              <p className="text-xs text-gray-400 mt-1.5">{stat.sub}</p>
-            </div>
-          ))
-        }
-      </div>
-
       {/* Table Container */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden mt-2">
+        {/* Stats Row */}
+        <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+          {isLoading ? (
+            <div className="flex gap-6 animate-pulse">
+               <div className="h-5 bg-gray-200 rounded w-32"></div>
+               <div className="h-5 bg-gray-200 rounded w-24"></div>
+            </div>
+          ) : (
+            stats.map((stat, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">{stat.label}:</span>
+                <span className={`text-[18px] font-black ${stat.textColor || 'text-[#172B4D]'}`}>{stat.value}</span>
+              </div>
+            ))
+          )}
+        </div>
+
         {/* Filters Bar */}
         <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-white">
           <div className="flex gap-3 items-center">

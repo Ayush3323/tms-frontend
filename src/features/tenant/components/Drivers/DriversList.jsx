@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   Search, Plus, Download, RefreshCw, Eye, EyeOff,
   ChevronDown, Loader2, AlertCircle,
-  UserCheck, Users, UserX, UserMinus,
   IdCard, ArrowUpDown, ArrowUp, ArrowDown,
   X, User, Car,
 } from 'lucide-react';
@@ -217,23 +216,6 @@ const AddDriverModal = ({ onClose }) => {
 // ── ADD DRIVER MODAL END ──────────────────────────────────────────────
 // ─────────────────────────────────────────────────────────────────────
 
-// eslint-disable-next-line no-unused-vars
-const StatCard = ({ label, value, color, IconComponent, loading }) => {
-  return (
-    <div className="bg-white p-4 lg:p-5 rounded-xl border border-gray-100 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-blue-200 w-full max-w-[240px]">
-      <p className="text-[10px] font-bold text-gray-400 tracking-wider mb-1.5 uppercase">{label}</p>
-      <div className="flex items-baseline gap-2">
-        {loading ? (
-          <div className="h-8 w-16 bg-gray-200 animate-pulse rounded"></div>
-        ) : (
-          <span className={`text-3xl font-black ${color.value || 'text-[#172B4D]'}`}>{value}</span>
-        )}
-      </div>
-      <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1.5"><span className="text-sm opacity-50"><IconComponent size={12} /></span> <span>View Details</span></p>
-    </div>
-  );
-};
-
 // ── Main Component ────────────────────────────────────────────────────
 const DriversList = () => {
   const [search, setSearch] = useState('');
@@ -405,16 +387,39 @@ const DriversList = () => {
         </div>
       </div>
 
-      {/* ── Stat Cards ── */}
-      <div className="grid grid-cols-4 gap-4">
-        <StatCard loading={isLoading} label="Total Drivers" value={total} IconComponent={Users} color={{ value: 'text-[#172B4D]', iconBg: 'bg-blue-50', iconText: 'text-blue-500', border: 'border-t-[#0052CC]' }} />
-        <StatCard loading={isLoading} label="Active" value={active} IconComponent={UserCheck} color={{ value: 'text-green-600', iconBg: 'bg-green-50', iconText: 'text-green-500', border: 'border-t-green-500' }} />
-        <StatCard loading={isLoading} label="Inactive" value={inactive} IconComponent={UserMinus} color={{ value: 'text-orange-500', iconBg: 'bg-orange-50', iconText: 'text-orange-500', border: 'border-t-orange-500' }} />
-        <StatCard loading={isLoading} label="Suspended" value={suspended} IconComponent={UserX} color={{ value: 'text-red-500', iconBg: 'bg-red-50', iconText: 'text-red-400', border: 'border-t-red-500' }} />
-      </div>
-
       {/* ── Table Card ── */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden mt-2">
+
+        {/* Compact Stats Row */}
+        <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+          {isLoading ? (
+            <div className="flex gap-6 animate-pulse">
+              <div className="h-5 bg-gray-200 rounded w-24"></div>
+              <div className="h-5 bg-gray-200 rounded w-24"></div>
+              <div className="h-5 bg-gray-200 rounded w-24"></div>
+              <div className="h-5 bg-gray-200 rounded w-24"></div>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total Drivers:</span>
+                <span className="text-[18px] font-black text-[#172B4D]">{total}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Active:</span>
+                <span className="text-[18px] font-black text-green-600">{active}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Inactive:</span>
+                <span className="text-[18px] font-black text-orange-500">{inactive}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Suspended:</span>
+                <span className="text-[18px] font-black text-red-500">{suspended}</span>
+              </div>
+            </>
+          )}
+        </div>
 
         {/* ── Filters Row 1 ── */}
         <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-white flex-wrap gap-4">

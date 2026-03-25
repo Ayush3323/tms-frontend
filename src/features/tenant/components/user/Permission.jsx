@@ -38,10 +38,6 @@ const Permission = () => {
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [viewMode]);
-
   const { data: permissionsData, isLoading: isAllPermissionsLoading, isError: isAllPermissionsError, error: allPermissionsError } =
     usePermissions({
       page: currentPage,
@@ -180,7 +176,7 @@ const Permission = () => {
         <div className="inline-flex bg-white border border-gray-200 rounded-xl p-1 shadow-sm">
           <button
             type="button"
-            onClick={() => setViewMode('mine')}
+            onClick={() => { setViewMode('mine'); setCurrentPage(1); }}
             className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
               isShowingMine ? 'bg-[#0052CC] text-white shadow-sm' : 'text-gray-500 hover:text-[#172B4D]'
             }`}
@@ -189,7 +185,7 @@ const Permission = () => {
           </button>
           <button
             type="button"
-            onClick={() => setViewMode('all')}
+            onClick={() => { setViewMode('all'); setCurrentPage(1); }}
             className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
               !isShowingMine ? 'bg-[#0052CC] text-white shadow-sm' : 'text-gray-500 hover:text-[#172B4D]'
             }`}
@@ -199,22 +195,26 @@ const Permission = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {isLoading
-          ? Array(2).fill(0).map((_, index) => <ShimmerCard key={index} />)
-          : stats.map((stat, index) => (
-            <div key={index} className="bg-white p-4 lg:p-5 rounded-xl border border-gray-100 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-blue-200 w-full max-w-[240px]">
-              <p className="text-[10px] font-bold text-gray-400 tracking-wider mb-1.5 uppercase">{stat.label}</p>
-              <div className="flex items-baseline gap-2">
-                <span className={`text-3xl font-black ${stat.textColor || 'text-[#172B4D]'}`}>{stat.value}</span>
-              </div>
-              <p className="text-xs text-gray-400 mt-1.5">{stat.sub}</p>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-2 mt-2 overflow-hidden">
+        {/* Stats Row */}
+        <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+          {isLoading ? (
+            <div className="flex gap-6 animate-pulse">
+               <div className="h-5 bg-gray-200 rounded w-32"></div>
+               <div className="h-5 bg-gray-200 rounded w-24"></div>
             </div>
-          ))}
-      </div>
+          ) : (
+            stats.map((stat, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">{stat.label}:</span>
+                <span className={`text-[18px] font-black ${stat.textColor || 'text-[#172B4D]'}`}>{stat.value}</span>
+              </div>
+            ))
+          )}
+        </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6 overflow-hidden">
-        <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-white flex-wrap gap-4">
+        {/* Filters Bar */}
+        <div className="p-4 flex items-center justify-between bg-white flex-wrap gap-4">
           <div className="flex gap-3 items-center flex-wrap flex-1">
             <div className="relative">
               <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />

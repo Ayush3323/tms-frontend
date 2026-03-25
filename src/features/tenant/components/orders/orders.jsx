@@ -29,22 +29,7 @@ const TYPE_COLORS = {
   MULTI_DROP: 'bg-pink-100 text-pink-700',
 };
 
-// --- Sub-components ---
-const StatCard = ({ label, value, colorClass, emoji, isLoading }) => {
-  return (
-    <div className="bg-white p-4 lg:p-5 rounded-xl border border-gray-100 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-blue-200 w-full max-w-[240px]">
-      <p className="text-[10px] font-bold text-gray-400 tracking-wider mb-1.5 uppercase">{label}</p>
-      <div className="flex items-baseline gap-2">
-        {isLoading ? (
-          <div className="h-8 w-16 bg-gray-200 animate-pulse rounded"></div>
-        ) : (
-          <span className={`text-3xl font-black ${colorClass || 'text-[#172B4D]'}`}>{value}</span>
-        )}
-      </div>
-      {emoji && <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1.5"><span className="text-sm opacity-80">{emoji}</span> <span>Metrics</span></p>}
-    </div>
-  );
-};
+
 
 const StatusBadge = ({ status }) => {
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.DRAFT;
@@ -159,16 +144,38 @@ export default function OrdersMainBody() {
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <StatCard label="Total Orders" value={stats.total} colorClass="text-[#4a6cf7]" emoji="📦" isLoading={isLoading} />
-          <StatCard label="Confirmed (Page)" value={stats.confirmed} colorClass="text-[#43a047]" emoji="✅" isLoading={isLoading} />
-          <StatCard label="In Transit (Page)" value={stats.inTransit} colorClass="text-[#ffa000]" emoji="🚛" isLoading={isLoading} />
-          <StatCard label="Cancelled (Page)" value={stats.cancelled} colorClass="text-[#e53935]" emoji="🚫" isLoading={isLoading} />
-        </div>
-
         {/* Main Table Container */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden mt-2">
+          {/* Compact Stats Row */}
+          <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+            {isLoading ? (
+              <div className="flex gap-6 animate-pulse">
+                <div className="h-5 bg-gray-200 rounded w-28"></div>
+                <div className="h-5 bg-gray-200 rounded w-28"></div>
+                <div className="h-5 bg-gray-200 rounded w-28"></div>
+                <div className="h-5 bg-gray-200 rounded w-28"></div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total Orders:</span>
+                  <span className="text-[18px] font-black text-[#172B4D]">{stats.total}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Confirmed:</span>
+                  <span className="text-[18px] font-black text-green-600">{stats.confirmed}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">In Transit:</span>
+                  <span className="text-[18px] font-black text-orange-500">{stats.inTransit}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Cancelled:</span>
+                  <span className="text-[18px] font-black text-red-500">{stats.cancelled}</span>
+                </div>
+              </>
+            )}
+          </div>
           {/* Table Header & Search */}
           <div className="p-5 border-b border-gray-100 flex flex-col md:flex-row gap-4 items-center bg-white flex-wrap">
             <div className="flex-1 w-full relative">

@@ -355,18 +355,40 @@ const VehicleInsurance = ({ vehicleId, isTab }) => {
         </div>
       )}
 
-      {/* Stat Cards — hidden in tab mode */}
-      {!isTab && (
-        <div className="grid grid-cols-4 gap-4">
-          <StatCard loading={isLoading} label="Total Policies" value={total} icon={Shield} color="blue" />
-          <StatCard loading={isLoading} label="Active" value={active} icon={ShieldCheck} color="green" />
-          <StatCard loading={isLoading} label="Expiring Soon" value={expiring} icon={ShieldAlert} color="orange" />
-          <StatCard loading={isLoading} label="Expired" value={expired} icon={ShieldOff} color="red" />
-        </div>
-      )}
-
       {/* Table Card */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0">
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0 mt-4">
+        {/* Compact Stats Row */}
+        {!isTab && (
+          <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+            {isLoading ? (
+              <div className="flex gap-6 animate-pulse">
+                <div className="h-5 bg-gray-200 rounded w-24"></div>
+                <div className="h-5 bg-gray-200 rounded w-24"></div>
+                <div className="h-5 bg-gray-200 rounded w-24"></div>
+                <div className="h-5 bg-gray-200 rounded w-24"></div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total Policies:</span>
+                  <span className="text-[18px] font-black text-[#172B4D]">{total}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Active:</span>
+                  <span className="text-[18px] font-black text-green-600">{active}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Expiring Soon:</span>
+                  <span className="text-[18px] font-black text-orange-500">{expiring}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Expired:</span>
+                  <span className="text-[18px] font-black text-red-500">{expired}</span>
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
 
         {/* Filters — refined search */}

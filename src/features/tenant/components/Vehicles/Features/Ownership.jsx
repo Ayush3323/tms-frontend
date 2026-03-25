@@ -202,14 +202,20 @@ const VehicleOwnership = ({ vehicleId, isTab }) => {
         </div>
       )}
 
-      {!isTab && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <StatCard icon={Users} label="Total Records" value={history.length} color="blue" />
-          <StatCard icon={ArrowRightLeft} label="Latest Transfer" value={history[0] ? fmtDate(history[0].transfer_date) : 'None'} color="indigo" />
-        </div>
-      )}
-
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 mt-2">
+        {/* Compact Stats Row */}
+        {!isTab && (
+          <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total Records:</span>
+              <span className="text-[18px] font-black text-[#172B4D]">{history.length}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Latest Transfer:</span>
+              <span className="text-[18px] font-black text-indigo-600">{history[0] ? fmtDate(history[0].transfer_date) : 'None'}</span>
+            </div>
+          </div>
+        )}
         <div className="p-5 border-b border-gray-100 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3 flex-1 min-w-[240px]">
             <div className="relative flex-1 max-w-xs">
