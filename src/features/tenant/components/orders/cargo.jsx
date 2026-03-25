@@ -16,24 +16,21 @@ const CARGO_TYPE_COLORS = {
 };
 
 // --- Sub-components ---
-const CargoStatCard = ({ label, value, subtext, icon: Icon, colorClass, isLoading }) => (
-  <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:border-blue-300 transition-all">
-    <div className="flex justify-between items-start">
-      <div>
-        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">{label}</p>
+const CargoStatCard = ({ label, value, subtext, icon: Icon, colorClass, isLoading }) => {
+  return (
+    <div className="bg-white p-4 lg:p-5 rounded-xl border border-gray-100 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-blue-200 w-full max-w-[240px]">
+      <p className="text-[10px] font-bold text-gray-400 tracking-wider mb-1.5 uppercase">{label}</p>
+      <div className="flex items-baseline gap-2">
         {isLoading ? (
-           <div className="h-8 w-16 bg-gray-200 animate-pulse rounded my-1"></div>
+          <div className="h-8 w-16 bg-gray-200 animate-pulse rounded"></div>
         ) : (
-           <h3 className={`text-2xl font-black ${colorClass}`}>{value}</h3>
+          <span className={`text-3xl font-black ${colorClass || 'text-[#172B4D]'}`}>{value}</span>
         )}
-        <p className="text-[10px] text-gray-500 font-medium mt-1">{subtext}</p>
       </div>
-      <div className={`p-3 rounded-lg ${colorClass.replace('text', 'bg')}/10`}>
-        <Icon className={colorClass} size={20} />
-      </div>
+      <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1.5"><span className="opacity-50"><Icon size={14} /></span> <span>{subtext || 'Metrics'}</span></p>
     </div>
-  </div>
-);
+  );
+};
 
 const Modal = ({ isOpen, onClose, title, children }) => {
   if (!isOpen) return null;
@@ -79,7 +76,7 @@ export default function CargoMainBody() {
   };
 
   return (
-    <div className="flex-1 overflow-auto bg-[#F8FAFC]">
+    <div className="flex-1 min-h-0 overflow-hidden flex flex-col relative bg-[#F8FAFC]">
       <div className="p-8">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -112,9 +109,9 @@ export default function CargoMainBody() {
         </div>
 
         {/* Main Table Container */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6 overflow-hidden">
           {/* Filters Bar */}
-          <div className="p-5 border-b border-gray-100 flex flex-col md:flex-row gap-4 bg-white items-center">
+          <div className="p-5 border-b border-gray-100 flex flex-col md:flex-row gap-4 bg-white items-center flex-wrap">
             <div className="relative flex-1 w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <input 
@@ -141,10 +138,30 @@ export default function CargoMainBody() {
                  <option>HAZMAT</option>
                </select>
             </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setPage(prev => Math.max(1, prev - 1))}
+                disabled={page === 1 || isLoading}
+                className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+              >
+                Previous
+              </button>
+              <div className="flex items-center justify-center min-w-8 h-8 bg-[#4a6cf7] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
+                {page}
+              </div>
+              <button
+                onClick={() => setPage(prev => prev + 1)}
+                disabled={!cargoData?.next || isLoading}
+                className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+              >
+                Next
+              </button>
+            </div>
           </div>
+        </div>
 
           {/* Cargo Table */}
-          <div className="overflow-x-auto min-h-[400px]">
+          <div className="flex-1 min-h-0 overflow-auto bg-white rounded-xl shadow-sm border border-gray-100 mt-2">
             {isLoading ? (
               <div className="flex justify-center items-center h-64">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4a6cf7]"></div>
@@ -156,8 +173,8 @@ export default function CargoMainBody() {
               </div>
             ) : (
               <table className="w-full text-left border-collapse min-w-[1000px]">
-                <thead>
-                  <tr className="bg-gray-50/50 border-b border-gray-100">
+                <thead className="bg-[#F8FAFC] border-b border-gray-100 sticky top-0 z-10">
+                  <tr>
                     <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Item / Code</th>
                     <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Specifications</th>
                     <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Trip Link</th>
@@ -223,29 +240,11 @@ export default function CargoMainBody() {
           </div>
 
           {/* Pagination Footer */}
-          <div className="px-6 py-4 bg-gray-50/30 border-t border-gray-100 flex items-center justify-between text-xs font-bold text-gray-400 uppercase tracking-widest">
-            <span>Showing {cargoItems.length} of {totalCount} items</span>
-            <div className="flex gap-2">
-              <button 
-                disabled={page === 1}
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50"
-              >
-                Prev
-              </button>
-              <button className="px-3 py-1 border border-gray-200 rounded bg-[#4a6cf7] text-white">
-                {page}
-              </button>
-              <button 
-                disabled={!cargoData?.next}
-                onClick={() => setPage(p => p + 1)}
-                className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50"
-              >
-                Next
-              </button>
+          <div className="flex items-center justify-between mt-4 px-2">
+            <div className="text-sm text-gray-500">
+              Showing <span className="font-bold text-[#172B4D]">{cargoItems.length}</span> of <span className="font-bold text-[#172B4D]">{totalCount}</span> items
             </div>
           </div>
-        </div>
       </div>
 
       <CreateCargoModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />

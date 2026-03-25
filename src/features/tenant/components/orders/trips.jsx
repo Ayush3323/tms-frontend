@@ -18,21 +18,21 @@ const TRIP_STATUS_CONFIG = {
 };
 
 // --- Sub-components ---
-const TripStatCard = ({ label, value, colorClass, icon: Icon, isLoading }) => (
-  <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between hover:border-blue-300 transition-colors">
-    <div>
-      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">{label}</p>
-      {isLoading ? (
-        <div className="h-8 w-16 bg-gray-200 animate-pulse rounded"></div>
-      ) : (
-        <h3 className={`text-2xl font-black ${colorClass}`}>{value}</h3>
-      )}
+const TripStatCard = ({ label, value, colorClass, icon: Icon, isLoading }) => {
+  return (
+    <div className="bg-white p-4 lg:p-5 rounded-xl border border-gray-100 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-blue-200 w-full max-w-[240px]">
+      <p className="text-[10px] font-bold text-gray-400 tracking-wider mb-1.5 uppercase">{label}</p>
+      <div className="flex items-baseline gap-2">
+        {isLoading ? (
+          <div className="h-8 w-16 bg-gray-200 animate-pulse rounded"></div>
+        ) : (
+          <span className={`text-3xl font-black ${colorClass || 'text-[#172B4D]'}`}>{value}</span>
+        )}
+      </div>
+      {Icon && <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1.5"><span className="opacity-50"><Icon size={14} /></span> <span>Metrics</span></p>}
     </div>
-    <div className={`p-3 rounded-lg ${colorClass.replace('text', 'bg')}/10`}>
-      <Icon className={colorClass} size={20} />
-    </div>
-  </div>
-);
+  );
+};
 
 const StatusBadge = ({ status }) => {
   const config = TRIP_STATUS_CONFIG[status] || TRIP_STATUS_CONFIG.CREATED;
@@ -116,8 +116,8 @@ export default function TripsMainBody() {
   };
 
   return (
-    <div className="flex-1 overflow-auto bg-[#F8FAFC]">
-      <div className="p-8">
+    <div className="flex-1 min-h-0 overflow-hidden bg-[#F8FAFC] flex flex-col relative">
+      <div className="p-8 flex-1 flex flex-col min-h-0">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
@@ -149,8 +149,8 @@ export default function TripsMainBody() {
         </div>
 
         {/* Filters and Search */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="p-5 border-b border-gray-100 flex flex-col md:flex-row gap-4 items-center bg-white">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden">
+          <div className="p-5 border-b border-gray-100 flex flex-col md:flex-row gap-4 items-center bg-white flex-wrap">
             <div className="relative flex-1 w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <input 
@@ -178,10 +178,29 @@ export default function TripsMainBody() {
                 <option value="DELAYED">DELAYED</option>
               </select>
             </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setPage(prev => Math.max(1, prev - 1))}
+                disabled={page === 1 || isLoading}
+                className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+              >
+                Previous
+              </button>
+              <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
+                {page}
+              </div>
+              <button
+                onClick={() => setPage(prev => prev + 1)}
+                disabled={!tripsData?.next || isLoading}
+                className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+              >
+                Next
+              </button>
+            </div>
           </div>
 
           {/* Trips Table */}
-          <div className="overflow-x-auto min-h-[400px]">
+          <div className="flex-1 overflow-auto min-h-0">
             {isLoading ? (
               <div className="flex justify-center items-center h-64">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0052CC]"></div>
@@ -192,9 +211,9 @@ export default function TripsMainBody() {
                 <p>No trips found matching your criteria</p>
               </div>
             ) : (
-              <table className="w-full text-left border-collapse min-w-[1100px]">
-                <thead>
-                  <tr className="bg-gray-50/50 border-b border-gray-100">
+              <table className="w-full text-left border-collapse min-w-[1100px] relative">
+                <thead className="bg-[#F8FAFC] border-b border-gray-100 sticky top-0 z-10">
+                  <tr>
                     <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Trip Details</th>
                     <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Route (Origin → Destination)</th>
                     <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Fleet Info</th>
@@ -250,26 +269,9 @@ export default function TripsMainBody() {
           </div>
 
           {/* Pagination Footer */}
-          <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between text-[11px] font-bold text-gray-400 uppercase tracking-widest">
-            <span>Showing {trips.length} of {totalCount} Trips</span>
-            <div className="flex gap-2">
-              <button 
-                disabled={page === 1}
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                className="px-3 py-1.5 border border-gray-200 rounded hover:bg-gray-100 disabled:opacity-50 text-gray-600 transition-colors"
-              >
-                Prev
-              </button>
-              <button className="px-3 py-1.5 border border-[#0052CC] bg-[#0052CC] rounded text-white shadow-sm">
-                {page}
-              </button>
-              <button 
-                disabled={!tripsData?.next}
-                onClick={() => setPage(p => p + 1)}
-                className="px-3 py-1.5 border border-gray-200 rounded hover:bg-gray-100 disabled:opacity-50 text-gray-600 transition-colors"
-              >
-                Next
-              </button>
+          <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100 bg-white">
+            <div className="text-sm text-gray-500">
+              Showing <span className="font-bold text-[#172B4D]">{trips.length}</span> of <span className="font-bold text-[#172B4D]">{totalCount}</span> Trips
             </div>
           </div>
         </div>

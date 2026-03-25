@@ -2,7 +2,7 @@ import React from 'react';
 import StatusBadge from '../../common/StatusBadge';
 import TableActions from '../../common/TableActions';
 import { SEVERITY_STYLES, INCIDENT_TYPE_STYLES, STATUS_STYLES } from '../../common/constants';
-import { getInitials, getAvatarColor } from '../../common/utils';
+import { getInitials } from '../../common/utils';
 
 const IncidentTable = ({ incidents, onEdit, showDriver = false, driverMap = {}, vehicleMap = {}, userMap = {}, currentUser = null }) => {
   const formatDate = (dateStr) => {
@@ -31,10 +31,10 @@ const IncidentTable = ({ incidents, onEdit, showDriver = false, driverMap = {}, 
   ];
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-gray-200">
+    <div className="w-full min-w-max">
       <table className="w-full text-sm">
-        <thead>
-          <tr className="bg-gray-50 border-b border-gray-100">
+        <thead className="sticky top-0 z-10">
+          <tr className="bg-[#fafbff] border-b border-gray-100">
             {showDriver && (
               <th className="text-left px-4 py-3 text-[10px] font-bold text-[#94a3b8] uppercase tracking-[0.1em] whitespace-nowrap bg-[#fafbff] shadow-[inset_0_-1px_0_#e2e8f0]">Driver</th>
             )}
@@ -49,7 +49,7 @@ const IncidentTable = ({ incidents, onEdit, showDriver = false, driverMap = {}, 
               {showDriver && (
                 <td className="px-4 py-3 whitespace-nowrap">
                   <div className="flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-[9px] flex items-center justify-center font-bold text-xs text-white shadow-sm font-syne ${getAvatarColor(driverMap[inc.driver]?.name || inc.driver_name || 'System Driver')}`}>
+                    <div className="w-9 h-9 rounded-[9px] flex items-center justify-center font-bold text-xs text-white shadow-sm font-syne bg-[#0052CC]">
                       {getInitials(driverMap[inc.driver]?.name || inc.driver_name || 'System Driver')}
                     </div>
                     <div>
@@ -111,7 +111,7 @@ const IncidentTable = ({ incidents, onEdit, showDriver = false, driverMap = {}, 
 
                   return (
                     <div className="flex items-center gap-2">
-                       <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold text-white shadow-sm ${getAvatarColor(resolvedBy)}`}>
+                       <div className="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold text-white shadow-sm bg-[#0052CC]">
                          {getInitials(resolvedBy)}
                        </div>
                        <span className="text-[12px] font-semibold text-[#1a202c]">{resolvedBy}</span>

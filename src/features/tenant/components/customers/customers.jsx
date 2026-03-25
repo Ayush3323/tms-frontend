@@ -41,12 +41,14 @@ const EMPTY_FORM = {
 const CustomersDashboard = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatus] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const [modal, setModal] = useState(null);   // { type: 'view'|'create'|'edit', id?: string }
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
 
   // ── API Hooks ───────────────────────────────────────────────────────
   const { data, isLoading, isError, error, refetch } = useCustomers({
+    page: currentPage,
     ...(statusFilter && { status: statusFilter }),
     ...(search && { search }),
   });
@@ -59,7 +61,7 @@ const CustomersDashboard = () => {
   const inactive = customers.filter(c => c.status === 'INACTIVE').length;
   const suspended = customers.filter(c => c.status === 'SUSPENDED').length;
 
-  const resetFilters = () => { setSearch(''); setStatus(''); };
+  const resetFilters = () => { setSearch(''); setStatus(''); setCurrentPage(1); };
 
   // ── Modal Handlers ──────────────────────────────────────────────────
   const openCreate = () => {
@@ -115,12 +117,12 @@ const CustomersDashboard = () => {
   const handleSubmit = () => {
     if (!validate()) return;
     const payload = { ...form };
-    
+
     // Convert numbers/nulls correctly
     if (payload.credit_limit) payload.credit_limit = String(payload.credit_limit);
     if (payload.credit_score) payload.credit_score = Number(payload.credit_score);
     else delete payload.credit_score;
-    
+
     // Nullify empty ID or Date strings
     ['user_id', 'sales_person_id', 'account_manager_id', 'parent_customer_id', 'incorporation_date'].forEach(key => {
       if (!payload[key]?.trim()) payload[key] = null;
@@ -210,7 +212,7 @@ const CustomersDashboard = () => {
   // ── RENDER ─────────────────────────────────────────────────────────
   // ═══════════════════════════════════════════════════════════════════
   return (
-    <div className="p-6 space-y-6 bg-[#F8FAFC] min-h-screen">
+    <div className="p-6 flex flex-col gap-6 bg-[#F8FAFC] flex-1 min-h-0 overflow-hidden relative">
 
       {/* ── Header ─────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between">
@@ -244,7 +246,7 @@ const CustomersDashboard = () => {
       </div>
 
       {/* ── Table Card ─────────────────────────────────────────────── */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6 overflow-hidden flex-1 flex flex-col min-h-0">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
             <h2 className="font-bold text-[#172B4D]">🏢 Customer Registry</h2>
@@ -257,82 +259,100 @@ const CustomersDashboard = () => {
         </div>
 
         {/* Filters */}
-        <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-3 flex-wrap">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input type="text" placeholder="Search customer name, code, tax ID..."
-              value={search} onChange={e => setSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] bg-gray-50" />
+        <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-white flex-wrap gap-4">
+          <div className="flex gap-3 items-center flex-wrap flex-1">
+            <div className="relative min-w-[200px]">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input type="text" placeholder="Search customer name, code, tax ID..."
+                value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+                className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] bg-gray-50" />
+            </div>
+            <div className="relative">
+              <select value={statusFilter} onChange={e => { setStatus(e.target.value); setCurrentPage(1); }}
+                className="appearance-none pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none cursor-pointer">
+                <option value="">All Status</option>
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="INACTIVE">INACTIVE</option>
+                <option value="SUSPENDED">SUSPENDED</option>
+                <option value="BLACKLISTED">BLACKLISTED</option>
+              </select>
+              <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            </div>
+            <button onClick={resetFilters}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-500 border border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100 transition-all">
+              <RefreshCw size={13} /> Reset
+            </button>
           </div>
-          <div className="relative">
-            <select value={statusFilter} onChange={e => setStatus(e.target.value)}
-              className="appearance-none pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none cursor-pointer">
-              <option value="">All Status</option>
-              <option value="ACTIVE">ACTIVE</option>
-              <option value="INACTIVE">INACTIVE</option>
-              <option value="SUSPENDED">SUSPENDED</option>
-              <option value="BLACKLISTED">BLACKLISTED</option>
-            </select>
-            <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1 || isLoading}
+              className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+            >
+              Previous
+            </button>
+            <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
+              {currentPage}
+            </div>
+            <button
+              onClick={() => setCurrentPage(prev => prev + 1)}
+              disabled={!data?.next || isLoading}
+              className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+            >
+              Next
+            </button>
           </div>
-          <button onClick={resetFilters}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-500 border border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100 transition-all">
-            <RefreshCw size={13} /> Reset
-          </button>
         </div>
 
-        {/* Loading State */}
-        {isLoading && <TableShimmer rows={8} cols={6} />}
+      {/* Loading State */}
+      {isLoading && <TableShimmer rows={8} cols={6} />}
 
-        {/* Error State */}
-        {isError && (
-          <ErrorState message="Failed to load customers" error={error?.response?.data?.detail || error?.message} onRetry={() => refetch()} />
-        )}
+      {/* Error State */}
+      {isError && (
+        <ErrorState message="Failed to load customers" error={error?.response?.data?.detail || error?.message} onRetry={() => refetch()} />
+      )}
 
-        {/* Data Table */}
-        {!isLoading && !isError && (
-          <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: 'calc(100vh - 310px)' }}>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
-                  {COLUMNS.map(c => (
-                    <th key={c.header} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{c.header}</th>
+      {/* Data Table */}
+      {!isLoading && !isError && (
+        <div className="flex-1 overflow-auto min-h-0">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-[#F8FAFC] border-b border-gray-100 sticky top-0 z-10">
+              <tr className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                {COLUMNS.map(c => (
+                  <th key={c.header} className="px-4 py-4">{c.header}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {customers.map(c => (
+                <tr key={c.id || c.customer_code} className="hover:bg-blue-50/30 transition-colors">
+                  {COLUMNS.map(col => (
+                    <td key={col.header} className="px-4 py-3 whitespace-nowrap align-middle">{col.render(c)}</td>
                   ))}
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {customers.map(c => (
-                  <tr key={c.id || c.customer_code} className="hover:bg-blue-50/30 transition-colors">
-                    {COLUMNS.map(col => (
-                      <td key={col.header} className="px-4 py-3 whitespace-nowrap align-middle">{col.render(c)}</td>
-                    ))}
-                  </tr>
-                ))}
-                {customers.length === 0 && (
-                  <tr>
-                    <td colSpan={COLUMNS.length} className="px-4 py-8">
-                      <EmptyState icon={Building2} text="No customers found" onAdd={openCreate} addLabel="Add Your First Customer" />
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Footer */}
-        {!isLoading && !isError && (
-          <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
-            <span>
-              Showing <span className="font-bold text-gray-600">{customers.length}</span>
-              {data?.count && data.count !== customers.length &&
-                <> of <span className="font-bold text-gray-600">{data.count}</span></>
-              } customers
-            </span>
-            <span className="text-[11px]">Fleet Management System</span>
-          </div>
-        )}
+              ))}
+              {customers.length === 0 && (
+                <tr>
+                  <td colSpan={COLUMNS.length} className="px-4 py-8">
+                    <EmptyState icon={Building2} text="No customers found" onAdd={openCreate} addLabel="Add Your First Customer" />
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
       </div>
+
+      {/* Footer */}
+      {!isLoading && !isError && (
+        <div className="flex items-center justify-between mt-2 px-2">
+          <div className="text-sm text-gray-500">
+            Showing <span className="font-bold text-[#172B4D]">{customers.length}</span> of <span className="font-bold text-[#172B4D]">{total}</span> customers
+          </div>
+        </div>
+      )}
 
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ── VIEW MODAL ─────────────────────────────────────────────── */}

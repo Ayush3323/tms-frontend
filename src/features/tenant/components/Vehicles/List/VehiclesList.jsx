@@ -46,11 +46,13 @@ const Vehicles = () => {
   const [statusFilter, setStatus] = useState('');
   const [fuelFilter, setFuel] = useState('');
   const [ownerFilter, setOwner] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const [formModal, setFormModal] = useState(null);
   const [viewModal, setViewModal] = useState(null);
   const navigate = useNavigate();
 
   const { data, isLoading, isError, error, refetch } = useVehicles({
+    page: currentPage,
     ...(statusFilter && { status: statusFilter }),
     ...(fuelFilter && { fuel_type: fuelFilter }),
     ...(ownerFilter && { ownership_type: ownerFilter }),
@@ -67,7 +69,7 @@ const Vehicles = () => {
   const handleStatusToggle = (v) =>
     updateVehicle.mutate({ id: v.id, data: { status: v.status === 'ACTIVE' ? 'MAINTENANCE' : 'ACTIVE' } });
 
-  const resetFilters = () => { setSearch(''); setStatus(''); setFuel(''); setOwner(''); };
+  const resetFilters = () => { setSearch(''); setStatus(''); setFuel(''); setOwner(''); setCurrentPage(1); };
 
   const COLUMNS = [
     {
@@ -75,7 +77,7 @@ const Vehicles = () => {
       render: v => (
         <div className="text-left">
           <button onClick={() => setViewModal(v)}
-            className="font-bold text-[#172B4D] font-mono text-[13px] hover:text-[#0052CC] transition-all text-left block hover:underline decoration-blue-400/30 underline-offset-4">
+            className="font-bold text-[#172B4D] font-mono text-[14px] hover:text-[#0052CC] transition-all text-left block hover:underline decoration-blue-400/30 underline-offset-4">
             {v.registration_number ?? '—'}
           </button>
         </div>
@@ -85,14 +87,14 @@ const Vehicles = () => {
       header: 'Make',
       render: v => (
         <div>
-          <span className="font-semibold text-gray-800">{v.make ?? '—'}</span>
+          <span className="text-[13px] font-semibold text-gray-800">{v.make ?? '—'}</span>
         </div>
       ),
     },
     {
       header: 'Vehicle Type',
       render: v => (
-        <span className="text-[12px] font-semibold text-gray-700">
+        <span className="text-[13px] font-semibold text-gray-700">
           {v.vehicle_type_name ?? v.vehicle_type?.type_name ?? '—'}
         </span>
       ),
@@ -100,7 +102,7 @@ const Vehicles = () => {
     {
       header: 'Fuel Type',
       render: v => (
-        <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold w-fit ${FUEL_COLORS[v.fuel_type] ?? 'bg-gray-100 text-gray-600'}`}>
+        <span className={`px-2 py-0.5 rounded-md text-[13px] font-bold w-fit ${FUEL_COLORS[v.fuel_type] ?? 'bg-gray-100 text-gray-600'}`}>
           {v.fuel_type_display ?? v.fuel_type ?? '—'}
         </span>
       ),
@@ -163,7 +165,7 @@ const Vehicles = () => {
   ];
 
   return (
-    <div className="p-6 space-y-6 bg-[#F8FAFC] min-h-screen">
+    <main className="p-6 bg-[#F4F5F7] flex-1 flex flex-col min-h-0 overflow-hidden relative">
 
       {formModal && (
         <VehicleFormModal
@@ -180,31 +182,51 @@ const Vehicles = () => {
       )}
 
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex justify-between items-start mb-8">
+
+        {/* LEFT */}
         <div>
           <h1 className="text-2xl font-black text-[#172B4D]">Vehicles</h1>
           <p className="text-sm text-gray-400 mt-0.5">
             All registered vehicles — click <span className="text-[#0052CC] font-semibold">View</span> for full details
           </p>
         </div>
-        <button onClick={() => navigate('/tenant/dashboard/vehicles/types')}
-          className=" ml-auto mr-4 flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all hover:scale-105 active:scale-95 shadow-md hover:shadow-lg">
-          <LayoutGrid size={14} /> Vehicle Types
-        </button>
-        <div className="flex items-center gap-2">
-          <button onClick={() => refetch()}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all">
+
+        {/* RIGHT SIDE ALL BUTTONS */}
+        <div className="flex items-center gap-3">
+
+          <button
+            onClick={() => navigate('/tenant/dashboard/vehicles/types')}
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all"
+          >
+            <LayoutGrid size={14} /> Vehicle Types
+          </button>
+
+          <button
+            onClick={() => refetch()}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+          >
             <RefreshCw size={14} /> Refresh
           </button>
-          <button className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all">
+
+          <button
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+          >
             <Download size={14} /> Export
+          </button>
+
+          <button
+            onClick={() => setFormModal('add')}
+            className="bg-[#0052CC] text-white px-4 py-2 rounded-md flex items-center gap-2 text-sm font-bold hover:bg-[#0747A6]"
+          >
+            <Plus size={18} /> Add Vehicle
           </button>
 
         </div>
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         {isLoading ? (
           <CardShimmer count={4} />
         ) : (
@@ -218,45 +240,57 @@ const Vehicles = () => {
       </div>
 
       {/* Table Card */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <div>
-            <h2 className="font-bold text-[#172B4D]">🚛 Vehicle Registry</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Click View to see complete vehicle profile</p>
-          </div>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex-1 flex flex-col min-h-0">
 
-          <button onClick={() => setFormModal('add')}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all">
-            <Plus size={14} /> Add Vehicle
-          </button>
-        </div>
 
-        {/* Filters */}
-        <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-3 flex-wrap">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input type="text" placeholder="Search registration, make, model..."
-              value={search} onChange={e => setSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] bg-gray-50" />
-          </div>
-          {[
-            { val: statusFilter, set: setStatus, opts: ['ACTIVE', 'MAINTENANCE', 'RETIRED', 'SOLD', 'SCRAPPED'], ph: 'All Status' },
-            { val: fuelFilter, set: setFuel, opts: ['DIESEL', 'PETROL', 'CNG', 'LPG', 'ELECTRIC', 'HYBRID'], ph: 'All Fuel' },
-            { val: ownerFilter, set: setOwner, opts: ['OWNED', 'LEASED', 'RENTED'], ph: 'All Ownership' },
-          ].map(({ val, set, opts, ph }) => (
-            <div key={ph} className="relative">
-              <select value={val} onChange={e => set(e.target.value)}
-                className="appearance-none pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none cursor-pointer">
-                <option value="">{ph}</option>
-                {opts.map(o => <option key={o} value={o}>{o}</option>)}
-              </select>
-              <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+        {/* Filters Bar */}
+        <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-white flex-wrap gap-4">
+          <div className="flex gap-3 items-center flex-wrap flex-1">
+            <div className="relative min-w-[200px]">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input type="text" placeholder="Search registration, make, model..."
+                value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+                className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] bg-gray-50" />
             </div>
-          ))}
-          <button onClick={resetFilters}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-500 border border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100 transition-all">
-            <RefreshCw size={13} /> Reset
-          </button>
+            {[
+              { val: statusFilter, set: setStatus, opts: ['ACTIVE', 'MAINTENANCE', 'RETIRED', 'SOLD', 'SCRAPPED'], ph: 'All Status' },
+              { val: fuelFilter, set: setFuel, opts: ['DIESEL', 'PETROL', 'CNG', 'LPG', 'ELECTRIC', 'HYBRID'], ph: 'All Fuel' },
+              { val: ownerFilter, set: setOwner, opts: ['OWNED', 'LEASED', 'RENTED'], ph: 'All Ownership' },
+            ].map(({ val, set, opts, ph }) => (
+              <div key={ph} className="relative">
+                <select value={val} onChange={e => { set(e.target.value); setCurrentPage(1); }}
+                  className="appearance-none pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none cursor-pointer">
+                  <option value="">{ph}</option>
+                  {opts.map(o => <option key={o} value={o}>{o}</option>)}
+                </select>
+                <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              </div>
+            ))}
+            <button onClick={resetFilters}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-500 border border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100 transition-all">
+              <RefreshCw size={13} /> Reset
+            </button>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1 || isLoading}
+              className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+            >
+              Previous
+            </button>
+            <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
+              {currentPage}
+            </div>
+            <button
+              onClick={() => setCurrentPage(prev => prev + 1)}
+              disabled={!data?.next || isLoading}
+              className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+            >
+              Next
+            </button>
+          </div>
         </div>
 
         {isLoading && (
@@ -274,26 +308,26 @@ const Vehicles = () => {
         )}
 
         {!isLoading && !isError && (
-          <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: 'calc(100vh - 310px)' }}>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
+          <div className="flex-1 min-h-0 overflow-auto bg-white">
+            <table className="w-full text-left relative">
+              <thead className="bg-[#F8FAFC] border-b border-gray-100 sticky top-0 z-10">
+                <tr className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
                   {COLUMNS.map(c => (
-                    <th key={c.header} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{c.header}</th>
+                    <th key={c.header} className="px-4 py-4">{c.header}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {vehicles.map(v => (
-                  <tr key={v.id} className="hover:bg-blue-50/30 transition-colors">
+                  <tr key={v.id} className="hover:bg-gray-50 transition-colors group">
                     {COLUMNS.map(c => (
-                      <td key={c.header} className="px-4 py-3 whitespace-nowrap align-middle">{c.render(v)}</td>
+                      <td key={c.header} className="px-6 py-4 whitespace-nowrap align-middle">{c.render(v)}</td>
                     ))}
                   </tr>
                 ))}
                 {vehicles.length === 0 && (
                   <tr>
-                    <td colSpan={COLUMNS.length} className="px-4 py-16 text-center text-gray-400">
+                    <td colSpan={COLUMNS.length} className="px-6 py-10 text-center text-gray-500 font-medium">
                       <Truck size={32} className="mx-auto mb-2 opacity-30" />
                       <p className="text-sm">No vehicles found</p>
                     </td>
@@ -304,19 +338,17 @@ const Vehicles = () => {
           </div>
         )}
 
+        {/* Pagination Section */}
         {!isLoading && !isError && (
-          <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
-            <span>
-              Showing <span className="font-bold text-gray-600">{vehicles.length}</span>
-              {data?.count && data.count !== vehicles.length &&
-                <> of <span className="font-bold text-gray-600">{data.count}</span></>
-              } vehicles
-            </span>
-            <span className="text-[11px]">Fleet Management System</span>
+          <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100 bg-white shrink-0">
+            <div className="text-sm text-gray-500">
+              Showing <span className="font-bold text-[#172B4D]">{vehicles.length}</span> of <span className="font-bold text-[#172B4D]">{total}</span> vehicles
+            </div>
           </div>
         )}
       </div>
-    </div>
+
+    </main>
   );
 };
 

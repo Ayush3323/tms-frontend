@@ -63,7 +63,7 @@ const Session = () => {
   };
 
   return (
-    <div className="p-6 bg-[#f8fafc] min-h-screen font-sans text-slate-900">
+    <div className="p-6 bg-[#f8fafc] flex-1 min-h-0 overflow-hidden flex flex-col relative font-sans text-slate-900">
       {/* Header & Stats */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
         <div>
@@ -84,48 +84,63 @@ const Session = () => {
         </div>
       </div>
 
-      {/* Control Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div className="relative w-full md:w-96">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input 
-            type="text" 
-            placeholder="Search by username, email or device..." 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:bg-white transition-all font-medium py-3.5"
-          />
-        </div>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6 overflow-hidden">
+        {/* Control Bar */}
+        <div className="p-4 flex flex-col md:flex-row gap-4 items-center justify-between bg-white flex-wrap">
+          <div className="flex gap-3 items-center flex-wrap flex-1">
+            <div className="relative w-full md:w-96">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input 
+                type="text" 
+                placeholder="Search by username, email or device..." 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:bg-white transition-all font-medium py-3.5"
+              />
+            </div>
+            <button 
+              onClick={() => { setSearchTerm(''); setCurrentPage(1); }}
+              className="p-3 text-gray-400 hover:text-[#0052CC] hover:bg-blue-50 rounded-xl transition-all"
+              title="Refresh List"
+            >
+              <RotateCcw size={20} />
+            </button>
+          </div>
 
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => { setSearchTerm(''); setCurrentPage(1); }}
-            className="p-3 text-gray-400 hover:text-[#0052CC] hover:bg-blue-50 rounded-xl transition-all"
-            title="Refresh List"
-          >
-            <RotateCcw size={20} />
-          </button>
-          <div className="h-8 w-px bg-gray-100 mx-2"></div>
-          <div className="px-4 py-2 bg-blue-50 border border-blue-100 rounded-xl">
-             <p className="text-[9px] font-black text-[#0052CC] uppercase tracking-widest">Global Security</p>
-             <p className="text-[11px] font-bold text-[#0747A6]">Active Protection Enabled</p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1 || isLoading}
+              className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+            >
+              Previous
+            </button>
+            <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
+              {currentPage}
+            </div>
+            <button
+              onClick={() => setCurrentPage(prev => prev + 1)}
+              disabled={!sessionsData?.next || isLoading}
+              className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+            >
+              Next
+            </button>
           </div>
         </div>
       </div>
 
       {/* Sessions Table */}
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden">
-        <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: 'calc(100vh - 310px)' }}>
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gray-50/50">
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">User Identification</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Login Metadata</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Endpoint / IP</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">Security Status</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100 text-right">Action</th>
-              </tr>
-            </thead>
+      <div className="flex-1 min-h-0 overflow-auto bg-white rounded-xl shadow-sm border border-gray-100 mt-2">
+        <table className="w-full text-left border-collapse relative">
+          <thead className="bg-[#F8FAFC] border-b border-gray-100 sticky top-0 z-10">
+            <tr className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+              <th className="px-6 py-4">User Identification</th>
+              <th className="px-6 py-4">Login Metadata</th>
+              <th className="px-6 py-4">Endpoint / IP</th>
+              <th className="px-6 py-4">Security Status</th>
+              <th className="px-6 py-4 text-right">Action</th>
+            </tr>
+          </thead>
             <tbody className="divide-y divide-gray-50">
               {isLoading ? (
                 Array(5).fill(0).map((_, i) => (
@@ -203,35 +218,12 @@ const Session = () => {
               )}
             </tbody>
           </table>
-        </div>
+      </div>
 
-        {/* Pagination */}
-        <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-            Total Authenticated: <span className="text-[#0052CC]">{totalCount}</span> Sessions
-          </p>
-          
-          <div className="flex items-center gap-2">
-            <button 
-              disabled={currentPage === 1 || isLoading}
-              onClick={() => setCurrentPage(prev => prev - 1)}
-              className="p-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-white hover:text-[#0052CC] transition-all disabled:opacity-30"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <div className="flex items-center gap-1 px-3">
-              <span className="text-xs font-black text-[#0052CC]">{currentPage}</span>
-              <span className="text-[10px] font-bold text-gray-400 mx-1">/</span>
-              <span className="text-[10px] font-bold text-gray-400">{totalPages || 1}</span>
-            </div>
-            <button 
-              disabled={currentPage >= totalPages || isLoading}
-              onClick={() => setCurrentPage(prev => prev + 1)}
-              className="p-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-white hover:text-[#0052CC] transition-all disabled:opacity-30"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
+      {/* Pagination Section */}
+      <div className="flex items-center justify-between mt-4 px-2">
+        <div className="text-sm text-gray-500">
+          Showing <span className="font-bold text-[#172B4D]">{sessions.length}</span> of <span className="font-bold text-[#172B4D]">{totalCount}</span> sessions
         </div>
       </div>
 

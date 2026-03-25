@@ -17,21 +17,21 @@ const POD_STATUS_CONFIG = {
 };
 
 // --- Sub-components ---
-const DeliveryStatCard = ({ label, value, colorClass, icon: Icon, isLoading }) => (
-  <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between transition-all hover:border-[#0052CC]/30">
-    <div>
-      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">{label}</p>
-      {isLoading ? (
-        <div className="h-8 w-16 bg-gray-200 animate-pulse rounded my-1"></div>
-      ) : (
-        <h3 className={`text-2xl font-black ${colorClass}`}>{value}</h3>
-      )}
+const DeliveryStatCard = ({ label, value, colorClass, icon: Icon, isLoading }) => {
+  return (
+    <div className="bg-white p-4 lg:p-5 rounded-xl border border-gray-100 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-blue-200 w-full max-w-[240px]">
+      <p className="text-[10px] font-bold text-gray-400 tracking-wider mb-1.5 uppercase">{label}</p>
+      <div className="flex items-baseline gap-2">
+        {isLoading ? (
+          <div className="h-8 w-16 bg-gray-200 animate-pulse rounded"></div>
+        ) : (
+          <span className={`text-3xl font-black ${colorClass || 'text-[#172B4D]'}`}>{value}</span>
+        )}
+      </div>
+      {Icon && <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1.5"><span className="opacity-50"><Icon size={14} /></span> <span>Metrics</span></p>}
     </div>
-    <div className={`p-3 rounded-lg ${colorClass.replace('text', 'bg')}/10`}>
-      <Icon className={colorClass} size={20} />
-    </div>
-  </div>
-);
+  );
+};
 
 const StatusBadge = ({ status }) => {
   const config = POD_STATUS_CONFIG[status] || POD_STATUS_CONFIG.PENDING;
@@ -88,8 +88,8 @@ export default function DeliveryMainBody() {
   };
 
   return (
-    <div className="flex-1 overflow-auto bg-[#F8FAFC]">
-      <div className="p-8">
+    <div className="flex-1 min-h-0 overflow-hidden bg-[#F8FAFC] flex flex-col relative">
+      <div className="p-8 flex-1 flex flex-col min-h-0">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
@@ -121,9 +121,9 @@ export default function DeliveryMainBody() {
         </div>
 
         {/* Table Container */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden">
           {/* Filters */}
-          <div className="p-5 border-b border-gray-100 flex flex-col md:flex-row gap-4 bg-white items-center">
+          <div className="p-5 border-b border-gray-100 flex flex-col md:flex-row gap-4 bg-white items-center flex-wrap">
             <div className="relative flex-1 w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <input 
@@ -150,10 +150,29 @@ export default function DeliveryMainBody() {
                  <option>REJECTED</option>
                </select>
             </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setPage(prev => Math.max(1, prev - 1))}
+                disabled={page === 1 || isLoading}
+                className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+              >
+                Previous
+              </button>
+              <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
+                {page}
+              </div>
+              <button
+                onClick={() => setPage(prev => prev + 1)}
+                disabled={!deliveriesData?.next || isLoading}
+                className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+              >
+                Next
+              </button>
+            </div>
           </div>
 
           {/* Table */}
-          <div className="overflow-x-auto min-h-[400px]">
+          <div className="flex-1 overflow-auto min-h-0">
              {isLoading ? (
                 <div className="flex justify-center items-center h-64">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0052CC]"></div>
@@ -164,9 +183,9 @@ export default function DeliveryMainBody() {
                   <p>No delivery records found matching criteria</p>
                 </div>
              ) : (
-                <table className="w-full text-left border-collapse min-w-[1000px]">
-                  <thead>
-                    <tr className="bg-gray-50/50 border-b border-gray-100">
+                <table className="w-full text-left border-collapse min-w-[1000px] relative">
+                  <thead className="bg-[#F8FAFC] border-b border-gray-100 sticky top-0 z-10">
+                    <tr>
                       <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">POD / Record</th>
                       <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Recipient & Location</th>
                       <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Delivery Date</th>
@@ -235,26 +254,9 @@ export default function DeliveryMainBody() {
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between text-xs font-bold text-gray-400 uppercase tracking-widest">
-            <span>Showing {deliveries.length} of {totalCount} POD Records</span>
-            <div className="flex gap-2">
-              <button 
-                disabled={page === 1}
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50"
-              >
-                Prev
-              </button>
-              <button className="px-3 py-1 border border-gray-200 rounded bg-[#0052CC] text-white">
-                {page}
-              </button>
-              <button 
-                disabled={!deliveriesData?.next}
-                onClick={() => setPage(p => p + 1)}
-                className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50"
-              >
-                Next
-              </button>
+          <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100 bg-white">
+            <div className="text-sm text-gray-500">
+              Showing <span className="font-bold text-[#172B4D]">{deliveries.length}</span> of <span className="font-bold text-[#172B4D]">{totalCount}</span> POD Records
             </div>
           </div>
         </div>

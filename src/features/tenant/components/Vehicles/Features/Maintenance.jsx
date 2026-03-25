@@ -510,7 +510,7 @@ const SchedulesTab = ({ onEdit, onDelete, onView, vehicleId }) => {
   const schedules = data?.results ?? data ?? [];
 
   return (
-    <div>
+    <div className="flex-1 flex flex-col min-h-0">
       {/* Filters */}
       <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
@@ -547,10 +547,10 @@ const SchedulesTab = ({ onEdit, onDelete, onView, vehicleId }) => {
       )}
 
       {!isLoading && !isError && (
-        <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: 'calc(100vh - 310px)' }}>
-          <table className="w-full text-sm">
+        <div className="flex-1 overflow-auto min-h-0">
+          <table className="w-full text-sm relative">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-100">
+              <tr className="bg-gray-50 border-b border-gray-100 sticky top-0 z-10">
                 {!vehicleId && <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Vehicle</th>}
                 {['Maintenance Type', 'Next Due', 'Status', 'Actions'].map(h => (
                   <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
@@ -640,7 +640,7 @@ const RecordsTab = ({ onEdit, onDelete, onView, vehicleId }) => {
   const records = data?.results ?? data ?? [];
 
   return (
-    <div>
+    <div className="flex-1 flex flex-col min-h-0">
       {/* Filters */}
       <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-3">
         <div className="relative flex-1 min-w-[200px]">
@@ -664,10 +664,10 @@ const RecordsTab = ({ onEdit, onDelete, onView, vehicleId }) => {
       )}
 
       {!isLoading && !isError && (
-        <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: 'calc(100vh - 310px)' }}>
-          <table className="w-full text-sm">
+        <div className="flex-1 overflow-auto min-h-0">
+          <table className="w-full text-sm relative">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-100">
+              <tr className="bg-gray-50 border-b border-gray-100 sticky top-0 z-10">
                 {!vehicleId && <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Vehicle</th>}
                 {['Service Type', 'Date', 'Total Cost', 'Next Service', 'Actions'].map(h => (
                   <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
@@ -767,7 +767,7 @@ const MaintenanceSchedules = ({ vehicleId, tab: initialTab = 'schedules', isTab 
   const totalCost = records.reduce((acc, r) => acc + parseFloat(r.total_cost || 0), 0);
 
   const content = (
-    <div className={!isTab ? "p-6 space-y-6 bg-[#F8FAFC] min-h-screen" : "space-y-4"}>
+    <div className={!isTab ? "p-6 flex flex-col gap-6 bg-[#F8FAFC] flex-1 min-h-0 overflow-hidden relative" : "flex flex-col gap-4 flex-1 min-h-0 overflow-hidden relative"}>
 
       {modal && modal.type === 'schedule' && (
         <ScheduleModal vehicleId={vehicleId} initial={modal.mode === 'add' ? null : modal.data} onClose={() => setModal(null)} onDeleteRequest={() => { setModal(null); setDelete({ type: 'schedule', data: modal.data }); }} />
@@ -823,7 +823,7 @@ const MaintenanceSchedules = ({ vehicleId, tab: initialTab = 'schedules', isTab 
       )}
 
       {/* Main Container */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0">
         {/* Tabs Bar */}
         <div className="px-5 pt-4 border-b border-gray-100 flex items-center justify-between">
           <div className="flex gap-6">

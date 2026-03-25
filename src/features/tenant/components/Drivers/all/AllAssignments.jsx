@@ -26,7 +26,7 @@ const AllAssignments = () => {
   });
 
   // useVehicleAssignments(filters) to fetch filtered assignments
-  const { data, isLoading, isError, error, refetch, isFetching } = useVehicleAssignments(filters);
+  const { data, isLoading, isError, error, refetch } = useVehicleAssignments(filters);
   const driverMap = useDriverLookup();
   const { data: usersData } = useUsers({ page_size: 1000 });
   const { data: currentUser } = useCurrentUser();
@@ -75,27 +75,30 @@ const AllAssignments = () => {
   if (isError) return <div className="p-6"><ErrorState message="Failed to load assignments" error={error?.message} onRetry={() => refetch()} /></div>;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="flex-1 min-h-0 overflow-hidden bg-[#F8FAFC] flex flex-col relative">
       {/* ── Modals ── */}
       {addOpen && <AddAssignmentModal driverId={null} onClose={() => setAddOpen(false)} />}
       {editAssignment && <EditAssignmentModal assignment={editAssignment} driverId={editAssignment.driver} onClose={() => setEditAssignment(null)} />}
 
-      {/* ── Header ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-[#172B4D] tracking-tight">Vehicle Assignments</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage vehicle assignments for all drivers</p>
+      <div className="p-6 lg:p-8 flex-1 flex flex-col min-h-0">
+        {/* ── Header ── */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-2xl font-black text-[#172B4D] tracking-tight">Vehicle Assignments</h1>
+            <p className="text-sm text-gray-500 mt-1">Manage vehicle assignments for all drivers</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-[#0052CC] text-white rounded-lg text-sm font-bold shadow-sm hover:bg-[#0043A8] transition-all">
+              <Plus size={16} /> Add Assignment
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-[#2563eb] to-[#4f46e5] rounded-xl shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
-            <Plus size={18} /> Add Assignment
-          </button>
-        </div>
-      </div>
 
-      {/* ── Filters ── */}
-      <div className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {/* ── Table Card ── */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden">
+          {/* ── Filters Bar ── */}
+          <div className="p-4 border-b border-gray-50 bg-white">
+            <div className="flex flex-wrap gap-4 items-end">
           <div>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Driver</p>
             <DriverSelect 
@@ -145,28 +148,29 @@ const AllAssignments = () => {
                 className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
               />
             </div>
-            <button
-              onClick={clearFilters}
-              className="px-3 py-2 text-xs font-bold text-gray-500 hover:text-red-500 transition-colors"
-            >
-              Clear
-            </button>
+              <button
+                onClick={clearFilters}
+                className="px-3 py-2 text-xs font-bold text-gray-500 hover:text-red-500 transition-colors mb-1"
+              >
+                Clear
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-      {/* ── Content ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        {assignments.length === 0 ? (
+
+        {/* ── Content ── */}
+        <div className="flex-1 min-h-0 overflow-auto">
+          {assignments.length === 0 ? (
           <div className="py-20">
             <EmptyState icon={Truck} title="No assignments found" description="No vehicles have been assigned to drivers yet." />
           </div>
         ) : (
-          <div className="p-4">
-             <AssignmentTable assignments={assignments} onEdit={setEditAssignment} showDriver={true} driverMap={driverMap} userMap={userMap} currentUser={currentUser} />
-          </div>
+          <AssignmentTable assignments={assignments} onEdit={setEditAssignment} showDriver={true} driverMap={driverMap} userMap={userMap} currentUser={currentUser} />
         )}
+        </div>
       </div>
     </div>
+  </div>
   );
 };
 
