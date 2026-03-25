@@ -327,7 +327,7 @@ const UserDetail = () => {
   );
 
   return (
-    <main className="p-6 bg-[#F4F5F7] overflow-hidden flex flex-col relative">
+    <main className="p-6 bg-[#F4F5F7] flex-1 min-h-0 flex flex-col relative overflow-hidden">
       {/* Page Title Section */}
       <div className="flex justify-between items-start mb-8">
         <div>
@@ -347,19 +347,19 @@ const UserDetail = () => {
         {isLoading
           ? Array(2).fill(0).map((_, i) => <ShimmerCard key={i} />)
           : stats.map((stat, i) => (
-            <div key={i} className={`bg-white p-6 rounded-xl border-b-4 ${stat.border} shadow-sm transition-transform hover:scale-[1.02]`}>
-              <p className="text-[10px] font-bold text-gray-400 tracking-wider mb-2 uppercase">{stat.label}</p>
+            <div key={i} className="bg-white p-4 lg:p-5 rounded-xl border border-gray-100 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-blue-200 w-full max-w-[240px]">
+              <p className="text-[10px] font-bold text-gray-400 tracking-wider mb-1.5 uppercase">{stat.label}</p>
               <div className="flex items-baseline gap-2">
-                <span className={`text-4xl font-bold ${stat.textColor || 'text-[#172B4D]'}`}>{stat.value}</span>
+                <span className={`text-3xl font-black ${stat.textColor || 'text-[#172B4D]'}`}>{stat.value}</span>
               </div>
-              <p className="text-xs text-gray-500 mt-1">{stat.sub}</p>
+              <p className="text-xs text-gray-400 mt-1.5">{stat.sub}</p>
             </div>
           ))
         }
       </div>
 
       {/* Table Container */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden">
         {/* Filters Bar */}
         <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-white">
           <div className="flex gap-3 items-center">
@@ -374,89 +374,7 @@ const UserDetail = () => {
               />
             </div>
           </div>
-          <button
-            onClick={() => { setSearchTerm(''); setCurrentPage(1); }}
-            className="text-gray-500 hover:text-gray-700 text-sm flex items-center gap-2 font-medium"
-          >
-            <RotateCcw size={16} /> Reset
-          </button>
-        </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: 'calc(100vh - 310px)' }}>
-          <table className="w-full text-left">
-            <thead className="bg-[#F8FAFC] border-b border-gray-100 sticky top-0 z-10">
-              <tr className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-                <th className="px-6 py-4">User Name</th>
-                <th className="px-6 py-4">Role / Type</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50 text-sm">
-              {isLoading ? (
-                Array(10).fill(0).map((_, i) => <ShimmerRow key={i} />)
-              ) : isError ? (
-                <tr><td colSpan="6" className="px-6 py-10 text-center text-red-500">Error: {error?.message || "Something went wrong"}</td></tr>
-              ) : users.length === 0 ? (
-                <tr><td colSpan="6" className="px-6 py-10 text-center text-gray-500 font-medium">No users found.</td></tr>
-              ) : (
-                users.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50 transition-colors group">
-                    <td
-                      className="px-6 py-4 cursor-pointer"
-                      onClick={() => handleOpenModal('view', user)}
-                    >
-                      <p className="font-bold text-[#172B4D] group-hover:text-[#0052CC] transition-colors">{user.first_name} {user.last_name}</p>
-                      <p className="text-xs text-gray-400">@{user.username}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{user.email}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col gap-1">
-                        <span className="bg-blue-50 text-[#0052CC] text-[10px] font-bold px-2 py-0.5 rounded border border-blue-100 w-fit">{user.account_type || 'EMPLOYEE'}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${user.status === 'ACTIVE' ? 'bg-green-50 text-green-600 border-green-100' :
-                        user.status === 'INACTIVE' ? 'bg-gray-50 text-gray-600 border-gray-100' :
-                          (user.status === 'SUSPENDED' || user.status === 'LOCKED') ? 'bg-red-50 text-red-600 border-red-100' :
-                            'bg-red-50 text-red-600 border-red-100'
-                        }`}>
-                        {user.status || 'ACTIVE'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex gap-2 justify-end">
-                        <button
-                          onClick={() => handleToggleLock(user)}
-                          title={(user.status === 'SUSPENDED' || user.status === 'LOCKED') ? 'Unlock User' : 'Lock User'}
-                          className={`p-1.5 rounded border transition-colors ${(user.status === 'SUSPENDED' || user.status === 'LOCKED')
-                            ? 'bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100'
-                            : 'hover:bg-gray-100 text-gray-400 border-gray-200'
-                            }`}
-                        >
-                          {(user.status === 'SUSPENDED' || user.status === 'LOCKED') ? <Unlock size={14} /> : <Lock size={14} />}
-                        </button>
-                        <button
-                          onClick={() => handleOpenModal('edit', user)}
-                          className="p-1.5 hover:bg-gray-100 rounded text-gray-400 border border-gray-200 transition-colors"
-                        >
-                          <Edit size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination Section */}
-        <div className="flex items-center justify-between mt-6 px-2">
-          <div className="text-sm text-gray-500">
-            Showing <span className="font-bold text-[#172B4D]">{users.length}</span> of <span className="font-bold text-[#172B4D]">{usersData?.count || 0}</span> users
-          </div>
 
           <div className="flex items-center gap-3">
             <button
@@ -480,6 +398,84 @@ const UserDetail = () => {
             </button>
           </div>
         </div>
+
+      {/* Table */}
+      <div className="flex-1 overflow-auto min-h-0">
+        <table className="w-full text-left relative">
+          <thead className="bg-[#F8FAFC] border-b border-gray-100 sticky top-0 z-10">
+            <tr className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+              <th className="px-6 py-4">User Name</th>
+              <th className="px-6 py-4">Role / Type</th>
+              <th className="px-6 py-4">Status</th>
+              <th className="px-6 py-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50 text-sm">
+            {isLoading ? (
+              Array(10).fill(0).map((_, i) => <ShimmerRow key={i} />)
+            ) : isError ? (
+              <tr><td colSpan="6" className="px-6 py-10 text-center text-red-500">Error: {error?.message || "Something went wrong"}</td></tr>
+            ) : users.length === 0 ? (
+              <tr><td colSpan="6" className="px-6 py-10 text-center text-gray-500 font-medium">No users found.</td></tr>
+            ) : (
+              users.map((user) => (
+                <tr key={user.id} className="hover:bg-gray-50 transition-colors group">
+                  <td
+                    className="px-6 py-4 cursor-pointer"
+                    onClick={() => handleOpenModal('view', user)}
+                  >
+                    <p className="font-bold text-[#172B4D] group-hover:text-[#0052CC] transition-colors">{user.first_name} {user.last_name}</p>
+                    <p className="text-xs text-gray-400">@{user.username}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{user.email}</p>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-col gap-1">
+                      <span className="bg-blue-50 text-[#0052CC] text-[10px] font-bold px-2 py-0.5 rounded border border-blue-100 w-fit">{user.account_type || 'EMPLOYEE'}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${user.status === 'ACTIVE' ? 'bg-green-50 text-green-600 border-green-100' :
+                      user.status === 'INACTIVE' ? 'bg-gray-50 text-gray-600 border-gray-100' :
+                        (user.status === 'SUSPENDED' || user.status === 'LOCKED') ? 'bg-red-50 text-red-600 border-red-100' :
+                          'bg-red-50 text-red-600 border-red-100'
+                      }`}>
+                      {user.status || 'ACTIVE'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        onClick={() => handleToggleLock(user)}
+                        title={(user.status === 'SUSPENDED' || user.status === 'LOCKED') ? 'Unlock User' : 'Lock User'}
+                        className={`p-1.5 rounded border transition-colors ${(user.status === 'SUSPENDED' || user.status === 'LOCKED')
+                          ? 'bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100'
+                          : 'hover:bg-gray-100 text-gray-400 border-gray-200'
+                          }`}
+                      >
+                        {(user.status === 'SUSPENDED' || user.status === 'LOCKED') ? <Unlock size={14} /> : <Lock size={14} />}
+                      </button>
+                      <button
+                        onClick={() => handleOpenModal('edit', user)}
+                        className="p-1.5 hover:bg-gray-100 rounded text-gray-400 border border-gray-200 transition-colors"
+                      >
+                        <Edit size={14} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination Section */}
+      <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100 bg-white">
+        <div className="text-sm text-gray-500">
+          Showing <span className="font-bold text-[#172B4D]">{users.length}</span> of <span className="font-bold text-[#172B4D]">{usersData?.count || 0}</span> users
+        </div>
+
+      </div>
       </div>
 
       {/* Modal Overlay */}

@@ -217,22 +217,22 @@ const AddDriverModal = ({ onClose }) => {
 // ── ADD DRIVER MODAL END ──────────────────────────────────────────────
 // ─────────────────────────────────────────────────────────────────────
 
-// ── Stat Card ─────────────────────────────────────────────────────────
 // eslint-disable-next-line no-unused-vars
-const StatCard = ({ label, value, color, IconComponent, loading }) => (
-  <div className={`bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-2 border-t-4 ${color.border}`}>
-    <div className="flex items-center justify-between">
-      <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{label}</span>
-      <span className={`w-8 h-8 rounded-lg flex items-center justify-center ${color.iconBg}`}>
-        <IconComponent size={15} className={color.iconText} />
-      </span>
+const StatCard = ({ label, value, color, IconComponent, loading }) => {
+  return (
+    <div className="bg-white p-4 lg:p-5 rounded-xl border border-gray-100 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-blue-200 w-full max-w-[240px]">
+      <p className="text-[10px] font-bold text-gray-400 tracking-wider mb-1.5 uppercase">{label}</p>
+      <div className="flex items-baseline gap-2">
+        {loading ? (
+          <div className="h-8 w-16 bg-gray-200 animate-pulse rounded"></div>
+        ) : (
+          <span className={`text-3xl font-black ${color.value || 'text-[#172B4D]'}`}>{value}</span>
+        )}
+      </div>
+      <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1.5"><span className="text-sm opacity-50"><IconComponent size={12} /></span> <span>View Details</span></p>
     </div>
-    {loading
-      ? <div className="h-9 w-12 bg-gray-100 rounded animate-pulse" />
-      : <span className={`text-3xl font-black ${color.value}`}>{value}</span>
-    }
-  </div>
-);
+  );
+};
 
 // ── Main Component ────────────────────────────────────────────────────
 const DriversList = () => {
@@ -243,10 +243,12 @@ const DriversList = () => {
   const [joinedFrom, setJoinedFrom] = useState('');
   const [joinedTo, setJoinedTo] = useState('');
   const [ordering, setOrdering] = useState('-id');
+  const [currentPage, setCurrentPage] = useState(1);
   const [addOpen, setAddOpen] = useState(false);  // ← Add Driver modal
   const navigate = useNavigate();
 
   const { data, isLoading, isError, error, refetch } = useDrivers({
+    page: currentPage,
     ...(statusFilter && { status: statusFilter }),
     ...(typeFilter && { driver_type: typeFilter }),
     ...(licFilter && { license_type: licFilter }),
@@ -268,7 +270,7 @@ const DriversList = () => {
 
   const resetFilters = () => {
     setSearch(''); setStatus(''); setType(''); setLic('');
-    setJoinedFrom(''); setJoinedTo(''); setOrdering('');
+    setJoinedFrom(''); setJoinedTo(''); setOrdering(''); setCurrentPage(1);
   };
 
   const SortableTH = ({ label, field }) => (
@@ -291,12 +293,12 @@ const DriversList = () => {
         const name = getDriverName(d);
         return (
           <div className="flex items-center gap-3">
-            <div className={`w-9 h-9 rounded-[9px] flex items-center justify-center font-bold text-xs text-white shadow-sm font-syne ${getAvatarColor(name)}`}>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-[10px] tracking-wider bg-blue-50 text-[#0052CC] border border-blue-100 font-syne">
               {getInitials(name)}
             </div>
             <div>
-              <div className="font-bold text-[#172B4D] text-[13px] line-height-1">{name}</div>
-              <div className="text-[10px] text-gray-400 font-mono mt-0.5 uppercase">{d.employee_id}</div>
+              <div className="font-semibold text-gray-800 text-[13px] leading-none">{name}</div>
+              <div className="text-[11px] text-gray-400 font-mono mt-1 uppercase">{d.employee_id}</div>
             </div>
           </div>
         );
@@ -313,7 +315,7 @@ const DriversList = () => {
     {
       header: 'License Type',
       render: d => (
-        <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold border ${LICENSE_COLORS[d.license_type] ?? 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+        <span className="px-2.5 py-1 rounded-md text-[11px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-100">
           {d.license_type_display ?? d.license_type ?? '—'}
         </span>
       ),
@@ -321,7 +323,7 @@ const DriversList = () => {
     {
       header: 'Driver Type',
       render: d => (
-        <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold border ${DRIVER_TYPE_COLORS[d.driver_type] ?? 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+        <span className="px-2.5 py-1 rounded-md text-[11px] font-semibold text-gray-600 bg-gray-50 border border-gray-200">
           {d.driver_type_display ?? d.driver_type ?? '—'}
         </span>
       ),
@@ -337,7 +339,7 @@ const DriversList = () => {
     {
       header: 'Experience',
       render: d => (
-        <span className="text-gray-600 text-[12px]">
+        <span className="text-gray-600 font-medium text-[12px]">
           {d.years_of_experience != null ? `${d.years_of_experience} yrs` : '—'}
         </span>
       ),
@@ -346,7 +348,7 @@ const DriversList = () => {
       header: 'Joined',
       sortField: 'joined_date',
       render: d => (
-        <span className="text-gray-600 text-[12px]">{d.joined_date ?? '—'}</span>
+        <span className="text-gray-600 font-medium text-[12px]">{d.joined_date ?? '—'}</span>
       ),
     },
     {
@@ -363,16 +365,16 @@ const DriversList = () => {
       render: d => (
         <button
           onClick={() => navigate(`/tenant/dashboard/drivers/${d.id}`)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-bold text-[#3b7ef8] bg-white border border-[#e2e8f0] rounded-[7px] hover:bg-gray-50 transition-all shadow-sm group-hover:border-[#3b7ef8]/30"
+          className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all font-sans"
         >
-          <Eye size={12} className="text-[#4f46e5]" /> View
+          <Eye size={12} /> View
         </button>
       ),
     },
   ];
 
   return (
-    <div className="p-6 space-y-6 bg-[#F8FAFC] min-h-screen">
+    <div className="p-6 flex flex-col gap-6 bg-[#F8FAFC] flex-1 min-h-0 overflow-hidden relative">
 
       {/* ── Add Driver Modal ── */}
       {addOpen && (
@@ -389,9 +391,16 @@ const DriversList = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
-
+          <button onClick={() => refetch()}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all">
+            <RefreshCw size={14} /> Refresh
+          </button>
           <button className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all">
             <Download size={14} /> Export
+          </button>
+          <button onClick={() => setAddOpen(true)}
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all shadow-sm">
+            <Plus size={15} /> Add Driver
           </button>
         </div>
       </div>
@@ -405,86 +414,81 @@ const DriversList = () => {
       </div>
 
       {/* ── Table Card ── */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-
-        {/* Table Header */}
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <div>
-            <h2 className="font-bold text-[#172B4D]">🧑‍✈️ Drivers List</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Click View to see complete driver profile</p>
-          </div>
-          <button
-            onClick={() => setAddOpen(true)}
-            className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-[#2563eb] to-[#4f46e5] rounded-xl shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
-          >
-            <Plus size={18} /> Add Driver
-          </button>
-        </div>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden">
 
         {/* ── Filters Row 1 ── */}
-        <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-3 flex-wrap">
-          <div className="relative flex-1 min-w-50">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search employee ID, license number..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3b7ef8]/20 focus:border-[#3b7ef8] bg-[#f0f3f9] font-medium transition-all"
-            />
-          </div>
-          {[
-            { val: statusFilter, set: setStatus, opts: DRIVER_STATUS, ph: 'All Status' },
-            { val: typeFilter, set: setType, opts: DRIVER_TYPES, ph: 'All Types' },
-            { val: licFilter, set: setLic, opts: LICENSE_TYPES, ph: 'All Licenses' },
-          ].map(({ val, set, opts, ph }) => (
-            <div key={ph} className="relative">
-              <select
-                value={val}
-                onChange={e => set(e.target.value)}
-                className="appearance-none pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-[#f0f3f9] focus:outline-none focus:ring-2 focus:ring-[#3b7ef8]/10 focus:border-[#3b7ef8] cursor-pointer font-medium transition-all"
-              >
-                <option value="">{ph}</option>
-                {opts.map(o => <option key={o} value={o}>{o.replaceAll('_', ' ')}</option>)}
-              </select>
-              <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+        <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-white flex-wrap gap-4">
+          <div className="flex gap-3 items-center flex-wrap flex-1">
+            <div className="relative min-w-40">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search employee ID, license number..."
+                value={search}
+                onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+                className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] bg-gray-50 font-medium transition-all"
+              />
             </div>
-          ))}
-          <button
-            onClick={resetFilters}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm font-bold text-[#64748b] border border-gray-200 rounded-lg bg-[#f0f3f9] hover:bg-gray-100 transition-all active:scale-95"
-          >
-            <RefreshCw size={13} /> Reset
-          </button>
-        </div>
-
-        {/* ── Filters Row 2 — Joined Date ── */}
-        <div className="px-5 py-2.5 border-b border-gray-100 flex items-center gap-3 flex-wrap bg-gray-50/50">
-          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Joined Date:</span>
-          <div className="flex items-center gap-2">
-            <input
-              type="date"
-              value={joinedFrom}
-              onChange={e => setJoinedFrom(e.target.value)}
-              className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#3b7ef8]/10 focus:border-[#3b7ef8] transition-all"
-            />
-            <span className="text-gray-400 text-xs">to</span>
-            <input
-              type="date"
-              value={joinedTo}
-              onChange={e => setJoinedTo(e.target.value)}
-              className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#3b7ef8]/10 focus:border-[#3b7ef8] transition-all"
-            />
-          </div>
-          {(joinedFrom || joinedTo) && (
+            {[
+              { val: statusFilter, set: setStatus, opts: DRIVER_STATUS, ph: 'All Status' },
+              { val: typeFilter, set: setType, opts: DRIVER_TYPES, ph: 'All Types' },
+              { val: licFilter, set: setLic, opts: LICENSE_TYPES, ph: 'All Licenses' },
+            ].map(({ val, set, opts, ph }) => (
+              <div key={ph} className="relative">
+                <select
+                  value={val}
+                  onChange={e => { set(e.target.value); setCurrentPage(1); }}
+                  className="appearance-none pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none cursor-pointer font-medium transition-all"
+                >
+                  <option value="">{ph}</option>
+                  {opts.map(o => <option key={o} value={o}>{o.replaceAll('_', ' ')}</option>)}
+                </select>
+                <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              </div>
+            ))}
+            <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-2 bg-gray-50">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Joined:</span>
+              <input
+                type="date"
+                value={joinedFrom}
+                onChange={e => setJoinedFrom(e.target.value)}
+                className="px-2 py-1.5 text-sm bg-transparent border-none focus:ring-0 text-gray-600 font-medium cursor-pointer"
+              />
+              <span className="text-gray-400 text-xs">to</span>
+              <input
+                type="date"
+                value={joinedTo}
+                onChange={e => setJoinedTo(e.target.value)}
+                className="px-2 py-1.5 text-sm bg-transparent border-none focus:ring-0 text-gray-600 font-medium cursor-pointer"
+              />
+            </div>
             <button
-              onClick={() => { setJoinedFrom(''); setJoinedTo(''); }}
-              className="text-xs text-red-400 hover:text-red-600 font-medium"
+              onClick={resetFilters}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-bold text-gray-500 border border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100 transition-all active:scale-95"
             >
-              ✕ Clear dates
+              <RefreshCw size={13} /> Reset
             </button>
-          )}
+          </div>
 
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1 || isLoading}
+              className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+            >
+              Previous
+            </button>
+            <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
+              {currentPage}
+            </div>
+            <button
+              onClick={() => setCurrentPage(prev => prev + 1)}
+              disabled={!data?.next || isLoading}
+              className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+            >
+              Next
+            </button>
+          </div>
         </div>
 
         {/* Loading */}
@@ -516,15 +520,15 @@ const DriversList = () => {
 
         {/* Table */}
         {!isLoading && !isError && (
-          <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: 'calc(100vh - 310px)' }}>
+          <div className="flex-1 overflow-auto min-h-0">
             {drivers.length > 0 ? (
               <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-100">
+                <thead className="bg-[#F8FAFC] border-b border-gray-100 sticky top-0 z-10">
+                  <tr className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
                     {COLUMNS.map(c => (
                       c.sortField
                         ? <SortableTH key={c.header} label={c.header} field={c.sortField} />
-                        : <th key={c.header} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{c.header}</th>
+                        : <th key={c.header} className="px-4 py-4">{c.header}</th>
                     ))}
                   </tr>
                 </thead>
@@ -549,17 +553,12 @@ const DriversList = () => {
             )}
           </div>
         )}
-
         {/* Footer */}
         {!isLoading && !isError && (
-          <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
-            <span>
-              Showing <span className="font-bold text-gray-600">{drivers.length}</span>
-              {data?.count && data.count !== drivers.length && (
-                <> of <span className="font-bold text-gray-600">{data.count}</span></>
-              )}{' '}drivers
-            </span>
-            <span className="text-[11px]">Fleet Management System</span>
+          <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100 bg-white shrink-0">
+            <div className="text-sm text-gray-500">
+              Showing <span className="font-bold text-[#172B4D]">{drivers.length}</span> of <span className="font-bold text-[#172B4D]">{total}</span> drivers
+            </div>
           </div>
         )}
       </div>

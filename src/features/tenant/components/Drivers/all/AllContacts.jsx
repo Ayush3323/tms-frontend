@@ -60,13 +60,14 @@ const AllContacts = () => {
   if (isError)   return <div className="p-6"><ErrorState message="Failed to load contacts" error={error?.message} onRetry={() => refetch()} /></div>;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="flex-1 min-h-0 overflow-hidden bg-[#F8FAFC] flex flex-col relative">
       {/* ── Modals ── */}
       {addOpen       && <AddContactModal    driverId={null} onClose={() => setAddOpen(false)} />}
       {editContact   && <EditContactModal   contact={editContact} driverId={editContact.driver} onClose={() => setEditContact(null)} />}
 
-      {/* ── Header ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-[20px] border border-[#e2e8f0] shadow-sm">
+      <div className="p-6 lg:p-8 flex-1 flex flex-col min-h-0">
+        {/* ── Header ── */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-[#dc2626]/10 rounded-[12px] flex items-center justify-center border border-[#dc2626]/20 shadow-sm shadow-red-50">
             <span className="text-2xl">🚨</span>
@@ -77,17 +78,17 @@ const AllContacts = () => {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#2563eb] to-[#4f46e5] text-white rounded-lg text-sm font-semibold shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
+          <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-[#0052CC] text-white rounded-lg text-sm font-bold shadow-sm hover:bg-[#0043A8] transition-all">
             <Plus size={16} /> Add Contact
           </button>
         </div>
       </div>
 
-      {/* ── Filters ── */}
-      <div className="flex flex-wrap items-center gap-3 bg-white p-4 rounded-[14px] border border-[#e2e8f0] shadow-sm">
-        <div className="flex items-center gap-2 px-3 py-1.5 text-[10px] font-black text-[#94a3b8] uppercase tracking-widest border-r border-[#e2e8f0] mr-1">
-          FILTER
-        </div>
+      {/* ── Table Card ── */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden">
+        {/* ── Filters Bar ── */}
+        <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-white flex-wrap gap-4">
+          <div className="flex gap-3 items-center flex-wrap flex-1">
         
         {/* Search */}
         <div className="relative flex-1 min-w-[240px]">
@@ -139,18 +140,18 @@ const AllContacts = () => {
           </select>
         </div>
 
-        {/* Clear */}
-        <button 
-          onClick={clearFilters}
-          className="px-4 py-2 text-[12px] font-bold text-[#64748b] hover:text-[#dc2626] border border-dashed border-[#e2e8f0] rounded-lg transition-all active:scale-95"
-        >
-          ✕ Clear
-        </button>
-      </div>
+          </div>
+          <button 
+            onClick={clearFilters}
+            className="px-3 py-2 text-xs font-bold text-gray-500 hover:text-red-500 transition-colors"
+          >
+            Clear
+          </button>
+        </div>
 
-      {/* ── Content ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        {contacts.length === 0 ? (
+        {/* ── Content ── */}
+        <div className="flex-1 min-h-0 overflow-auto">
+          {contacts.length === 0 ? (
           <div className="py-20">
             <EmptyState icon={Users} title="No contacts found" description="No emergency contacts have been added yet." />
           </div>
@@ -159,6 +160,8 @@ const AllContacts = () => {
              <ContactTable contacts={contacts} onEdit={setEditContact} showDriver={true} driverMap={driverMap} />
           </div>
         )}
+        </div>
+      </div>
       </div>
     </div>
   );

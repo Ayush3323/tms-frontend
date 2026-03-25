@@ -62,97 +62,102 @@ const AllTraining = () => {
   if (isError) return <div className="p-6"><ErrorState message="Failed to load records" error={error?.message} onRetry={() => refetch()} /></div>;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="flex-1 min-h-0 overflow-hidden bg-[#F8FAFC] flex flex-col relative">
       {/* ── Modals ── */}
       {addOpen && <AddTrainingModal driverId={null} onClose={() => setAddOpen(false)} />}
       {editRecord && <EditTrainingModal record={editRecord} driverId={editRecord.driver} onClose={() => setEditRecord(null)} />}
 
-      {/* ── Header ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-[#172B4D] tracking-tight">Training Records</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage training and certifications for all drivers</p>
+      <div className="p-6 lg:p-8 flex-1 flex flex-col min-h-0">
+        {/* ── Header ── */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-2xl font-black text-[#172B4D] tracking-tight">Training Records</h1>
+            <p className="text-sm text-gray-500 mt-1">Manage training and certifications for all drivers</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-[#0052CC] text-white rounded-lg text-sm font-bold shadow-sm hover:bg-[#0043A8] transition-all">
+              <Plus size={16} /> Add Record
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-[#2563eb] to-[#4f46e5] rounded-xl shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
-            <Plus size={18} /> Add Record
-          </button>
-        </div>
-      </div>
 
-      {/* ── Filters ── */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
-        <div>
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Driver</p>
-          <DriverSelect 
-            value={filters.driver} 
-            onChange={(val) => handleFilterChange('driver', val)} 
-            className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
-          />
-        </div>
-        <div>
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Training Type</p>
-          <Select 
-            value={filters.training_type} 
-            onChange={(e) => handleFilterChange('training_type', e.target.value)}
-            className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
-          >
-            <option value="">All Types</option>
-            {TRAINING_TYPES.map(t => <option key={t} value={t}>{t.replaceAll('_', ' ')}</option>)}
-          </Select>
-        </div>
-        <div>
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Status</p>
-          <Select 
-            value={filters.status} 
-            onChange={(e) => handleFilterChange('status', e.target.value)}
-            className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
-          >
-            <option value="">All Status</option>
-            {TRAINING_STATUS.map(s => <option key={s} value={s}>{s.replaceAll('_', ' ')}</option>)}
-          </Select>
-        </div>
-        <div>
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Training Date</p>
-          <Input 
-            type="date" 
-            value={filters.training_date} 
-            onChange={(e) => handleFilterChange('training_date', e.target.value)}
-            className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
-          />
-        </div>
-        <div className="flex items-end gap-2">
-          <div className="flex-1">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Expiry Date</p>
-            <Input 
-              type="date" 
-              value={filters.expiry_date} 
-              onChange={(e) => handleFilterChange('expiry_date', e.target.value)}
-              className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
-            />
-          </div>
-          <button
-            onClick={clearFilters}
-            className="px-3 py-2 text-xs font-bold text-gray-500 hover:text-red-500 transition-colors"
-          >
-            Clear
-          </button>
-        </div>
-      </div>
+        {/* ── Table Card ── */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden">
+          {/* ── Filters Bar ── */}
+          <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-white flex-wrap gap-4">
+            <div className="flex gap-3 items-center flex-wrap flex-1">
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Driver</p>
+                <DriverSelect
+                  value={filters.driver}
+                  onChange={(val) => handleFilterChange('driver', val)}
+                  className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
+                />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Training Type</p>
+                <Select
+                  value={filters.training_type}
+                  onChange={(e) => handleFilterChange('training_type', e.target.value)}
+                  className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
+                >
+                  <option value="">All Types</option>
+                  {TRAINING_TYPES.map(t => <option key={t} value={t}>{t.replaceAll('_', ' ')}</option>)}
+                </Select>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Status</p>
+                <Select
+                  value={filters.status}
+                  onChange={(e) => handleFilterChange('status', e.target.value)}
+                  className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
+                >
+                  <option value="">All Status</option>
+                  {TRAINING_STATUS.map(s => <option key={s} value={s}>{s.replaceAll('_', ' ')}</option>)}
+                </Select>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Training Date</p>
+                <Input
+                  type="date"
+                  value={filters.training_date}
+                  onChange={(e) => handleFilterChange('training_date', e.target.value)}
+                  className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
+                />
+              </div>
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Expiry Date</p>
+                  <Input
+                    type="date"
+                    value={filters.expiry_date}
+                    onChange={(e) => handleFilterChange('expiry_date', e.target.value)}
+                    className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
+                  />
+                </div>
+              </div>
+            </div>
+            <button
+                onClick={clearFilters}
+                className="px-3 py-2 text-xs font-bold text-gray-500 hover:text-red-500 transition-colors self-end mb-1"
+              >
+                Clear
+              </button>
+            </div>
 
-      {/* ── Content ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        {records.length === 0 ? (
-          <div className="py-20">
-            <EmptyState icon={GraduationCap} title="No records found" description="No training records have been added yet." />
-          </div>
-        ) : (
-          <div className="p-4">
-            <TrainingTable records={records} onEdit={setEditRecord} showDriver={true} driverMap={driverMap} />
-          </div>
-        )}
+            {/* ── Content ── */}
+            <div className="flex-1 min-h-0 overflow-auto">
+              {records.length === 0 ? (
+                <div className="py-20">
+                  <EmptyState icon={GraduationCap} title="No records found" description="No training records have been added yet." />
+                </div>
+              ) : (
+                <TrainingTable records={records} onEdit={setEditRecord} showDriver={true} driverMap={driverMap} />
+          )}
+        </div>
       </div>
     </div>
+  </div>
   );
 };
 

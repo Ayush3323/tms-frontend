@@ -194,7 +194,7 @@ const ConsigneesDashboard = () => {
   ];
 
   return (
-    <div className="p-6 space-y-6 bg-[#F8FAFC] min-h-screen">
+    <div className="p-6 flex flex-col gap-6 bg-[#F8FAFC] flex-1 min-h-0 overflow-hidden relative">
 
       {/* Header */}
       <div className="flex items-start justify-between">
@@ -227,7 +227,7 @@ const ConsigneesDashboard = () => {
       </div>
 
       {/* Table Card */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
             <h2 className="font-bold text-[#172B4D]">📦 Consignee Registry</h2>
@@ -269,10 +269,10 @@ const ConsigneesDashboard = () => {
         )}
 
         {!isLoading && !isError && (
-          <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: 'calc(100vh - 310px)' }}>
-            <table className="w-full text-sm">
+          <div className="flex-1 overflow-auto min-h-0">
+            <table className="w-full text-sm relative">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
+                <tr className="bg-gray-50 border-b border-gray-100 sticky top-0 z-10">
                   {COLUMNS.map(c => (
                     <th key={c.header} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{c.header}</th>
                   ))}

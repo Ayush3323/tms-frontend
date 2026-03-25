@@ -53,8 +53,8 @@ export const TableShimmer = ({ rows = 5, cols = 8 }) => (
 
 
 export const GenericTableShimmer = ({ rows = 10, columns = [] }) => (
-  <div className="w-full bg-white rounded-2xl border border-gray-100 overflow-hidden animate-pulse">
-    <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: 'calc(100vh - 310px)' }}>
+  <div className="w-full bg-white rounded-2xl border border-gray-100 overflow-hidden animate-pulse flex-1 flex flex-col min-h-0">
+    <div className="flex-1 overflow-auto min-h-0">
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-gray-50 border-b border-gray-100">

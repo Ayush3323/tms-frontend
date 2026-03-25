@@ -316,7 +316,7 @@ const VehicleInsurance = ({ vehicleId, isTab }) => {
   if (isError) return <ErrorState message="Failed to load insurance" error={error?.message} onRetry={() => refetch()} />;
 
   const content = (
-    <div className={!isTab ? "p-6 space-y-6 bg-[#F8FAFC] min-h-screen" : "space-y-4"}>
+    <div className={!isTab ? "p-6 flex flex-col gap-6 bg-[#F8FAFC] flex-1 min-h-0 overflow-hidden relative" : "flex flex-col gap-4 flex-1 min-h-0 overflow-hidden relative"}>
 
       {modal && (
         <InsuranceModal vehicleId={vehicleId} initial={modal === 'add' ? null : modal} onClose={() => setModal(null)} onDeleteRequest={() => { setModal(null); setDelete(modal); }} />
@@ -342,6 +342,10 @@ const VehicleInsurance = ({ vehicleId, isTab }) => {
             <p className="text-sm text-gray-400 mt-0.5">Comprehensive, Third Party, Fire & Theft policies</p>
           </div>
           <div className="flex items-center gap-2">
+            <button onClick={() => setModal('add')}
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all">
+              <Plus size={14} /> Add Insurance
+            </button>
             <button onClick={() => refetch()}
               className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all">
               <RefreshCw size={14} />
@@ -362,29 +366,8 @@ const VehicleInsurance = ({ vehicleId, isTab }) => {
       )}
 
       {/* Table Card */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        {isTab ? (
-          <SectionHeader
-            icon={Shield}
-            title="Insurance Policies"
-            count={docs.length}
-            onAdd={(vehicleId && hasInsurance) ? null : () => setModal('add')}
-            addLabel="Add Policy"
-          />
-        ) : (
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-            <div>
-              <h2 className="font-bold text-[#172B4D]">🛡️ Insurance Registry</h2>
-              <p className="text-xs text-gray-400 mt-0.5">All vehicle insurance policies</p>
-            </div>
-            {(!vehicleId || !hasInsurance) && (
-              <button onClick={() => setModal('add')}
-                className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all">
-                <Plus size={14} /> Add Insurance
-              </button>
-            )}
-          </div>
-        )}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0">
+
 
         {/* Filters — refined search */}
         <div className={`px-5 py-3 border-b border-gray-100 flex items-center gap-3 flex-wrap ${isTab ? 'bg-gray-50/30' : ''}`}>
@@ -412,10 +395,10 @@ const VehicleInsurance = ({ vehicleId, isTab }) => {
 
 
         {!isLoading && !isError && (
-          <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: 'calc(100vh - 310px)' }}>
-            <table className="w-full text-sm">
+          <div className="flex-1 overflow-auto min-h-0">
+            <table className="w-full text-sm relative">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
+                <tr className="bg-gray-50 border-b border-gray-100 sticky top-0 z-10">
                   {!vehicleId && <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Vehicle</th>}
                   {['Policy #', 'Type', 'Expiry Date', 'Status', 'Actions'].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>

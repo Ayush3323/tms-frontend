@@ -66,20 +66,21 @@ export const driverName = (d) => {
 };
 
 // ── Generic Badge ─────────────────────────────────────────────────────
-export const StatCard = ({ label, value, icon: Icon, color, loading, className = '' }) => (
-  <div className={`bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-1 shadow-sm hover:shadow-md transition-all w-full max-w-[240px] ${className}`}>
-    <div className="flex items-center justify-between">
-      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{label}</span>
-      <span className={`w-8 h-8 rounded-lg flex items-center justify-center ${color?.iconBg || 'bg-gray-50'}`}>
-        {Icon && <Icon size={15} className={color?.iconText || 'text-gray-400'} />}
-      </span>
+export const StatCard = ({ label, value, icon: Icon, color, loading, className = '' }) => {
+  return (
+    <div className={`bg-white p-4 lg:p-5 rounded-xl border border-gray-100 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-blue-200 w-full max-w-[240px] ${className}`}>
+      <p className="text-[10px] font-bold text-gray-400 tracking-wider mb-1.5 uppercase">{label}</p>
+      <div className="flex items-baseline gap-2">
+        {loading ? (
+          <div className="h-8 w-16 bg-gray-200 animate-pulse rounded"></div>
+        ) : (
+          <span className={`text-3xl font-black ${color?.value || 'text-[#172B4D]'}`}>{value}</span>
+        )}
+      </div>
+      <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1.5"><span className="text-sm opacity-50">{Icon && <Icon size={12} />}</span> <span>View Details</span></p>
     </div>
-    {loading
-      ? <div className="h-9 w-12 bg-gray-100 rounded animate-pulse" />
-      : <span className={`text-2xl font-black ${color?.value || 'text-[#172B4D]'}`}>{value}</span>
-    }
-  </div>
-);
+  );
+};
 
 // ── Info Card (for details view) ──────────────────────────────────────
 export const InfoCard = ({ label, value, icon: Icon, accent }) => (

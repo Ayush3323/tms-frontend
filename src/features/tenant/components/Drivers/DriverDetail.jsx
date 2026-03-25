@@ -356,7 +356,7 @@ const DriverDetail = () => {
   const st = STATUS_STYLES[driver.status] ?? STATUS_STYLES.INACTIVE;
 
   return (
-    <div className="p-6 space-y-5 bg-[#F8FAFC] min-h-screen">
+    <div className="p-6 flex flex-col gap-5 bg-[#F8FAFC] flex-1 min-h-0 overflow-hidden relative">
       {editOpen && <EditDriverModal driver={driver} onClose={() => setEditOpen(false)} />}
 
       {/* Breadcrumb */}
@@ -442,8 +442,8 @@ const DriverDetail = () => {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="border-b border-gray-100 overflow-x-auto">
+      <div className="bg-white border border-gray-200 rounded-xl flex-1 flex flex-col min-h-0 overflow-hidden">
+        <div className="border-b border-gray-100 overflow-x-auto shrink-0">
           <div className="flex min-w-max">
             {TABS.map(tab => {
               const Icon = tab.icon;
@@ -462,7 +462,7 @@ const DriverDetail = () => {
             })}
           </div>
         </div>
-        <div className="p-5">
+        <div className="p-5 flex-1 flex flex-col min-h-0">
           {activeTab === 'overview' && <OverviewTab driver={driver} />}
           {activeTab === 'documents' && <DocumentsTab driverId={driver.id} />}
           {activeTab === 'emergency' && <EmergencyTab driverId={driver.id} />}
