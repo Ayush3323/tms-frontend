@@ -198,6 +198,11 @@ const VehicleOwnership = ({ vehicleId, isTab }) => {
             <h1 className="text-2xl font-black text-[#172B4D] tracking-tight">Ownership History</h1>
             <p className="text-sm text-gray-400 font-medium">Track transfers, leases and titles</p>
           </div>
+          <button
+            onClick={() => setModal({ mode: 'add' })}
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] shadow-sm">
+            <Plus size={14} /> Add Ownership Record
+          </button>
 
         </div>
       )}
@@ -230,18 +235,7 @@ const VehicleOwnership = ({ vehicleId, isTab }) => {
               {TRANSFER_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </Sel>
           </div>
-          <button
-            onClick={() => setModal({ mode: 'add' })}
-            className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-[#0052CC] rounded-xl hover:bg-[#0043A8] transition-all shadow-sm shadow-blue-200">
-            <Plus size={16} /> Add Ownership Record
-          </button>
-          {isTab && (
-            <button
-              onClick={() => setModal({ mode: 'add' })}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] shadow-sm">
-              <Plus size={14} /> Add Ownership Record
-            </button>
-          )}
+
         </div>
 
         <div className="flex-1 overflow-auto">
