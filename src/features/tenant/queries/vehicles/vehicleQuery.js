@@ -139,6 +139,24 @@ export const useDeleteVehicle = () => {
   })
 }
 
+// ─────────────── RESTORE VEHICLE ─────────────────────
+// Restores a soft-deleted vehicle (sets is_deleted=false)
+export const useRestoreVehicle = () => {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id) => vehiclesApi.restore(id),
+
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['vehicles'] })
+      qc.invalidateQueries({ queryKey: ['vehicle'] })
+      toast.success('Vehicle restored successfully')
+    },
+
+    onError: (error) => toast.error(parseError(error))
+  })
+}
+
 
 // ─────────────── VEHICLE DOCUMENTS ───────────────
 
