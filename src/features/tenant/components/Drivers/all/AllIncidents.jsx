@@ -108,7 +108,38 @@ const AllIncidents = () => {
         </div>
 
         {/* ── Table Card ── */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden mt-2">
+          {/* Compact Stats Row */}
+          <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+            {isLoading ? (
+              <div className="flex gap-6 animate-pulse">
+                <div className="h-5 bg-gray-200 rounded w-28"></div>
+                <div className="h-5 bg-gray-200 rounded w-28"></div>
+                <div className="h-5 bg-gray-200 rounded w-28"></div>
+                <div className="h-5 bg-gray-200 rounded w-28"></div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total Incidents:</span>
+                  <span className="text-[18px] font-black text-[#172B4D]">{data?.count ?? 0}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Resolved:</span>
+                  <span className="text-[18px] font-black text-green-600">{incidents.filter(i => i.resolution_status === 'RESOLVED').length}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Pending:</span>
+                  <span className="text-[18px] font-black text-amber-600">{incidents.filter(i => i.resolution_status === 'PENDING').length}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Critical:</span>
+                  <span className="text-[18px] font-black text-red-600">{incidents.filter(i => i.severity === 'HIGH' || i.severity === 'CRITICAL').length}</span>
+                </div>
+              </>
+            )}
+          </div>
+
           {/* ── Filters Bar ── */}
           <div className="p-4 border-b border-gray-50 bg-white">
             <div className="flex flex-wrap gap-4 items-end">
