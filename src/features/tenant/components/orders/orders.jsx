@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { 
   useOrders, useCreateOrder, useUpdateOrder, 
-  useCancelOrder, useAssignTrip 
+  useCancelOrder, useAssignTrip, useOrderDetail 
 } from '../../queries/orders/ordersQuery';
 import { useCustomers } from '../../queries/customers/customersQuery';
 import { useDrivers } from '../../queries/drivers/driverCoreQuery';
@@ -70,6 +70,7 @@ export default function OrdersMainBody() {
 
   // Modals state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isViewOpen, setIsViewOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -103,6 +104,11 @@ export default function OrdersMainBody() {
   };
 
   // Actions
+  const handleViewClick = (order) => {
+    setSelectedOrder(order);
+    setIsViewOpen(true);
+  };
+
   const handleEditClick = (order) => {
     setSelectedOrder(order);
     setIsEditOpen(true);
@@ -293,6 +299,14 @@ export default function OrdersMainBody() {
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2 transition-opacity">
                           
+                          <button 
+                            onClick={() => handleViewClick(order)}
+                            title="View Details"
+                            className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg"
+                          >
+                            <Eye size={16} />
+                          </button>
+
                           {(order.status === 'CONFIRMED' || order.status === 'DRAFT') && (
                             <button 
                               onClick={() => handleAssignClick(order)}
@@ -343,6 +357,14 @@ export default function OrdersMainBody() {
         isOpen={isCreateOpen} 
         onClose={() => setIsCreateOpen(false)} 
       />
+
+      {selectedOrder && (
+        <ViewOrderModal
+          isOpen={isViewOpen}
+          onClose={() => setIsViewOpen(false)}
+          orderId={selectedOrder.id}
+        />
+      )}
 
       {selectedOrder && (
         <EditOrderModal 
@@ -790,6 +812,118 @@ function AssignTripModal({ isOpen, onClose, order }) {
           </button>
         </div>
       </form>
+    </Modal>
+  );
+}
+
+function ViewOrderModal({ isOpen, onClose, orderId }) {
+  const { data: order, isLoading } = useOrderDetail(orderId);
+  const { data: customersData } = useCustomers({ page_size: 100 });
+  const customers = customersData?.results || (Array.isArray(customersData) ? customersData : []);
+
+  const getCustomerName = (id) => {
+    if (!id) return '-';
+    const c = customers.find(cust => cust.id === id);
+    if (!c) return 'Unknown';
+    return c.legal_name || c.trading_name || c.customer_code || id.slice(-6);
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={`Order Details`}>
+      {isLoading ? (
+        <div className="flex justify-center items-center h-40">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4a6cf7]"></div>
+        </div>
+      ) : order ? (
+        <div className="space-y-6 text-sm">
+          {/* Detailed Info Grid */}
+          <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+             <div className="grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-6">
+                <div>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">LR Number</p>
+                  <p className="font-semibold text-gray-800">{order.lr_number}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Reference Number</p>
+                  <p className="font-semibold text-gray-800">{order.reference_number || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Order Type</p>
+                  <p className="font-semibold text-gray-800">{order.order_type}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Status</p>
+                  <StatusBadge status={order.status} />
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Pickup Date</p>
+                  <p className="font-semibold text-gray-800">{order.pickup_date || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Delivery Date</p>
+                  <p className="font-semibold text-gray-800">{order.delivery_date || '-'}</p>
+                </div>
+             </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+             <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                <h3 className="font-bold text-gray-800 border-b pb-2 mb-3">Customer Information</h3>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Billing Customer</p>
+                    <p className="font-medium text-gray-700">{getCustomerName(order.billing_customer_id)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Consignor (From)</p>
+                    <p className="font-medium text-gray-700">{getCustomerName(order.consigner_id)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Consignee (To)</p>
+                    <p className="font-medium text-gray-700">{getCustomerName(order.consignee_id)}</p>
+                  </div>
+                </div>
+             </div>
+
+             <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+                <h3 className="font-bold text-gray-800 border-b pb-2 mb-3">System Details</h3>
+                <div className="space-y-3 flex-1">
+                  <div>
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Order ID</p>
+                    <p className="font-mono text-xs text-gray-600 truncate" title={order.id}>{order.id}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Created By</p>
+                    <p className="font-mono text-xs text-gray-600 truncate">{order.created_by}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Created At</p>
+                    <p className="font-medium text-gray-700">{new Date(order.created_at).toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Last Updated</p>
+                    <p className="font-medium text-gray-700">{new Date(order.updated_at).toLocaleString()}</p>
+                  </div>
+                </div>
+             </div>
+          </div>
+
+          {order.notes && (
+            <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 mt-4">
+              <h3 className="font-bold text-amber-800 text-sm mb-1">Notes / Instructions</h3>
+              <p className="text-amber-700 text-sm whitespace-pre-wrap">{order.notes}</p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="text-center text-gray-500 py-8">Failed to load order details</div>
+      )}
+      
+      <div className="flex justify-end pt-4 border-t border-gray-100 mt-6">
+        <button onClick={onClose} className="px-4 py-2 text-white bg-[#4a6cf7] rounded-lg hover:bg-[#3b59d9] font-medium transition-colors">
+          Close
+        </button>
+      </div>
     </Modal>
   );
 }
