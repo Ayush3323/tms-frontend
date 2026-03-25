@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import {
   Search, Plus, Download, RefreshCw, Eye, PauseCircle,
   PlayCircle, Truck, CheckCircle, Wrench, ArchiveX,
-  ChevronDown, Loader2, AlertCircle, X,
+  ChevronDown, Loader2, AlertCircle, X, RotateCcw,
   Pencil, LayoutGrid
 } from 'lucide-react';
-import { useVehicles, useVehicle, useUpdateVehicle, useCreateVehicle } from '../../../queries/vehicles/vehicleQuery';
+import { useVehicles, useVehicle, useUpdateVehicle, useRestoreVehicle } from '../../../queries/vehicles/vehicleQuery';
 import { useVehicleTypes } from '../../../queries/vehicles/vehicletypeQuery';
 
 import {
@@ -46,6 +46,7 @@ const Vehicles = () => {
   const [statusFilter, setStatus] = useState('');
   const [fuelFilter, setFuel] = useState('');
   const [ownerFilter, setOwner] = useState('');
+  const [visibilityFilter, setVisibilityFilter] = useState('active'); // active | deleted | all
   const [currentPage, setCurrentPage] = useState(1);
   const [formModal, setFormModal] = useState(null);
   const [viewModal, setViewModal] = useState(null);
@@ -57,19 +58,30 @@ const Vehicles = () => {
     ...(fuelFilter && { fuel_type: fuelFilter }),
     ...(ownerFilter && { ownership_type: ownerFilter }),
     ...(search && { search }),
+    ...(visibilityFilter === 'deleted' && { deleted_only: true }),
+    ...(visibilityFilter === 'all' && { include_deleted: true }),
   });
 
   const updateVehicle = useUpdateVehicle();
+  const restoreVehicle = useRestoreVehicle();
   const vehicles = data?.results ?? data ?? [];
   const total = data?.count ?? vehicles.length;
   const active = vehicles.filter(v => v.status === 'ACTIVE').length;
   const maintenance = vehicles.filter(v => v.status === 'MAINTENANCE').length;
   const retired = vehicles.filter(v => ['RETIRED', 'SOLD', 'SCRAPPED'].includes(v.status)).length;
+  const deleted = vehicles.filter(v => v.is_deleted).length;
 
   const handleStatusToggle = (v) =>
     updateVehicle.mutate({ id: v.id, data: { status: v.status === 'ACTIVE' ? 'MAINTENANCE' : 'ACTIVE' } });
 
-  const resetFilters = () => { setSearch(''); setStatus(''); setFuel(''); setOwner(''); setCurrentPage(1); };
+  const resetFilters = () => {
+    setSearch('');
+    setStatus('');
+    setFuel('');
+    setOwner('');
+    setVisibilityFilter('active');
+    setCurrentPage(1);
+  };
 
   const COLUMNS = [
     {
@@ -126,6 +138,14 @@ const Vehicles = () => {
     {
       header: 'Status',
       render: v => {
+        if (v.is_deleted) {
+          return (
+            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold w-fit whitespace-nowrap bg-red-50 border border-red-200 text-red-700">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+              Deleted
+            </span>
+          );
+        }
         const st = STATUS_STYLES[v.status] ?? STATUS_STYLES.RETIRED;
         return (
           <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold w-fit whitespace-nowrap ${st.bg} ${st.text}`}>
@@ -138,6 +158,25 @@ const Vehicles = () => {
     {
       header: 'Actions',
       render: v => {
+        if (v.is_deleted) {
+          return (
+            <div className="flex items-center gap-2">
+              <button onClick={() => navigate(`/tenant/dashboard/vehicles/${v.id}`)}
+                className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all">
+                <Eye size={12} /> View
+              </button>
+              <button
+                onClick={() => restoreVehicle.mutate(v.id)}
+                disabled={restoreVehicle.isPending}
+                className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-all disabled:opacity-50"
+              >
+                {restoreVehicle.isPending ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />}
+                Restore
+              </button>
+            </div>
+          );
+        }
+
         const isActive = v.status === 'ACTIVE';
         const isMaint = v.status === 'MAINTENANCE';
         return (
@@ -255,6 +294,10 @@ const Vehicles = () => {
                 <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Retired / Sold:</span>
                 <span className="text-[18px] font-black text-red-500">{retired}</span>
               </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Deleted:</span>
+                <span className="text-[18px] font-black text-red-600">{deleted}</span>
+              </div>
             </>
           )}
         </div>
@@ -262,6 +305,28 @@ const Vehicles = () => {
         {/* Filters Bar */}
         <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-white flex-wrap gap-4">
           <div className="flex gap-3 items-center flex-wrap flex-1">
+            <div className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 p-1">
+              {[
+                { id: 'active', label: 'Active' },
+                { id: 'deleted', label: 'Deleted' },
+                { id: 'all', label: 'All' },
+              ].map((opt) => (
+                <button
+                  key={opt.id}
+                  onClick={() => {
+                    setVisibilityFilter(opt.id);
+                    setCurrentPage(1);
+                  }}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${
+                    visibilityFilter === opt.id
+                      ? 'bg-[#0052CC] text-white shadow-sm'
+                      : 'text-gray-600 hover:bg-white'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
             <div className="relative min-w-[200px]">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input type="text" placeholder="Search registration, make, model..."
