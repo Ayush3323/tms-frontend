@@ -230,9 +230,17 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
     const monthlyData = Object.keys(monthlyMap).map(month => ({
       name: month,
       spend: monthlyMap[month]
-    })).slice(-6); // Last 6 months
+    })).slice(-6);
 
-    return { totalSpend, totalLiters, monthlyData, trendData };
+    const odoLogs = trendData.filter(l => l.odometer !== null);
+    let avgEfficiency = 0;
+    if (odoLogs.length > 1) {
+      const distance = odoLogs[odoLogs.length - 1].odometer - odoLogs[0].odometer;
+      const fuelConsumed = odoLogs.slice(0, -1).reduce((s, l) => s + l.quantity, 0);
+      if (fuelConsumed > 0) avgEfficiency = distance / fuelConsumed;
+    }
+
+    return { totalSpend, totalLiters, monthlyData, trendData, avgEfficiency };
   }, [logs]);
 
   return (
@@ -286,7 +294,9 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Avg Efficiency:</span>
-              <span className="text-[18px] font-black text-indigo-600">N/A</span>
+              <span className="text-[18px] font-black text-indigo-600">
+                {stats.avgEfficiency > 0 ? `${stats.avgEfficiency.toFixed(2)} KM/L` : 'N/A'}
+              </span>
             </div>
           </div>
           
@@ -400,7 +410,9 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
                 <Gauge size={24} />
               </div>
               <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1">Avg Efficiency</p>
-              <h3 className="text-2xl font-black text-[#172B4D]">KM/L <span className="text-sm font-bold text-gray-400">N/A</span></h3>
+              <h3 className="text-2xl font-black text-[#172B4D]">
+                {stats.avgEfficiency > 0 ? stats.avgEfficiency.toFixed(2) : 'N/A'} <span className="text-sm font-bold text-gray-400">KM/L</span>
+              </h3>
               <p className="text-[11px] text-gray-500 mt-2 font-medium italic">Add odometer readings to track</p>
             </div>
           </div>

@@ -56,7 +56,7 @@ const orderSubItems = [
 ];
 
 const SubMenu = ({ items }) => (
-  <div className="ml-5 pl-3 border-l-2 border-gray-200 mt-1 mb-1 space-y-0.5">
+  <div className="ml-5 mt-1 mb-1 space-y-0.5">
     {items.map((item) => (
       <NavLink
         key={item.name}
@@ -71,11 +71,8 @@ const SubMenu = ({ items }) => (
       >
         {({ isActive }) => (
           <>
-            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isActive ? 'bg-[#0052CC]' : 'bg-gray-300'}`} />
             <span className={isActive ? 'text-[#0052CC]' : 'text-gray-400'}>{item.icon}</span>
             <span className="flex-1">{item.name}</span>
-
-
           </>
         )}
       </NavLink>
