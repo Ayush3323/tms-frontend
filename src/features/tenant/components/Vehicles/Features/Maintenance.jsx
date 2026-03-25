@@ -803,6 +803,11 @@ const MaintenanceSchedules = ({ vehicleId, tab: initialTab = 'schedules', isTab 
             <p className="text-sm text-gray-400 mt-0.5">Schedules and history logs</p>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setModal({ type: activeTab === 'schedules' ? 'schedule' : 'record', mode: 'add' })}
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all">
+              <Plus size={14} /> Add {activeTab === 'schedules' ? 'Schedule' : 'Record'}
+            </button>
             <button onClick={() => refetch()}
               className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
               <RefreshCw size={14} />
@@ -869,11 +874,7 @@ const MaintenanceSchedules = ({ vehicleId, tab: initialTab = 'schedules', isTab 
               </span>
             </button>
           </div>
-          <button
-            onClick={() => setModal({ type: activeTab === 'schedules' ? 'schedule' : 'record', mode: 'add' })}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all">
-            <Plus size={14} /> Add {activeTab === 'schedules' ? 'Schedule' : 'Record'}
-          </button>
+
         </div>
 
         {/* Tab content */}

@@ -223,6 +223,10 @@ const VehicleAccessories = ({ vehicleId, isTab }) => {
             <h1 className="text-2xl font-black text-[#172B4D] tracking-tight">Accessories</h1>
             <p className="text-sm text-gray-400 font-medium">Manage on-board devices and equipment</p>
           </div>
+          <button onClick={() => setModal({ mode: 'add' })}
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8]">
+            <Plus size={14} /> Add Accessories
+          </button>
 
         </div>
       )}

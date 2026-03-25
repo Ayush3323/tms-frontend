@@ -57,7 +57,7 @@ const FormSec = ({ title }) => (
 const ViewDetail = ({ data, onClose }) => {
   const lookup = useDriverLookup();
   const defects = Array.isArray(data.defects_found) ? data.defects_found : [];
-  
+
   const resolveDriver = (d) => {
     if (!d) return '—';
     if (typeof d === 'object') return driverName(d);
@@ -193,8 +193,8 @@ const InspectionModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest 
                 <div className="col-span-2">
                   <Label required={!isEdit}>Vehicle</Label>
                   <VehicleSelect value={form.vehicle} onChange={(id, v) => {
-                    setForm(p => ({ 
-                      ...p, 
+                    setForm(p => ({
+                      ...p,
                       vehicle: id,
                       driver: v ? (v.assigned_driver_name ?? resolveDriver(v.assigned_driver)) : p.driver
                     }));
@@ -286,6 +286,10 @@ const VehicleInspections = ({ vehicleId, isTab }) => {
             <h1 className="text-2xl font-black text-[#172B4D] tracking-tight">Inspections</h1>
             <p className="text-sm text-gray-400 font-medium">Record and track vehicle condition checks</p>
           </div>
+          <button onClick={() => setModal({ mode: 'add' })}
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8]">
+            <Plus size={14} /> Add Inspection
+          </button>
 
         </div>
       )}
@@ -308,20 +312,7 @@ const VehicleInspections = ({ vehicleId, isTab }) => {
             </div>
           </div>
         )}
-        {isTab ? (
-          <SectionHeader icon={ClipboardCheck} title="Inspections" count={inspections.length} onAdd={() => setModal({ mode: 'add' })} addLabel="Add Inspection" />
-        ) : (
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-            <div>
-              <h2 className="font-bold text-[#172B4D]">📄 Inspection Registry</h2>
-              <p className="text-xs text-gray-400 mt-0.5">Record and track vehicle condition checks</p>
-            </div>
-            <button onClick={() => setModal({ mode: 'add' })}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8]">
-              <Plus size={14} /> Add Inspection
-            </button>
-          </div>
-        )}
+
 
         {/* Filters */}
         <div className={`px-5 py-3 border-b border-gray-100 flex items-center gap-3 flex-wrap ${isTab ? 'bg-gray-50/30' : ''}`}>

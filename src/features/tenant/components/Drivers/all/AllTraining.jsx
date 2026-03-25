@@ -82,7 +82,38 @@ const AllTraining = () => {
         </div>
 
         {/* ── Table Card ── */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden mt-2">
+          {/* Compact Stats Row */}
+          <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+            {isLoading ? (
+              <div className="flex gap-6 animate-pulse">
+                <div className="h-5 bg-gray-200 rounded w-28"></div>
+                <div className="h-5 bg-gray-200 rounded w-28"></div>
+                <div className="h-5 bg-gray-200 rounded w-28"></div>
+                <div className="h-5 bg-gray-200 rounded w-28"></div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total Records:</span>
+                  <span className="text-[18px] font-black text-[#172B4D]">{data?.count ?? 0}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Passed:</span>
+                  <span className="text-[18px] font-black text-green-600">{records.filter(r => r.status === 'PASSED').length}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Failed:</span>
+                  <span className="text-[18px] font-black text-red-600">{records.filter(r => r.status === 'FAILED').length}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Expired:</span>
+                  <span className="text-[18px] font-black text-amber-600">{records.filter(r => r.is_expired).length}</span>
+                </div>
+              </>
+            )}
+          </div>
+
           {/* ── Filters Bar ── */}
           <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-white flex-wrap gap-4">
             <div className="flex gap-3 items-center flex-wrap flex-1">

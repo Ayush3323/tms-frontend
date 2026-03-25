@@ -261,6 +261,10 @@ const VehicleTires = ({ vehicleId, isTab }) => {
             <h1 className="text-2xl font-black text-[#172B4D] tracking-tight">Vehicle Tires</h1>
             <p className="text-sm text-gray-400 font-medium">Manage tire inventory and status across fleet</p>
           </div>
+          <button onClick={() => setModal({ mode: 'add' })}
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8]">
+            <Plus size={14} /> Add Tire
+          </button>
 
         </div>
       )}
@@ -287,20 +291,7 @@ const VehicleTires = ({ vehicleId, isTab }) => {
             </div>
           </div>
         )}
-        {isTab ? (
-          <SectionHeader icon={CircleDot} title="Tires" count={tires.length} onAdd={() => setModal({ mode: 'add' })} addLabel="Add Tire" />
-        ) : (
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-            <div>
-              <h2 className="font-bold text-[#172B4D]">📄 Tire Registry</h2>
-              <p className="text-xs text-gray-400 mt-0.5">Track and manage vehicle tire inventory</p>
-            </div>
-            <button onClick={() => setModal({ mode: 'add' })}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8]">
-              <Plus size={14} /> Add Tire
-            </button>
-          </div>
-        )}
+
 
         {/* Filters */}
         <div className={`px-5 py-3 border-b border-gray-100 flex items-center gap-3 flex-wrap ${isTab ? 'bg-gray-50/30' : ''}`}>
