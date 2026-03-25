@@ -15,22 +15,7 @@ const CARGO_TYPE_COLORS = {
   GENERAL: 'bg-blue-100 text-blue-700 border-blue-200',
 };
 
-// --- Sub-components ---
-const CargoStatCard = ({ label, value, subtext, icon: Icon, colorClass, isLoading }) => {
-  return (
-    <div className="bg-white p-4 lg:p-5 rounded-xl border border-gray-100 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-blue-200 w-full max-w-[240px]">
-      <p className="text-[10px] font-bold text-gray-400 tracking-wider mb-1.5 uppercase">{label}</p>
-      <div className="flex items-baseline gap-2">
-        {isLoading ? (
-          <div className="h-8 w-16 bg-gray-200 animate-pulse rounded"></div>
-        ) : (
-          <span className={`text-3xl font-black ${colorClass || 'text-[#172B4D]'}`}>{value}</span>
-        )}
-      </div>
-      <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1.5"><span className="opacity-50"><Icon size={14} /></span> <span>{subtext || 'Metrics'}</span></p>
-    </div>
-  );
-};
+
 
 const Modal = ({ isOpen, onClose, title, children }) => {
   if (!isOpen) return null;
@@ -100,16 +85,38 @@ export default function CargoMainBody() {
           </div>
         </div>
 
-        {/* Cargo Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <CargoStatCard label="Total Items" value={stats.total} subtext="Tracked locally" colorClass="text-blue-600" icon={Package} isLoading={isLoading} />
-          <CargoStatCard label="Hazmat Alerts" value={stats.hazmat} subtext="Requires attention" colorClass="text-red-600" icon={AlertCircle} isLoading={isLoading} />
-          <CargoStatCard label="Fragile Goods" value={stats.fragile} subtext="Handle with care" colorClass="text-amber-600" icon={CheckCircle2} isLoading={isLoading} />
-          <CargoStatCard label="Loaded Items" value="-" subtext="API feature pending" colorClass="text-green-600" icon={Scale} isLoading={isLoading} />
-        </div>
-
         {/* Main Table Container */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6 overflow-hidden mt-2">
+          {/* Compact Stats Row */}
+          <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+            {isLoading ? (
+              <div className="flex gap-6 animate-pulse">
+                <div className="h-5 bg-gray-200 rounded w-28"></div>
+                <div className="h-5 bg-gray-200 rounded w-28"></div>
+                <div className="h-5 bg-gray-200 rounded w-28"></div>
+                <div className="h-5 bg-gray-200 rounded w-28"></div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total Items:</span>
+                  <span className="text-[18px] font-black text-blue-600">{stats.total}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Hazmat Alerts:</span>
+                  <span className="text-[18px] font-black text-red-600">{stats.hazmat}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Fragile Goods:</span>
+                  <span className="text-[18px] font-black text-amber-600">{stats.fragile}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Loaded Items:</span>
+                  <span className="text-[18px] font-black text-green-600">—</span>
+                </div>
+              </>
+            )}
+          </div>
           {/* Filters Bar */}
           <div className="p-5 border-b border-gray-100 flex flex-col md:flex-row gap-4 bg-white items-center flex-wrap">
             <div className="relative flex-1 w-full">

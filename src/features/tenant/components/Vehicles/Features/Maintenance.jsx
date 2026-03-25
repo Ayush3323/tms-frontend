@@ -813,17 +813,40 @@ const MaintenanceSchedules = ({ vehicleId, tab: initialTab = 'schedules', isTab 
       )}
 
       {/* Stat Cards — hidden in tab mode */}
-      {!isTab && (
-        <div className="grid grid-cols-4 gap-4">
-          <StatCard loading={isLoading} label="Schedules" value={schedCount} icon={ClipboardList} color="blue" />
-          <StatCard loading={isLoading} label="Overdue" value={overdue} icon={AlertTriangle} color="red" />
-          <StatCard loading={isLoading} label="Upcoming" value={upcoming} icon={Clock} color="orange" />
-          <StatCard loading={isLoading} label="Total Cost" value={fmtINR(totalCost)} icon={IndianRupee} color="green" />
-        </div>
-      )}
-
       {/* Main Container */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0">
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0 mt-4">
+        {/* Compact Stats Row */}
+        {!isTab && (
+          <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+            {isLoading ? (
+              <div className="flex gap-6 animate-pulse">
+                <div className="h-5 bg-gray-200 rounded w-24"></div>
+                <div className="h-5 bg-gray-200 rounded w-24"></div>
+                <div className="h-5 bg-gray-200 rounded w-24"></div>
+                <div className="h-5 bg-gray-200 rounded w-24"></div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Schedules:</span>
+                  <span className="text-[18px] font-black text-[#172B4D]">{schedCount}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Overdue:</span>
+                  <span className="text-[18px] font-black text-red-500">{overdue}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Upcoming:</span>
+                  <span className="text-[18px] font-black text-orange-500">{upcoming}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total Cost:</span>
+                  <span className="text-[18px] font-black text-green-600">{fmtINR(totalCost)}</span>
+                </div>
+              </>
+            )}
+          </div>
+        )}
         {/* Tabs Bar */}
         <div className="px-5 pt-4 border-b border-gray-100 flex items-center justify-between">
           <div className="flex gap-6">

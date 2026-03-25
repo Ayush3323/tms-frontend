@@ -265,16 +265,28 @@ const VehicleTires = ({ vehicleId, isTab }) => {
         </div>
       )}
 
-      {!isTab && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <StatCard icon={CircleDot} label="Total Tires" value={stats.total} color="blue" />
-          <StatCard icon={RefreshCw} label="Installed" value={stats.installed} color="emerald" />
-          <StatCard icon={AlertTriangle} label="Worn Out" value={stats.worn} color="orange" />
-          <StatCard icon={Trash2} label="Removed" value={stats.removed} color="red" />
-        </div>
-      )}
-
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0">
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0 mt-2">
+        {/* Compact Stats Row */}
+        {!isTab && (
+          <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total Tires:</span>
+              <span className="text-[18px] font-black text-[#172B4D]">{stats.total}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Installed:</span>
+              <span className="text-[18px] font-black text-emerald-600">{stats.installed}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Worn Out:</span>
+              <span className="text-[18px] font-black text-orange-500">{stats.worn}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Removed:</span>
+              <span className="text-[18px] font-black text-red-500">{stats.removed}</span>
+            </div>
+          </div>
+        )}
         {isTab ? (
           <SectionHeader icon={CircleDot} title="Tires" count={tires.length} onAdd={() => setModal({ mode: 'add' })} addLabel="Add Tire" />
         ) : (
