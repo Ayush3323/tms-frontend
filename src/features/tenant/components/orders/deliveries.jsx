@@ -16,22 +16,7 @@ const POD_STATUS_CONFIG = {
   REJECTED: { color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-100', icon: <AlertCircle size={14} /> },
 };
 
-// --- Sub-components ---
-const DeliveryStatCard = ({ label, value, colorClass, icon: Icon, isLoading }) => {
-  return (
-    <div className="bg-white p-4 lg:p-5 rounded-xl border border-gray-100 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-blue-200 w-full max-w-[240px]">
-      <p className="text-[10px] font-bold text-gray-400 tracking-wider mb-1.5 uppercase">{label}</p>
-      <div className="flex items-baseline gap-2">
-        {isLoading ? (
-          <div className="h-8 w-16 bg-gray-200 animate-pulse rounded"></div>
-        ) : (
-          <span className={`text-3xl font-black ${colorClass || 'text-[#172B4D]'}`}>{value}</span>
-        )}
-      </div>
-      {Icon && <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1.5"><span className="opacity-50"><Icon size={14} /></span> <span>Metrics</span></p>}
-    </div>
-  );
-};
+
 
 const StatusBadge = ({ status }) => {
   const config = POD_STATUS_CONFIG[status] || POD_STATUS_CONFIG.PENDING;
@@ -112,16 +97,38 @@ export default function DeliveryMainBody() {
           </div>
         </div>
 
-        {/* POD Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <DeliveryStatCard label="Total Deliveries" value={stats.total} colorClass="text-blue-600" icon={Shield} isLoading={isLoading} />
-          <DeliveryStatCard label="Verified PODs" value={stats.verified} colorClass="text-green-600" icon={FileCheck} isLoading={isLoading} />
-          <DeliveryStatCard label="Pending Approval" value={stats.pending} colorClass="text-amber-600" icon={Clock} isLoading={isLoading} />
-          <DeliveryStatCard label="Rejected" value={stats.rejected} colorClass="text-red-600" icon={AlertCircle} isLoading={isLoading} />
-        </div>
-
         {/* Table Container */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden mt-2">
+          {/* Compact Stats Row */}
+          <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+            {isLoading ? (
+              <div className="flex gap-6 animate-pulse">
+                <div className="h-5 bg-gray-200 rounded w-28"></div>
+                <div className="h-5 bg-gray-200 rounded w-28"></div>
+                <div className="h-5 bg-gray-200 rounded w-28"></div>
+                <div className="h-5 bg-gray-200 rounded w-28"></div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total Deliveries:</span>
+                  <span className="text-[18px] font-black text-blue-600">{stats.total}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Verified PODs:</span>
+                  <span className="text-[18px] font-black text-green-600">{stats.verified}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Pending Approval:</span>
+                  <span className="text-[18px] font-black text-amber-600">{stats.pending}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Rejected:</span>
+                  <span className="text-[18px] font-black text-red-600">{stats.rejected}</span>
+                </div>
+              </>
+            )}
+          </div>
           {/* Filters */}
           <div className="p-5 border-b border-gray-100 flex flex-col md:flex-row gap-4 bg-white items-center flex-wrap">
             <div className="relative flex-1 w-full">

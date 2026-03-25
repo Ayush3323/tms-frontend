@@ -225,22 +225,38 @@ const VehicleTypes = () => {
         </div>
       </div>
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-4 gap-4">
-        {isLoading ? (
-          <CardShimmer count={4} />
-        ) : (
-          <>
-            <StatCard loading={isLoading} label="Total Types" value={total}    icon={Truck}       color="blue" />
-            <StatCard loading={isLoading} label="Active"      value={active}   icon={ToggleRight} color="green" />
-            <StatCard loading={isLoading} label="Inactive"    value={inactive} icon={ToggleLeft}  color="gray" />
-            <StatCard loading={isLoading} label="Categories"  value={cats}     icon={Package}     color="purple" />
-          </>
-        )}
-      </div>
-
       {/* Table Card */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0">
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0 mt-4">
+        {/* Compact Stats Row */}
+        <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+          {isLoading ? (
+            <div className="flex gap-6 animate-pulse">
+               <div className="h-5 bg-gray-200 rounded w-24"></div>
+               <div className="h-5 bg-gray-200 rounded w-24"></div>
+               <div className="h-5 bg-gray-200 rounded w-24"></div>
+               <div className="h-5 bg-gray-200 rounded w-24"></div>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total Types:</span>
+                <span className="text-[18px] font-black text-[#172B4D]">{total}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Active:</span>
+                <span className="text-[18px] font-black text-green-600">{active}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Inactive:</span>
+                <span className="text-[18px] font-black text-gray-500">{inactive}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Categories:</span>
+                <span className="text-[18px] font-black text-purple-600">{cats}</span>
+              </div>
+            </>
+          )}
+        </div>
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
             <h2 className="font-bold text-[#172B4D]">📋 Type Registry</h2>

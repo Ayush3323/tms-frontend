@@ -225,23 +225,39 @@ const Vehicles = () => {
         </div>
       </div>
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        {isLoading ? (
-          <CardShimmer count={4} />
-        ) : (
-          <>
-            <StatCard loading={isLoading} label="Total" value={total} icon={Truck} color={{ value: 'text-[#172B4D]', iconBg: 'bg-blue-50', iconText: 'text-blue-500' }} />
-            <StatCard loading={isLoading} label="Active" value={active} icon={CheckCircle} color={{ value: 'text-green-600', iconBg: 'bg-green-50', iconText: 'text-green-500' }} />
-            <StatCard loading={isLoading} label="Maintenance" value={maintenance} icon={Wrench} color={{ value: 'text-orange-500', iconBg: 'bg-orange-50', iconText: 'text-orange-500' }} />
-            <StatCard loading={isLoading} label="Retired / Sold" value={retired} icon={ArchiveX} color={{ value: 'text-red-500', iconBg: 'bg-red-50', iconText: 'text-red-400' }} />
-          </>
-        )}
-      </div>
-
       {/* Table Card */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex-1 flex flex-col min-h-0">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex-1 flex flex-col min-h-0 mt-2">
 
+        {/* Compact Stats Row */}
+        <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+          {isLoading ? (
+            <div className="flex gap-6 animate-pulse">
+               <div className="h-5 bg-gray-200 rounded w-24"></div>
+               <div className="h-5 bg-gray-200 rounded w-24"></div>
+               <div className="h-5 bg-gray-200 rounded w-24"></div>
+               <div className="h-5 bg-gray-200 rounded w-24"></div>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total:</span>
+                <span className="text-[18px] font-black text-[#172B4D]">{total}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Active:</span>
+                <span className="text-[18px] font-black text-green-600">{active}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Maintenance:</span>
+                <span className="text-[18px] font-black text-orange-500">{maintenance}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Retired / Sold:</span>
+                <span className="text-[18px] font-black text-red-500">{retired}</span>
+              </div>
+            </>
+          )}
+        </div>
 
         {/* Filters Bar */}
         <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-white flex-wrap gap-4">

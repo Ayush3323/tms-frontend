@@ -237,26 +237,39 @@ const CustomersDashboard = () => {
         </div>
       </div>
 
-      {/* ── Stat Cards ─────────────────────────────────────────────── */}
-      <div className="grid grid-cols-4 gap-4">
-        <StatCard loading={isLoading} label="Total" value={total} icon={Users} color={{ value: 'text-[#172B4D]', iconBg: 'bg-blue-50', iconText: 'text-blue-500' }} />
-        <StatCard loading={isLoading} label="Active" value={active} icon={CheckCircle} color={{ value: 'text-green-600', iconBg: 'bg-green-50', iconText: 'text-green-500' }} />
-        <StatCard loading={isLoading} label="Inactive" value={inactive} icon={AlertCircle} color={{ value: 'text-orange-500', iconBg: 'bg-orange-50', iconText: 'text-orange-500' }} />
-        <StatCard loading={isLoading} label="Suspended" value={suspended} icon={PauseCircle} color={{ value: 'text-red-500', iconBg: 'bg-red-50', iconText: 'text-red-400' }} />
-      </div>
-
       {/* ── Table Card ─────────────────────────────────────────────── */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6 overflow-hidden flex-1 flex flex-col min-h-0">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <div>
-            <h2 className="font-bold text-[#172B4D]">🏢 Customer Registry</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Manage your business partners and their credit profiles</p>
-          </div>
-          <button onClick={openCreate}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all">
-            <Plus size={14} /> Add Customer
-          </button>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6 overflow-hidden flex-1 flex flex-col min-h-0 mt-2">
+        {/* Compact Stats Row */}
+        <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+          {isLoading ? (
+            <div className="flex gap-6 animate-pulse">
+              <div className="h-5 bg-gray-200 rounded w-24"></div>
+              <div className="h-5 bg-gray-200 rounded w-24"></div>
+              <div className="h-5 bg-gray-200 rounded w-24"></div>
+              <div className="h-5 bg-gray-200 rounded w-24"></div>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total:</span>
+                <span className="text-[18px] font-black text-[#172B4D]">{total}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Active:</span>
+                <span className="text-[18px] font-black text-green-600">{active}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Inactive:</span>
+                <span className="text-[18px] font-black text-orange-500">{inactive}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Suspended:</span>
+                <span className="text-[18px] font-black text-red-500">{suspended}</span>
+              </div>
+            </>
+          )}
         </div>
+
 
         {/* Filters */}
         <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-white flex-wrap gap-4">
@@ -305,44 +318,44 @@ const CustomersDashboard = () => {
           </div>
         </div>
 
-      {/* Loading State */}
-      {isLoading && <TableShimmer rows={8} cols={6} />}
+        {/* Loading State */}
+        {isLoading && <TableShimmer rows={8} cols={6} />}
 
-      {/* Error State */}
-      {isError && (
-        <ErrorState message="Failed to load customers" error={error?.response?.data?.detail || error?.message} onRetry={() => refetch()} />
-      )}
+        {/* Error State */}
+        {isError && (
+          <ErrorState message="Failed to load customers" error={error?.response?.data?.detail || error?.message} onRetry={() => refetch()} />
+        )}
 
-      {/* Data Table */}
-      {!isLoading && !isError && (
-        <div className="flex-1 overflow-auto min-h-0">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-[#F8FAFC] border-b border-gray-100 sticky top-0 z-10">
-              <tr className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-                {COLUMNS.map(c => (
-                  <th key={c.header} className="px-4 py-4">{c.header}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {customers.map(c => (
-                <tr key={c.id || c.customer_code} className="hover:bg-blue-50/30 transition-colors">
-                  {COLUMNS.map(col => (
-                    <td key={col.header} className="px-4 py-3 whitespace-nowrap align-middle">{col.render(c)}</td>
+        {/* Data Table */}
+        {!isLoading && !isError && (
+          <div className="flex-1 overflow-auto min-h-0">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-[#F8FAFC] border-b border-gray-100 sticky top-0 z-10">
+                <tr className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                  {COLUMNS.map(c => (
+                    <th key={c.header} className="px-4 py-4">{c.header}</th>
                   ))}
                 </tr>
-              ))}
-              {customers.length === 0 && (
-                <tr>
-                  <td colSpan={COLUMNS.length} className="px-4 py-8">
-                    <EmptyState icon={Building2} text="No customers found" onAdd={openCreate} addLabel="Add Your First Customer" />
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {customers.map(c => (
+                  <tr key={c.id || c.customer_code} className="hover:bg-blue-50/30 transition-colors">
+                    {COLUMNS.map(col => (
+                      <td key={col.header} className="px-4 py-3 whitespace-nowrap align-middle">{col.render(c)}</td>
+                    ))}
+                  </tr>
+                ))}
+                {customers.length === 0 && (
+                  <tr>
+                    <td colSpan={COLUMNS.length} className="px-4 py-8">
+                      <EmptyState icon={Building2} text="No customers found" onAdd={openCreate} addLabel="Add Your First Customer" />
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Footer */}

@@ -17,22 +17,7 @@ const TRIP_STATUS_CONFIG = {
   DELAYED: { color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-100', icon: <AlertTriangle size={14} /> },
 };
 
-// --- Sub-components ---
-const TripStatCard = ({ label, value, colorClass, icon: Icon, isLoading }) => {
-  return (
-    <div className="bg-white p-4 lg:p-5 rounded-xl border border-gray-100 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-blue-200 w-full max-w-[240px]">
-      <p className="text-[10px] font-bold text-gray-400 tracking-wider mb-1.5 uppercase">{label}</p>
-      <div className="flex items-baseline gap-2">
-        {isLoading ? (
-          <div className="h-8 w-16 bg-gray-200 animate-pulse rounded"></div>
-        ) : (
-          <span className={`text-3xl font-black ${colorClass || 'text-[#172B4D]'}`}>{value}</span>
-        )}
-      </div>
-      {Icon && <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1.5"><span className="opacity-50"><Icon size={14} /></span> <span>Metrics</span></p>}
-    </div>
-  );
-};
+
 
 const StatusBadge = ({ status }) => {
   const config = TRIP_STATUS_CONFIG[status] || TRIP_STATUS_CONFIG.CREATED;
@@ -140,16 +125,38 @@ export default function TripsMainBody() {
           </div>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <TripStatCard label="Total Trips" value={totalCount} colorClass="text-blue-600" icon={Globe} isLoading={isLoading} />
-          <TripStatCard label="Active" value={activeCount} colorClass="text-amber-600" icon={Calendar} isLoading={isLoading} />
-          <TripStatCard label="In Transit" value={inTransitCount} colorClass="text-indigo-600" icon={Truck} isLoading={isLoading} />
-          <TripStatCard label="Completed Page" value={completedCount} colorClass="text-green-600" icon={CheckCircle2} isLoading={isLoading} />
-        </div>
-
         {/* Filters and Search */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden mt-2">
+          {/* Compact Stats Row */}
+          <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+            {isLoading ? (
+              <div className="flex gap-6 animate-pulse">
+                <div className="h-5 bg-gray-200 rounded w-28"></div>
+                <div className="h-5 bg-gray-200 rounded w-28"></div>
+                <div className="h-5 bg-gray-200 rounded w-28"></div>
+                <div className="h-5 bg-gray-200 rounded w-28"></div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total Trips:</span>
+                  <span className="text-[18px] font-black text-blue-600">{totalCount}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Active:</span>
+                  <span className="text-[18px] font-black text-amber-600">{activeCount}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">In Transit:</span>
+                  <span className="text-[18px] font-black text-indigo-600">{inTransitCount}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Completed:</span>
+                  <span className="text-[18px] font-black text-green-600">{completedCount}</span>
+                </div>
+              </>
+            )}
+          </div>
           <div className="p-5 border-b border-gray-100 flex flex-col md:flex-row gap-4 items-center bg-white flex-wrap">
             <div className="relative flex-1 w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
