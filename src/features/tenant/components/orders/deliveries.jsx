@@ -188,28 +188,7 @@ export default function DeliveryMainBody() {
           </div>
 
           {/* Table */}
-<<<<<<< Updated upstream
           <div className="flex-1 overflow-auto min-h-0">
-             {isLoading ? (
-                <div className="flex justify-center items-center h-64">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0052CC]"></div>
-                </div>
-             ) : deliveries.length === 0 ? (
-                <div className="flex flex-col justify-center items-center h-64 text-gray-400">
-                  <FileCheck size={48} className="mb-4 opacity-20" />
-                  <p>No delivery records found matching criteria</p>
-                </div>
-             ) : (
-                <table className="w-full text-left border-collapse min-w-[1000px] relative">
-                  <thead className="bg-[#F8FAFC] border-b border-gray-100 sticky top-0 z-10">
-                    <tr>
-                      <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">POD / Record</th>
-                      <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Recipient & Location</th>
-                      <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Delivery Date</th>
-                      <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Status</th>
-                      <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest text-right">Actions</th>
-=======
-          <div className="overflow-x-auto min-h-[400px]">
             {isLoading ? (
               <div className="flex justify-center items-center h-64">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0052CC]"></div>
@@ -220,9 +199,9 @@ export default function DeliveryMainBody() {
                 <p>No delivery records found matching criteria</p>
               </div>
             ) : (
-              <table className="w-full text-left border-collapse min-w-[1000px]">
-                <thead>
-                  <tr className="bg-gray-50/50 border-b border-gray-100">
+              <table className="w-full text-left border-collapse min-w-[1000px] relative">
+                <thead className="bg-[#F8FAFC] border-b border-gray-100 sticky top-0 z-10">
+                  <tr>
                     <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">POD / Record</th>
                     <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Recipient & Location</th>
                     <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Delivery Date</th>
@@ -280,10 +259,8 @@ export default function DeliveryMainBody() {
                           >
                             <Eye size={16} />
                           </button>
-                          {/* Further actions pending backend implementation */}
                         </div>
                       </td>
->>>>>>> Stashed changes
                     </tr>
                   ))}
                 </tbody>
@@ -292,32 +269,26 @@ export default function DeliveryMainBody() {
           </div>
 
           {/* Footer */}
-<<<<<<< Updated upstream
-          <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100 bg-white">
-            <div className="text-sm text-gray-500">
-              Showing <span className="font-bold text-[#172B4D]">{deliveries.length}</span> of <span className="font-bold text-[#172B4D]">{totalCount}</span> POD Records
-=======
           <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between text-xs font-bold text-gray-400 uppercase tracking-widest">
             <span>Showing {deliveries.length} of {totalCount} POD Records</span>
             <div className="flex gap-2">
               <button
                 disabled={page === 1}
                 onClick={() => setPage(p => Math.max(1, p - 1))}
-                className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50"
+                className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50 font-bold"
               >
                 Prev
               </button>
-              <button className="px-3 py-1 border border-gray-200 rounded bg-[#0052CC] text-white">
+              <div className="px-3 py-1 border border-gray-200 rounded bg-[#0052CC] text-white font-bold">
                 {page}
-              </button>
+              </div>
               <button
                 disabled={!deliveriesData?.next}
                 onClick={() => setPage(p => p + 1)}
-                className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50"
+                className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50 font-bold"
               >
                 Next
               </button>
->>>>>>> Stashed changes
             </div>
           </div>
         </div>

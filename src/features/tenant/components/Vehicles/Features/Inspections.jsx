@@ -335,6 +335,12 @@ const VehicleInspections = ({ vehicleId, isTab }) => {
               <RefreshCw size={13} /> Reset
             </button>
           )}
+          {isTab && (
+            <button onClick={() => setModal({ mode: 'add' })}
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] shadow-sm italic ml-auto transition-all active:scale-95">
+              <Plus size={14} /> Add Inspection
+            </button>
+          )}
         </div>
 
         <div className="flex-1 overflow-auto">

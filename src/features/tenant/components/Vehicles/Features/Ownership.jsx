@@ -235,6 +235,12 @@ const VehicleOwnership = ({ vehicleId, isTab }) => {
               {TRANSFER_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </Sel>
           </div>
+          {isTab && (
+            <button onClick={() => setModal({ mode: 'add' })}
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] shadow-sm italic ml-auto transition-all active:scale-95 text-nowrap leading-none">
+              <Plus size={14} /> Add Record
+            </button>
+          )}
 
         </div>
 

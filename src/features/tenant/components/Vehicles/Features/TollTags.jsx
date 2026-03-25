@@ -271,11 +271,16 @@ const VehicleTollTags = ({ vehicleId, isTab }) => {
 
           </div>
           {isTab && (
-            <button
-              onClick={() => setModal({ mode: 'add' })}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] shadow-sm">
-              <Plus size={14} /> Add Tag
-            </button>
+            <>
+              <button onClick={() => { setSearch(''); setProviderFilter(''); }}
+                className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-500 border border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100 transition-all">
+                <RefreshCw size={13} /> Reset
+              </button>
+              <button onClick={() => setModal({ mode: 'add' })}
+                className="flex items-center gap-1.5 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-xl hover:bg-[#0043A8] transition-all shadow-sm italic ml-auto transition-all active:scale-95 leading-none">
+                <Plus size={16} /> Add Tag
+              </button>
+            </>
           )}
         </div>
 
