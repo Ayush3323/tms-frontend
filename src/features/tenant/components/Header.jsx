@@ -1,12 +1,12 @@
 import React from 'react';
-import { ChevronRight, LogOut, LayoutGrid, Users, Globe, ChevronDown, Settings } from 'lucide-react';
+import { ChevronRight, LogOut, LayoutGrid, Users, Globe, ChevronDown, Settings, Menu, X } from 'lucide-react';
 import { useLogout } from '../queries/logoutQuery';
 import { useLocation } from 'react-router-dom';
 import { useCurrentUser } from '../queries/users/userActionQuery';
 import SettingsModal from './Header/SettingsModal';
 import { useState } from 'react';
 
-const Header = () => {
+const Header = ({ toggleSidebar, isCollapsed }) => {
   const logoutMutation = useLogout();
   const location = useLocation();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -29,7 +29,16 @@ const Header = () => {
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 sticky top-0 z-10 shadow-sm">
       {/* Breadcrumbs Left */}
-      <div className="flex items-center gap-2 text-sm">
+      <div className="flex items-center gap-4 text-sm">
+        {/* Toggle Button */}
+        <button
+          onClick={toggleSidebar}
+          className="p-2 -ml-2 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors"
+          title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+        >
+          {isCollapsed ? <Menu size={20} /> : <X size={20} />}
+        </button>
+
         <div className="flex items-center gap-2 group cursor-pointer">
           <span className="text-gray-400 font-medium group-hover:text-gray-600 transition-colors">Platform</span>
         </div>
