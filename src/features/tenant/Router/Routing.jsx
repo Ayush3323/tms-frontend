@@ -13,6 +13,7 @@ import VehiclesDocument from '../components/Vehicles/Features/Documents';
 import VehicleInsurance from '../components/Vehicles/Features/Insurance';
 import MaintenanceSchedules from '../components/Vehicles/Features/Maintenance'
 import VehicleInspections from '../components/Vehicles/Features/Inspections';
+import FuelLogsDashboard from '../components/Vehicles/Features/Fuel';
 import TiresDashboard from '../components/Vehicles/Features/Tires';
 import DriversList from '../components/Drivers/DriversList'
 import DriverDetail from '../components/Drivers/DriverDetail'
@@ -88,6 +89,7 @@ const Routing = () => {
         <Route path="vehicles/inspections" element={<VehicleInspections />} />
         <Route path="vehicles/tires" element={<TiresDashboard />} />
         <Route path="vehicles/accessories" element={<AccessoriesDashboard />} />
+        <Route path="vehicles/fuel" element={<FuelLogsDashboard />} />
         <Route path="vehicles/:id" element={<VehicleDetail />} />
         <Route path="vehicles/:id/edit" element={<VehicleDetail />} />
         <Route path="vehicles/toll-tags" element={<VehicleTollTagsDashboard />} />
