@@ -18,10 +18,22 @@ const Header = ({ toggleSidebar, isCollapsed }) => {
 
   const getBreadcrumbName = () => {
     const path = location.pathname;
-
-    if (path.includes('/users')) return 'Users';
-    if (path.includes('/vehicles')) return 'Vehicles';
-    if (path.includes('/drivers')) return 'Drivers';
+    const parts = path.split('/').filter(Boolean);
+    
+    // Path structure: /tenant/dashboard/feature/subfeature
+    // parts[0] = 'tenant', parts[1] = 'dashboard', parts[2] = 'feature'
+    
+    if (parts.length >= 3) {
+      const feature = parts[2];
+      // Special case mapping if needed
+      if (feature === 'users') return 'Users';
+      if (feature === 'vehicles') return 'Vehicles';
+      if (feature === 'drivers') return 'Drivers';
+      if (feature === 'customers') return 'Customers';
+      if (feature === 'orders') return 'Orders';
+      
+      return feature.charAt(0).toUpperCase() + feature.slice(1);
+    }
 
     return 'Dashboard';
   };
