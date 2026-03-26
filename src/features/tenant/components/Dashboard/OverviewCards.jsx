@@ -15,7 +15,7 @@ const StatCard = ({ title, value, subValue, icon, trend, trendValue, colorClass,
     <div className="flex items-start justify-between mt-auto">
       {/* Left Column: Value & Subtext */}
       <div className="flex flex-col gap-3">
-        <h3 className="text-4xl font-bold text-[#172B4D] tracking-tighter leading-none">{value}</h3>
+        <h3 className="text-3xl font-semibold text-[#172B4D] tracking-tighter leading-none">{value}</h3>
         <p className="text-[10px] font-black text-black/60 uppercase tracking-widest leading-none">{subValue}</p>
       </div>
 
