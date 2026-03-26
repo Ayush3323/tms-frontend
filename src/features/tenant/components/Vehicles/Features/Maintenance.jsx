@@ -4,7 +4,7 @@ import {
   ChevronDown, Search, Pencil, Trash2,
   Wrench, Calendar, Gauge, Clock, CheckCircle,
   AlertTriangle, XCircle, ClipboardList, IndianRupee,
-  Package
+  Package, Download, Upload
 } from 'lucide-react';
 import {
   useMaintenanceSchedules,
@@ -499,12 +499,18 @@ const SchedulesTab = ({ onEdit, onDelete, onView, onAdd, vehicleId, isTab }) => 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatus] = useState('');
   const [typeFilter, setType] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter, typeFilter]);
 
   const { data, isLoading, isError, error, refetch } = useMaintenanceSchedules({
     ...(statusFilter && { status: statusFilter }),
     ...(typeFilter && { maintenance_type: typeFilter }),
     ...(search && { search }),
     ...(vehicleId && { vehicle: vehicleId }),
+    page: currentPage,
   });
 
   const schedules = data?.results ?? data ?? [];
@@ -627,7 +633,13 @@ const SchedulesTab = ({ onEdit, onDelete, onView, onAdd, vehicleId, isTab }) => 
       {!isLoading && !isError && (
         <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
           <span>Showing <span className="font-bold text-gray-600">{schedules.length}</span>{data?.count && data.count !== schedules.length && <> of <span className="font-bold text-gray-600">{data.count}</span></>} schedules</span>
-
+          <div className="flex items-center gap-2">
+            <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1 || isLoading}
+              className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm">Prev</button>
+            <div className="flex items-center justify-center min-w-7 h-7 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-sm">{currentPage}</div>
+            <button onClick={() => setCurrentPage(p => p + 1)} disabled={!data?.next || isLoading}
+              className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm">Next</button>
+          </div>
         </div>
       )}
     </div>
@@ -637,10 +649,16 @@ const SchedulesTab = ({ onEdit, onDelete, onView, onAdd, vehicleId, isTab }) => 
 // ── Records Table ─────────────────────────────────────────────────────
 const RecordsTab = ({ onEdit, onDelete, onView, onAdd, vehicleId, isTab }) => {
   const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   const { data, isLoading, isError, error, refetch } = useMaintenanceRecords({
     ...(search && { search }),
     ...(vehicleId && { vehicle: vehicleId }),
+    page: currentPage,
   });
 
   const records = data?.results ?? data ?? [];
@@ -738,7 +756,13 @@ const RecordsTab = ({ onEdit, onDelete, onView, onAdd, vehicleId, isTab }) => {
       {!isLoading && !isError && (
         <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
           <span>Showing <span className="font-bold text-gray-600">{records.length}</span>{data?.count && data.count !== records.length && <> of <span className="font-bold text-gray-600">{data.count}</span></>} records</span>
-          <span className="text-[11px]">Fleet Management System</span>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1 || isLoading}
+              className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm">Prev</button>
+            <div className="flex items-center justify-center min-w-7 h-7 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-sm">{currentPage}</div>
+            <button onClick={() => setCurrentPage(p => p + 1)} disabled={!data?.next || isLoading}
+              className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm">Next</button>
+          </div>
         </div>
       )}
     </div>
@@ -756,13 +780,18 @@ const MaintenanceSchedules = ({ vehicleId, tab: initialTab = 'schedules', isTab 
   const delSched = useDeleteMaintenanceSchedule();
   const delRecord = useDeleteMaintenanceRecord();
 
+  const [schedPage, setSchedPage] = useState(1);
+  const [recsPage, setRecsPage] = useState(1);
+
   const schedulesQ = useMaintenanceSchedules({
     ...(vehicleId && { vehicle: vehicleId }),
     ...(search && { search }),
+    page: schedPage,
   });
   const recordsQ = useMaintenanceRecords({
     ...(vehicleId && { vehicle: vehicleId }),
     ...(search && { search }),
+    page: recsPage,
   });
 
   const isLoading = activeTab === 'schedules' ? schedulesQ.isLoading : recordsQ.isLoading;
@@ -779,7 +808,7 @@ const MaintenanceSchedules = ({ vehicleId, tab: initialTab = 'schedules', isTab 
   const totalCost = records.reduce((acc, r) => acc + parseFloat(r.total_cost || 0), 0);
 
   const content = (
-    <div className={!isTab ? "p-6 flex flex-col gap-6 bg-[#F8FAFC] flex-1 min-h-0 overflow-hidden relative" : "flex flex-col gap-4 flex-1 min-h-0 overflow-hidden relative"}>
+    <div className={`flex flex-col h-full ${isTab ? '' : 'p-6 bg-[#f8fafc] flex-1 min-h-0 overflow-hidden relative font-sans text-slate-900'}`}>
 
       {modal && modal.type === 'schedule' && (
         <ScheduleModal vehicleId={vehicleId} initial={modal.mode === 'add' ? null : modal.data} onClose={() => setModal(null)} onDeleteRequest={() => { setModal(null); setDelete({ type: 'schedule', data: modal.data }); }} />
@@ -807,31 +836,53 @@ const MaintenanceSchedules = ({ vehicleId, tab: initialTab = 'schedules', isTab 
         />
       )}
 
-      {/* Header — hidden in tab mode */}
       {!isTab && (
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-black text-[#172B4D]">Maintenance</h1>
-            <p className="text-sm text-gray-400 mt-0.5">Schedules and history logs</p>
+        <div className="flex items-center mb-8">
+          <div className="w-1/4">
+            <h1 className="text-2xl font-black text-[#172B4D] tracking-tight uppercase">Maintenance</h1>
+            <p className="text-gray-500 text-sm tracking-tight">Schedules and service history</p>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setModal({ type: activeTab === 'schedules' ? 'schedule' : 'record', mode: 'add' })}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all">
-              <Plus size={14} /> Add {activeTab === 'schedules' ? 'Schedule' : 'Record'}
+          <div className="flex-1 max-w-2xl px-8">
+            <div className="relative group/search">
+              <Search className="absolute left-4 top-3.5 text-gray-400 group-focus-within/search:text-[#0052CC] transition-all duration-300 group-focus-within/search:scale-110" size={20} />
+              <input
+                type="text"
+                placeholder="Search vehicle, maintenance type..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-12 pr-12 py-3 bg-white border border-gray-200 rounded-2xl text-[15px] font-medium placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-50 transition-all shadow-sm hover:shadow-md hover:border-gray-300"
+              />
+              {search && (
+                <button onClick={() => setSearch('')} className="absolute right-4 top-2 text-gray-400 hover:text-red-500 transition-all duration-500 hover:rotate-180 p-1.5 rounded-full hover:bg-red-50 flex items-center justify-center group/reset" title="Clear search">
+                  <RefreshCw size={18} />
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-2 ml-auto">
+            <div className="flex items-center gap-2 mr-2">
+              <button onClick={() => refetch()} className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95 group">
+                <RefreshCw size={14} className={isLoading ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"} />
+                <span>Refresh</span>
+              </button>
+              <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95">
+                <Download size={14} /><span>Export</span>
+              </button>
+              <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95">
+                <Upload size={14} /><span>Import</span>
+              </button>
+            </div>
+            <div className="w-px h-8 bg-gray-200 mx-1" />
+            <button onClick={() => setModal({ type: activeTab === 'schedules' ? 'schedule' : 'record', mode: 'add' })} className="flex items-center gap-2 px-4 py-2 bg-[#0052CC] text-white rounded-xl font-bold text-xs shadow-md hover:bg-[#0747A6] transition-all active:scale-95 group">
+              <Plus size={16} className="group-hover:rotate-90 transition-transform duration-300" />
+              <span>Add {activeTab === 'schedules' ? 'Schedule' : 'Record'}</span>
             </button>
-            <button onClick={() => refetch()}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
-              <RefreshCw size={14} />
-            </button>
-
           </div>
         </div>
       )}
 
-      {/* Stat Cards — hidden in tab mode */}
       {/* Main Container */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0 mt-4">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden mt-2">
         {/* Compact Stats Row */}
         {!isTab && (
           <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">

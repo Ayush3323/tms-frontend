@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import {
   CircleDot, Plus, Pencil, Trash2, X, Search,
   RefreshCw, Loader2, AlertTriangle, Calendar,
-  Gauge, Hash, ChevronDown
+  Gauge, Hash, ChevronDown, Download, Upload
 } from 'lucide-react';
 import {
   useVehicleTires,
@@ -230,6 +230,7 @@ const VehicleTires = ({ vehicleId, isTab }) => {
   const [modal, setModal] = useState(null);
   const [viewing, setViewing] = useState(null);
   const [deleting, setDeleting] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [search, setSearch] = useState('');
   const [posFilter, setPosFilter] = useState('');
@@ -240,6 +241,7 @@ const VehicleTires = ({ vehicleId, isTab }) => {
     ...(posFilter && { tire_position: posFilter }),
     ...(statusFilter && { status: statusFilter }),
     ...(vehicleId && { vehicle: vehicleId }),
+    page: currentPage,
   });
   const del = useDeleteVehicleTire();
 
@@ -254,23 +256,52 @@ const VehicleTires = ({ vehicleId, isTab }) => {
   }, [tires]);
 
   return (
-    <div className={`flex flex-col h-full bg-[#F4F5F7] ${isTab ? '' : 'p-6'}`}>
+    <div className={`flex flex-col h-full ${isTab ? '' : 'p-6 bg-[#f8fafc] flex-1 min-h-0 overflow-hidden relative font-sans text-slate-900'}`}>
       {!isTab && (
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-black text-[#172B4D] tracking-tight">Vehicle Tires</h1>
-            <p className="text-sm text-gray-400 font-medium">Manage tire inventory and status across fleet</p>
+        <div className="flex items-center mb-8">
+          <div className="w-1/4">
+            <h1 className="text-2xl font-black text-[#172B4D] tracking-tight uppercase">Tires</h1>
+            <p className="text-gray-500 text-sm tracking-tight">Manage tire inventory and fleet status</p>
           </div>
-          <button onClick={() => setModal({ mode: 'add' })}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8]">
-            <Plus size={14} /> Add Tire
-          </button>
-
+          <div className="flex-1 max-w-2xl px-8">
+            <div className="relative group/search">
+              <Search className="absolute left-4 top-3.5 text-gray-400 group-focus-within/search:text-[#0052CC] transition-all duration-300 group-focus-within/search:scale-110" size={20} />
+              <input
+                type="text"
+                placeholder="Search tires..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-12 pr-12 py-3 bg-white border border-gray-200 rounded-2xl text-[15px] font-medium placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-50 transition-all shadow-sm hover:shadow-md hover:border-gray-300"
+              />
+              {search && (
+                <button onClick={() => setSearch('')} className="absolute right-4 top-2 text-gray-400 hover:text-red-500 transition-all duration-500 hover:rotate-180 p-1.5 rounded-full hover:bg-red-50" title="Clear search">
+                  <RefreshCw size={18} />
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-2 ml-auto">
+            <div className="flex items-center gap-2 mr-2">
+              <button onClick={() => refetch()} className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95 group">
+                <RefreshCw size={14} className={isLoading ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"} /><span>Refresh</span>
+              </button>
+              <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95">
+                <Download size={14} /><span>Export</span>
+              </button>
+              <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95">
+                <Upload size={14} /><span>Import</span>
+              </button>
+            </div>
+            <div className="w-px h-8 bg-gray-200 mx-1" />
+            <button onClick={() => setModal({ mode: 'add' })} className="flex items-center gap-2 px-4 py-2 bg-[#0052CC] text-white rounded-xl font-bold text-xs shadow-md hover:bg-[#0747A6] transition-all active:scale-95 group">
+              <Plus size={16} className="group-hover:rotate-90 transition-transform duration-300" />
+              <span>Add Tire</span>
+            </button>
+          </div>
         </div>
       )}
 
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0 mt-2">
-        {/* Compact Stats Row */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden mt-2">
         {!isTab && (
           <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
             <div className="flex items-center gap-2">
@@ -292,45 +323,41 @@ const VehicleTires = ({ vehicleId, isTab }) => {
           </div>
         )}
 
-
-        {/* Filters */}
-        <div className={`px-5 py-3 border-b border-gray-100 flex items-center gap-3 flex-wrap ${isTab ? 'bg-gray-50/30' : ''}`}>
-          <div className="relative flex-1 min-w-[200px]">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input type="text" placeholder="Search tires..." value={search} onChange={e => setSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] bg-gray-50" />
-          </div>
-          <div className="relative">
-            <select value={posFilter} onChange={e => setPosFilter(e.target.value)}
-              className="appearance-none pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none cursor-pointer">
+        <div className="flex items-center gap-6 justify-between border-b border-gray-50">
+          <div className="flex items-center gap-3 px-5 py-2 flex-1">
+            {isTab && (
+              <div className="relative group/search max-w-xs">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                <input type="text" placeholder="Search tires..." value={search} onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-10 pr-8 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all shadow-sm" />
+                {search && <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"><X size={14} /></button>}
+              </div>
+            )}
+            <select className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-600 outline-none focus:border-[#0052CC]" value={posFilter} onChange={e => setPosFilter(e.target.value)}>
               <option value="">All Positions</option>
               {POSITION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
-            <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-          </div>
-          <div className="relative">
-            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-              className="appearance-none pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none cursor-pointer">
+            <select className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-600 outline-none focus:border-[#0052CC]" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
               <option value="">All Status</option>
               {Object.entries(STATUS_CONFIG).map(([v, c]) => <option key={v} value={v}>{c.label}</option>)}
             </select>
-            <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           </div>
-          {!isTab && (
-            <button onClick={() => { setSearch(''); setPosFilter(''); setStatusFilter(''); }}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-500 border border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100">
-              <RefreshCw size={13} /> Reset
-            </button>
-          )}
-          {isTab && (
-            <button onClick={() => setModal({ mode: 'add' })}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] shadow-sm italic ml-auto transition-all active:scale-95">
-              <Plus size={14} /> Add Tire
-            </button>
-          )}
+          <div className="w-px h-10 bg-gray-100 hidden sm:block" />
+          <div className="flex items-center gap-3 px-5 py-2">
+            {isTab && (
+              <button onClick={() => setModal({ mode: 'add' })} className="flex items-center gap-2 px-3 py-1.5 bg-[#0052CC] text-white rounded-lg font-bold text-xs shadow-md hover:bg-[#0747A6] transition-all active:scale-95 group">
+                <Plus size={14} className="group-hover:rotate-90 transition-transform duration-300" /><span>Add</span>
+              </button>
+            )}
+            <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1 || isLoading}
+              className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm">Prev</button>
+            <div className="flex items-center justify-center min-w-7 h-7 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-sm">{currentPage}</div>
+            <button onClick={() => setCurrentPage(p => p + 1)} disabled={!data?.next || isLoading}
+              className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm">Next</button>
+          </div>
         </div>
 
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto min-h-0">
           {isLoading ? (
             <div className="flex items-center justify-center h-64"><Loader2 className="animate-spin text-[#0052CC]" /></div>
           ) : !tires.length ? (

@@ -3,7 +3,8 @@ import React, { useState } from 'react';
 import {
   Plus, RefreshCw, Loader2, AlertCircle, X,
   ChevronDown, Truck, Package, Weight,
-  ToggleLeft, ToggleRight, Pencil, Trash2, Search
+  ToggleLeft, ToggleRight, Pencil, Trash2, Search,
+  Download, Upload
 } from 'lucide-react';
 import {
   useVehicleTypes,
@@ -177,6 +178,7 @@ const VehicleTypes = () => {
   const [modal, setModal]         = useState(null);
   const [viewModal, setViewModal]     = useState(null);
   const [deleteTarget, setDelete]     = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const del = useDeleteVehicleType();
 
@@ -184,6 +186,7 @@ const VehicleTypes = () => {
     ...(catFilter    && { category: catFilter }),
     ...(activeFilter !== '' && { is_active: activeFilter }),
     ...(search       && { search }),
+    page: currentPage,
   });
 
   const types    = data?.results ?? data ?? [];
@@ -208,25 +211,51 @@ const VehicleTypes = () => {
       )}
 
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-[#172B4D]">Vehicle Types</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Manage vehicle categories and capacity configurations</p>
+      <div className="flex items-center mb-8">
+        <div className="w-1/4">
+          <h1 className="text-2xl font-black text-[#172B4D] tracking-tight uppercase">Vehicle Types</h1>
+          <p className="text-gray-500 text-sm tracking-tight">Manage categories and capacity configs</p>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => refetch()}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
-            <RefreshCw size={14} />
-          </button>
-          <button onClick={() => setModal('add')}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] shadow-sm">
-            <Plus size={15} /> Add Type
+        <div className="flex-1 max-w-2xl px-8">
+          <div className="relative group/search">
+            <Search className="absolute left-4 top-3.5 text-gray-400 group-focus-within/search:text-[#0052CC] transition-all duration-300 group-focus-within/search:scale-110" size={20} />
+            <input
+              type="text"
+              placeholder="Search type code or name..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-12 pr-12 py-3 bg-white border border-gray-200 rounded-2xl text-[15px] font-medium placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-50 transition-all shadow-sm hover:shadow-md hover:border-gray-300"
+            />
+            {search && (
+              <button onClick={() => setSearch('')} className="absolute right-4 top-2 text-gray-400 hover:text-red-500 transition-all duration-500 hover:rotate-180 p-1.5 rounded-full hover:bg-red-50" title="Clear search">
+                <RefreshCw size={18} />
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-2 ml-auto">
+          <div className="flex items-center gap-2 mr-2">
+            <button onClick={() => refetch()} className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95 group">
+              <RefreshCw size={14} className={isLoading ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"} />
+              <span>Refresh</span>
+            </button>
+            <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95">
+              <Download size={14} /><span>Export</span>
+            </button>
+            <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95">
+              <Upload size={14} /><span>Import</span>
+            </button>
+          </div>
+          <div className="w-px h-8 bg-gray-200 mx-1" />
+          <button onClick={() => setModal('add')} className="flex items-center gap-2 px-4 py-2 bg-[#0052CC] text-white rounded-xl font-bold text-xs shadow-md hover:bg-[#0747A6] transition-all active:scale-95 group">
+            <Plus size={16} className="group-hover:rotate-90 transition-transform duration-300" />
+            <span>Add Type</span>
           </button>
         </div>
       </div>
 
       {/* Table Card */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0 mt-4">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 mt-2 overflow-hidden">
         {/* Compact Stats Row */}
         <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
           {isLoading ? (
@@ -257,45 +286,32 @@ const VehicleTypes = () => {
             </>
           )}
         </div>
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <div>
-            <h2 className="font-bold text-[#172B4D]">📋 Type Registry</h2>
-            <p className="text-xs text-gray-400 mt-0.5">All configured vehicle type definitions</p>
-          </div>
-          <button onClick={() => setModal('add')}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8]">
-            <Plus size={14} /> Add Type
-          </button>
-        </div>
 
-        {/* Filters */}
-        <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-3 flex-wrap">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input type="text" placeholder="Search type code or name..." value={search} onChange={e => setSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] bg-gray-50" />
-          </div>
-          <div className="relative">
-            <select value={catFilter} onChange={e => setCat(e.target.value)}
-              className="appearance-none pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none cursor-pointer">
+        <div className="flex items-center gap-6 justify-between border-b border-gray-50">
+          <div className="flex items-center gap-3 px-5 py-2 flex-1">
+            <select className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-600 outline-none focus:border-[#0052CC]" value={catFilter} onChange={e => setCat(e.target.value)}>
               <option value="">All Categories</option>
               {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
-            <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-          </div>
-          <div className="relative">
-            <select value={activeFilter} onChange={e => setActive(e.target.value)}
-              className="appearance-none pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none cursor-pointer">
+            <select className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-600 outline-none focus:border-[#0052CC]" value={activeFilter} onChange={e => setActive(e.target.value)}>
               <option value="">All Status</option>
               <option value="true">Active</option>
               <option value="false">Inactive</option>
             </select>
-            <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           </div>
-          <button onClick={() => { setSearch(''); setCat(''); setActive(''); }}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-500 border border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100">
-            <RefreshCw size={13} /> Reset
-          </button>
+          <div className="w-px h-10 bg-gray-100 hidden sm:block" />
+          <div className="flex items-center justify-between gap-3 px-5 py-2">
+            <button onClick={() => { setSearch(''); setCat(''); setActive(''); setCurrentPage(1); }} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-gray-500 bg-gray-50 border border-gray-100 rounded-lg hover:bg-gray-100 transition-all">
+              <RefreshCw size={13} /> Reset
+            </button>
+            <div className="flex items-center gap-2 ml-auto">
+              <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1 || isLoading}
+                className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm">Prev</button>
+              <div className="flex items-center justify-center min-w-7 h-7 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-sm">{currentPage}</div>
+              <button onClick={() => setCurrentPage(p => p + 1)} disabled={!data?.next || isLoading}
+                className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm">Next</button>
+            </div>
+          </div>
         </div>
 
         {isLoading && (

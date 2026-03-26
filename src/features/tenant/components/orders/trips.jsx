@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { 
-  Globe, Plus, Search, Filter, Download, 
-  MapPin, Calendar, Truck, CheckCircle2, 
-  Clock, AlertTriangle, RefreshCcw, User, Hash, X, Eye
+import {
+  Globe, Plus, Search, Filter, Download, Upload, RotateCcw,
+  MapPin, Calendar, Truck, CheckCircle2,
+  Clock, AlertTriangle, RefreshCw, User, Hash, X, Eye
 } from 'lucide-react';
 import { useTrips, useCreateTrip, useTripDetail } from '../../queries/orders/ordersQuery';
 import { useDrivers } from '../../queries/drivers/driverCoreQuery';
@@ -11,7 +11,7 @@ import { useVehicles } from '../../queries/vehicles/vehicleQuery';
 // --- Configuration & Status Badges ---
 const TRIP_STATUS_CONFIG = {
   CREATED: { color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100', icon: <Clock size={14} /> },
-  STARTED: { color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', icon: <RefreshCcw size={14} /> },
+  STARTED: { color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', icon: <RefreshCw size={14} /> },
   IN_TRANSIT: { color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100', icon: <Truck size={14} /> },
   COMPLETED: { color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100', icon: <CheckCircle2 size={14} /> },
   DELAYED: { color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-100', icon: <AlertTriangle size={14} /> },
@@ -72,7 +72,7 @@ export default function TripsMainBody() {
   // Additional Queries for Resolving IDs
   const { data: driversData } = useDrivers({ page_size: 100 });
   const drivers = driversData?.results || (Array.isArray(driversData) ? driversData : []);
-  
+
   const { data: vehiclesData } = useVehicles({ page_size: 100 });
   const vehicles = vehiclesData?.results || (Array.isArray(vehiclesData) ? vehiclesData : []);
 
@@ -109,31 +109,29 @@ export default function TripsMainBody() {
   return (
     <div className="flex-1 min-h-0 overflow-hidden bg-[#F8FAFC] flex flex-col relative">
       <div className="p-8 flex-1 flex flex-col min-h-0">
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl font-extrabold text-[#172B4D] tracking-tight">Trip Management</h1>
-            <p className="text-sm text-gray-500 font-medium mt-1">Track vehicle journeys, driver assignments, and trip status.</p>
+        {/* Header */}
+        <div className="flex items-center mb-8">
+          <div className="w-1/4">
+            <h1 className="text-2xl font-black text-[#172B4D] uppercase tracking-tight">Trip Management</h1>
+            <p className="text-gray-500 text-sm tracking-tight mt-0.5">Track vehicle journeys, driver assignments, and trip status.</p>
           </div>
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => refetch()}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 shadow-sm transition-all"
-            >
-              <RefreshCcw size={16} className={isLoading ? "animate-spin" : ""} /> Refresh
+          <div className="flex-1" />
+          <div className="flex items-center gap-2">
+            <button onClick={() => refetch()} className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95 group">
+              <RefreshCw size={14} className={isLoading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'} /><span>Refresh</span>
             </button>
-            <button 
-              onClick={() => setIsCreateOpen(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-[#0052CC] text-white rounded-lg text-sm font-bold hover:bg-[#0747A6] shadow-md shadow-blue-200 transition-all"
-            >
-              <Plus size={18} /> Plan New Trip
+            <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95">
+              <Upload size={14} /><span>Import</span>
+            </button>
+            <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95">
+              <Download size={14} /><span>Export</span>
             </button>
           </div>
         </div>
 
         {/* Filters and Search */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden mt-2">
-          {/* Compact Stats Row */}
+          {/* Compact Stats + Add Row */}
           <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
             {isLoading ? (
               <div className="flex gap-6 animate-pulse">
@@ -160,55 +158,44 @@ export default function TripsMainBody() {
                   <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Completed:</span>
                   <span className="text-[18px] font-black text-green-600">{completedCount}</span>
                 </div>
+                <div className="ml-auto">
+                  <button onClick={() => setIsCreateOpen(true)} className="bg-[#0052CC] text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm font-bold hover:bg-[#0747A6] transition-all shadow-md active:scale-95 group">
+                    <Plus size={15} className="group-hover:rotate-90 transition-transform duration-300" /> Plan New Trip
+                  </button>
+                </div>
               </>
             )}
           </div>
-          <div className="p-5 border-b border-gray-100 flex flex-col md:flex-row gap-4 items-center bg-white flex-wrap">
-            <div className="relative flex-1 w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-              <input 
-                type="text"
-                placeholder="Search by Trip ID, Route..."
-                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] transition-all"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+          {/* Filter Bar */}
+          <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-50 bg-white flex-wrap">
+            <div className="relative flex-1 max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+              <input type="text" placeholder="Search by Trip ID, Route..."
+                className="w-full pl-9 pr-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 font-medium"
+                value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
-            <div className="flex items-center gap-3 w-full md:w-auto">
-              <select 
-                className="flex-1 md:w-48 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 outline-none focus:border-[#0052CC]"
-                value={filterStatus}
-                onChange={(e) => {
-                  setFilterStatus(e.target.value);
-                  setPage(1);
-                }}
-              >
-                <option value="All Status">All Status</option>
-                <option value="CREATED">CREATED</option>
-                <option value="STARTED">STARTED</option>
-                <option value="IN_TRANSIT">IN_TRANSIT</option>
-                <option value="COMPLETED">COMPLETED</option>
-                <option value="DELAYED">DELAYED</option>
-              </select>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setPage(prev => Math.max(1, prev - 1))}
-                disabled={page === 1 || isLoading}
-                className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-              >
-                Previous
+            <select
+              className="py-1.5 px-3 bg-gray-50 border border-gray-100 rounded-lg text-xs font-medium text-gray-600 outline-none focus:border-[#0052CC] cursor-pointer"
+              value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
+            >
+              <option value="All Status">All Status</option>
+              <option value="CREATED">CREATED</option>
+              <option value="STARTED">STARTED</option>
+              <option value="IN_TRANSIT">IN_TRANSIT</option>
+              <option value="COMPLETED">COMPLETED</option>
+              <option value="DELAYED">DELAYED</option>
+            </select>
+            {(search || filterStatus !== 'All Status') && (
+              <button onClick={() => { setSearch(''); setFilterStatus('All Status'); setPage(1); }} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Clear">
+                <RotateCcw size={14} />
               </button>
-              <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
-                {page}
-              </div>
-              <button
-                onClick={() => setPage(prev => prev + 1)}
-                disabled={!tripsData?.next || isLoading}
-                className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-              >
-                Next
-              </button>
+            )}
+            <div className="ml-auto flex items-center gap-2">
+              <button onClick={() => setPage(prev => Math.max(1, prev - 1))} disabled={page === 1 || isLoading}
+                className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 transition-all shadow-sm">Previous</button>
+              <div className="flex items-center justify-center min-w-7 h-7 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-sm">{page}</div>
+              <button onClick={() => setPage(prev => prev + 1)} disabled={!tripsData?.next || isLoading}
+                className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 transition-all shadow-sm">Next</button>
             </div>
           </div>
 
@@ -271,7 +258,7 @@ export default function TripsMainBody() {
                       </td>
                       <td className="px-6 py-5 text-right">
                         <div className="flex items-center justify-end gap-2 transition-opacity">
-                          <button 
+                          <button
                             onClick={() => handleViewClick(trip)}
                             title="View Details"
                             className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg"
@@ -298,9 +285,9 @@ export default function TripsMainBody() {
       </div>
 
       {/* Modals */}
-      <CreateTripModal 
-        isOpen={isCreateOpen} 
-        onClose={() => setIsCreateOpen(false)} 
+      <CreateTripModal
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
         drivers={drivers}
         vehicles={vehicles}
       />
@@ -341,7 +328,7 @@ function CreateTripModal({ isOpen, onClose, drivers, vehicles }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     const payload = { ...formData };
-    
+
     // Clean up empty optional fields
     Object.keys(payload).forEach(key => {
       if (payload[key] === "" || payload[key] === null) {
@@ -351,11 +338,11 @@ function CreateTripModal({ isOpen, onClose, drivers, vehicles }) {
 
     createTripMutation.mutate(payload, {
       onSuccess: () => {
-        setFormData({ 
+        setFormData({
           order_id: "", trip_number: "", lr_number: "", reference_number: "",
           trip_type: "FTL", scheduled_pickup_date: "", scheduled_delivery_date: "",
           primary_driver_id: "", primary_vehicle_id: "", status: "CREATED",
-          origin_address: "", destination_address: "" 
+          origin_address: "", destination_address: ""
         });
         onClose();
       }
@@ -369,10 +356,10 @@ function CreateTripModal({ isOpen, onClose, drivers, vehicles }) {
           <div>
             <label className="block text-gray-700 font-medium mb-1">Driver *</label>
             <select
-               required
-               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
-               value={formData.primary_driver_id}
-               onChange={e => setFormData({ ...formData, primary_driver_id: e.target.value })}
+              required
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
+              value={formData.primary_driver_id}
+              onChange={e => setFormData({ ...formData, primary_driver_id: e.target.value })}
             >
               <option value="">Select Driver</option>
               {drivers.map(d => (
@@ -384,11 +371,11 @@ function CreateTripModal({ isOpen, onClose, drivers, vehicles }) {
           </div>
           <div>
             <label className="block text-gray-700 font-medium mb-1">Vehicle *</label>
-             <select
-               required
-               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
-               value={formData.primary_vehicle_id}
-               onChange={e => setFormData({ ...formData, primary_vehicle_id: e.target.value })}
+            <select
+              required
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
+              value={formData.primary_vehicle_id}
+              onChange={e => setFormData({ ...formData, primary_vehicle_id: e.target.value })}
             >
               <option value="">Select Vehicle</option>
               {vehicles.map(v => (
@@ -403,8 +390,8 @@ function CreateTripModal({ isOpen, onClose, drivers, vehicles }) {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-gray-700 font-medium mb-1">Trip Number</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
               placeholder="Auto-generated if empty"
               value={formData.trip_number}
@@ -414,9 +401,9 @@ function CreateTripModal({ isOpen, onClose, drivers, vehicles }) {
           <div>
             <label className="block text-gray-700 font-medium mb-1">Trip Type</label>
             <select
-               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
-               value={formData.trip_type}
-               onChange={e => setFormData({ ...formData, trip_type: e.target.value })}
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
+              value={formData.trip_type}
+              onChange={e => setFormData({ ...formData, trip_type: e.target.value })}
             >
               <option value="FTL">FTL</option>
               <option value="LTL">LTL</option>
@@ -429,8 +416,8 @@ function CreateTripModal({ isOpen, onClose, drivers, vehicles }) {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-gray-700 font-medium mb-1">Order ID (Linked)</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
               placeholder="Optional Order UUID"
               value={formData.order_id}
@@ -440,9 +427,9 @@ function CreateTripModal({ isOpen, onClose, drivers, vehicles }) {
           <div>
             <label className="block text-gray-700 font-medium mb-1">Status</label>
             <select
-               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
-               value={formData.status}
-               onChange={e => setFormData({ ...formData, status: e.target.value })}
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
+              value={formData.status}
+              onChange={e => setFormData({ ...formData, status: e.target.value })}
             >
               <option value="CREATED">CREATED</option>
               <option value="STARTED">STARTED</option>
@@ -453,8 +440,8 @@ function CreateTripModal({ isOpen, onClose, drivers, vehicles }) {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-gray-700 font-medium mb-1">LR Number</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
               placeholder="LR-000X"
               value={formData.lr_number}
@@ -463,8 +450,8 @@ function CreateTripModal({ isOpen, onClose, drivers, vehicles }) {
           </div>
           <div>
             <label className="block text-gray-700 font-medium mb-1">Reference Number</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
               placeholder="PO-XXXX"
               value={formData.reference_number}
@@ -476,8 +463,8 @@ function CreateTripModal({ isOpen, onClose, drivers, vehicles }) {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-gray-700 font-medium mb-1">Origin Address</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
               placeholder="Mumbai Warehouse"
               value={formData.origin_address}
@@ -485,42 +472,42 @@ function CreateTripModal({ isOpen, onClose, drivers, vehicles }) {
             />
           </div>
           <div>
-             <label className="block text-gray-700 font-medium mb-1">Destination Address</label>
-             <input 
-               type="text" 
-               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
-               placeholder="Delhi DC"
-               value={formData.destination_address}
-               onChange={e => setFormData({ ...formData, destination_address: e.target.value })}
-             />
+            <label className="block text-gray-700 font-medium mb-1">Destination Address</label>
+            <input
+              type="text"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
+              placeholder="Delhi DC"
+              value={formData.destination_address}
+              onChange={e => setFormData({ ...formData, destination_address: e.target.value })}
+            />
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-           <div>
-             <label className="block text-gray-700 font-medium mb-1">Scheduled Pickup</label>
-             <input 
-               type="date" 
-               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
-               value={formData.scheduled_pickup_date}
-               onChange={e => setFormData({ ...formData, scheduled_pickup_date: e.target.value })}
-             />
-           </div>
-           <div>
-             <label className="block text-gray-700 font-medium mb-1">Scheduled Delivery</label>
-             <input 
-               type="date" 
-               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
-               value={formData.scheduled_delivery_date}
-               onChange={e => setFormData({ ...formData, scheduled_delivery_date: e.target.value })}
-             />
-           </div>
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Scheduled Pickup</label>
+            <input
+              type="date"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
+              value={formData.scheduled_pickup_date}
+              onChange={e => setFormData({ ...formData, scheduled_pickup_date: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Scheduled Delivery</label>
+            <input
+              type="date"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
+              value={formData.scheduled_delivery_date}
+              onChange={e => setFormData({ ...formData, scheduled_delivery_date: e.target.value })}
+            />
+          </div>
         </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
           <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={createTripMutation.isPending}
             className="px-4 py-2 text-white bg-[#0052CC] rounded-lg hover:bg-[#0747A6] shadow-sm disabled:opacity-50"
           >
@@ -559,78 +546,78 @@ function ViewTripModal({ isOpen, onClose, tripId, drivers, vehicles }) {
         <div className="space-y-6 text-sm">
           {/* Main Info */}
           <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-             <div className="grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-6">
-                <div>
-                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Trip Number</p>
-                  <p className="font-semibold text-gray-800">{trip.trip_number || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Status</p>
-                  <StatusBadge status={trip.status} />
-                </div>
-                <div>
-                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Start Time</p>
-                  <p className="font-semibold text-gray-800">{trip.start_time ? new Date(trip.start_time).toLocaleString() : '-'}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">End Time</p>
-                  <p className="font-semibold text-gray-800">{trip.end_time ? new Date(trip.end_time).toLocaleString() : '-'}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Origin</p>
-                  <p className="font-semibold text-gray-800">{trip.origin || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Destination</p>
-                  <p className="font-semibold text-gray-800">{trip.destination || '-'}</p>
-                </div>
-             </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-6">
+              <div>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Trip Number</p>
+                <p className="font-semibold text-gray-800">{trip.trip_number || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Status</p>
+                <StatusBadge status={trip.status} />
+              </div>
+              <div>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Start Time</p>
+                <p className="font-semibold text-gray-800">{trip.start_time ? new Date(trip.start_time).toLocaleString() : '-'}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">End Time</p>
+                <p className="font-semibold text-gray-800">{trip.end_time ? new Date(trip.end_time).toLocaleString() : '-'}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Origin</p>
+                <p className="font-semibold text-gray-800">{trip.origin || '-'}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Destination</p>
+                <p className="font-semibold text-gray-800">{trip.destination || '-'}</p>
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-             {/* Fleet Info */}
-             <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                <h3 className="font-bold text-gray-800 border-b pb-2 mb-3">Fleet Information</h3>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Primary Driver</p>
-                    <p className="font-medium text-gray-700">{getDriverDisplay(trip.primary_driver_id || trip.driver_id)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Vehicle</p>
-                    <p className="font-medium text-gray-700">{getVehicleDisplay(trip.primary_vehicle_id || trip.vehicle_id)}</p>
-                  </div>
+            {/* Fleet Info */}
+            <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+              <h3 className="font-bold text-gray-800 border-b pb-2 mb-3">Fleet Information</h3>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Primary Driver</p>
+                  <p className="font-medium text-gray-700">{getDriverDisplay(trip.primary_driver_id || trip.driver_id)}</p>
                 </div>
-             </div>
+                <div>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Vehicle</p>
+                  <p className="font-medium text-gray-700">{getVehicleDisplay(trip.primary_vehicle_id || trip.vehicle_id)}</p>
+                </div>
+              </div>
+            </div>
 
-             {/* System Details */}
-             <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col">
-                <h3 className="font-bold text-gray-800 border-b pb-2 mb-3">System Details</h3>
-                <div className="space-y-3 flex-1">
-                  <div>
-                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Trip ID</p>
-                    <p className="font-mono text-xs text-gray-600 truncate" title={trip.id}>{trip.id}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Created By</p>
-                    <p className="font-mono text-xs text-gray-600 truncate">{trip.created_by || 'System'}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Created At</p>
-                    <p className="font-medium text-gray-700">{trip.created_at ? new Date(trip.created_at).toLocaleString() : '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Last Updated</p>
-                    <p className="font-medium text-gray-700">{trip.updated_at ? new Date(trip.updated_at).toLocaleString() : '-'}</p>
-                  </div>
+            {/* System Details */}
+            <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+              <h3 className="font-bold text-gray-800 border-b pb-2 mb-3">System Details</h3>
+              <div className="space-y-3 flex-1">
+                <div>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Trip ID</p>
+                  <p className="font-mono text-xs text-gray-600 truncate" title={trip.id}>{trip.id}</p>
                 </div>
-             </div>
+                <div>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Created By</p>
+                  <p className="font-mono text-xs text-gray-600 truncate">{trip.created_by || 'System'}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Created At</p>
+                  <p className="font-medium text-gray-700">{trip.created_at ? new Date(trip.created_at).toLocaleString() : '-'}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Last Updated</p>
+                  <p className="font-medium text-gray-700">{trip.updated_at ? new Date(trip.updated_at).toLocaleString() : '-'}</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       ) : (
         <div className="text-center text-gray-500 py-8">Failed to load trip details</div>
       )}
-      
+
       <div className="flex justify-end pt-4 border-t border-gray-100 mt-6">
         <button onClick={onClose} className="px-4 py-2 text-white bg-[#0052CC] rounded-lg hover:bg-[#0747A6] shadow-sm font-medium transition-colors">
           Close

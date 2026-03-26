@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { 
-  Plus, Search, Download, Edit2, Truck, XCircle, 
-  Trash2, Package, CheckCircle2, Clock, RefreshCcw, X, Eye
+import {
+  Plus, Search, Download, Upload, RotateCcw, Edit2, Truck, XCircle,
+  Trash2, Package, CheckCircle2, Clock, RefreshCw, X, Eye
 } from 'lucide-react';
-import { 
-  useOrders, useCreateOrder, useUpdateOrder, 
-  useCancelOrder, useAssignTrip, useOrderDetail 
+import {
+  useOrders, useCreateOrder, useUpdateOrder,
+  useCancelOrder, useAssignTrip, useOrderDetail
 } from '../../queries/orders/ordersQuery';
 import { useCustomers } from '../../queries/customers/customersQuery';
 import { useDrivers } from '../../queries/drivers/driverCoreQuery';
@@ -128,31 +128,29 @@ export default function OrdersMainBody() {
 
   return (
     <div className="flex-1 min-h-0 overflow-hidden bg-[#F8FAFC] flex flex-col relative">
-      <div className="p-8 flex-1 flex flex-col min-h-0">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl font-extrabold text-[#172B4D] tracking-tight">Orders (LR) Management</h1>
-            <p className="text-sm text-gray-500 font-medium mt-1">Manage Lorry Receipts, shipments, and trip assignments.</p>
+      <div className="p-8 flex-1 flex flex-col min-h-0">        {/* Header Section */}
+        <div className="flex items-center mb-8">
+          <div className="w-1/4">
+            <h1 className="text-2xl font-black text-[#172B4D] uppercase tracking-tight">Orders (LR) Management</h1>
+            <p className="text-gray-500 text-sm tracking-tight mt-0.5">Manage Lorry Receipts, shipments, and trip assignments.</p>
           </div>
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => refetch()}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 transition-all shadow-sm"
-            >
-              <RefreshCcw size={16} className={isLoading ? "animate-spin" : ""} /> Refresh
+          <div className="flex-1" />
+          <div className="flex items-center gap-2">
+            <button onClick={() => refetch()} className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95 group">
+              <RefreshCw size={14} className={isLoading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'} /><span>Refresh</span>
             </button>
-            <button 
-              onClick={() => setIsCreateOpen(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-[#4a6cf7] text-white rounded-lg text-sm font-bold hover:bg-[#3b59d9] shadow-md shadow-blue-200 transition-all"
-            >
-              <Plus size={18} /> Add Order
+            <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95">
+              <Upload size={14} /><span>Import</span>
+            </button>
+            <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95">
+              <Download size={14} /><span>Export</span>
             </button>
           </div>
         </div>
 
         {/* Main Table Container */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden mt-2">
-          {/* Compact Stats Row */}
+          {/* Compact Stats + Add Row */}
           <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
             {isLoading ? (
               <div className="flex gap-6 animate-pulse">
@@ -179,57 +177,50 @@ export default function OrdersMainBody() {
                   <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Cancelled:</span>
                   <span className="text-[18px] font-black text-red-500">{stats.cancelled}</span>
                 </div>
+                <div className="ml-auto">
+                  <button onClick={() => setIsCreateOpen(true)} className="bg-[#0052CC] text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm font-bold hover:bg-[#0747A6] transition-all shadow-md active:scale-95 group">
+                    <Plus size={15} className="group-hover:rotate-90 transition-transform duration-300" /> Add Order
+                  </button>
+                </div>
               </>
             )}
           </div>
-          {/* Table Header & Search */}
-          <div className="p-5 border-b border-gray-100 flex flex-col md:flex-row gap-4 items-center bg-white flex-wrap">
-            <div className="flex-1 w-full relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-              <input 
+          {/* Filter & Search Bar */}
+          <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-50 bg-white flex-wrap">
+            <div className="relative flex-1 max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+              <input
                 type="text"
                 placeholder="Search LR number, reference..."
-                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#4a6cf7] transition-all"
+                className="w-full pl-9 pr-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-100 font-medium"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <div className="flex items-center gap-3 w-full md:w-auto">
-              <select 
-                className="flex-1 md:w-40 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 outline-none focus:border-[#4a6cf7]"
-                value={filterStatus}
-                onChange={(e) => {
-                  setFilterStatus(e.target.value);
-                  setPage(1); // reset to page 1 on filter
-                }}
-              >
-                <option>All Status</option>
-                <option>DRAFT</option>
-                <option>CONFIRMED</option>
-                <option>ASSIGNED</option>
-                <option>IN_TRANSIT</option>
-                <option>DELIVERED</option>
-                <option>CANCELLED</option>
-              </select>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setPage(prev => Math.max(1, prev - 1))}
-                disabled={page === 1 || isLoading}
-                className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-              >
-                Previous
+            <select
+              className="py-1.5 px-3 bg-gray-50 border border-gray-100 rounded-lg text-xs font-medium text-gray-600 outline-none focus:border-[#0052CC] cursor-pointer"
+              value={filterStatus}
+              onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
+            >
+              <option>All Status</option>
+              <option>DRAFT</option>
+              <option>CONFIRMED</option>
+              <option>ASSIGNED</option>
+              <option>IN_TRANSIT</option>
+              <option>DELIVERED</option>
+              <option>CANCELLED</option>
+            </select>
+            {(search || filterStatus !== 'All Status') && (
+              <button onClick={() => { setSearch(''); setFilterStatus('All Status'); setPage(1); }} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Clear">
+                <RotateCcw size={14} />
               </button>
-              <div className="flex items-center justify-center min-w-8 h-8 bg-[#4a6cf7] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
-                {page}
-              </div>
-              <button
-                onClick={() => setPage(prev => prev + 1)}
-                disabled={!ordersData?.next || isLoading}
-                className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-              >
-                Next
-              </button>
+            )}
+            <div className="ml-auto flex items-center gap-2">
+              <button onClick={() => setPage(prev => Math.max(1, prev - 1))} disabled={page === 1 || isLoading}
+                className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm">Previous</button>
+              <div className="flex items-center justify-center min-w-7 h-7 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-sm">{page}</div>
+              <button onClick={() => setPage(prev => prev + 1)} disabled={!ordersData?.next || isLoading}
+                className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm">Next</button>
             </div>
           </div>
 
@@ -298,8 +289,8 @@ export default function OrdersMainBody() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2 transition-opacity">
-                          
-                          <button 
+
+                          <button
                             onClick={() => handleViewClick(order)}
                             title="View Details"
                             className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg"
@@ -308,7 +299,7 @@ export default function OrdersMainBody() {
                           </button>
 
                           {(order.status === 'CONFIRMED' || order.status === 'DRAFT') && (
-                            <button 
+                            <button
                               onClick={() => handleAssignClick(order)}
                               title="Assign Trip"
                               className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg flex items-center gap-1 text-xs font-bold"
@@ -317,16 +308,16 @@ export default function OrdersMainBody() {
                             </button>
                           )}
 
-                          <button 
+                          <button
                             onClick={() => handleEditClick(order)}
                             title="Edit Order"
                             className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
                           >
                             <Edit2 size={16} />
                           </button>
-                          
+
                           {order.status !== 'CANCELLED' && (
-                            <button 
+                            <button
                               onClick={() => handleCancelOrder(order.id)}
                               title="Cancel Order"
                               className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
@@ -353,9 +344,9 @@ export default function OrdersMainBody() {
       </div>
 
       {/* Modals */}
-      <CreateOrderModal 
-        isOpen={isCreateOpen} 
-        onClose={() => setIsCreateOpen(false)} 
+      <CreateOrderModal
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
       />
 
       {selectedOrder && (
@@ -367,10 +358,10 @@ export default function OrdersMainBody() {
       )}
 
       {selectedOrder && (
-        <EditOrderModal 
-          isOpen={isEditOpen} 
-          onClose={() => setIsEditOpen(false)} 
-          order={selectedOrder} 
+        <EditOrderModal
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          order={selectedOrder}
         />
       )}
 
@@ -392,7 +383,7 @@ export default function OrdersMainBody() {
 
 function CreateOrderModal({ isOpen, onClose }) {
   const createOrderMutation = useCreateOrder();
-  
+
   // Data for dropdowns
   const { data: customersData } = useCustomers({ page_size: 100 });
   const customers = customersData?.results || (Array.isArray(customersData) ? customersData : []);
@@ -461,7 +452,7 @@ function CreateOrderModal({ isOpen, onClose }) {
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-           <div>
+          <div>
             <label className="block text-gray-700 font-medium mb-1">Consigner (Optional)</label>
             <select
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
@@ -470,7 +461,7 @@ function CreateOrderModal({ isOpen, onClose }) {
             >
               <option value="">Select Consigner</option>
               {customers.map(c => (
-                 <option key={c.id} value={c.id}>{c.legal_name || c.trading_name || c.customer_code || c.id}</option>
+                <option key={c.id} value={c.id}>{c.legal_name || c.trading_name || c.customer_code || c.id}</option>
               ))}
             </select>
           </div>
@@ -483,7 +474,7 @@ function CreateOrderModal({ isOpen, onClose }) {
             >
               <option value="">Select Consignee</option>
               {customers.map(c => (
-                 <option key={c.id} value={c.id}>{c.legal_name || c.trading_name || c.customer_code || c.id}</option>
+                <option key={c.id} value={c.id}>{c.legal_name || c.trading_name || c.customer_code || c.id}</option>
               ))}
             </select>
           </div>
@@ -492,8 +483,8 @@ function CreateOrderModal({ isOpen, onClose }) {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-gray-700 font-medium mb-1">Reference Number</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
               placeholder="PO-001..."
               value={formData.reference_number}
@@ -503,8 +494,8 @@ function CreateOrderModal({ isOpen, onClose }) {
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="block text-gray-700 font-medium mb-1">Pickup Date</label>
-              <input 
-                type="date" 
+              <input
+                type="date"
                 className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
                 value={formData.pickup_date}
                 onChange={e => setFormData({ ...formData, pickup_date: e.target.value })}
@@ -512,8 +503,8 @@ function CreateOrderModal({ isOpen, onClose }) {
             </div>
             <div>
               <label className="block text-gray-700 font-medium mb-1">Delivery Date</label>
-              <input 
-                type="date" 
+              <input
+                type="date"
                 className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
                 value={formData.delivery_date}
                 onChange={e => setFormData({ ...formData, delivery_date: e.target.value })}
@@ -524,7 +515,7 @@ function CreateOrderModal({ isOpen, onClose }) {
 
         <div>
           <label className="block text-gray-700 font-medium mb-1">Notes</label>
-          <textarea 
+          <textarea
             className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
             rows="3"
             placeholder="Additional instructions..."
@@ -535,8 +526,8 @@ function CreateOrderModal({ isOpen, onClose }) {
 
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
           <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={createOrderMutation.isPending}
             className="px-4 py-2 text-white bg-[#4a6cf7] rounded-lg hover:bg-[#3b59d9] disabled:opacity-50"
           >
@@ -643,18 +634,18 @@ function EditOrderModal({ isOpen, onClose, order }) {
             </select>
           </div>
           <div>
-             <label className="block text-gray-700 font-medium mb-1">Reference Number</label>
-             <input 
-               type="text" 
-               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
-               value={formData.reference_number}
-               onChange={e => setFormData({ ...formData, reference_number: e.target.value })}
-             />
+            <label className="block text-gray-700 font-medium mb-1">Reference Number</label>
+            <input
+              type="text"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              value={formData.reference_number}
+              onChange={e => setFormData({ ...formData, reference_number: e.target.value })}
+            />
           </div>
         </div>
-        
+
         <div className="grid grid-cols-2 gap-4">
-           <div>
+          <div>
             <label className="block text-gray-700 font-medium mb-1">Consigner (Optional)</label>
             <select
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
@@ -663,7 +654,7 @@ function EditOrderModal({ isOpen, onClose, order }) {
             >
               <option value="">Select Consigner</option>
               {customers.map(c => (
-                 <option key={c.id} value={c.id}>{c.legal_name || c.trading_name || c.customer_code || c.id}</option>
+                <option key={c.id} value={c.id}>{c.legal_name || c.trading_name || c.customer_code || c.id}</option>
               ))}
             </select>
           </div>
@@ -676,36 +667,36 @@ function EditOrderModal({ isOpen, onClose, order }) {
             >
               <option value="">Select Consignee</option>
               {customers.map(c => (
-                 <option key={c.id} value={c.id}>{c.legal_name || c.trading_name || c.customer_code || c.id}</option>
+                <option key={c.id} value={c.id}>{c.legal_name || c.trading_name || c.customer_code || c.id}</option>
               ))}
             </select>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-           <div>
-             <label className="block text-gray-700 font-medium mb-1">Pickup Date</label>
-             <input 
-               type="date" 
-               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
-               value={formData.pickup_date}
-               onChange={e => setFormData({ ...formData, pickup_date: e.target.value })}
-             />
-           </div>
-           <div>
-             <label className="block text-gray-700 font-medium mb-1">Delivery Date</label>
-             <input 
-               type="date" 
-               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
-               value={formData.delivery_date}
-               onChange={e => setFormData({ ...formData, delivery_date: e.target.value })}
-             />
-           </div>
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Pickup Date</label>
+            <input
+              type="date"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              value={formData.pickup_date}
+              onChange={e => setFormData({ ...formData, pickup_date: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Delivery Date</label>
+            <input
+              type="date"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              value={formData.delivery_date}
+              onChange={e => setFormData({ ...formData, delivery_date: e.target.value })}
+            />
+          </div>
         </div>
 
         <div>
           <label className="block text-gray-700 font-medium mb-1">Notes</label>
-          <textarea 
+          <textarea
             className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
             rows="3"
             value={formData.notes}
@@ -715,8 +706,8 @@ function EditOrderModal({ isOpen, onClose, order }) {
 
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
           <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={updateOrderMutation.isPending}
             className="px-4 py-2 text-white bg-[#4a6cf7] rounded-lg hover:bg-[#3b59d9] disabled:opacity-50"
           >
@@ -730,7 +721,7 @@ function EditOrderModal({ isOpen, onClose, order }) {
 
 function AssignTripModal({ isOpen, onClose, order }) {
   const assignTripMutation = useAssignTrip();
-  
+
   const { data: driversData } = useDrivers({ page_size: 100 });
   const drivers = driversData?.results || (Array.isArray(driversData) ? driversData : []);
 
@@ -772,7 +763,7 @@ function AssignTripModal({ isOpen, onClose, order }) {
             ))}
           </select>
         </div>
-        
+
         <div>
           <label className="block text-gray-700 font-medium mb-1">Vehicle *</label>
           <select
@@ -792,8 +783,8 @@ function AssignTripModal({ isOpen, onClose, order }) {
 
         <div>
           <label className="block text-gray-700 font-medium mb-1">Trip Number (Optional)</label>
-          <input 
-            type="text" 
+          <input
+            type="text"
             className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
             placeholder="Auto-generated if left blank"
             value={formData.trip_number}
@@ -803,8 +794,8 @@ function AssignTripModal({ isOpen, onClose, order }) {
 
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
           <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={assignTripMutation.isPending}
             className="px-4 py-2 text-white bg-amber-600 rounded-lg hover:bg-amber-700 disabled:opacity-50"
           >
@@ -838,74 +829,74 @@ function ViewOrderModal({ isOpen, onClose, orderId }) {
         <div className="space-y-6 text-sm">
           {/* Detailed Info Grid */}
           <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-             <div className="grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-6">
-                <div>
-                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">LR Number</p>
-                  <p className="font-semibold text-gray-800">{order.lr_number}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Reference Number</p>
-                  <p className="font-semibold text-gray-800">{order.reference_number || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Order Type</p>
-                  <p className="font-semibold text-gray-800">{order.order_type}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Status</p>
-                  <StatusBadge status={order.status} />
-                </div>
-                <div>
-                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Pickup Date</p>
-                  <p className="font-semibold text-gray-800">{order.pickup_date || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Delivery Date</p>
-                  <p className="font-semibold text-gray-800">{order.delivery_date || '-'}</p>
-                </div>
-             </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-6">
+              <div>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">LR Number</p>
+                <p className="font-semibold text-gray-800">{order.lr_number}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Reference Number</p>
+                <p className="font-semibold text-gray-800">{order.reference_number || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Order Type</p>
+                <p className="font-semibold text-gray-800">{order.order_type}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Status</p>
+                <StatusBadge status={order.status} />
+              </div>
+              <div>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Pickup Date</p>
+                <p className="font-semibold text-gray-800">{order.pickup_date || '-'}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Delivery Date</p>
+                <p className="font-semibold text-gray-800">{order.delivery_date || '-'}</p>
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-             <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                <h3 className="font-bold text-gray-800 border-b pb-2 mb-3">Customer Information</h3>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Billing Customer</p>
-                    <p className="font-medium text-gray-700">{getCustomerName(order.billing_customer_id)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Consignor (From)</p>
-                    <p className="font-medium text-gray-700">{getCustomerName(order.consigner_id)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Consignee (To)</p>
-                    <p className="font-medium text-gray-700">{getCustomerName(order.consignee_id)}</p>
-                  </div>
+            <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+              <h3 className="font-bold text-gray-800 border-b pb-2 mb-3">Customer Information</h3>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Billing Customer</p>
+                  <p className="font-medium text-gray-700">{getCustomerName(order.billing_customer_id)}</p>
                 </div>
-             </div>
+                <div>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Consignor (From)</p>
+                  <p className="font-medium text-gray-700">{getCustomerName(order.consigner_id)}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Consignee (To)</p>
+                  <p className="font-medium text-gray-700">{getCustomerName(order.consignee_id)}</p>
+                </div>
+              </div>
+            </div>
 
-             <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col">
-                <h3 className="font-bold text-gray-800 border-b pb-2 mb-3">System Details</h3>
-                <div className="space-y-3 flex-1">
-                  <div>
-                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Order ID</p>
-                    <p className="font-mono text-xs text-gray-600 truncate" title={order.id}>{order.id}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Created By</p>
-                    <p className="font-mono text-xs text-gray-600 truncate">{order.created_by}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Created At</p>
-                    <p className="font-medium text-gray-700">{new Date(order.created_at).toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Last Updated</p>
-                    <p className="font-medium text-gray-700">{new Date(order.updated_at).toLocaleString()}</p>
-                  </div>
+            <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+              <h3 className="font-bold text-gray-800 border-b pb-2 mb-3">System Details</h3>
+              <div className="space-y-3 flex-1">
+                <div>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Order ID</p>
+                  <p className="font-mono text-xs text-gray-600 truncate" title={order.id}>{order.id}</p>
                 </div>
-             </div>
+                <div>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Created By</p>
+                  <p className="font-mono text-xs text-gray-600 truncate">{order.created_by}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Created At</p>
+                  <p className="font-medium text-gray-700">{new Date(order.created_at).toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Last Updated</p>
+                  <p className="font-medium text-gray-700">{new Date(order.updated_at).toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
           </div>
 
           {order.notes && (
@@ -918,7 +909,7 @@ function ViewOrderModal({ isOpen, onClose, orderId }) {
       ) : (
         <div className="text-center text-gray-500 py-8">Failed to load order details</div>
       )}
-      
+
       <div className="flex justify-end pt-4 border-t border-gray-100 mt-6">
         <button onClick={onClose} className="px-4 py-2 text-white bg-[#4a6cf7] rounded-lg hover:bg-[#3b59d9] font-medium transition-colors">
           Close
