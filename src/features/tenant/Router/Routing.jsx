@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "../pages/Login";
 import TenantDashboard from "../pages/TenantDashboard";
 import { ProtectedRoute, PublicRoute } from "../Router/AuthGuards";
+import DashboardOverview from '../components/Dashboard/DashboardOverview';
 import Userdetail from '../components/user/Userdetail'
 import UserProfile from '../components/user/UserProfile'
 import Vehicles from '../components/Vehicles/List/VehiclesList'
@@ -55,7 +56,8 @@ const Routing = () => {
         element={<ProtectedRoute><TenantDashboard /></ProtectedRoute>}
       >
         {/* Default child route */}
-        <Route index element={<Navigate to="users" replace />} />
+        <Route index element={<Navigate to="overview" replace />} />
+        <Route path="overview" element={<DashboardOverview />} />
         <Route path="users" element={<Userdetail />} />
         <Route path="users/:userid" element={<UserProfile />} />
         <Route path="users/roles" element={<Roles />} />

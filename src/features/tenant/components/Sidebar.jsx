@@ -5,7 +5,7 @@ import {
   ChevronDown, UserCheck, Phone, GraduationCap,
   HeartPulse, BarChart2, AlertTriangle, CalendarClock, Car, Banknote, UserPlus, UserMinus, Briefcase, Building2
 } from 'lucide-react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 
 const vehicleSubItems = [
   { name: 'All Vehicles', icon: <Truck size={13} />, path: '/tenant/dashboard/vehicles', badge: null },
@@ -82,6 +82,7 @@ const SubMenu = ({ items }) => (
 
 const Sidebar = ({ isCollapsed }) => {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const isVehiclePath = location.pathname.startsWith('/tenant/dashboard/vehicles');
   const isDriverPath = location.pathname.startsWith('/tenant/dashboard/drivers');
@@ -95,10 +96,16 @@ const Sidebar = ({ isCollapsed }) => {
   const [customersOpen, setCustomersOpen] = useState(isCustomerPath);
   const [ordersOpen, setOrdersOpen] = useState(isOrderPath);
 
-  const NavItem = ({ icon, label, isOpen, setIsOpen, isActive, subItems, title }) => (
+  const NavItem = ({ icon, label, isOpen, setIsOpen, isActive, subItems, title, onClick }) => (
     <div className="relative group">
       <button
-        onClick={() => !isCollapsed && setIsOpen((o) => !o)}
+        onClick={() => {
+           if (onClick) {
+             onClick();
+           } else if (!isCollapsed) {
+             setIsOpen((o) => !o);
+           }
+        }}
         className={`w-full flex ${isCollapsed ? 'flex-col items-center justify-center py-3' : 'items-center gap-3 px-3 py-2.5'} rounded-lg transition-all border ${isActive
           ? 'bg-[#EBF3FF] text-[#0052CC] border-[#D0E2FF]'
           : 'text-gray-600 hover:bg-gray-100 border-transparent'
@@ -111,7 +118,9 @@ const Sidebar = ({ isCollapsed }) => {
         {!isCollapsed ? (
           <>
             <span className="text-sm font-semibold flex-1 text-left animate-in fade-in duration-500">{label}</span>
-            <ChevronDown size={15} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : 'rotate-0'} ${isActive ? 'text-[#0052CC]' : 'text-gray-400'}`} />
+            {subItems.length > 0 && (
+              <ChevronDown size={15} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : 'rotate-0'} ${isActive ? 'text-[#0052CC]' : 'text-gray-400'}`} />
+            )}
           </>
         ) : (
           <span className="text-[10px] font-bold text-gray-500 text-center leading-none">{label}</span>
@@ -160,6 +169,18 @@ const Sidebar = ({ isCollapsed }) => {
           <div className="mb-4">
             {!isCollapsed && <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-2 mb-2 animate-in fade-in duration-500">Main</p>}
             <nav className="space-y-1 mt-2">
+              <NavItem
+                icon={<LayoutGrid />}
+                label="Dashboard"
+                isOpen={false}
+                setIsOpen={() => {}}
+                isActive={location.pathname === '/tenant/dashboard' || location.pathname === '/tenant/dashboard/overview'}
+                subItems={[]}
+                title="Dashboard Overview"
+                onClick={() => {
+                  navigate('/tenant/dashboard/overview');
+                }}
+              />
               <NavItem
                 icon={<Users />}
                 label="Users"

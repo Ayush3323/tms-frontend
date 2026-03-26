@@ -25,7 +25,7 @@ const Header = ({ toggleSidebar, isCollapsed }) => {
     
     if (parts.length >= 3) {
       const feature = parts[2];
-      // Special case mapping if needed
+      if (feature === 'overview') return 'Dashboard';
       if (feature === 'users') return 'Users';
       if (feature === 'vehicles') return 'Vehicles';
       if (feature === 'drivers') return 'Drivers';
