@@ -12,8 +12,8 @@ import Select from '../common/Select';
 import Input from '../common/Input';
 
 const AllMedical = () => {
-  const [addOpen,       setAddOpen]       = useState(false);
-  const [editRecord,    setEditRecord]    = useState(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [editRecord, setEditRecord] = useState(null);
 
   const [filters, setFilters] = useState({
     driver: '',
@@ -58,13 +58,13 @@ const AllMedical = () => {
       ]}
     />
   );
-  if (isError)   return <div className="p-6"><ErrorState message="Failed to load records" error={error?.message} onRetry={() => refetch()} /></div>;
+  if (isError) return <div className="p-6"><ErrorState message="Failed to load records" error={error?.message} onRetry={() => refetch()} /></div>;
 
   return (
     <div className="flex-1 min-h-0 overflow-hidden bg-[#F8FAFC] flex flex-col relative">
       {/* ── Modals ── */}
-      {addOpen      && <AddMedicalModal    driverId={null} onClose={() => setAddOpen(false)} />}
-      {editRecord   && <EditMedicalModal   record={editRecord} driverId={editRecord.driver} onClose={() => setEditRecord(null)} />}
+      {addOpen && <AddMedicalModal driverId={null} onClose={() => setAddOpen(false)} />}
+      {editRecord && <EditMedicalModal record={editRecord} driverId={editRecord.driver} onClose={() => setEditRecord(null)} />}
 
       <div className="p-6 lg:p-8 flex-1 flex flex-col min-h-0">
         {/* ── Header ── */}
@@ -116,67 +116,67 @@ const AllMedical = () => {
           {/* ── Filters Bar ── */}
           <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-white flex-wrap gap-4">
             <div className="flex gap-3 items-center flex-wrap flex-1">
-        <div>
-           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Driver</p>
-            <DriverSelect 
-              value={filters.driver} 
-              onChange={(val) => handleFilterChange('driver', val)} 
-              className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
-            />
-        </div>
-        <div>
-           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Fitness Status</p>
-            <Select 
-              value={filters.fitness_status} 
-              onChange={(e) => handleFilterChange('fitness_status', e.target.value)}
-              className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
-            >
-              <option value="">All Status</option>
-              {FITNESS_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
-            </Select>
-        </div>
-        <div>
-           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Exam Date</p>
-            <Input 
-              type="date" 
-              value={filters.examination_date} 
-              onChange={(e) => handleFilterChange('examination_date', e.target.value)} 
-              className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
-            />
-        </div>
-        <div className="flex items-end gap-2">
-           <div className="flex-1">
-             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Next Due Date</p>
-              <Input 
-                type="date" 
-                value={filters.next_due_date} 
-                onChange={(e) => handleFilterChange('next_due_date', e.target.value)} 
-                className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
-              />
-           </div>
-          </div>
-          </div>
-          <button 
-            onClick={clearFilters}
-            className="px-3 py-2 text-xs font-bold text-gray-500 hover:text-red-500 transition-colors self-end mb-1"
-          >
-            Clear
-          </button>
-        </div>
-
-        {/* ── Content ── */}
-        <div className="flex-1 min-h-0 overflow-auto">
-          {records.length === 0 ? (
-            <div className="py-20">
-              <EmptyState icon={HeartPulse} title="No records found" description="No medical records have been added yet." />
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Driver</p>
+                <DriverSelect
+                  value={filters.driver}
+                  onChange={(val) => handleFilterChange('driver', val)}
+                  className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
+                />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Fitness Status</p>
+                <Select
+                  value={filters.fitness_status}
+                  onChange={(e) => handleFilterChange('fitness_status', e.target.value)}
+                  className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
+                >
+                  <option value="">All Status</option>
+                  {FITNESS_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
+                </Select>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Exam Date</p>
+                <Input
+                  type="date"
+                  value={filters.examination_date}
+                  onChange={(e) => handleFilterChange('examination_date', e.target.value)}
+                  className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
+                />
+              </div>
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Next Due Date</p>
+                  <Input
+                    type="date"
+                    value={filters.next_due_date}
+                    onChange={(e) => handleFilterChange('next_due_date', e.target.value)}
+                    className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
+                  />
+                </div>
+              </div>
             </div>
-          ) : (
-            <MedicalTable records={records} onEdit={setEditRecord} showDriver={true} driverMap={driverMap} />
-          )}
+            <button
+              onClick={clearFilters}
+              className="px-3 py-2 text-xs font-bold text-gray-500 hover:text-red-500 transition-colors self-end mb-1"
+            >
+              Clear
+            </button>
+          </div>
+
+          {/* ── Content ── */}
+          <div className="flex-1 min-h-0 overflow-auto">
+            {records.length === 0 ? (
+              <div className="py-20">
+                <EmptyState icon={HeartPulse} title="No records found" description="No medical records have been added yet." />
+              </div>
+            ) : (
+              <MedicalTable records={records} onEdit={setEditRecord} showDriver={true} driverMap={driverMap} />
+            )}
+          </div>
         </div>
       </div>
     </div>
-  </div>
   );
 };
 

@@ -19,10 +19,10 @@ const Header = ({ toggleSidebar, isCollapsed }) => {
   const getBreadcrumbName = () => {
     const path = location.pathname;
     const parts = path.split('/').filter(Boolean);
-    
+
     // Path structure: /tenant/dashboard/feature/subfeature
     // parts[0] = 'tenant', parts[1] = 'dashboard', parts[2] = 'feature'
-    
+
     if (parts.length >= 3) {
       const feature = parts[2];
       if (feature === 'overview') return 'Dashboard';
@@ -31,7 +31,7 @@ const Header = ({ toggleSidebar, isCollapsed }) => {
       if (feature === 'drivers') return 'Drivers';
       if (feature === 'customers') return 'Customers';
       if (feature === 'orders') return 'Orders';
-      
+
       return feature.charAt(0).toUpperCase() + feature.slice(1);
     }
 
@@ -88,7 +88,7 @@ const Header = ({ toggleSidebar, isCollapsed }) => {
               <p className="text-xs font-bold text-[#172B4D] leading-none">{currentUser?.first_name} {currentUser?.last_name}</p>
               <p className="text-[10px] text-gray-500 mt-1">{currentUser?.role}</p>
             </div>
-         </div>
+          </div>
 
           {/* Logout Button */}
           <button
@@ -101,9 +101,9 @@ const Header = ({ toggleSidebar, isCollapsed }) => {
           </button>
         </div>
       </div>
-      <SettingsModal 
-        isOpen={isSettingsOpen} 
-        onClose={() => setIsSettingsOpen(false)} 
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
         userEmail={currentUser?.email}
       />
     </header>
