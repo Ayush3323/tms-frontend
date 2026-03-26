@@ -21,7 +21,7 @@ const StatusBadge = ({ status }) => {
     'Pick-up': 'bg-purple-50 text-purple-600 border-purple-100',
     'Scheduled': 'bg-gray-50 text-gray-600 border-gray-100',
   };
-  
+
   return (
     <span className={`px-2 py-0.5 rounded-full text-[11px] font-black border ${styles[status] || styles['Scheduled']}`}>
       {status}
@@ -54,23 +54,23 @@ const ActivityTable = () => {
   return (
     <div className="flex flex-col h-full bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden min-h-[300px]">
       <div className="p-4 border-b border-gray-100 bg-white flex items-center justify-between">
-        <h3 className="text-[11px] font-black text-black uppercase tracking-widest">Recent activities</h3>
-        
+        <h3 className="text-[16px] font-black text-black uppercase tracking-widest">Recent activities</h3>
+
         <div className="flex items-center gap-4">
           <div className="flex bg-gray-50 p-1 rounded-xl border border-gray-100">
-             {['Active', 'Completed', 'Scheduled'].map(tab => (
-               <button 
+            {['Active', 'Completed', 'Scheduled'].map(tab => (
+              <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${activeTab === tab ? 'bg-white text-[#172B4D] shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
-               >
-                 {tab}
-               </button>
-             ))}
+              >
+                {tab}
+              </button>
+            ))}
           </div>
 
           <div className="relative" ref={dropdownRef}>
-            <button 
+            <button
               onClick={() => setShowSeeAllDropdown(!showSeeAllDropdown)}
               className="px-3 py-2 text-[10px] font-black text-blue-600 hover:bg-blue-50 rounded-xl transition-all uppercase tracking-widest flex items-center gap-1.5"
             >
@@ -81,7 +81,7 @@ const ActivityTable = () => {
               <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                 <div className="p-2 space-y-1">
                   {['Active', 'Completed', 'Scheduled'].map(option => (
-                    <button 
+                    <button
                       key={option}
                       className="w-full text-left px-4 py-3 text-[10px] font-bold text-gray-600 hover:bg-gray-50 rounded-xl flex items-center justify-between group transition-all"
                       onClick={() => setShowSeeAllDropdown(false)}
@@ -115,7 +115,7 @@ const ActivityTable = () => {
                 <td className="px-4 py-3 text-[13.5px] font-black text-[#172B4D]">{activity.tripNo}</td>
                 <td className="px-4 py-3 text-[12px] font-bold text-gray-500 whitespace-nowrap">{activity.dateTime}</td>
                 <td className="px-4 py-3 text-[13px] font-bold text-[#172B4D] whitespace-nowrap">{activity.activity}</td>
-                <td 
+                <td
                   className="px-4 py-3 text-[12.5px] text-gray-400 font-medium max-w-[200px] truncate cursor-help"
                   title={activity.details}
                 >
@@ -125,9 +125,9 @@ const ActivityTable = () => {
                 <td className="px-4 py-3 text-right"><StatusBadge status={activity.status} /></td>
               </tr>
             )) : (
-                <tr>
-                    <td colSpan="6" className="px-4 py-12 text-center text-gray-400 text-[11px] font-bold uppercase tracking-widest">No activities found</td>
-                </tr>
+              <tr>
+                <td colSpan="6" className="px-4 py-12 text-center text-gray-400 text-[11px] font-bold uppercase tracking-widest">No activities found</td>
+              </tr>
             )}
           </tbody>
         </table>

@@ -10,30 +10,35 @@ const DashboardOverview = () => {
   const [isAlertsOpen, setIsAlertsOpen] = useState(false);
 
   return (
-    <div className="p-6 space-y-6 bg-[#F4F5F7]">
+    <div className="px-6 pb-6 space-y-6 bg-[#F4F5F7]">
       <AlertsDrawer isOpen={isAlertsOpen} onClose={() => setIsAlertsOpen(false)} />
- 
-       {/* 2. Top Stats Cards Section */}
-       <OverviewCards onAlertClick={() => setIsAlertsOpen(true)} />
 
-      {/* 3. Middle Section: Trend & Map */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[480px]">
-        <div className="lg:col-span-1 h-full">
-          <DeliveryTrendLine height={480} />
-        </div>
-        <div className="lg:col-span-2 h-full">
-          <LiveTrackingMap height={480} />
-        </div>
-      </div>
+      <div className="pt-0 space-y-6">
+        {/* 2. Top Stats Cards Section */}
+        <OverviewCards onAlertClick={() => setIsAlertsOpen(true)} />
 
-      {/* 4. Bottom Section: Activity Table & Progress */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch h-[320px]">
-        <div className="lg:col-span-2 h-full">
-          <ActivityTable />
+        {/* 3. Middle Section: Trend & Map */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[480px]">
+          <div className="lg:col-span-1 h-full">
+            <DeliveryTrendLine height={480} />
+          </div>
+          <div className="lg:col-span-2 h-full">
+            <LiveTrackingMap height={480} />
+          </div>
         </div>
-        <div className="lg:col-span-1 h-full">
-          <DeliveryProgressCircle />
+
+        {/* 4. Bottom Section: Activity Table & Progress */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch h-[320px]">
+          <div className="lg:col-span-2 h-full">
+            <ActivityTable />
+          </div>
+          <div className="lg:col-span-1 h-full">
+            <DeliveryProgressCircle />
+          </div>
         </div>
+
+        {/* Spacer for bottom gap consistency */}
+        <div className="h-5" />
       </div>
     </div>
   );
