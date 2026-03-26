@@ -25,8 +25,8 @@ export const DeliveryProgressCircle = () => {
 
   return (
     <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col h-full transition-all hover:shadow-md">
-      <h3 className="text-[11px] font-black text-black uppercase tracking-widest mb-2">Delivery Percentage</h3>
-      
+      <h3 className="text-[16px] font-black text-black uppercase tracking-widest mb-2">Delivery Percentage</h3>
+
       <div className="flex-1 flex flex-col items-center justify-center relative min-h-[170px] -mt-2">
         <div className="w-full h-[180px]">
           <ResponsiveContainer width="100%" height="100%">
@@ -42,9 +42,9 @@ export const DeliveryProgressCircle = () => {
                 onMouseLeave={() => setHoveredData(null)}
               >
                 {dataPie.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={entry.color} 
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={entry.color}
                     style={{ outline: 'none', cursor: 'pointer' }}
                   />
                 ))}
@@ -53,15 +53,15 @@ export const DeliveryProgressCircle = () => {
           </ResponsiveContainer>
         </div>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[45%] text-center pointer-events-none">
-            <p className="text-3xl font-black text-[#172B4D] tracking-tighter">
-                {hoveredData 
-                    ? `${Math.round((hoveredData.value / totalValue) * 100)}%` 
-                    : '77%'
-                }
-            </p>
-            <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">
-                {hoveredData ? hoveredData.name : 'Success'}
-            </p>
+          <p className="text-3xl font-black text-[#172B4D] tracking-tighter">
+            {hoveredData
+              ? `${Math.round((hoveredData.value / totalValue) * 100)}%`
+              : '77%'
+            }
+          </p>
+          <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">
+            {hoveredData ? hoveredData.name : 'Success'}
+          </p>
         </div>
       </div>
 
@@ -84,15 +84,15 @@ const CustomTooltip = ({ active, payload, label }) => {
       <div className="bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-gray-100 flex flex-col gap-2 min-w-[150px] animate-in fade-in zoom-in-95 duration-200">
         <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100 pb-2 mb-1">Today • {label} PM</p>
         <div className="space-y-2">
-            {payload.map((entry, index) => (
+          {payload.map((entry, index) => (
             <div key={index} className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: entry.color }}></div>
                 <span className="text-[10px] font-bold text-gray-600 capitalize">{entry.name}</span>
-                </div>
-                <span className="text-[11px] font-black text-[#172B4D]">{entry.value}</span>
+              </div>
+              <span className="text-[11px] font-black text-[#172B4D]">{entry.value}</span>
             </div>
-            ))}
+          ))}
         </div>
       </div>
     );
@@ -107,22 +107,22 @@ export const DeliveryTrendLine = ({ height = 320 }) => {
       {/* Header Section */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex flex-col">
-            <h3 className="text-[15px] font-black text-black uppercase tracking-widest leading-none mb-1">Delivery performance</h3>
-            <div className="flex items-center gap-4 mt-2">
-                <div className="flex items-center gap-1.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#10b981]"></div>
-                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Delivered</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#ef4444]"></div>
-                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Delayed</span>
-                </div>
+          <h3 className="text-[16px] font-black text-black uppercase tracking-widest leading-none mb-1">Delivery performance</h3>
+          <div className="flex items-center gap-4 mt-2">
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#10b981]"></div>
+              <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Delivered</span>
             </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#ef4444]"></div>
+              <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Delayed</span>
+            </div>
+          </div>
         </div>
         <div className="flex bg-gray-50/50 p-1 rounded-xl border border-gray-100">
-            <button className="px-3 py-1.5 bg-white shadow-sm border border-gray-100 rounded-lg text-[9px] font-black text-[#172B4D] uppercase tracking-wider flex items-center gap-2">
-                Weekly <ChevronDown size={12} className="text-gray-400" />
-            </button>
+          <button className="px-3 py-1.5 bg-white shadow-sm border border-gray-100 rounded-lg text-[9px] font-black text-[#172B4D] uppercase tracking-wider flex items-center gap-2">
+            Weekly <ChevronDown size={12} className="text-gray-400" />
+          </button>
         </div>
       </div>
 
@@ -131,38 +131,38 @@ export const DeliveryTrendLine = ({ height = 320 }) => {
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={dataTrend} margin={{ top: 10, right: 10, left: -20, bottom: 30 }}>
             <CartesianGrid vertical={true} stroke="rgba(0,0,0,0.08)" strokeDasharray="0" />
-            <XAxis 
-                dataKey="day" 
-                axisLine={false} 
-                tickLine={false} 
-                tick={{ fontSize: 11, fontWeight: 800, fill: 'rgba(0,0,0,0.4)' }} 
-                dy={15} 
+            <XAxis
+              dataKey="day"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 11, fontWeight: 800, fill: 'rgba(0,0,0,0.4)' }}
+              dy={15}
             />
-            <YAxis 
-                axisLine={false} 
-                tickLine={false} 
-                tick={{ fontSize: 11, fontWeight: 800, fill: 'rgba(0,0,0,0.4)' }} 
+            <YAxis
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 11, fontWeight: 800, fill: 'rgba(0,0,0,0.4)' }}
             />
             <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(0,0,0,0.05)', strokeWidth: 2 }} />
-            
+
             {/* Baseline above X-axis labels */}
             <ReferenceLine y={0} stroke="#f1f5f9" strokeWidth={2} />
 
-            <Line 
-              type="monotone" 
+            <Line
+              type="monotone"
               name="Delivered"
-              dataKey="delivered" 
-              stroke="#059669" 
-              strokeWidth={4} 
-              dot={{ fill: '#059669', strokeWidth: 2, r: 2.5 }} 
+              dataKey="delivered"
+              stroke="#059669"
+              strokeWidth={4}
+              dot={{ fill: '#059669', strokeWidth: 2, r: 2.5 }}
               activeDot={{ r: 6, strokeWidth: 0, fill: '#059669' }}
             />
-            <Line 
-              type="monotone" 
+            <Line
+              type="monotone"
               name="Delayed"
-              dataKey="delayed" 
-              stroke="#dc2626" 
-              strokeWidth={3} 
+              dataKey="delayed"
+              stroke="#dc2626"
+              strokeWidth={3}
               strokeDasharray="6 6"
               dot={false}
               activeDot={{ r: 5, strokeWidth: 0, fill: '#dc2626' }}
@@ -175,12 +175,12 @@ export const DeliveryTrendLine = ({ height = 320 }) => {
 };
 
 const AnalyticsCharts = () => {
-    return (
-        <div className="space-y-6 h-full flex flex-col">
-            <DeliveryProgressCircle />
-            <DeliveryTrendLine />
-        </div>
-    );
+  return (
+    <div className="space-y-6 h-full flex flex-col">
+      <DeliveryProgressCircle />
+      <DeliveryTrendLine />
+    </div>
+  );
 };
 
 export default AnalyticsCharts;

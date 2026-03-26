@@ -161,10 +161,10 @@ const MapAutoFit = ({ vehicles, trigger }) => {
   const map = useMap();
   useEffect(() => {
     if (vehicles.length === 0) return;
-    
+
     // Auto-close any open popups when filter/trigger changes
     map.closePopup();
-    
+
     const bounds = L.latLngBounds(vehicles.map(v => [v.lat, v.lng]));
     map.fitBounds(bounds, { padding: [100, 100], animate: true, maxZoom: 15 });
   }, [trigger, map]); // Added map to dependencies for safety
@@ -179,124 +179,124 @@ const LiveTrackingMap = ({ height = 500 }) => {
   const mapRef = useRef(null); // Added mapRef
 
   const filteredVehicles = VEHICLES.filter(v => {
-    const matchesSearch = v.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         v.driver.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = v.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      v.driver.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesSearch;
   });
 
-  const focusedVehicles = activeFilter === 'all' 
-    ? filteredVehicles 
+  const focusedVehicles = activeFilter === 'all'
+    ? filteredVehicles
     : filteredVehicles.filter(v => v.status === activeFilter);
 
-    return (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col group font-inter h-full">
-            {/* 1. Header Area (Refined) */}
-            <div className="px-6 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <h3 className="text-xs font-black text-black uppercase tracking-widest leading-none">Live tracking fleet</h3>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="relative group/search">
-                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within/search:text-blue-500" />
-                        <input 
-                            type="text" 
-                            placeholder="Search truck id, driver..." 
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9 pr-4 py-2 bg-gray-50/50 border border-gray-100 rounded-xl text-[10px] font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/10 w-48 sm:w-64 transition-all"
-                        />
-                    </div>
-                    <button 
-                        onClick={() => setCenterTrigger(prev => prev + 1)}
-                        className="p-2 bg-gray-900 text-white rounded-xl hover:bg-black transition-all shadow-lg flex items-center justify-center"
-                        title="Recenter Map"
-                    >
-                        <MapPin size={16} />
-                    </button>
-                </div>
-            </div>
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col group font-inter h-full">
+      {/* 1. Header Area (Refined) */}
+      <div className="px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <h3 className="text-[16px] font-black text-black uppercase tracking-widest leading-none">Live tracking fleet</h3>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="relative group/search">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within/search:text-blue-500" />
+            <input
+              type="text"
+              placeholder="Search truck id, driver..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 pr-4 py-2 bg-gray-50/50 border border-gray-100 rounded-xl text-[10px] font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/10 w-48 sm:w-64 transition-all"
+            />
+          </div>
+          <button
+            onClick={() => setCenterTrigger(prev => prev + 1)}
+            className="p-2 bg-gray-900 text-white rounded-xl hover:bg-black transition-all shadow-lg flex items-center justify-center"
+            title="Recenter Map"
+          >
+            <MapPin size={16} />
+          </button>
+        </div>
+      </div>
 
-            <div className="flex-1 relative overflow-hidden flex flex-col">
-                {/* 2. Map Area */}
-                <div className="flex-1 relative h-full">
-                    {/* Floating Controls Removed or simplified */}
-                    
-                    <MapContainer 
-                        center={[28.6139, 77.209]} 
-                        zoom={10} 
-                        scrollWheelZoom={true}
-                        dragging={true}
-                        tap={true}
-                        touchZoom={true}
-                        className="h-full w-full z-0"
-                        attributionControl={false}
-                    >
-                        <TileLayer
-                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                        />
-                        
-                        <MapAutoFit vehicles={focusedVehicles} trigger={centerTrigger} />
+      <div className="flex-1 relative overflow-hidden flex flex-col">
+        {/* 2. Map Area */}
+        <div className="flex-1 relative h-full">
+          {/* Floating Controls Removed or simplified */}
 
-                        {showRoutes && filteredVehicles.map(v => (
-                            <Polyline 
-                                key={`route-${v.id}`}
-                                positions={v.routeCoords}
-                                color={STATUS_CONFIG[v.status].color}
-                                weight={3}
-                                opacity={activeFilter === 'all' || activeFilter === v.status ? 0.3 : 0.05}
-                                dashArray={v.status === 'delayed' ? '10, 10' : null}
-                            />
-                        ))}
+          <MapContainer
+            center={[28.6139, 77.209]}
+            zoom={10}
+            scrollWheelZoom={true}
+            dragging={true}
+            tap={true}
+            touchZoom={true}
+            className="h-full w-full z-0"
+            attributionControl={false}
+          >
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
 
-                        {filteredVehicles.map(v => (
-                            <Marker 
-                                key={v.id} 
-                                position={[v.lat, v.lng]} 
-                                icon={createTruckIcon(v.status)}
-                                opacity={activeFilter === 'all' || activeFilter === v.status ? 1 : 0.3}
-                            >
-                                <Tooltip permanent direction="top" offset={[0, -20]} className="custom-tooltip">
-                                    <span className="font-black text-[10px] tracking-tight">{v.id}</span>
-                                </Tooltip>
-                                <Popup className="custom-popup" maxWidth={250}>
-                                    <VehiclePopup vehicle={v} />
-                                </Popup>
-                            </Marker>
-                        ))}
-                    </MapContainer>
-                </div>
+            <MapAutoFit vehicles={focusedVehicles} trigger={centerTrigger} />
 
-                {/* 3. Footer Legend Row */}
-                <div className="bg-white border-t border-gray-100 px-4 py-2 flex items-center justify-around z-10">
-                    {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
-                        <button 
-                            key={key} 
-                            onClick={() => {
-                                setActiveFilter(key);
-                                setCenterTrigger(prev => prev + 1);
-                            }}
-                            className={`flex items-center gap-2 group transition-all px-3 py-1 rounded-xl ${activeFilter === key ? 'bg-blue-50/50' : 'hover:bg-gray-50'}`}
-                        >
-                            <div className={`w-2 h-2 rounded-full ring-4 ring-offset-1 transition-all ${activeFilter === key ? 'ring-current opacity-100 scale-110' : 'ring-transparent opacity-60'}`} style={{ backgroundColor: cfg.color, color: cfg.color }}></div>
-                            <span className={`text-[11px] font-black uppercase tracking-widest ${activeFilter === key ? 'text-[#172B4D]' : 'text-gray-500 hover:text-[#172B4D]'}`}>
-                                {cfg.label}
-                            </span>
-                        </button>
-                    ))}
-                    <div className="w-[1px] h-4 bg-gray-100 mx-2"></div>
-                    <button 
-                        onClick={() => {
-                            setActiveFilter('all');
-                            setCenterTrigger(prev => prev + 1);
-                        }}
-                        className={`text-[11px] font-black uppercase tracking-widest px-4 py-1.5 rounded-xl transition-all ${activeFilter === 'all' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
-                    >
-                        View All
-                    </button>
-                </div>
-            </div>
+            {showRoutes && filteredVehicles.map(v => (
+              <Polyline
+                key={`route-${v.id}`}
+                positions={v.routeCoords}
+                color={STATUS_CONFIG[v.status].color}
+                weight={3}
+                opacity={activeFilter === 'all' || activeFilter === v.status ? 0.3 : 0.05}
+                dashArray={v.status === 'delayed' ? '10, 10' : null}
+              />
+            ))}
 
-            <style>{`
+            {filteredVehicles.map(v => (
+              <Marker
+                key={v.id}
+                position={[v.lat, v.lng]}
+                icon={createTruckIcon(v.status)}
+                opacity={activeFilter === 'all' || activeFilter === v.status ? 1 : 0.3}
+              >
+                <Tooltip permanent direction="top" offset={[0, -20]} className="custom-tooltip">
+                  <span className="font-black text-[10px] tracking-tight">{v.id}</span>
+                </Tooltip>
+                <Popup className="custom-popup" maxWidth={250}>
+                  <VehiclePopup vehicle={v} />
+                </Popup>
+              </Marker>
+            ))}
+          </MapContainer>
+        </div>
+
+        {/* 3. Footer Legend Row */}
+        <div className="bg-white border-t border-gray-100 px-4 py-2 flex items-center justify-around z-10">
+          {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
+            <button
+              key={key}
+              onClick={() => {
+                setActiveFilter(key);
+                setCenterTrigger(prev => prev + 1);
+              }}
+              className={`flex items-center gap-2 group transition-all px-3 py-1 rounded-xl ${activeFilter === key ? 'bg-blue-50/50' : 'hover:bg-gray-50'}`}
+            >
+              <div className={`w-2 h-2 rounded-full ring-4 ring-offset-1 transition-all ${activeFilter === key ? 'ring-current opacity-100 scale-110' : 'ring-transparent opacity-60'}`} style={{ backgroundColor: cfg.color, color: cfg.color }}></div>
+              <span className={`text-[11px] font-black uppercase tracking-widest ${activeFilter === key ? 'text-[#172B4D]' : 'text-gray-500 hover:text-[#172B4D]'}`}>
+                {cfg.label}
+              </span>
+            </button>
+          ))}
+          <div className="w-[1px] h-4 bg-gray-100 mx-2"></div>
+          <button
+            onClick={() => {
+              setActiveFilter('all');
+              setCenterTrigger(prev => prev + 1);
+            }}
+            className={`text-[11px] font-black uppercase tracking-widest px-4 py-1.5 rounded-xl transition-all ${activeFilter === 'all' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+          >
+            View All
+          </button>
+        </div>
+      </div>
+
+      <style>{`
                 .custom-popup .leaflet-popup-content-wrapper {
                     border-radius: 20px !important;
                     padding: 8px !important;
@@ -320,8 +320,8 @@ const LiveTrackingMap = ({ height = 500 }) => {
                     display: none;
                 }
             `}</style>
-        </div>
-    );
+    </div>
+  );
 };
 
 export default LiveTrackingMap;
