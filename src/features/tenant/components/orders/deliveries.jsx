@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import {
   Shield, CheckCircle2, Clock, AlertCircle,
-  Search, Filter, Download, Plus,
+  Search, Filter, Download, Upload, RotateCcw, Plus,
   MapPin, User, FileCheck, Image as ImageIcon,
   MoreHorizontal, Eye, Edit2, Trash2,
-  ExternalLink, Calendar, Hash, RefreshCcw, X,
+  ExternalLink, Calendar, Hash, RefreshCw, X,
   History, FileText, Receipt, CreditCard, Layers, ArrowRight,
   TrendingUp, Wallet, Paperclip
 } from 'lucide-react';
@@ -84,24 +84,22 @@ export default function DeliveryMainBody() {
   return (
     <div className="flex-1 min-h-0 overflow-hidden bg-[#F8FAFC] flex flex-col relative">
       <div className="p-8 flex-1 flex flex-col min-h-0">
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl font-extrabold text-[#172B4D] tracking-tight">Deliveries & POD</h1>
-            <p className="text-sm text-gray-500 font-medium mt-1">Verify Proof of Delivery (POD), track recipient signatures, and delivery timing.</p>
+        {/* Header */}
+        <div className="flex items-center mb-8">
+          <div className="w-1/4">
+            <h1 className="text-2xl font-black text-[#172B4D] uppercase tracking-tight">Deliveries &amp; POD</h1>
+            <p className="text-gray-500 text-sm tracking-tight mt-0.5">Verify POD, track recipient signatures and delivery timing.</p>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => refetch()}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 transition-all shadow-sm"
-            >
-              <RefreshCcw size={16} className={isLoading ? "animate-spin" : ""} /> Refresh
+          <div className="flex-1" />
+          <div className="flex items-center gap-2">
+            <button onClick={() => refetch()} className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95 group">
+              <RefreshCw size={14} className={isLoading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'} /><span>Refresh</span>
             </button>
-            <button
-              onClick={() => setIsCreateOpen(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-[#0052CC] text-white rounded-lg text-sm font-bold hover:bg-[#0747A6] shadow-md shadow-blue-200 transition-all"
-            >
-              <Plus size={18} /> New POD Record
+            <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95">
+              <Upload size={14} /><span>Import</span>
+            </button>
+            <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95">
+              <Download size={14} /><span>Export</span>
             </button>
           </div>
         </div>
@@ -137,53 +135,46 @@ export default function DeliveryMainBody() {
                 </div>
               </>
             )}
+            <div className="ml-auto">
+              <button onClick={() => setIsCreateOpen(true)} className="bg-[#0052CC] text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm font-bold hover:bg-[#0747A6] transition-all shadow-md active:scale-95 group">
+                <Plus size={15} className="group-hover:rotate-90 transition-transform duration-300" /> New POD Record
+              </button>
+            </div>
           </div>
           {/* Filters */}
-          <div className="p-5 border-b border-gray-100 flex flex-col md:flex-row gap-4 bg-white items-center flex-wrap">
-            <div className="relative flex-1 w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+          <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-50 bg-white flex-wrap">
+            <div className="relative flex-1 max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
               <input
                 type="text"
-                placeholder="Search POD Number, Recipient or Stop ID..."
-                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-[#0052CC] transition-all"
+                placeholder="Search POD number, recipient..."
+                className="w-full pl-9 pr-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 font-medium"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <div className="flex items-center gap-2 w-full md:w-auto">
-              <select
-                className="flex-1 md:w-40 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 outline-none focus:border-[#0052CC]"
-                value={filterStatus}
-                onChange={(e) => {
-                  setFilterStatus(e.target.value);
-                  setPage(1);
-                }}
-              >
-                <option>All Status</option>
-                <option>PENDING</option>
-                <option>SUBMITTED</option>
-                <option>VERIFIED</option>
-                <option>REJECTED</option>
-              </select>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setPage(prev => Math.max(1, prev - 1))}
-                disabled={page === 1 || isLoading}
-                className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-              >
-                Previous
+            <select
+              className="py-1.5 px-3 bg-gray-50 border border-gray-100 rounded-lg text-xs font-medium text-gray-600 outline-none focus:border-[#0052CC] cursor-pointer"
+              value={filterStatus}
+              onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
+            >
+              <option>All Status</option>
+              <option>PENDING</option>
+              <option>SUBMITTED</option>
+              <option>VERIFIED</option>
+              <option>REJECTED</option>
+            </select>
+            {(search || filterStatus !== 'All Status') && (
+              <button onClick={() => { setSearch(''); setFilterStatus('All Status'); setPage(1); }} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Clear">
+                <RotateCcw size={14} />
               </button>
-              <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
-                {page}
-              </div>
-              <button
-                onClick={() => setPage(prev => prev + 1)}
-                disabled={!deliveriesData?.next || isLoading}
-                className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-              >
-                Next
-              </button>
+            )}
+            <div className="ml-auto flex items-center gap-2">
+              <button onClick={() => setPage(prev => Math.max(1, prev - 1))} disabled={page === 1 || isLoading}
+                className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 transition-all shadow-sm">Previous</button>
+              <div className="flex items-center justify-center min-w-7 h-7 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-sm">{page}</div>
+              <button onClick={() => setPage(prev => prev + 1)} disabled={!deliveriesData?.next || isLoading}
+                className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 transition-all shadow-sm">Next</button>
             </div>
           </div>
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Search, Plus, Download, RefreshCw, Eye, EyeOff,
+  Search, Plus, Download, Upload, RefreshCw, RotateCcw, Eye, EyeOff,
   ChevronDown, Loader2, AlertCircle,
   IdCard, ArrowUpDown, ArrowUp, ArrowDown,
   X, User, Car,
@@ -73,9 +73,9 @@ const AddDriverModal = ({ onClose }) => {
 
     // 1. Basic Required Fields
     if (!userForm.first_name || !userForm.last_name) return setError('First and last name are required.');
-    if (!userForm.email)      return setError('Email is required.');
-    if (!userForm.password)   return setError('Password is required.');
-    
+    if (!userForm.email) return setError('Email is required.');
+    if (!userForm.password) return setError('Password is required.');
+
     // 2. Name Length Validation (Max 100)
     if (userForm.first_name.length > 100) return setError('First name cannot exceed 100 characters.');
     if (userForm.last_name.length > 100) return setError('Last name cannot exceed 100 characters.');
@@ -106,9 +106,9 @@ const AddDriverModal = ({ onClose }) => {
     }
 
     if (!driverForm.license_number) return setError('License number is required.');
-    if (!driverForm.license_type)   return setError('License type is required.');
+    if (!driverForm.license_type) return setError('License type is required.');
     if (!driverForm.license_expiry) return setError('License expiry date is required.');
-    if (!driverForm.joined_date)    return setError('Joined date is required.');
+    if (!driverForm.joined_date) return setError('Joined date is required.');
 
     // Auto-generate username from email prefix + short unique suffix
     const emailPrefix = userForm.email.split('@')[0];
@@ -219,6 +219,7 @@ const AddDriverModal = ({ onClose }) => {
 // ── Main Component ────────────────────────────────────────────────────
 const DriversList = () => {
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatus] = useState('');
   const [typeFilter, setType] = useState('');
   const [licFilter, setLic] = useState('');
@@ -229,12 +230,21 @@ const DriversList = () => {
   const [addOpen, setAddOpen] = useState(false);  // ← Add Driver modal
   const navigate = useNavigate();
 
+  // Search Debouncing
+  React.useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [search]);
+
   const { data, isLoading, isError, error, refetch } = useDrivers({
     page: currentPage,
     ...(statusFilter && { status: statusFilter }),
     ...(typeFilter && { driver_type: typeFilter }),
     ...(licFilter && { license_type: licFilter }),
-    ...(search && { search }),
+    ...(debouncedSearch && { search: debouncedSearch }),
     ...(joinedFrom && { joined_date__gte: joinedFrom }),
     ...(joinedTo && { joined_date__lte: joinedTo }),
     ...(ordering && { ordering }),
@@ -364,26 +374,65 @@ const DriversList = () => {
       )}
 
       {/* ── Header ── */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-[#172B4D]">Drivers</h1>
-          <p className="text-sm text-gray-400 mt-0.5">
-            All registered drivers — click{' '}
-            <span className="text-[#0052CC] font-semibold">View</span> for complete profile
+      <div className="flex items-center mb-8">
+        {/* Title Block */}
+        <div className="w-1/4">
+          <h1 className="text-2xl font-black text-[#172B4D] uppercase tracking-tight">Drivers</h1>
+          <p className="text-gray-500 text-sm tracking-tight mt-0.5">
+            Manage all registered drivers
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => refetch()}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all">
-            <RefreshCw size={14} /> Refresh
-          </button>
-          <button className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all">
-            <Download size={14} /> Export
-          </button>
-          <button onClick={() => setAddOpen(true)}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all shadow-sm">
-            <Plus size={15} /> Add Driver
-          </button>
+
+        {/* Centered Search Bar */}
+        <div className="flex-1 max-w-2xl px-8">
+          <div className="relative group/search">
+            <Search className="absolute left-4 top-3.5 text-gray-400 group-focus-within/search:text-[#0052CC] transition-all duration-300 group-focus-within/search:scale-110" size={20} />
+            <input
+              type="text"
+              placeholder="Search drivers by name, employee ID, license..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-12 pr-12 py-3 bg-white border border-gray-200 rounded-2xl text-[15px] font-medium placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-50 transition-all shadow-sm hover:shadow-md hover:border-gray-300"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-4 top-2 text-gray-400 hover:text-red-500 transition-all duration-500 hover:rotate-180 p-1.5 rounded-full hover:bg-red-50 flex items-center justify-center group/reset"
+                title="Clear search"
+              >
+                <X size={18} className="animate-in fade-in zoom-in spin-in-180 duration-500 group-hover/reset:scale-110" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Action Buttons Group */}
+        <div className="flex items-center justify-end gap-2 ml-auto">
+          <div className="flex items-center gap-2 mr-2">
+            <button
+              title="Refresh Data"
+              onClick={() => refetch()}
+              className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95 group"
+            >
+              <RefreshCw size={14} className={isLoading ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"} />
+              <span>Refresh</span>
+            </button>
+            {/* Added Upload Icon to lucide imports at the top if needed */}
+            <button
+              title="Import Drivers"
+              className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95 group"
+            >
+              <Upload size={14} />
+              <span>Import</span>
+            </button>
+            <button
+              title="Export Drivers"
+              className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95"
+            >
+              <Download size={14} />
+              <span>Export</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -419,87 +468,93 @@ const DriversList = () => {
               </div>
             </>
           )}
+          <div className="ml-auto w-1/4 flex justify-end">
+            <button
+              onClick={() => setAddOpen(true)}
+              className="mr-0 bg-[#0052CC] text-white px-6 py-3 rounded-xl flex items-center gap-2 text-sm font-bold hover:bg-[#0747A6] transition-all shadow-lg hover:shadow-blue-200 active:scale-95 group"
+            >
+              <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" /> New Driver
+            </button>
+          </div>
         </div>
 
         {/* ── Filters Row 1 ── */}
-        <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-white flex-wrap gap-4">
-          <div className="flex gap-3 items-center flex-wrap flex-1">
-            <div className="relative min-w-40">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search employee ID, license number..."
-                value={search}
-                onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
-                className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] bg-gray-50 font-medium transition-all"
-              />
-            </div>
-            {[
-              { val: statusFilter, set: setStatus, opts: DRIVER_STATUS, ph: 'All Status' },
-              { val: typeFilter, set: setType, opts: DRIVER_TYPES, ph: 'All Types' },
-              { val: licFilter, set: setLic, opts: LICENSE_TYPES, ph: 'All Licenses' },
-            ].map(({ val, set, opts, ph }) => (
-              <div key={ph} className="relative">
-                <select
-                  value={val}
-                  onChange={e => { set(e.target.value); setCurrentPage(1); }}
-                  className="appearance-none pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none cursor-pointer font-medium transition-all"
-                >
-                  <option value="">{ph}</option>
-                  {opts.map(o => <option key={o} value={o}>{o.replaceAll('_', ' ')}</option>)}
-                </select>
-                <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+        <div>
+          <div className="flex items-center gap-6 ml-auto justify-between h-15">
+            <div className="flex items-center gap-3 px-5 py-3">
+              {[
+                { val: statusFilter, set: setStatus, opts: DRIVER_STATUS, ph: 'All Status' },
+                { val: typeFilter, set: setType, opts: DRIVER_TYPES, ph: 'All Types' },
+                { val: licFilter, set: setLic, opts: LICENSE_TYPES, ph: 'All Licenses' },
+              ].map(({ val, set, opts, ph }) => (
+                <div key={ph} className="flex items-center gap-2">
+                  <select
+                    value={val}
+                    onChange={e => { set(e.target.value); setCurrentPage(1); }}
+                    className="px-3 py-1 bg-gray-50 border border-gray-100 rounded-lg text-xs font-medium text-[#172B4D] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all hover:border-gray-200 cursor-pointer shadow-sm"
+                  >
+                    <option value="">{ph}</option>
+                    {opts.map(o => <option key={o} value={o}>{o.replaceAll('_', ' ')}</option>)}
+                  </select>
+                </div>
+              ))}
+              
+              <div className="flex items-center gap-1 ml-2 border border-gray-100 rounded-lg px-2 bg-gray-50">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Joined:</span>
+                <input
+                  type="date"
+                  value={joinedFrom}
+                  onChange={e => { setJoinedFrom(e.target.value); setCurrentPage(1); }}
+                  className="px-1 py-1 text-xs bg-transparent border-none focus:ring-0 text-[#172B4D] font-medium cursor-pointer"
+                />
+                <span className="text-gray-400 text-[10px] leading-none">to</span>
+                <input
+                  type="date"
+                  value={joinedTo}
+                  onChange={e => { setJoinedTo(e.target.value); setCurrentPage(1); }}
+                  className="px-1 py-1 text-xs bg-transparent border-none focus:ring-0 text-[#172B4D] font-medium cursor-pointer"
+                />
               </div>
-            ))}
-            <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-2 bg-gray-50">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Joined:</span>
-              <input
-                type="date"
-                value={joinedFrom}
-                onChange={e => setJoinedFrom(e.target.value)}
-                className="px-2 py-1.5 text-sm bg-transparent border-none focus:ring-0 text-gray-600 font-medium cursor-pointer"
-              />
-              <span className="text-gray-400 text-xs">to</span>
-              <input
-                type="date"
-                value={joinedTo}
-                onChange={e => setJoinedTo(e.target.value)}
-                className="px-2 py-1.5 text-sm bg-transparent border-none focus:ring-0 text-gray-600 font-medium cursor-pointer"
-              />
-            </div>
-            <button
-              onClick={resetFilters}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm font-bold text-gray-500 border border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100 transition-all active:scale-95"
-            >
-              <RefreshCw size={13} /> Reset
-            </button>
-          </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1 || isLoading}
-              className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-            >
-              Previous
-            </button>
-            <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
-              {currentPage}
+              {(statusFilter || typeFilter || licFilter || joinedFrom || joinedTo) && (
+                <button
+                  onClick={resetFilters}
+                  className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                  title="Clear Filters"
+                >
+                  <RotateCcw size={14} />
+                </button>
+              )}
             </div>
-            <button
-              onClick={() => setCurrentPage(prev => prev + 1)}
-              disabled={!data?.next || isLoading}
-              className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-            >
-              Next
-            </button>
+
+            <div className="justify-between h-10 w-px bg-gray-100 hidden sm:block " />
+
+            <div className="flex items-center justify-between gap-3 px-5 py-3">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1 || isLoading}
+                className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+              >
+                Previous
+              </button>
+              <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
+                {currentPage}
+              </div>
+              <button
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                disabled={!data?.next || isLoading}
+                className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+              >
+                Next
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Loading */}
         {isLoading && (
-          <GenericTableShimmer 
-            rows={10} 
+          <GenericTableShimmer
+            rows={10}
             columns={[
               { headerWidth: 'w-24', cellWidth: 'w-32', width: 'w-40', type: 'multiline', subWidth: 'w-16' }, // Name/ID
               { headerWidth: 'w-24', cellWidth: 'w-28', width: 'w-32', type: 'badge' }, // License No

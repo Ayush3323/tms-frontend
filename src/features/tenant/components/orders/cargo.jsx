@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { 
-  Package, Plus, Search, Filter, Download, 
-  MoreHorizontal, Eye, Edit2, Trash2, 
+import React, { useState, useEffect } from 'react';
+import {
+  Package, Plus, Search, Filter, Download, Upload,
+  MoreHorizontal, Eye, Edit2, Trash2,
   Layers, Scale, Maximize, Move,
-  Hash, RefreshCcw, AlertCircle, CheckCircle2, X
+  Hash, RefreshCcw, AlertCircle, CheckCircle2, X, RotateCcw
 } from 'lucide-react';
 import { useCargoItems, useCreateCargo, useTrips, useTripDetail, useOrderDetail } from '../../queries/orders/ordersQuery';
 import { useCustomers } from '../../queries/customers/customersQuery';
@@ -39,16 +39,33 @@ const Modal = ({ isOpen, onClose, title, children }) => {
 };
 
 export default function CargoMainBody() {
-  const [search, setSearch] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filterType, setFilterType] = useState("All Types");
   const [page, setPage] = useState(1);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [selectedCargo, setSelectedCargo] = useState(null);
 
+  // Search Debouncing
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setPage(1); // Reset to first page on search
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  const resetFilters = () => {
+    setSearchTerm('');
+    setFilterType('All Types');
+    setPage(1);
+  };
+
   // Queries
   const queryParams = { page, ordering: '-created_at' };
-  if (search) queryParams.search = search;
+  if (debouncedSearch) queryParams.search = debouncedSearch;
   if (filterType !== 'All Types') queryParams.cargo_type = filterType;
 
   const { data: cargoData, isLoading, refetch } = useCargoItems(queryParams);
@@ -64,31 +81,66 @@ export default function CargoMainBody() {
 
   return (
     <div className="flex-1 min-h-0 overflow-hidden flex flex-col relative bg-[#F8FAFC]">
-      <div className="p-8">
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl font-extrabold text-[#172B4D] tracking-tight">Cargo Inventory</h1>
-            <p className="text-sm text-gray-500 font-medium mt-1">Manage individual cargo items, dimensions, and loading details.</p>
+      <div className="p-8 flex-1 flex flex-col min-h-0">
+        {/* Page Title & Search Section */}
+        <div className="flex items-center mb-8">
+          <div className="w-1/4">
+            <h1 className="text-2xl font-black text-[#172B4D]">Cargo Inventory</h1>
+            <p className="text-gray-500 text-sm tracking-tight">Manage items, dimensions, and loading.</p>
           </div>
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => refetch()}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 transition-all shadow-sm"
-            >
-              <RefreshCcw size={16} className={isLoading ? "animate-spin" : ""} /> Refresh
-            </button>
-            <button 
-              onClick={() => setIsCreateOpen(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-[#4a6cf7] text-white rounded-lg text-sm font-bold hover:bg-[#3b59d9] shadow-md shadow-blue-200 transition-all"
-            >
-              <Plus size={18} /> Add Cargo Item
-            </button>
+
+          {/* Centered Search Bar */}
+          <div className="flex-1 max-w-2xl px-8">
+            <div className="relative group/search">
+              <Search className="absolute left-4 top-3.5 text-gray-400 group-focus-within/search:text-[#0052CC] transition-all duration-300 group-focus-within/search:scale-110" size={20} />
+              <input
+                type="text"
+                placeholder="Search Item Code or Description..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-12 pr-12 py-3 bg-white border border-gray-200 rounded-2xl text-[15px] font-medium placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-50 transition-all shadow-sm hover:shadow-md hover:border-gray-300"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-4 top-2 text-gray-400 hover:text-red-500 transition-all duration-500 hover:rotate-180 p-1.5 rounded-full hover:bg-red-50 flex items-center justify-center group/reset"
+                  title="Clear search"
+                >
+                  <RotateCcw size={18} className="animate-in fade-in zoom-in spin-in-180 duration-500 group-hover/reset:scale-110" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Action Buttons Group */}
+          <div className="flex items-center justify-end gap-2 ml-auto">
+            <div className="flex items-center gap-2 mr-2">
+              <button
+                onClick={() => refetch()}
+                className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95 group"
+              >
+                <RefreshCcw size={14} className={isLoading ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"} />
+                <span>Refresh</span>
+              </button>
+              <button
+                className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95"
+              >
+                <Upload size={14} />
+                <span>Import</span>
+              </button>
+              <button
+                className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95"
+              >
+                <Download size={14} />
+                <span>Export</span>
+              </button>
+            </div>
+            <div className="w-px h-8 bg-gray-200 mx-1" />
           </div>
         </div>
 
         {/* Main Table Container */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6 overflow-hidden mt-2">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden mt-2">
           {/* Compact Stats Row */}
           <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
             {isLoading ? (
@@ -118,151 +170,166 @@ export default function CargoMainBody() {
                 </div>
               </>
             )}
-          </div>
-          {/* Filters Bar */}
-          <div className="p-5 border-b border-gray-100 flex flex-col md:flex-row gap-4 bg-white items-center flex-wrap">
-            <div className="relative flex-1 w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-              <input 
-                type="text"
-                placeholder="Search Item Code or Description..."
-                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-[#4a6cf7] transition-all"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-            <div className="flex items-center gap-2 w-full md:w-auto">
-               <select 
-                 className="flex-1 md:w-40 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 outline-none focus:border-[#4a6cf7]"
-                 value={filterType}
-                 onChange={(e) => {
-                   setFilterType(e.target.value);
-                   setPage(1);
-                 }}
-               >
-                 <option>All Types</option>
-                 <option>GENERAL</option>
-                 <option>FRAGILE</option>
-                 <option>PERISHABLE</option>
-                 <option>HAZMAT</option>
-               </select>
-            </div>
-            <div className="flex items-center gap-3">
+            <div className="ml-auto w-1/4 flex justify-end">
               <button
-                onClick={() => setPage(prev => Math.max(1, prev - 1))}
-                disabled={page === 1 || isLoading}
-                className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+                onClick={() => setIsCreateOpen(true)}
+                className="mr-0 bg-[#0052CC] text-white px-6 py-3 rounded-xl flex items-center gap-2 text-sm font-bold hover:bg-[#0747A6] transition-all shadow-lg hover:shadow-blue-200 active:scale-95 group"
               >
-                Previous
+                <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" /> New Cargo Item
               </button>
-              <div className="flex items-center justify-center min-w-8 h-8 bg-[#4a6cf7] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
-                {page}
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center gap-6 ml-auto justify-between h-15 border-b border-gray-50">
+              {/* Quick Filters in Pagination Row */}
+              <div className="flex items-center gap-3 px-5 py-2">
+                <div className="relative">
+                  <select
+                    className="appearance-none pl-3 pr-8 py-1.5 text-xs font-semibold text-[#172B4D] border border-gray-200 rounded-lg bg-gray-50 focus:outline-none cursor-pointer"
+                    value={filterType}
+                    onChange={(e) => {
+                      setFilterType(e.target.value);
+                      setPage(1);
+                    }}
+                  >
+                    <option value="All Types">All Types</option>
+                    <option value="GENERAL">GENERAL</option>
+                    <option value="FRAGILE">FRAGILE</option>
+                    <option value="PERISHABLE">PERISHABLE</option>
+                    <option value="HAZMAT">HAZMAT</option>
+                  </select>
+                  <Filter size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                </div>
+
+                {filterType !== 'All Types' && (
+                  <button onClick={resetFilters} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Clear Filters">
+                    <RotateCcw size={14} />
+                  </button>
+                )}
               </div>
-              <button
-                onClick={() => setPage(prev => prev + 1)}
-                disabled={!cargoData?.next || isLoading}
-                className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-              >
-                Next
-              </button>
+
+              <div className="justify-between h-10 w-px bg-gray-100 hidden sm:block px-5" />
+
+              <div className="flex items-center justify-between gap-3 px-5 py-2">
+                <button
+                  onClick={() => setPage(prev => Math.max(1, prev - 1))}
+                  disabled={page === 1 || isLoading}
+                  className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+                >
+                  Previous
+                </button>
+
+                <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
+                  {page}
+                </div>
+
+                <button
+                  onClick={() => setPage(prev => prev + 1)}
+                  disabled={!cargoData?.next || isLoading}
+                  className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           </div>
+
+        {/* Cargo Table */}
+        <div className="flex-1 min-h-0 overflow-auto bg-white rounded-xl mt-0">
+          {isLoading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4a6cf7]"></div>
+            </div>
+          ) : cargoItems.length === 0 ? (
+            <div className="flex flex-col justify-center items-center h-64 text-gray-400">
+              <Package size={48} className="mb-4 opacity-20" />
+              <p>No cargo items found matching criteria</p>
+            </div>
+          ) : (
+            <table className="w-full text-left border-collapse min-w-[1000px]">
+              <thead className="bg-[#F8FAFC] border-b border-gray-100 sticky top-0 z-10">
+                <tr>
+                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Item / Code</th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Specifications</th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Trip Link</th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Category</th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {cargoItems.map((item) => (
+                  <tr key={item.id} className="hover:bg-blue-50/20 transition-colors">
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-gray-100 rounded-lg text-gray-500 hover:bg-blue-100 hover:text-[#4a6cf7] transition-colors">
+                          <Package size={20} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-[#172B4D]">{item.item_name || item.description || 'N/A'}</p>
+                          <p className="text-[10px] font-bold text-gray-400 flex items-center gap-1 mt-0.5 uppercase">
+                            <Hash size={10} /> {item.item_code || item.id.slice(-6)}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2 text-[12px] font-bold text-gray-600">
+                          <Scale size={14} className="text-gray-400" /> {item.weight || 'N/A'} kg
+                        </div>
+                        <div className="flex items-center gap-2 text-[12px] font-bold text-gray-600">
+                          <Maximize size={14} className="text-gray-400" /> {item.dimensions || 'N/A'}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-gray-100 rounded-md text-[11px] font-bold text-gray-600 uppercase tracking-tight" title={item.trip_id}>
+                        <Move size={12} /> {item.trip_id ? "Linked to Trip" : "Unassigned"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <span className={`px-2.5 py-1 rounded border text-[10px] font-bold uppercase tracking-wider ${CARGO_TYPE_COLORS[item.cargo_type] || CARGO_TYPE_COLORS['GENERAL']}`}>
+                        {item.cargo_type || 'GENERAL'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-5 text-right">
+                      <div className="flex items-center justify-end gap-2 transition-opacity">
+                        <button
+                          onClick={() => {
+                            setSelectedCargo(item);
+                            setIsViewOpen(true);
+                          }}
+                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg bg-gray-50 border border-gray-100"
+                          title="View Details"
+                        >
+                          <Eye size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
 
-          {/* Cargo Table */}
-          <div className="flex-1 min-h-0 overflow-auto bg-white rounded-xl shadow-sm border border-gray-100 mt-2">
-            {isLoading ? (
-              <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4a6cf7]"></div>
-              </div>
-            ) : cargoItems.length === 0 ? (
-              <div className="flex flex-col justify-center items-center h-64 text-gray-400">
-                <Package size={48} className="mb-4 opacity-20" />
-                <p>No cargo items found matching criteria</p>
-              </div>
-            ) : (
-              <table className="w-full text-left border-collapse min-w-[1000px]">
-                <thead className="bg-[#F8FAFC] border-b border-gray-100 sticky top-0 z-10">
-                  <tr>
-                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Item / Code</th>
-                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Specifications</th>
-                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Trip Link</th>
-                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Category</th>
-                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {cargoItems.map((item) => (
-                    <tr key={item.id} className="hover:bg-blue-50/20 transition-colors">
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-gray-100 rounded-lg text-gray-500 hover:bg-blue-100 hover:text-[#4a6cf7] transition-colors">
-                            <Package size={20} />
-                          </div>
-                          <div>
-                            <p className="text-sm font-bold text-[#172B4D]">{item.item_name || item.description || 'N/A'}</p>
-                            <p className="text-[10px] font-bold text-gray-400 flex items-center gap-1 mt-0.5 uppercase">
-                              <Hash size={10} /> {item.item_code || item.id.slice(-6)}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-2 text-[12px] font-bold text-gray-600">
-                            <Scale size={14} className="text-gray-400" /> {item.weight || 'N/A'} kg
-                          </div>
-                          <div className="flex items-center gap-2 text-[12px] font-bold text-gray-600">
-                            <Maximize size={14} className="text-gray-400" /> {item.dimensions || 'N/A'}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-gray-100 rounded-md text-[11px] font-bold text-gray-600 uppercase tracking-tight" title={item.trip_id}>
-                          <Move size={12} /> {item.trip_id ? "Linked to Trip" : "Unassigned"}
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <span className={`px-2.5 py-1 rounded border text-[10px] font-bold uppercase tracking-wider ${CARGO_TYPE_COLORS[item.cargo_type] || CARGO_TYPE_COLORS['GENERAL']}`}>
-                          {item.cargo_type || 'GENERAL'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-5 text-right">
-                        <div className="flex items-center justify-end gap-2 transition-opacity">
-                            <button 
-                              onClick={() => {
-                                setSelectedCargo(item);
-                                setIsViewOpen(true);
-                              }}
-                              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg bg-gray-50 border border-gray-100"
-                              title="View Details"
-                            >
-                              <Eye size={16} />
-                            </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+        {/* Pagination Footer */}
+        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-white gap-4">
+          <div className="text-sm text-gray-500">
+            Showing <span className="font-bold text-[#172B4D]">{cargoItems.length}</span> of <span className="font-bold text-[#172B4D]">{totalCount}</span> items
           </div>
-
-          {/* Pagination Footer */}
-          <div className="flex items-center justify-between mt-4 px-2">
-            <div className="text-sm text-gray-500">
-              Showing <span className="font-bold text-[#172B4D]">{cargoItems.length}</span> of <span className="font-bold text-[#172B4D]">{totalCount}</span> items
-            </div>
-          </div>
+        </div>
+      </div>
       </div>
 
       <CreateCargoModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
 
       {selectedCargo && (
-        <ViewCargoModal 
-          isOpen={isViewOpen} 
-          onClose={() => setIsViewOpen(false)} 
-          item={selectedCargo} 
+        <ViewCargoModal
+          isOpen={isViewOpen}
+          onClose={() => setIsViewOpen(false)}
+          item={selectedCargo}
         />
       )}
     </div>
@@ -296,28 +363,28 @@ function ViewCargoModal({ isOpen, onClose, item }) {
         {/* Linked Order Section */}
         {orderId && (
           <div className="bg-[#4a6cf7]/5 border border-[#4a6cf7]/10 p-4 rounded-xl">
-             <div className="flex items-center justify-between mb-2">
-                <h4 className="text-[10px] font-bold text-[#4a6cf7] uppercase tracking-widest flex items-center gap-1.5">
-                   <Layers size={12} /> Parent Order (LR) Context
-                </h4>
-                {isOrderLoading && <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-[#4a6cf7]"></div>}
-             </div>
-             {order ? (
-               <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-[10px] text-gray-500 font-medium uppercase">LR Number</p>
-                    <p className="text-sm font-bold text-gray-800">{order.lr_number}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-gray-500 font-medium uppercase">Billing Customer</p>
-                    <p className="text-sm font-bold text-gray-800 truncate" title={getCustomerName(order.billing_customer_id)}>
-                       {getCustomerName(order.billing_customer_id)}
-                    </p>
-                  </div>
-               </div>
-             ) : (
-               <p className="text-xs text-gray-400">Fetching order details through {trip?.trip_number || 'Trip'}...</p>
-             )}
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-[10px] font-bold text-[#4a6cf7] uppercase tracking-widest flex items-center gap-1.5">
+                <Layers size={12} /> Parent Order (LR) Context
+              </h4>
+              {isOrderLoading && <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-[#4a6cf7]"></div>}
+            </div>
+            {order ? (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[10px] text-gray-500 font-medium uppercase">LR Number</p>
+                  <p className="text-sm font-bold text-gray-800">{order.lr_number}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-500 font-medium uppercase">Billing Customer</p>
+                  <p className="text-sm font-bold text-gray-800 truncate" title={getCustomerName(order.billing_customer_id)}>
+                    {getCustomerName(order.billing_customer_id)}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400">Fetching order details through {trip?.trip_number || 'Trip'}...</p>
+            )}
           </div>
         )}
 
@@ -353,12 +420,12 @@ function ViewCargoModal({ isOpen, onClose, item }) {
             <p className="font-semibold text-gray-900">{item.length_cm ? `${item.length_cm}x${item.width_cm}x${item.height_cm} cm` : 'N/A'}</p>
           </div>
         </div>
-        
+
         <div className="flex flex-wrap gap-2">
-            {item.is_fragile && <span className="px-2 py-1 bg-amber-50 text-amber-700 text-[10px] font-bold rounded border border-amber-100 uppercase">FRAGILE ⚠️</span>}
-            {item.is_perishable && <span className="px-2 py-1 bg-teal-50 text-teal-700 text-[10px] font-bold rounded border border-teal-100 uppercase">PERISHABLE 🧊</span>}
-            {item.stackable && <span className="px-2 py-1 bg-blue-50 text-blue-700 text-[10px] font-bold rounded border border-blue-100 uppercase">STACKABLE ↕</span>}
-            {item.insurance_required && <span className="px-2 py-1 bg-purple-50 text-purple-700 text-[10px] font-bold rounded border border-purple-100 uppercase">INSURED 🛡️</span>}
+          {item.is_fragile && <span className="px-2 py-1 bg-amber-50 text-amber-700 text-[10px] font-bold rounded border border-amber-100 uppercase">FRAGILE ⚠️</span>}
+          {item.is_perishable && <span className="px-2 py-1 bg-teal-50 text-teal-700 text-[10px] font-bold rounded border border-teal-100 uppercase">PERISHABLE 🧊</span>}
+          {item.stackable && <span className="px-2 py-1 bg-blue-50 text-blue-700 text-[10px] font-bold rounded border border-blue-100 uppercase">STACKABLE ↕</span>}
+          {item.insurance_required && <span className="px-2 py-1 bg-purple-50 text-purple-700 text-[10px] font-bold rounded border border-purple-100 uppercase">INSURED 🛡️</span>}
         </div>
 
         <div className="flex justify-end pt-4 border-t border-gray-100">
@@ -373,7 +440,7 @@ function ViewCargoModal({ isOpen, onClose, item }) {
 
 function CreateCargoModal({ isOpen, onClose }) {
   const createCargoMutation = useCreateCargo();
-  
+
   const { data: tripsData } = useTrips({ page_size: 100 });
   const trips = tripsData?.results || (Array.isArray(tripsData) ? tripsData : []);
 
@@ -404,7 +471,7 @@ function CreateCargoModal({ isOpen, onClose }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     const payload = { ...formData };
-    
+
     // Type conversions
     if (payload.quantity) payload.quantity = parseInt(payload.quantity, 10);
     if (payload.length_cm) payload.length_cm = parseInt(payload.length_cm, 10);
@@ -454,8 +521,8 @@ function CreateCargoModal({ isOpen, onClose }) {
             </div>
             <div>
               <label className="block text-gray-700 font-medium mb-1">Description *</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 required
                 placeholder="e.g. Cotton bales"
                 className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
@@ -468,8 +535,8 @@ function CreateCargoModal({ isOpen, onClose }) {
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-gray-700 font-medium mb-1">Quantity *</label>
-              <input 
-                type="number" 
+              <input
+                type="number"
                 required
                 min="1"
                 className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
@@ -479,8 +546,8 @@ function CreateCargoModal({ isOpen, onClose }) {
             </div>
             <div>
               <label className="block text-gray-700 font-medium mb-1">Item Code</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="ITEM-001"
                 className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
                 value={formData.item_code}
@@ -523,8 +590,8 @@ function CreateCargoModal({ isOpen, onClose }) {
             </div>
             <div>
               <label className="block text-gray-700 font-medium mb-1">Package Type</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="e.g. Bales, Boxes, Crate"
                 className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
                 value={formData.package_type}
@@ -534,67 +601,67 @@ function CreateCargoModal({ isOpen, onClose }) {
           </div>
 
           <div className="grid grid-cols-4 gap-3">
-             <div>
-               <label className="block text-gray-700 font-[11px] mb-1 uppercase tracking-tight">Weight (kg)</label>
-               <input type="number" step="0.01" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.weight_kg} onChange={e => setFormData({...formData, weight_kg: e.target.value})} />
-             </div>
-             <div>
-               <label className="block text-gray-700 font-[11px] mb-1 uppercase tracking-tight">Length (cm)</label>
-               <input type="number" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.length_cm} onChange={e => setFormData({...formData, length_cm: e.target.value})} />
-             </div>
-             <div>
-               <label className="block text-gray-700 font-[11px] mb-1 uppercase tracking-tight">Width (cm)</label>
-               <input type="number" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.width_cm} onChange={e => setFormData({...formData, width_cm: e.target.value})} />
-             </div>
-             <div>
-               <label className="block text-gray-700 font-[11px] mb-1 uppercase tracking-tight">Height (cm)</label>
-               <input type="number" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.height_cm} onChange={e => setFormData({...formData, height_cm: e.target.value})} />
-             </div>
+            <div>
+              <label className="block text-gray-700 font-[11px] mb-1 uppercase tracking-tight">Weight (kg)</label>
+              <input type="number" step="0.01" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.weight_kg} onChange={e => setFormData({ ...formData, weight_kg: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-gray-700 font-[11px] mb-1 uppercase tracking-tight">Length (cm)</label>
+              <input type="number" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.length_cm} onChange={e => setFormData({ ...formData, length_cm: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-gray-700 font-[11px] mb-1 uppercase tracking-tight">Width (cm)</label>
+              <input type="number" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.width_cm} onChange={e => setFormData({ ...formData, width_cm: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-gray-700 font-[11px] mb-1 uppercase tracking-tight">Height (cm)</label>
+              <input type="number" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.height_cm} onChange={e => setFormData({ ...formData, height_cm: e.target.value })} />
+            </div>
           </div>
         </div>
 
         <div className="space-y-4 pt-2">
           <h3 className="font-bold text-gray-800 text-xs uppercase tracking-widest border-b pb-1">Handling & Care</h3>
           <div className="flex flex-wrap gap-x-6 gap-y-3">
-             <label className="flex items-center gap-2 cursor-pointer group">
-                <input type="checkbox" className="w-4 h-4 rounded text-[#4a6cf7] focus:ring-[#4a6cf7]" checked={formData.is_fragile} onChange={e => setFormData({...formData, is_fragile: e.target.checked})} />
-                <span className="text-gray-700 font-medium group-hover:text-blue-600 transition-colors">Is Fragile</span>
-             </label>
-             <label className="flex items-center gap-2 cursor-pointer group">
-                <input type="checkbox" className="w-4 h-4 rounded text-[#4a6cf7] focus:ring-[#4a6cf7]" checked={formData.is_perishable} onChange={e => setFormData({...formData, is_perishable: e.target.checked})} />
-                <span className="text-gray-700 font-medium group-hover:text-blue-600 transition-colors">Is Perishable</span>
-             </label>
-             <label className="flex items-center gap-2 cursor-pointer group">
-                <input type="checkbox" className="w-4 h-4 rounded text-[#4a6cf7] focus:ring-[#4a6cf7]" checked={formData.stackable} onChange={e => setFormData({...formData, stackable: e.target.checked})} />
-                <span className="text-gray-700 font-medium group-hover:text-blue-600 transition-colors">Stackable</span>
-             </label>
-             <label className="flex items-center gap-2 cursor-pointer group">
-                <input type="checkbox" className="w-4 h-4 rounded text-[#4a6cf7] focus:ring-[#4a6cf7]" checked={formData.insurance_required} onChange={e => setFormData({...formData, insurance_required: e.target.checked})} />
-                <span className="text-gray-700 font-medium group-hover:text-blue-600 transition-colors">Insurance Required</span>
-             </label>
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <input type="checkbox" className="w-4 h-4 rounded text-[#4a6cf7] focus:ring-[#4a6cf7]" checked={formData.is_fragile} onChange={e => setFormData({ ...formData, is_fragile: e.target.checked })} />
+              <span className="text-gray-700 font-medium group-hover:text-blue-600 transition-colors">Is Fragile</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <input type="checkbox" className="w-4 h-4 rounded text-[#4a6cf7] focus:ring-[#4a6cf7]" checked={formData.is_perishable} onChange={e => setFormData({ ...formData, is_perishable: e.target.checked })} />
+              <span className="text-gray-700 font-medium group-hover:text-blue-600 transition-colors">Is Perishable</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <input type="checkbox" className="w-4 h-4 rounded text-[#4a6cf7] focus:ring-[#4a6cf7]" checked={formData.stackable} onChange={e => setFormData({ ...formData, stackable: e.target.checked })} />
+              <span className="text-gray-700 font-medium group-hover:text-blue-600 transition-colors">Stackable</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <input type="checkbox" className="w-4 h-4 rounded text-[#4a6cf7] focus:ring-[#4a6cf7]" checked={formData.insurance_required} onChange={e => setFormData({ ...formData, insurance_required: e.target.checked })} />
+              <span className="text-gray-700 font-medium group-hover:text-blue-600 transition-colors">Insurance Required</span>
+            </label>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-             <div>
-               <label className="block text-gray-700 font-medium mb-1">Orientation</label>
-               <select className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7]" value={formData.orientation} onChange={e => setFormData({...formData, orientation: e.target.value})}>
-                 <option value="NA">N/A</option>
-                 <option value="UP">UP</option>
-                 <option value="DOWN">DOWN</option>
-                 <option value="SIDE">SIDE</option>
-               </select>
-             </div>
-             <div>
-               <label className="block text-gray-700 font-medium mb-1">Declared Value</label>
-               <input type="number" step="0.01" placeholder="Currency value" className="w-full p-2 border border-gray-300 rounded" value={formData.declared_value} onChange={e => setFormData({...formData, declared_value: e.target.value})} />
-             </div>
+            <div>
+              <label className="block text-gray-700 font-medium mb-1">Orientation</label>
+              <select className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7]" value={formData.orientation} onChange={e => setFormData({ ...formData, orientation: e.target.value })}>
+                <option value="NA">N/A</option>
+                <option value="UP">UP</option>
+                <option value="DOWN">DOWN</option>
+                <option value="SIDE">SIDE</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-gray-700 font-medium mb-1">Declared Value</label>
+              <input type="number" step="0.01" placeholder="Currency value" className="w-full p-2 border border-gray-300 rounded" value={formData.declared_value} onChange={e => setFormData({ ...formData, declared_value: e.target.value })} />
+            </div>
           </div>
         </div>
 
         <div className="flex justify-end gap-3 pt-6 border-t border-gray-100">
           <button type="button" onClick={onClose} className="px-5 py-2.5 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 font-bold transition-all">Cancel</button>
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={createCargoMutation.isPending}
             className="px-6 py-2.5 text-white bg-[#4a6cf7] rounded-lg hover:bg-[#3b59d9] shadow-md shadow-blue-200 disabled:opacity-50 font-bold transition-all"
           >

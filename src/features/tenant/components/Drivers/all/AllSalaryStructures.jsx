@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Wallet, Plus } from 'lucide-react';
+import { Wallet, Plus, RefreshCw, Download, Upload, RotateCcw } from 'lucide-react';
 import { useSalaryStructures } from '../../../queries/drivers/salaryStructureQuery';
 
 import { LoadingState, ErrorState, EmptyState, GenericTableShimmer, PageLayoutShimmer } from '../common/StateFeedback';
@@ -69,15 +69,24 @@ const AllSalaryStructures = () => {
 
       <div className="p-6 lg:p-8 flex-1 flex flex-col min-h-0">
         {/* ── Header ── */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl font-black text-[#172B4D] tracking-tight">Salary Structures</h1>
-            <p className="text-sm text-gray-500 mt-1">Manage salary structures for all drivers</p>
+        <div className="flex items-center mb-8">
+          <div className="w-1/4">
+            <h1 className="text-2xl font-black text-[#172B4D] uppercase tracking-tight">Salary Structures</h1>
+            <p className="text-gray-500 text-sm tracking-tight mt-0.5">Manage salary structures for all drivers</p>
           </div>
-          <div className="flex items-center gap-3">
-            <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-[#0052CC] text-white rounded-lg text-sm font-bold shadow-sm hover:bg-[#0043A8] transition-all">
-              <Plus size={16} /> Add Salary
-            </button>
+          <div className="flex-1" />
+          <div className="flex items-center justify-end gap-2 ml-auto">
+            <div className="flex items-center gap-2">
+              <button onClick={() => refetch()} className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95 group">
+                <RefreshCw size={14} className={isLoading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'} /><span>Refresh</span>
+              </button>
+              <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95">
+                <Upload size={14} /><span>Import</span>
+              </button>
+              <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95">
+                <Download size={14} /><span>Export</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -114,58 +123,32 @@ const AllSalaryStructures = () => {
                 </div>
               </>
             )}
+            <div className="ml-auto flex justify-end">
+              <button onClick={() => setAddOpen(true)} className="bg-[#0052CC] text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm font-bold hover:bg-[#0747A6] transition-all shadow-md active:scale-95 group">
+                <Plus size={16} className="group-hover:rotate-90 transition-transform duration-300" /> Add Salary
+              </button>
+            </div>
           </div>
 
           {/* ── Filters Bar ── */}
-          <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-white flex-wrap gap-4">
-            <div className="flex gap-3 items-center flex-wrap flex-1">
-        <div>
-           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Driver</p>
-           <DriverSelect 
-             value={filters.driver} 
-             onChange={(val) => handleFilterChange('driver', val)} 
-             className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
-           />
-        </div>
-        <div>
-           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Payment Frequency</p>
-           <Select 
-             value={filters.payment_frequency} 
-             onChange={(e) => handleFilterChange('payment_frequency', e.target.value)}
-             className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
-           >
-             <option value="">All Frequencies</option>
-             {PAYMENT_FREQUENCIES.map(f => <option key={f} value={f}>{f}</option>)}
-           </Select>
-        </div>
-        <div>
-           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Effective From</p>
-           <Input 
-             type="date" 
-             value={filters.effective_from} 
-             onChange={(e) => handleFilterChange('effective_from', e.target.value)} 
-             className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
-           />
-        </div>
-        <div className="flex items-end gap-2">
-           <div className="flex-1">
-             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Effective To</p>
-              <Input 
-                type="date" 
-                value={filters.effective_to} 
-                onChange={(e) => handleFilterChange('effective_to', e.target.value)} 
-                className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
-              />
-           </div>
-            </div>
+          <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-50 bg-white flex-wrap">
+            <DriverSelect value={filters.driver} onChange={(val) => handleFilterChange('driver', val)}
+              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
+            <Select value={filters.payment_frequency} onChange={(e) => handleFilterChange('payment_frequency', e.target.value)}
+              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100">
+              <option value="">All Frequencies</option>
+              {PAYMENT_FREQUENCIES.map(f => <option key={f} value={f}>{f}</option>)}
+            </Select>
+            <Input type="date" value={filters.effective_from} onChange={(e) => handleFilterChange('effective_from', e.target.value)}
+              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
+            <Input type="date" value={filters.effective_to} onChange={(e) => handleFilterChange('effective_to', e.target.value)}
+              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
+            {(filters.driver || filters.payment_frequency || filters.effective_from || filters.effective_to) && (
+              <button onClick={clearFilters} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Clear">
+                <RotateCcw size={14} />
+              </button>
+            )}
           </div>
-          <button 
-            onClick={clearFilters}
-            className="px-3 py-2 text-xs font-bold text-gray-500 hover:text-red-500 transition-colors mb-1 self-end"
-          >
-            Clear
-          </button>
-        </div>
 
         {/* ── Content ── */}
         <div className="flex-1 min-h-0 overflow-auto">

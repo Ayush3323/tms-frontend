@@ -495,7 +495,7 @@ const UserDetail = () => {
               )}
             </div>
 
-            <div className="justify-between h-10 w-px bg-gray-100 hidden sm:block px-5" />
+            <div className="justify-between h-10 w-px bg-gray-100 hidden sm:block " />
 
             <div className="flex items-center justify-between gap-3 px-5">
               <button
@@ -552,7 +552,7 @@ const UserDetail = () => {
                       <p className="text-xs text-gray-400">@{user.username}</p>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-xs text-gray-500">{user.email}</p>
+                      <p className="text-s text-gray-500">{user.email}</p>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-1">

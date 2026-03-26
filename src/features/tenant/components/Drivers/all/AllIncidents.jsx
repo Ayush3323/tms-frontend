@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { AlertTriangle, Plus } from 'lucide-react';
+import { AlertTriangle, Plus, RefreshCw, Download, Upload, RotateCcw } from 'lucide-react';
 import { useIncidents } from '../../../queries/drivers/incidentsAndAttendance';
 
 import { LoadingState, ErrorState, EmptyState, GenericTableShimmer, PageLayoutShimmer } from '../common/StateFeedback';
@@ -95,15 +95,24 @@ const AllIncidents = () => {
 
       <div className="p-6 lg:p-8 flex-1 flex flex-col min-h-0">
         {/* ── Header ── */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl font-black text-[#172B4D] tracking-tight">Driver Incidents</h1>
-            <p className="text-sm text-gray-500 mt-1">Monitor and manage incidents across all drivers</p>
+        <div className="flex items-center mb-8">
+          <div className="w-1/4">
+            <h1 className="text-2xl font-black text-[#172B4D] uppercase tracking-tight">Driver Incidents</h1>
+            <p className="text-gray-500 text-sm tracking-tight mt-0.5">Monitor and manage incidents across all drivers</p>
           </div>
-          <div className="flex items-center gap-3">
-            <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-[#0052CC] text-white rounded-lg text-sm font-bold shadow-sm hover:bg-[#0043A8] transition-all">
-              <Plus size={16} /> Add Incident
-            </button>
+          <div className="flex-1" />
+          <div className="flex items-center justify-end gap-2 ml-auto">
+            <div className="flex items-center gap-2">
+              <button onClick={() => refetch()} className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95 group">
+                <RefreshCw size={14} className={isFetching ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'} /><span>Refresh</span>
+              </button>
+              <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95">
+                <Upload size={14} /><span>Import</span>
+              </button>
+              <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95">
+                <Download size={14} /><span>Export</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -138,88 +147,42 @@ const AllIncidents = () => {
                 </div>
               </>
             )}
-          </div>
-
-          {/* ── Filters Bar ── */}
-          <div className="p-4 border-b border-gray-50 bg-white">
-            <div className="flex flex-wrap gap-4 items-end">
-          <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Driver</p>
-            <DriverSelect 
-              value={filters.driver} 
-              onChange={(val) => handleFilterChange('driver', val)} 
-              className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
-            />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Vehicle</p>
-            <VehicleSelect 
-              value={filters.vehicle} 
-              onChange={(e) => handleFilterChange('vehicle', e.target.value)} 
-              className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg shadow-none"
-            />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Trip ID</p>
-            <Input 
-              placeholder="Search trip..." 
-              value={filters.trip_id} 
-              onChange={(e) => handleFilterChange('trip_id', e.target.value)} 
-              className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
-            />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Incident Type</p>
-            <Select 
-              value={filters.incident_type} 
-              onChange={(e) => handleFilterChange('incident_type', e.target.value)}
-              className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
-            >
-              <option value="">All Types</option>
-              {INCIDENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-            </Select>
-          </div>
-          <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Severity</p>
-            <Select 
-              value={filters.severity} 
-              onChange={(e) => handleFilterChange('severity', e.target.value)}
-              className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
-            >
-              <option value="">All Severities</option>
-              {SEVERITY_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
-            </Select>
-          </div>
-          <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Resolution Status</p>
-            <Select 
-              value={filters.resolution_status} 
-              onChange={(e) => handleFilterChange('resolution_status', e.target.value)}
-              className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
-            >
-              <option value="">All Status</option>
-              {RESOLUTION_LIST.map(s => <option key={s} value={s}>{s}</option>)}
-            </Select>
-          </div>
-          <div className="flex items-end gap-2">
-            <div className="flex-1">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Incident Date</p>
-              <Input 
-                type="date" 
-                value={filters.incident_date} 
-                onChange={(e) => handleFilterChange('incident_date', e.target.value)} 
-                className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
-              />
-            </div>
-              <button
-                onClick={clearFilters}
-                className="px-3 py-2 text-xs font-bold text-gray-500 hover:text-red-500 transition-colors mb-1"
-              >
-                Clear
+            <div className="ml-auto flex justify-end">
+              <button onClick={() => setAddOpen(true)} className="bg-[#0052CC] text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm font-bold hover:bg-[#0747A6] transition-all shadow-md active:scale-95 group">
+                <Plus size={16} className="group-hover:rotate-90 transition-transform duration-300" /> Add Incident
               </button>
             </div>
           </div>
-        </div>
+
+          {/* ── Filters Bar ── */}
+          <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-50 bg-white flex-wrap">
+            <DriverSelect value={filters.driver} onChange={(val) => handleFilterChange('driver', val)}
+              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
+            <VehicleSelect value={filters.vehicle} onChange={(e) => handleFilterChange('vehicle', e.target.value)}
+              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100 shadow-none" />
+            <Select value={filters.incident_type} onChange={(e) => handleFilterChange('incident_type', e.target.value)}
+              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100">
+              <option value="">All Types</option>
+              {INCIDENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+            </Select>
+            <Select value={filters.severity} onChange={(e) => handleFilterChange('severity', e.target.value)}
+              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100">
+              <option value="">All Severities</option>
+              {SEVERITY_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
+            </Select>
+            <Select value={filters.resolution_status} onChange={(e) => handleFilterChange('resolution_status', e.target.value)}
+              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100">
+              <option value="">All Status</option>
+              {RESOLUTION_LIST.map(s => <option key={s} value={s}>{s}</option>)}
+            </Select>
+            <Input type="date" value={filters.incident_date} onChange={(e) => handleFilterChange('incident_date', e.target.value)}
+              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
+            {(filters.driver || filters.vehicle || filters.incident_type || filters.severity || filters.resolution_status || filters.incident_date) && (
+              <button onClick={clearFilters} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Clear">
+                <RotateCcw size={14} />
+              </button>
+            )}
+          </div>
 
         {/* ── Content ── */}
         <div className="flex-1 min-h-0 overflow-auto">

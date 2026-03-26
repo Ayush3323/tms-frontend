@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, Plus } from 'lucide-react';
+import { FileText, Plus, Search, RefreshCw, Download, Upload, X, RotateCcw } from 'lucide-react';
 import { useDocuments } from '../../../queries/drivers/driverDocumentQuery';
 
 import { LoadingState, ErrorState, EmptyState, GenericTableShimmer, PageLayoutShimmer } from '../common/StateFeedback';
@@ -96,18 +96,40 @@ const AllDocuments = () => {
 
       <div className="p-6 lg:p-8 flex-1 flex flex-col min-h-0">
         {/* ── Header ── */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl font-black text-[#172B4D] tracking-tight">Driver Documents</h1>
-            <p className="text-sm text-gray-500 mt-1">Manage all documents across all registered drivers</p>
+        <div className="flex items-center mb-8">
+          <div className="w-1/4">
+            <h1 className="text-2xl font-black text-[#172B4D] uppercase tracking-tight">Driver Documents</h1>
+            <p className="text-gray-500 text-sm tracking-tight mt-0.5">Manage all documents across all registered drivers</p>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setAddOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg shadow-sm hover:bg-[#0043A8] transition-all"
-            >
-              <Plus size={16} /> Add Document
-            </button>
+          <div className="flex-1 max-w-2xl px-8">
+            <div className="relative group/search">
+              <Search className="absolute left-4 top-3.5 text-gray-400 group-focus-within/search:text-[#0052CC] transition-all duration-300" size={20} />
+              <input
+                type="text"
+                placeholder="Search by number or authority..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="w-full pl-12 pr-12 py-3 bg-white border border-gray-200 rounded-2xl text-[15px] font-medium placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-50 transition-all shadow-sm hover:shadow-md"
+              />
+              {searchInput && (
+                <button onClick={() => setSearchInput('')} className="absolute right-4 top-2 text-gray-400 hover:text-red-500 transition-all p-1.5 rounded-full hover:bg-red-50">
+                  <X size={18} />
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-2 ml-auto">
+            <div className="flex items-center gap-2">
+              <button onClick={() => refetch()} className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95 group">
+                <RefreshCw size={14} className={isFetching ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'} /><span>Refresh</span>
+              </button>
+              <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95">
+                <Upload size={14} /><span>Import</span>
+              </button>
+              <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95">
+                <Download size={14} /><span>Export</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -142,66 +164,34 @@ const AllDocuments = () => {
                 </div>
               </>
             )}
+            <div className="ml-auto flex justify-end">
+              <button onClick={() => setAddOpen(true)} className="bg-[#0052CC] text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm font-bold hover:bg-[#0747A6] transition-all shadow-md active:scale-95 group">
+                <Plus size={16} className="group-hover:rotate-90 transition-transform duration-300" /> Add Document
+              </button>
+            </div>
           </div>
 
           {/* Filters Bar */}
-          <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-white flex-wrap gap-4">
-            <div className="flex gap-3 items-center flex-wrap flex-1">
-              <div className="flex flex-col w-48">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Driver</p>
-                <DriverSelect 
-                  value={filters.driver} 
-                  onChange={(val) => handleFilterChange('driver', val)} 
-                  className="bg-white border-gray-200 text-[12px] py-1.5 font-medium text-[#172B4D] rounded-lg"
-                />
-              </div>
-              <div className="flex flex-col w-40">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Doc Type</p>
-                <Select 
-                  value={filters.document_type} 
-                  onChange={(e) => handleFilterChange('document_type', e.target.value)}
-                  className="bg-white border-gray-200 text-[12px] py-1.5 font-medium text-[#172B4D] rounded-lg"
-                >
-                  <option value="">All Types</option>
-                  {DOCUMENT_TYPES.map(t => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
-                </Select>
-              </div>
-              <div className="flex flex-col w-40">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Status</p>
-                <Select 
-                  value={filters.verification_status} 
-                  onChange={(e) => handleFilterChange('verification_status', e.target.value)}
-                  className="bg-white border-gray-200 text-[12px] py-1.5 font-medium text-[#172B4D] rounded-lg"
-                >
-                  <option value="">All Status</option>
-                  {VERIFICATION_LIST.map(s => <option key={s} value={s}>{s}</option>)}
-                </Select>
-              </div>
-              <div className="flex flex-col w-40">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Expiry Date</p>
-                <Input 
-                  type="date" 
-                  value={filters.expiry_after} 
-                  onChange={(e) => handleFilterChange('expiry_after', e.target.value)} 
-                  className="bg-white border-gray-200 text-[12px] py-1.5 font-medium text-[#172B4D] rounded-lg"
-                />
-              </div>
-              <div className="flex flex-col w-48">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Search</p>
-                <Input 
-                  placeholder="Number or Authority" 
-                  value={searchInput} 
-                  onChange={(e) => setSearchInput(e.target.value)} 
-                  className="bg-white border-gray-200 text-[12px] py-1.5 font-medium text-[#172B4D] rounded-lg"
-                />
-              </div>
-            </div>
-            <button
-              onClick={clearFilters}
-              className="px-3 py-2 text-xs font-bold text-gray-500 hover:text-red-500 transition-colors self-end mb-1"
-            >
-              Clear
-            </button>
+          <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-50 bg-white flex-wrap">
+            <DriverSelect value={filters.driver} onChange={(val) => handleFilterChange('driver', val)}
+              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
+            <Select value={filters.document_type} onChange={(e) => handleFilterChange('document_type', e.target.value)}
+              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100">
+              <option value="">All Types</option>
+              {DOCUMENT_TYPES.map(t => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
+            </Select>
+            <Select value={filters.verification_status} onChange={(e) => handleFilterChange('verification_status', e.target.value)}
+              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100">
+              <option value="">All Status</option>
+              {VERIFICATION_LIST.map(s => <option key={s} value={s}>{s}</option>)}
+            </Select>
+            <Input type="date" value={filters.expiry_after} onChange={(e) => handleFilterChange('expiry_after', e.target.value)}
+              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
+            {(filters.driver || filters.document_type || filters.verification_status || filters.expiry_after) && (
+              <button onClick={clearFilters} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Clear Filters">
+                <RotateCcw size={14} />
+              </button>
+            )}
           </div>
 
           {/* Table Container */}

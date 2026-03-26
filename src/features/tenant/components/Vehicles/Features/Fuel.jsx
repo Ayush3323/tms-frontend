@@ -2,7 +2,8 @@ import React, { useState, useMemo } from 'react';
 import {
   Fuel, Plus, Edit2, Trash2, X, 
   RefreshCw, Loader2, AlertCircle, Calendar, 
-  IndianRupee, Zap, Gauge, MapPin, Pencil, Search
+  IndianRupee, Zap, Gauge, MapPin, Pencil, Search,
+  Download, Upload
 } from 'lucide-react';
 import {
   useVehicleFuelLogs,
@@ -198,11 +199,13 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
 
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
   const { data, isLoading, isError, error, refetch } = useVehicleFuelLogs({
     ...(search && { search }),
     ...(typeFilter && { fuel_type: typeFilter }),
     ...(vehicleId && { vehicle: vehicleId }),
+    page: currentPage,
   });
   const del = useDeleteFuelLog();
 
@@ -244,37 +247,51 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
   }, [logs]);
 
   return (
-    <div className={`flex flex-col h-full bg-[#F4F5F7] ${isTab ? '' : 'p-6'}`}>
+    <div className={`flex flex-col h-full ${isTab ? '' : 'p-6 bg-[#f8fafc] flex-1 min-h-0 overflow-hidden relative font-sans text-slate-900'}`}>
       {!isTab && (
-        <div className="flex items-center justify-between mb-2">
-          <div>
-            <h1 className="text-[26px] font-black text-[#172B4D] tracking-tight font-syne flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-[#0052CC]">
-                <Fuel size={24} />
-              </div>
-              Fuel Management
-            </h1>
-            <p className="text-[13px] text-gray-400 font-medium ml-1">Track consumption and fuel expenditures</p>
+        <div className="flex items-center mb-4">
+          <div className="w-1/4">
+            <h1 className="text-2xl font-black text-[#172B4D] tracking-tight uppercase">Fuel</h1>
+            <p className="text-gray-500 text-sm tracking-tight">Track consumption and expenditures</p>
           </div>
-          <div className="flex items-center gap-3">
-             <div className="bg-white p-1 rounded-xl shadow-sm border border-gray-100 flex gap-1">
-                <button 
-                  onClick={() => setActiveTab('LOGS')}
-                  className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${activeTab === 'LOGS' ? 'bg-[#0052CC] text-white' : 'text-gray-500 hover:bg-gray-50'}`}
-                >
-                  Logs
+          <div className="flex-1 max-w-2xl px-8">
+            <div className="relative group/search">
+              <Search className="absolute left-4 top-3.5 text-gray-400 group-focus-within/search:text-[#0052CC] transition-all duration-300 group-focus-within/search:scale-110" size={20} />
+              <input
+                type="text"
+                placeholder="Search fuel logs..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-12 pr-12 py-3 bg-white border border-gray-200 rounded-2xl text-[15px] font-medium placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-50 transition-all shadow-sm hover:shadow-md hover:border-gray-300"
+              />
+              {search && (
+                <button onClick={() => setSearch('')} className="absolute right-4 top-2 text-gray-400 hover:text-red-500 transition-all duration-500 hover:rotate-180 p-1.5 rounded-full hover:bg-red-50" title="Clear search">
+                  <RefreshCw size={18} />
                 </button>
-                <button 
-                  onClick={() => setActiveTab('ANALYTICS')}
-                  className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${activeTab === 'ANALYTICS' ? 'bg-[#0052CC] text-white' : 'text-gray-500 hover:bg-gray-50'}`}
-                >
-                  Analytics
-                </button>
-             </div>
-            <button
-              onClick={() => setModal({ mode: 'add' })}
-              className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-[#0052CC] rounded-xl hover:bg-[#0043A8] transition-all shadow-md shadow-blue-100 italic active:scale-95">
-              <Plus size={16} /> Add Fuel Log
+              )}
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-2 ml-auto">
+            <div className="flex items-center gap-2 mr-2">
+              <button onClick={() => refetch()} className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95 group">
+                <RefreshCw size={14} className={isLoading ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"} />
+                <span>Refresh</span>
+              </button>
+              <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95">
+                <Download size={14} /><span>Export</span>
+              </button>
+              <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95">
+                <Upload size={14} /><span>Import</span>
+              </button>
+            </div>
+            <div className="bg-white p-1 rounded-xl shadow-sm border border-gray-100 flex gap-1 mr-2">
+              <button onClick={() => setActiveTab('LOGS')} className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${activeTab === 'LOGS' ? 'bg-[#0052CC] text-white' : 'text-gray-500 hover:bg-gray-50'}`}>Logs</button>
+              <button onClick={() => setActiveTab('ANALYTICS')} className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${activeTab === 'ANALYTICS' ? 'bg-[#0052CC] text-white' : 'text-gray-500 hover:bg-gray-50'}`}>Analytics</button>
+            </div>
+            <div className="w-px h-8 bg-gray-200 mx-1" />
+            <button onClick={() => setModal({ mode: 'add' })} className="flex items-center gap-2 px-4 py-2 bg-[#0052CC] text-white rounded-xl font-bold text-xs shadow-md hover:bg-[#0747A6] transition-all active:scale-95 group">
+              <Plus size={16} className="group-hover:rotate-90 transition-transform duration-300" />
+              <span>Add Fuel Log</span>
             </button>
           </div>
         </div>
@@ -314,13 +331,20 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
                 {FUEL_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </Sel>
             </div>
+          </div>
+          <div className="flex items-center justify-between gap-3 px-5 py-2 border-t border-gray-100">
             {isTab && (
-              <button
-                onClick={() => setModal({ mode: 'add' })}
-                className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] shadow-sm italic">
-                <Plus size={14} /> Add Fuel Log
+              <button onClick={() => setModal({ mode: 'add' })} className="flex items-center gap-2 px-3 py-1.5 bg-[#0052CC] text-white rounded-lg font-bold text-xs shadow-md hover:bg-[#0747A6] transition-all active:scale-95 group">
+                <Plus size={14} className="group-hover:rotate-90 transition-transform duration-300" /><span>Add</span>
               </button>
             )}
+            <div className="flex items-center gap-2 ml-auto">
+              <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1 || isLoading}
+                className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm">Prev</button>
+              <div className="flex items-center justify-center min-w-7 h-7 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-sm">{currentPage}</div>
+              <button onClick={() => setCurrentPage(p => p + 1)} disabled={!data?.next || isLoading}
+                className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm">Next</button>
+            </div>
           </div>
 
           <div className="flex-1 overflow-auto">
