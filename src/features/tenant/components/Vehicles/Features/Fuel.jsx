@@ -3,9 +3,10 @@ import {
   Fuel, Plus, Edit2, Trash2, X, 
   RefreshCw, Loader2, AlertCircle, Calendar, 
   IndianRupee, Zap, Gauge, MapPin, Pencil, Search,
-  Download, Upload
+  Download, Upload, Eye
 } from 'lucide-react';
 import {
+  useVehicleFuelLog,
   useVehicleFuelLogs,
   useCreateFuelLog,
   useUpdateFuelLog,
@@ -43,7 +44,7 @@ const FUEL_COLORS = {
 
 const EMPTY_FORM = {
   vehicle: '', fuel_date: '', fuel_type: '',
-  quantity: '', cost_per_litre: '', total_cost: '',
+  quantity_liters: '', cost_per_liter: '', total_cost: '',
   odometer_reading: '', fuel_station: '', notes: '',
 };
 
@@ -61,10 +62,15 @@ const ViewDetail = ({ data, onClose }) => (
     <div className="grid grid-cols-2 gap-6">
       <InfoCard label="Fuel Type" value={data.fuel_type_display ?? data.fuel_type} />
       <InfoCard label="Date" value={fmtDate(data.fuel_date)} icon={Calendar} />
-      <InfoCard label="Quantity" value={data.quantity ? `${data.quantity} L` : '—'} icon={Fuel} />
+      <InfoCard label="Quantity" value={data.quantity_liters ? `${data.quantity_liters} L` : '—'} icon={Fuel} />
       <InfoCard label="Total Cost" value={fmtINR(data.total_cost)} icon={IndianRupee} accent />
-      <InfoCard label="Per Litre" value={data.cost_per_litre ? `₹${data.cost_per_litre}` : '—'} />
+      <InfoCard label="Per Litre" value={data.cost_per_liter ? `₹${data.cost_per_liter}` : '—'} />
       <InfoCard label="Odometer" value={fmtKm(data.odometer_reading)} icon={Gauge} />
+    </div>
+
+    <div className="grid grid-cols-2 gap-6 pt-4 border-t border-gray-100">
+      <InfoCard label="Driver" value={data.driver_name || '—'} />
+      <InfoCard label="Trip ID" value={data.trip_id || '—'} />
     </div>
 
     <div className="pt-4 border-t border-gray-100">
@@ -95,8 +101,8 @@ const FuelModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => 
       vehicle:            resolveVehicleId(),
       fuel_date:           initial.fuel_date           ?? '',
       fuel_type:           initial.fuel_type           ?? '',
-      quantity:            initial.quantity            ?? '',
-      cost_per_litre:      initial.cost_per_litre      ?? '',
+      quantity_liters:     initial.quantity_liters     ?? '',
+      cost_per_liter:      initial.cost_per_liter      ?? '',
       total_cost:          initial.total_cost          ?? '',
       odometer_reading:    initial.odometer_reading    ?? '',
       fuel_station:        initial.fuel_station        ?? '',
@@ -111,10 +117,10 @@ const FuelModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => 
     const val = e.target.value;
     setForm(p => {
       const next = { ...p, [f]: val };
-      // Auto-calc total cost if quantity and cost_per_litre changes
-      if (f === 'quantity' || f === 'cost_per_litre') {
-        const q = f === 'quantity' ? Number(val) : Number(p.quantity);
-        const c = f === 'cost_per_litre' ? Number(val) : Number(p.cost_per_litre);
+      // Auto-calc total cost if quantity_liters and cost_per_liter changes
+      if (f === 'quantity_liters' || f === 'cost_per_liter') {
+        const q = f === 'quantity_liters' ? Number(val) : Number(p.quantity_liters);
+        const c = f === 'cost_per_liter' ? Number(val) : Number(p.cost_per_liter);
         if (q && c) next.total_cost = (q * c).toFixed(2);
       }
       return next;
@@ -164,10 +170,10 @@ const FuelModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => 
             <FormSec title="Cost & Consumption" />
             <div className="grid grid-cols-2 gap-4">
               <Field label="Quantity (Liters)" required>
-                <Input type="number" step="0.01" placeholder="0.00" value={form.quantity} onChange={set('quantity')} />
+                <Input type="number" step="0.01" placeholder="0.00" value={form.quantity_liters} onChange={set('quantity_liters')} />
               </Field>
               <Field label="Cost per Liter (₹)">
-                <Input type="number" step="0.01" placeholder="0.00" value={form.cost_per_litre} onChange={set('cost_per_litre')} />
+                <Input type="number" step="0.01" placeholder="0.00" value={form.cost_per_liter} onChange={set('cost_per_liter')} />
               </Field>
               <Field label="Total Cost (₹)" required>
                 <Input type="number" step="0.01" placeholder="0.00" value={form.total_cost} onChange={set('total_cost')} />
@@ -201,6 +207,10 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
   const [typeFilter, setTypeFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [search, typeFilter]);
+
   const { data, isLoading, isError, error, refetch } = useVehicleFuelLogs({
     ...(search && { search }),
     ...(typeFilter && { fuel_type: typeFilter }),
@@ -213,7 +223,7 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
 
   const stats = useMemo(() => {
     const totalSpend = logs.reduce((s, l) => s + (Number(l.total_cost) || 0), 0);
-    const totalLiters = logs.reduce((s, l) => s + (Number(l.quantity) || 0), 0);
+    const totalLiters = logs.reduce((s, l) => s + (Number(l.quantity_liters) || 0), 0);
     
     // Process analytics data
     const monthlyMap = {};
@@ -224,7 +234,7 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
         monthlyMap[month] = (monthlyMap[month] || 0) + Number(l.total_cost);
         return {
           date: fmtDate(l.fuel_date),
-          quantity: Number(l.quantity),
+          quantity: Number(l.quantity_liters),
           cost: Number(l.total_cost),
           odometer: l.odometer_reading ? Number(l.odometer_reading) : null
         };
@@ -249,39 +259,57 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
   return (
     <div className={`flex flex-col h-full ${isTab ? '' : 'p-6 bg-[#f8fafc] flex-1 min-h-0 overflow-hidden relative font-sans text-slate-900'}`}>
       {!isTab && (
-        <div className="flex items-center mb-4">
+        <div className="flex items-center mb-8">
           <div className="w-1/4">
             <h1 className="text-2xl font-black text-[#172B4D] tracking-tight uppercase">Fuel</h1>
             <p className="text-gray-500 text-sm tracking-tight">Track consumption and expenditures</p>
           </div>
+
           <div className="flex-1 max-w-2xl px-8">
             <div className="relative group/search">
               <Search className="absolute left-4 top-3.5 text-gray-400 group-focus-within/search:text-[#0052CC] transition-all duration-300 group-focus-within/search:scale-110" size={20} />
               <input
                 type="text"
-                placeholder="Search fuel logs..."
+                placeholder="Search fuel logs, stations..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-12 pr-12 py-3 bg-white border border-gray-200 rounded-2xl text-[15px] font-medium placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-50 transition-all shadow-sm hover:shadow-md hover:border-gray-300"
               />
               {search && (
-                <button onClick={() => setSearch('')} className="absolute right-4 top-2 text-gray-400 hover:text-red-500 transition-all duration-500 hover:rotate-180 p-1.5 rounded-full hover:bg-red-50" title="Clear search">
-                  <RefreshCw size={18} />
+                <button
+                  onClick={() => setSearch('')}
+                  className="absolute right-4 top-2 text-gray-400 hover:text-red-500 transition-all duration-500 hover:rotate-180 p-1.5 rounded-full hover:bg-red-50 flex items-center justify-center group/reset"
+                  title="Clear search"
+                >
+                  <RefreshCw size={18} className="animate-in fade-in zoom-in spin-in-180 duration-500 group-hover/reset:scale-110" />
                 </button>
               )}
             </div>
           </div>
+
           <div className="flex items-center justify-end gap-2 ml-auto">
             <div className="flex items-center gap-2 mr-2">
-              <button onClick={() => refetch()} className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95 group">
+              <button
+                title="Refresh Data"
+                onClick={() => refetch()}
+                className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95 group"
+              >
                 <RefreshCw size={14} className={isLoading ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"} />
                 <span>Refresh</span>
               </button>
-              <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95">
-                <Download size={14} /><span>Export</span>
+              <button
+                title="Export Logs"
+                className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95"
+              >
+                <Download size={14} />
+                <span>Export</span>
               </button>
-              <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95">
-                <Upload size={14} /><span>Import</span>
+              <button
+                title="Import Logs"
+                className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95"
+              >
+                <Upload size={14} />
+                <span>Import</span>
               </button>
             </div>
             <div className="bg-white p-1 rounded-xl shadow-sm border border-gray-100 flex gap-1 mr-2">
@@ -289,61 +317,81 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
               <button onClick={() => setActiveTab('ANALYTICS')} className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${activeTab === 'ANALYTICS' ? 'bg-[#0052CC] text-white' : 'text-gray-500 hover:bg-gray-50'}`}>Analytics</button>
             </div>
             <div className="w-px h-8 bg-gray-200 mx-1" />
-            <button onClick={() => setModal({ mode: 'add' })} className="flex items-center gap-2 px-4 py-2 bg-[#0052CC] text-white rounded-xl font-bold text-xs shadow-md hover:bg-[#0747A6] transition-all active:scale-95 group">
-              <Plus size={16} className="group-hover:rotate-90 transition-transform duration-300" />
-              <span>Add Fuel Log</span>
-            </button>
           </div>
         </div>
       )}
 
       {activeTab === 'LOGS' ? (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 mt-4 overflow-hidden">
-          {/* Compact Stats Row */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden mt-2">
+          {/* Stats Row */}
           <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
             <div className="flex items-center gap-2">
-              <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total Spend:</span>
+              <span className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">Total Spend:</span>
               <span className="text-[18px] font-black text-[#172B4D]">{fmtINR(stats.totalSpend)}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total Liters:</span>
+              <span className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">Total Liters:</span>
               <span className="text-[18px] font-black text-emerald-600">{stats.totalLiters.toFixed(1)} L</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Avg Efficiency:</span>
+              <span className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">Avg Efficiency:</span>
               <span className="text-[18px] font-black text-indigo-600">
                 {stats.avgEfficiency > 0 ? `${stats.avgEfficiency.toFixed(2)} KM/L` : 'N/A'}
               </span>
             </div>
-          </div>
-          
-          <div className="p-5 border-b border-gray-100 flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3 flex-1 min-w-[240px]">
-              <div className="relative flex-1 max-w-xs text-gray-400">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text" placeholder="Search fuel logs..."
-                  className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border-none rounded-lg focus:ring-2 focus:ring-[#0052CC]/10 text-[#172B4D] font-medium"
-                  value={search} onChange={e => setSearch(e.target.value)} />
-              </div>
-              <Sel className="w-44 text-[13px] font-bold text-[#172B4D]" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
-                <option value="">All Fuel Types</option>
-                {FUEL_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </Sel>
+            <div className="ml-auto w-1/4 flex justify-end">
+              <button
+                onClick={() => setModal({ mode: 'add' })}
+                className="mr-0 bg-[#0052CC] text-white px-6 py-3 rounded-xl flex items-center gap-2 text-sm font-bold hover:bg-[#0747A6] transition-all shadow-lg hover:shadow-blue-200 active:scale-95 group"
+              >
+                <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" /> New Fuel Log
+              </button>
             </div>
           </div>
-          <div className="flex items-center justify-between gap-3 px-5 py-2 border-t border-gray-100">
-            {isTab && (
-              <button onClick={() => setModal({ mode: 'add' })} className="flex items-center gap-2 px-3 py-1.5 bg-[#0052CC] text-white rounded-lg font-bold text-xs shadow-md hover:bg-[#0747A6] transition-all active:scale-95 group">
-                <Plus size={14} className="group-hover:rotate-90 transition-transform duration-300" /><span>Add</span>
+
+          {/* Filters & Pagination Row */}
+          <div className="flex items-center justify-between px-5 py-3 bg-white border-b border-gray-50 h-[60px]">
+            <div className="flex items-center gap-6">
+              <div className="relative w-64 text-gray-400">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Filter logs..."
+                  className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border-none rounded-lg focus:ring-2 focus:ring-[#0052CC]/10 text-[#172B4D] font-medium"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                />
+              </div>
+              <select
+                value={typeFilter}
+                onChange={(e) => { setTypeFilter(e.target.value); setCurrentPage(1); }}
+                className="px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-[12px] font-bold text-[#172B4D] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all hover:border-gray-200 cursor-pointer shadow-sm"
+              >
+                <option value="">All Fuel Types</option>
+                {FUEL_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1 || isLoading}
+                className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+              >
+                Previous
               </button>
-            )}
-            <div className="flex items-center gap-2 ml-auto">
-              <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1 || isLoading}
-                className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm">Prev</button>
-              <div className="flex items-center justify-center min-w-7 h-7 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-sm">{currentPage}</div>
-              <button onClick={() => setCurrentPage(p => p + 1)} disabled={!data?.next || isLoading}
-                className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm">Next</button>
+
+              <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
+                {currentPage}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                disabled={!data?.next || isLoading}
+                className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+              >
+                Next
+              </button>
             </div>
           </div>
 
@@ -356,49 +404,65 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
               <EmptyState icon={Fuel} text="No fuel logs found" onAdd={() => setModal({ mode: 'add' })} />
             ) : (
               <table className="w-full border-collapse text-left relative">
-                <thead className="sticky top-0 bg-gray-50/80 backdrop-blur-md z-10 border-b border-gray-100 shadow-[0_1px_0_rgba(0,0,0,0.05)]">
-                  <tr>
-                    <th className="px-5 py-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">Type</th>
-                    {!vehicleId && <th className="px-5 py-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">Vehicle</th>}
-                    <th className="px-5 py-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">Consumption</th>
-                    <th className="px-5 py-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">Date</th>
-                    <th className="px-5 py-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">Cost</th>
-                    <th className="px-5 py-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] text-right">Actions</th>
+                <thead className="bg-[#F8FAFC] border-b border-gray-100 sticky top-0 z-10 font-sans">
+                  <tr className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                    {!vehicleId && <th className="px-4 py-4">Vehicle</th>}
+                    <th className="px-4 py-4">Type</th>
+                    <th className="px-4 py-4">Driver</th>
+                    <th className="px-4 py-4 text-center">Fuel Details</th>
+                    <th className="px-4 py-4 text-center">Cost Info</th>
+                    <th className="px-4 py-4">Date</th>
+                    <th className="px-5 py-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {logs.map(l => (
                     <tr key={l.id} className="hover:bg-blue-50/30 transition-colors group">
-                      <td className="px-5 py-4 whitespace-nowrap">
-                        <Badge className={FUEL_COLORS[l.fuel_type] ?? 'bg-gray-100 text-gray-600 border-gray-200'}>
-                          {l.fuel_type_display ?? l.fuel_type}
-                        </Badge>
-                      </td>
                       {!vehicleId && (
-                        <td className="px-5 py-4 text-sm font-medium text-gray-600 truncate max-w-[150px]">
-                          <span className="font-bold text-[#172B4D] font-mono text-[13px] uppercase">
-                            {l.vehicle_registration_number ?? l.vehicle_registration ?? l.vehicle_display ?? l.vehicle ?? '—'}
+                        <td className="px-4 py-3 align-middle">
+                          <span className="font-bold text-[#172B4D] text-[13px] uppercase font-mono">
+                            {l.vehicle_registration_number ?? l.vehicle_display ?? l.vehicle ?? '—'}
                           </span>
                         </td>
                       )}
-                      <td className="px-5 py-4">
-                        <p className="text-sm font-bold text-[#172B4D] tracking-tight">{l.quantity} L</p>
-                        <p className="text-[10px] font-mono font-bold text-gray-400">@{l.cost_per_litre}/L</p>
+                      <td className="px-4 py-3 whitespace-nowrap align-middle">
+                        <Badge className={`${FUEL_COLORS[l.fuel_type] ?? 'bg-gray-100 text-gray-600 border-gray-200'} border-transparent`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${l.fuel_type === 'DIESEL' ? 'bg-gray-500' : 'bg-blue-500'}`} />
+                          {l.fuel_type_display ?? l.fuel_type}
+                        </Badge>
                       </td>
-                      <td className="px-5 py-4 whitespace-nowrap">
+                      <td className="px-4 py-3 align-middle">
+                        <span className="text-xs font-bold text-gray-600">
+                          {l.driver_name || '—'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 align-middle text-center">
+                        <p className="text-[13px] font-bold text-[#172B4D]">{l.quantity_liters} L</p>
+                        <p className="text-[10px] font-mono font-bold text-gray-400">@{l.cost_per_liter}/L</p>
+                      </td>
+                      <td className="px-4 py-3 align-middle text-center">
+                        <p className="text-[13px] font-black text-[#0052CC]">{fmtINR(l.total_cost)}</p>
+                        {l.fuel_station && (
+                          <div className="flex items-center justify-center gap-1 text-[10px] text-gray-400 font-medium">
+                            <MapPin size={10} /> {l.fuel_station}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap align-middle">
                         <span className="flex items-center gap-1.5 text-xs font-bold text-gray-500">
                           <Calendar size={12} className="text-gray-400" />
                           {fmtDate(l.fuel_date)}
                         </span>
                       </td>
-                      <td className="px-5 py-4">
-                        <p className="text-sm font-black text-[#0052CC]">{fmtINR(l.total_cost)}</p>
-                      </td>
-                      <td className="px-5 py-4 text-right">
-                        <div className="flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                      <td className="px-5 py-3 text-right align-middle">
+                        <div className="flex justify-end gap-2">
+                          <button onClick={() => setViewing(l)}
+                            className="p-2 text-gray-400 hover:text-[#0052CC] hover:bg-blue-50 rounded-lg transition-all" title="View Details">
+                            <Eye size={16} />
+                          </button>
                           <button onClick={() => setModal({ mode: 'edit', data: l })}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-[#0052CC] bg-blue-50 border border-blue-100 rounded-lg hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all shadow-sm">
-                            <Pencil size={12} /> Edit
+                            className="p-2 text-gray-400 hover:text-[#0052CC] hover:bg-blue-50 rounded-lg transition-all" title="Edit Log">
+                            <Pencil size={16} />
                           </button>
                         </div>
                       </td>
@@ -408,7 +472,15 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
               </table>
             )}
           </div>
-        </div>
+          {/* Bottom Info Row */}
+          {!isLoading && !isError && logs.length > 0 && (
+              <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-white shadow-sm z-20">
+                <div className="text-sm text-gray-500 font-medium whitespace-nowrap">
+                  Showing <span className="font-bold text-[#172B4D] font-mono">{logs.length}</span> of <span className="font-bold text-[#172B4D] font-mono">{data?.count ?? logs.length}</span> fuel logs
+                </div>
+              </div>
+            )}
+          </div>
       ) : (
         <div className="flex-1 min-h-0 overflow-auto py-6 space-y-6">
           {/* Dashboard Stats */}
@@ -504,11 +576,10 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
         />
       )}
       {viewing && (
-        <FuelModal 
-          initial={viewing} 
+        <FuelDetailView 
+          id={viewing.id} 
           onClose={() => setViewing(null)} 
-          isView 
-          vehicleId={vehicleId}
+          vehicleId={vehicleId} 
         />
       )}
       {deleting && (
@@ -520,6 +591,31 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
         />
       )}
     </div>
+  );
+};
+
+// ─── Detail View Component ───────────────────────────────────────────────────
+const FuelDetailView = ({ id, onClose, vehicleId }) => {
+  const { data, isLoading, isError, error } = useVehicleFuelLog(id);
+
+  if (isLoading) return (
+    <Modal title="Fuel Log Details" onClose={onClose} isView maxWidth="max-w-xl">
+      <div className="h-64 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#0052CC]" />
+      </div>
+    </Modal>
+  );
+
+  if (isError) return (
+    <Modal title="Fuel Log Details" onClose={onClose} isView maxWidth="max-w-xl">
+      <ErrorState message="Failed to load log details" error={error?.message} />
+    </Modal>
+  );
+
+  return (
+    <Modal title="Fuel Log Details" onClose={onClose} isView maxWidth="max-w-xl">
+      <ViewDetail data={data} onClose={onClose} />
+    </Modal>
   );
 };
 
