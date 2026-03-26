@@ -166,99 +166,112 @@ const Permission = () => {
   );
 
   return (
-    <main className="p-6 bg-[#F4F5F7] flex-1 min-h-0 overflow-hidden flex flex-col relative">
-      <div className="flex justify-between items-start mb-8 gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-[#172B4D]">System Permissions</h2>
-          <p className="text-gray-500 text-sm">Switch between your current access and the full permission catalog</p>
+    <div className="p-6 bg-[#f8fafc] flex-1 min-h-0 overflow-hidden flex flex-col relative font-sans text-slate-900">
+      {/* Page Title & Search Section */}
+      <div className="flex items-center mb-8">
+        <div className="w-1/4">
+          <h1 className="text-2xl font-black text-[#172B4D] tracking-tight uppercase">System Permissions</h1>
+          <p className="text-gray-500 text-sm tracking-tight">Access & capabilities catalog</p>
         </div>
 
-        <div className="inline-flex bg-white border border-gray-200 rounded-xl p-1 shadow-sm">
-          <button
-            type="button"
-            onClick={() => { setViewMode('mine'); setCurrentPage(1); }}
-            className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
-              isShowingMine ? 'bg-[#0052CC] text-white shadow-sm' : 'text-gray-500 hover:text-[#172B4D]'
-            }`}
-          >
-            My Permissions
-          </button>
-          <button
-            type="button"
-            onClick={() => { setViewMode('all'); setCurrentPage(1); }}
-            className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
-              !isShowingMine ? 'bg-[#0052CC] text-white shadow-sm' : 'text-gray-500 hover:text-[#172B4D]'
-            }`}
-          >
-            All Permissions
-          </button>
+        {/* Centered Search Bar */}
+        <div className="flex-1 max-w-2xl px-8">
+          <div className="relative group/search">
+            <Search className="absolute left-4 top-3.5 text-gray-400 group-focus-within/search:text-[#0052CC] transition-all duration-300 group-focus-within/search:scale-110" size={20} />
+            <input
+              type="text"
+              placeholder={isShowingMine ? 'Search your permissions...' : 'Search all permissions...'}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-12 py-3 bg-white border border-gray-200 rounded-2xl text-[15px] font-medium placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-50 transition-all shadow-sm hover:shadow-md hover:border-gray-300"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-4 top-2 text-gray-400 hover:text-red-500 transition-all duration-500 hover:rotate-180 p-1.5 rounded-full hover:bg-red-50 flex items-center justify-center group/reset"
+                title="Clear search"
+              >
+                <RotateCcw size={18} className="animate-in fade-in zoom-in spin-in-180 duration-500 group-hover/reset:scale-110" />
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* Action Buttons Group */}
+
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-2 mt-2 overflow-hidden">
-        {/* Stats Row */}
+      {/* Main Table Container */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden mt-2">
+        {/* Compact Stats Row */}
         <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
           {isLoading ? (
             <div className="flex gap-6 animate-pulse">
-               <div className="h-5 bg-gray-200 rounded w-32"></div>
-               <div className="h-5 bg-gray-200 rounded w-24"></div>
+              <div className="h-5 bg-gray-200 rounded w-28"></div>
+              <div className="h-5 bg-gray-200 rounded w-28"></div>
             </div>
           ) : (
-            stats.map((stat, index) => (
-              <div key={index} className="flex items-center gap-2">
+            stats.map((stat, idx) => (
+              <div key={idx} className="flex items-center gap-2">
                 <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">{stat.label}:</span>
                 <span className={`text-[18px] font-black ${stat.textColor || 'text-[#172B4D]'}`}>{stat.value}</span>
               </div>
             ))
           )}
-        </div>
-
-        {/* Filters Bar */}
-        <div className="p-4 flex items-center justify-between bg-white flex-wrap gap-4">
-          <div className="flex gap-3 items-center flex-wrap flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
-              <input
-                type="text"
-                placeholder={isShowingMine ? 'Search your permissions...' : 'Search all permissions...'}
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                className="pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-100"
-              />
+          <div className="flex items-center justify-end gap-2 ml-auto">
+            <div className="inline-flex bg-white border border-gray-200 rounded-xl p-1 shadow-sm">
+              <button
+                type="button"
+                onClick={() => { setViewMode('mine'); setCurrentPage(1); }}
+                className={`px-4 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all ${isShowingMine ? 'bg-[#0052CC] text-white shadow-sm' : 'text-gray-500 hover:text-[#172B4D]'
+                  }`}
+              >
+                My Permissions
+              </button>
+              <button
+                type="button"
+                onClick={() => { setViewMode('all'); setCurrentPage(1); }}
+                className={`px-4 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all ${!isShowingMine ? 'bg-[#0052CC] text-white shadow-sm' : 'text-gray-500 hover:text-[#172B4D]'
+                  }`}
+              >
+                All Permissions
+              </button>
             </div>
-            <button
-              onClick={() => {
-                setSearchTerm('');
-                setCurrentPage(1);
-              }}
-              className="text-gray-500 hover:text-gray-700 text-sm flex items-center gap-2 font-medium"
-            >
-              <RotateCcw size={16} /> Reset
-            </button>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setCurrentPage((previousPage) => Math.max(1, previousPage - 1))}
-              disabled={currentPage === 1 || isLoading}
-              className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-            >
-              Previous
-            </button>
-            <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
-              {currentPage}
-            </div>
-            <button
-              onClick={() => setCurrentPage((previousPage) => previousPage + 1)}
-              disabled={isShowingMine ? currentPage >= totalPages || isLoading : !permissionsData?.next || isLoading}
-              className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-            >
-              Next
-            </button>
           </div>
         </div>
-      </div>
 
-        <div className="flex-1 min-h-0 overflow-auto bg-white rounded-xl shadow-sm border border-gray-100 mt-2">
+        <div>
+          <div className="flex items-center gap-6 ml-auto justify-between h-15 border-b border-gray-50">
+            {/* Quick Filters Placeholder */}
+            <div className="flex items-center gap-3 px-5 py-2">
+            </div>
+
+            <div className="justify-between h-10 w-px bg-gray-100 hidden sm:block " />
+
+            <div className="flex items-center justify-between gap-3 px-5 py-2">
+              <button
+                onClick={() => setCurrentPage((previousPage) => Math.max(1, previousPage - 1))}
+                disabled={currentPage === 1 || isLoading}
+                className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+              >
+                Previous
+              </button>
+              <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
+                {currentPage}
+              </div>
+              <button
+                onClick={() => setCurrentPage((previousPage) => previousPage + 1)}
+                disabled={isShowingMine ? currentPage >= totalPages || isLoading : !permissionsData?.next || isLoading}
+                className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Permissions Table */}
+        <div className="flex-1 min-h-0 overflow-auto bg-white rounded-xl mt-0">
           <table className="w-full text-left relative">
             <thead className="bg-[#F8FAFC] border-b border-gray-100 sticky top-0 z-10">
               <tr className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
@@ -325,12 +338,14 @@ const Permission = () => {
           </table>
         </div>
 
-        <div className="flex items-center justify-between mt-4 px-2">
+        {/* Pagination Footer */}
+        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-white gap-4">
           <div className="text-sm text-gray-500">
             Showing <span className="font-bold text-[#172B4D]">{visiblePermissions.length}</span> of{' '}
-            <span className="font-bold text-[#172B4D]">{totalPermissionsCount}</span> permissions
+            <span className="font-bold text-[#172B4D]">{totalPermissionsCount}</span> items
           </div>
         </div>
+      </div>
 
       {isModalOpen && (
         <div className="fixed inset-0 z-110 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm transition-all">
@@ -405,7 +420,7 @@ const Permission = () => {
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 };
 

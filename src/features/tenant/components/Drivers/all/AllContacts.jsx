@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Plus } from 'lucide-react';
+import { Users, Plus, Search, RefreshCw, Download, Upload, X, RotateCcw } from 'lucide-react';
 import { useEmergencyContacts } from '../../../queries/drivers/driverContactQuery';
 import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
 import { LoadingState, ErrorState, EmptyState, PageLayoutShimmer } from '../common/StateFeedback';
@@ -67,22 +67,26 @@ const AllContacts = () => {
 
       <div className="p-6 lg:p-8 flex-1 flex flex-col min-h-0">
         {/* ── Header ── */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-[#dc2626]/10 rounded-[12px] flex items-center justify-center border border-[#dc2626]/20 shadow-sm shadow-red-50">
-            <span className="text-2xl">🚨</span>
+        <div className="flex items-center mb-8">
+          <div className="w-1/4">
+            <h1 className="text-2xl font-black text-[#172B4D] uppercase tracking-tight">Emergency Contacts</h1>
+            <p className="text-gray-500 text-sm tracking-tight mt-0.5">Manage emergency contacts for all drivers</p>
           </div>
-          <div>
-            <h1 className="text-[26px] font-black text-[#1a202c] tracking-tight font-syne">Emergency Contacts</h1>
-            <p className="text-[13px] text-[#64748b] mt-0.5 font-medium">Manage emergency contacts for all drivers — primary contact is notified first</p>
+          <div className="flex-1" />
+          <div className="flex items-center justify-end gap-2 ml-auto">
+            <div className="flex items-center gap-2">
+              <button onClick={() => refetch()} className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95 group">
+                <RefreshCw size={14} className={isFetching ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'} /><span>Refresh</span>
+              </button>
+              <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95">
+                <Upload size={14} /><span>Import</span>
+              </button>
+              <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95">
+                <Download size={14} /><span>Export</span>
+              </button>
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-[#0052CC] text-white rounded-lg text-sm font-bold shadow-sm hover:bg-[#0043A8] transition-all">
-            <Plus size={16} /> Add Contact
-          </button>
-        </div>
-      </div>
 
       {/* ── Table Card ── */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden mt-2">
@@ -110,69 +114,39 @@ const AllContacts = () => {
               </div>
             </>
           )}
+          <div className="ml-auto flex justify-end">
+            <button onClick={() => setAddOpen(true)} className="bg-[#0052CC] text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm font-bold hover:bg-[#0747A6] transition-all shadow-md active:scale-95 group">
+              <Plus size={16} className="group-hover:rotate-90 transition-transform duration-300" /> Add Contact
+            </button>
+          </div>
         </div>
 
         {/* ── Filters Bar ── */}
-        <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-white flex-wrap gap-4">
-          <div className="flex gap-3 items-center flex-wrap flex-1">
-        
-        {/* Search */}
-        <div className="relative flex-1 min-w-[240px]">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]">🔍</span>
-          <input 
-            type="text"
-            placeholder="Search contact name, driver name..."
-            value={filters.search}
-            onChange={(e) => handleFilterChange('search', e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-[12px] bg-[#f0f3f9] border border-[#e2e8f0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3b7ef8]/10 focus:border-[#3b7ef8] transition-all placeholder:text-[#94a3b8] font-medium"
-          />
-        </div>
-
-        {/* Driver Select */}
-        <div className="min-w-[160px]">
-          <DriverSelect 
-            value={filters.driver} 
-            onChange={(val) => handleFilterChange('driver', val)}
-            className="rounded-lg border-[#e2e8f0] text-[12px] py-2 bg-[#f0f3f9] font-medium text-[#1a202c]"
-          />
-        </div>
-
-        {/* Status Select */}
-        <div className="min-w-[140px]">
-          <select 
-            value={filters.is_primary} 
-            onChange={(e) => handleFilterChange('is_primary', e.target.value)}
-            className="w-full px-3 py-2 text-[12px] bg-[#f0f3f9] border border-[#e2e8f0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3b7ef8]/10 focus:border-[#3b7ef8] transition-all font-medium text-[#1a202c] appearance-none"
-            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
-          >
+        <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-50 bg-white flex-wrap">
+          <DriverSelect value={filters.driver} onChange={(val) => handleFilterChange('driver', val)}
+            className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
+          <select value={filters.is_primary} onChange={(e) => handleFilterChange('is_primary', e.target.value)}
+            className="px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-xs font-medium text-[#172B4D] focus:outline-none">
             <option value="">All Contacts</option>
             <option value="true">Primary Only</option>
             <option value="false">Secondary Only</option>
           </select>
-        </div>
-
-        {/* Relationship Select */}
-        <div className="min-w-[140px]">
-          <select 
-            value={filters.relationship} 
-            onChange={(e) => handleFilterChange('relationship', e.target.value)}
-            className="w-full px-3 py-2 text-[12px] bg-[#f0f3f9] border border-[#e2e8f0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3b7ef8]/10 focus:border-[#3b7ef8] transition-all font-medium text-[#1a202c] appearance-none"
-            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
-          >
+          <select value={filters.relationship} onChange={(e) => handleFilterChange('relationship', e.target.value)}
+            className="px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-xs font-medium text-[#172B4D] focus:outline-none">
             <option value="">All Relations</option>
-            {relationships.map(r => (
-              <option key={r} value={r}>{r}</option>
-            ))}
+            {relationships.map(r => <option key={r} value={r}>{r}</option>)}
           </select>
-        </div>
-
+          <div className="relative">
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input type="text" placeholder="Search contact..." value={filters.search}
+              onChange={(e) => handleFilterChange('search', e.target.value)}
+              className="pl-8 pr-3 py-1.5 text-xs bg-gray-50 border border-gray-100 rounded-lg focus:outline-none font-medium text-[#172B4D]" />
           </div>
-          <button 
-            onClick={clearFilters}
-            className="px-3 py-2 text-xs font-bold text-gray-500 hover:text-red-500 transition-colors"
-          >
-            Clear
-          </button>
+          {(filters.driver || filters.is_primary || filters.relationship || filters.search) && (
+            <button onClick={clearFilters} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Clear Filters">
+              <RotateCcw size={14} />
+            </button>
+          )}
         </div>
 
         {/* ── Content ── */}

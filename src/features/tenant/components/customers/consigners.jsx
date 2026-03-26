@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Search, Plus, Download, RefreshCw, Eye,
   Users, CheckCircle, AlertCircle, PauseCircle,
-  ChevronDown, Loader2, AlertTriangle, UserPlus, Pencil
+  ChevronDown, Loader2, AlertTriangle, UserPlus, Pencil, RotateCcw
 } from 'lucide-react';
 import { useConsignors, useCreateConsignor, useUpdateConsignor, useDeleteConsignor, useCustomers } from '../../queries/customers/customersQuery';
 import { StatCard, Modal, Field, Input, Sel, Section, DeleteConfirm, fmtDate } from '../Vehicles/Common/VehicleCommon';
@@ -20,33 +20,46 @@ const EMPTY_FORM = {
 };
 
 const STATUS_STYLES = {
-  'ACTIVE':    { bg: 'bg-green-50',  text: 'text-green-700',  dot: 'bg-green-500' },
-  'Active':    { bg: 'bg-green-50',  text: 'text-green-700',  dot: 'bg-green-500' },
-  'INACTIVE':  { bg: 'bg-orange-50', text: 'text-orange-700', dot: 'bg-orange-500' },
-  'Inactive':  { bg: 'bg-orange-50', text: 'text-orange-700', dot: 'bg-orange-500' },
-  'SUSPENDED': { bg: 'bg-red-50',    text: 'text-red-700',    dot: 'bg-red-500' },
-  'Suspended': { bg: 'bg-red-50',    text: 'text-red-700',    dot: 'bg-red-500' },
+  'ACTIVE': { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500' },
+  'Active': { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500' },
+  'INACTIVE': { bg: 'bg-orange-50', text: 'text-orange-700', dot: 'bg-orange-500' },
+  'Inactive': { bg: 'bg-orange-50', text: 'text-orange-700', dot: 'bg-orange-500' },
+  'SUSPENDED': { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' },
+  'Suspended': { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' },
 };
 
 const getStatusStyle = (status) => STATUS_STYLES[status] || { bg: 'bg-gray-50', text: 'text-gray-600', dot: 'bg-gray-400' };
 
 const Consignors = () => {
-  const [search, setSearch]       = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatus] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Search Debouncing
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setCurrentPage(1); // Reset to first page on search
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
   const { data, isLoading, isError, error, refetch } = useConsignors({
+    page: currentPage,
     ...(statusFilter && { status: statusFilter }),
-    ...(search       && { search }),
+    ...(debouncedSearch && { search: debouncedSearch }),
   });
 
   const { data: customerData } = useCustomers({ limit: 1000 });
   const allCustomers = customerData?.results ?? customerData ?? [];
   const eligibleCustomers = allCustomers.filter(c => c.customer_type === 'CONSIGNOR' || c.customer_type === 'BOTH' || c.customer_type === 'OTHER');
 
-  const [modal, setModal]             = useState(null);   
-  const [deleteTarget, setDelete]     = useState(null);
-  const [form, setForm]               = useState(EMPTY_FORM);
-  const [errors, setErrors]           = useState({});
+  const [modal, setModal] = useState(null);
+  const [deleteTarget, setDelete] = useState(null);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [errors, setErrors] = useState({});
 
   const createMutation = useCreateConsignor();
   const updateMutation = useUpdateConsignor();
@@ -96,21 +109,21 @@ const Consignors = () => {
 
   const handleSubmit = () => {
     if (!validate()) return;
-    
+
     // Merge the selected customer's data into the payload
     const selectedCustomer = eligibleCustomers.find(c => c.id === form.customer_id) || {};
     const payload = { ...selectedCustomer, ...form };
-    
+
     // Clean up to prevent sending the customer's nested object or original ID collision
     delete payload.customer;
     if (modal.type === 'create') delete payload.id;
-    
+
     // Nullify empty number fields
     if (!payload.business_volume_tons_per_month) payload.business_volume_tons_per_month = null;
     if (!payload.business_volume_value_per_month) payload.business_volume_value_per_month = null;
     if (!payload.loading_bay_count) payload.loading_bay_count = null;
     if (!payload.avg_loading_time_minutes) payload.avg_loading_time_minutes = null;
-    
+
     // Process preferred vehicle types as array
     if (payload.preferred_vehicle_types) {
       payload.preferred_vehicle_types = payload.preferred_vehicle_types.split(',').map(s => s.trim()).filter(Boolean);
@@ -124,16 +137,16 @@ const Consignors = () => {
       updateMutation.mutate({ id: modal.id, data: payload }, { onSuccess: () => closeModal() });
     }
   };
-  
+
   const submitting = createMutation.isPending || updateMutation.isPending;
 
   const consignors = data?.results ?? data ?? [];
-  const total      = data?.count ?? consignors.length;
-  const active     = consignors.filter(c => c.customer?.status === 'ACTIVE' || c.customer?.status === 'Active').length;
-  const inactive   = consignors.filter(c => c.customer?.status === 'INACTIVE' || c.customer?.status === 'Inactive').length;
-  const suspended  = consignors.filter(c => c.customer?.status === 'SUSPENDED' || c.customer?.status === 'Suspended').length;
+  const total = data?.count ?? consignors.length;
+  const active = consignors.filter(c => c.customer?.status === 'ACTIVE' || c.customer?.status === 'Active').length;
+  const inactive = consignors.filter(c => c.customer?.status === 'INACTIVE' || c.customer?.status === 'Inactive').length;
+  const suspended = consignors.filter(c => c.customer?.status === 'SUSPENDED' || c.customer?.status === 'Suspended').length;
 
-  const resetFilters = () => { setSearch(''); setStatus(''); };
+  const resetFilters = () => { setSearchTerm(''); setStatus(''); setCurrentPage(1); };
 
   const COLUMNS = [
     {
@@ -195,37 +208,74 @@ const Consignors = () => {
   return (
     <div className="p-6 flex flex-col gap-6 bg-[#F8FAFC] flex-1 min-h-0 overflow-hidden relative">
 
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-[#172B4D]">Consignors</h1>
-          <p className="text-sm text-gray-400 mt-0.5">
-            All registered consignors — click <span className="text-[#0052CC] font-semibold">View</span> for full details
-          </p>
+      {/* Page Title & Search Section */}
+      <div className="flex items-center mb-8">
+        {/* Title Block */}
+        <div className="w-1/4">
+          <h2 className="text-2xl font-bold text-[#172B4D]">Consignors</h2>
+          <p className="text-gray-500 text-sm tracking-tight">Manage consignor profiles and credit details</p>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => refetch()}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all">
-            <RefreshCw size={14} /> Refresh
-          </button>
-          <button className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all">
-            <Download size={14} /> Export
-          </button>
-          <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all shadow-sm">
-            <Plus size={15} /> Add Consignor
-          </button>
+
+        {/* Centered Search Bar */}
+        <div className="flex-1 max-w-2xl px-8">
+          <div className="relative group/search">
+            <Search className="absolute left-4 top-3.5 text-gray-400 group-focus-within/search:text-[#0052CC] transition-all duration-300 group-focus-within/search:scale-110" size={20} />
+            <input
+              type="text"
+              placeholder="Search consignor name, code..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-12 py-3 bg-white border border-gray-200 rounded-2xl text-[15px] font-medium placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-50  transition-all shadow-sm hover:shadow-md hover:border-gray-300"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-4 top-2 text-gray-400 hover:text-red-500 transition-all duration-500 hover:rotate-180 p-1.5 rounded-full hover:bg-red-50 flex items-center justify-center group/reset"
+                title="Clear search"
+              >
+                <RotateCcw size={18} className="animate-in fade-in zoom-in spin-in-180 duration-500 group-hover/reset:scale-110" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Action Buttons Group */}
+        <div className="flex items-center justify-end gap-2 ml-auto">
+          <div className="flex items-center gap-2 mr-2">
+            <button
+              title="Refresh Data"
+              onClick={() => refetch()}
+              className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95 group"
+            >
+              <RefreshCw size={14} className="group-hover:rotate-180 transition-transform duration-500" />
+              <span>Refresh</span>
+            </button>
+            <button
+              title="Import Consignors"
+              className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95"
+            >
+              <Upload size={14} />
+              <span>Import</span>
+            </button>
+            <button
+              title="Export Consignors"
+              className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95"
+            >
+              <Download size={14} />
+              <span>Export</span>
+            </button>
+          </div>
+          <div className="w-px h-8 bg-gray-200 mx-1" />
         </div>
       </div>
 
-      {/* Table Card */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0 mt-2">
-        {/* Compact Stats Row */}
+      {/* Table Container */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden mt-2">
+        {/* Stats Row */}
         <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
           {isLoading ? (
             <div className="flex gap-6 animate-pulse">
-              <div className="h-5 bg-gray-200 rounded w-24"></div>
-              <div className="h-5 bg-gray-200 rounded w-24"></div>
-              <div className="h-5 bg-gray-200 rounded w-24"></div>
+              <div className="h-5 bg-gray-200 rounded w-32"></div>
               <div className="h-5 bg-gray-200 rounded w-24"></div>
             </div>
           ) : (
@@ -248,39 +298,73 @@ const Consignors = () => {
               </div>
             </>
           )}
-        </div>
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <div>
-            <h2 className="font-bold text-[#172B4D]">📦 Consignor Registry</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Manage consignor profiles and credit details</p>
+          <div className="ml-auto w-1/4 flex justify-end">
+            <button
+              onClick={openCreate}
+              className="mr-0 bg-[#0052CC] text-white px-6 py-3 rounded-xl flex items-center gap-2 text-sm font-bold hover:bg-[#0747A6] transition-all shadow-lg hover:shadow-blue-200 active:scale-95 group"
+            >
+              <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" /> New Consignor
+            </button>
           </div>
-          <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all">
-            <Plus size={14} /> Add Consignor
-          </button>
         </div>
+        <div>
+          <div className="flex items-center gap-6 ml-auto justify-between h-15">
+            {/* Quick Filters in Pagination Row */}
+            <div className="flex items-center gap-3 px-5">
+              <div className="flex items-center gap-2">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => {
+                    setStatus(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="px-3 py-1 bg-gray-50 border border-gray-100 rounded-lg text-s font text-[#172B4D] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all hover:border-gray-200 cursor-pointer shadow-sm"
+                >
+                  <option value="">All Status</option>
+                  <option value="ACTIVE">ACTIVE</option>
+                  <option value="INACTIVE">INACTIVE</option>
+                  <option value="SUSPENDED">SUSPENDED</option>
+                </select>
+              </div>
 
-        {/* Filters */}
-        <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-3 flex-wrap">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input type="text" placeholder="Search consignor name, code..."
-              value={search} onChange={e => setSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] bg-gray-50" />
+              {statusFilter && (
+                <button
+                  onClick={() => {
+                    setStatus('');
+                    setCurrentPage(1);
+                  }}
+                  className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                  title="Clear Filters"
+                >
+                  <RotateCcw size={14} />
+                </button>
+              )}
+            </div>
+
+            <div className="justify-between h-10 w-px bg-gray-100 hidden sm:block px-5" />
+
+            <div className="flex items-center justify-between gap-3 px-5">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1 || isLoading}
+                className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+              >
+                Previous
+              </button>
+
+              <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
+                {currentPage}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                disabled={!data?.next || isLoading}
+                className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+              >
+                Next
+              </button>
+            </div>
           </div>
-          <div className="relative">
-            <select value={statusFilter} onChange={e => setStatus(e.target.value)}
-              className="appearance-none pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none cursor-pointer">
-              <option value="">All Status</option>
-              <option value="ACTIVE">ACTIVE</option>
-              <option value="INACTIVE">INACTIVE</option>
-              <option value="SUSPENDED">SUSPENDED</option>
-            </select>
-            <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-          </div>
-          <button onClick={resetFilters}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-500 border border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100 transition-all">
-            <RefreshCw size={13} /> Reset
-          </button>
         </div>
 
         {isLoading && (
@@ -330,15 +414,14 @@ const Consignors = () => {
           </div>
         )}
 
+        {/* Pagination Section */}
         {!isLoading && !isError && (
-          <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
-            <span>
-              Showing <span className="font-bold text-gray-600">{consignors.length}</span>
-              {data?.count && data.count !== consignors.length &&
-                <> of <span className="font-bold text-gray-600">{data.count}</span></>
-              } consignors
-            </span>
-            <span className="text-[11px]">Fleet Management System</span>
+          <div className="flex flex-col md:flex-row items-center justify-between px-6 py-4 border-t border-gray-100 bg-white gap-4">
+            <div className="flex flex-col sm:flex-row items-center gap-6">
+              <div className="text-sm text-gray-500 font-medium whitespace-nowrap">
+                Showing <span className="font-bold text-[#172B4D]">{consignors.length}</span> of <span className="font-bold text-[#172B4D]">{total}</span> consignors
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -396,14 +479,14 @@ const Consignors = () => {
             <Field label="Business Volume (Value/Mo)">
               <Input type="number" value={form.business_volume_value_per_month || ''} disabled={modal.type === 'view'} onChange={e => setField('business_volume_value_per_month', e.target.value)} />
             </Field>
-            
+
             <Field label="Loading Bay Count">
               <Input type="number" value={form.loading_bay_count || ''} disabled={modal.type === 'view'} onChange={e => setField('loading_bay_count', e.target.value)} />
             </Field>
             <Field label="Avg Loading Time (mins)">
               <Input type="number" value={form.avg_loading_time_minutes || ''} disabled={modal.type === 'view'} onChange={e => setField('avg_loading_time_minutes', e.target.value)} />
             </Field>
-            
+
             <Field label="Preferred Vehicle Types" className="col-span-2">
               <Input value={form.preferred_vehicle_types} onChange={e => setField('preferred_vehicle_types', e.target.value)} disabled={modal.type === 'view'}
                 placeholder="TRUCK, VAN, TRAILER (comma separated)" />

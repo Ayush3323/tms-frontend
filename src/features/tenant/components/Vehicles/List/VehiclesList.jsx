@@ -42,7 +42,8 @@ const EditVehicleButton = ({ vehicleId, onEdit }) => {
 
 // ── Main Component ────────────────────────────────────────────────────
 const Vehicles = () => {
-  const [search, setSearch] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatus] = useState('');
   const [fuelFilter, setFuel] = useState('');
   const [ownerFilter, setOwner] = useState('');
@@ -52,12 +53,22 @@ const Vehicles = () => {
   const [viewModal, setViewModal] = useState(null);
   const navigate = useNavigate();
 
+  // Search Debouncing
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setCurrentPage(1); // Reset to first page on search
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
   const { data, isLoading, isError, error, refetch } = useVehicles({
     page: currentPage,
     ...(statusFilter && { status: statusFilter }),
     ...(fuelFilter && { fuel_type: fuelFilter }),
     ...(ownerFilter && { ownership_type: ownerFilter }),
-    ...(search && { search }),
+    ...(debouncedSearch && { search: debouncedSearch }),
     ...(visibilityFilter === 'deleted' && { deleted_only: true }),
     ...(visibilityFilter === 'all' && { include_deleted: true }),
   });
@@ -75,7 +86,7 @@ const Vehicles = () => {
     updateVehicle.mutate({ id: v.id, data: { status: v.status === 'ACTIVE' ? 'MAINTENANCE' : 'ACTIVE' } });
 
   const resetFilters = () => {
-    setSearch('');
+    setSearchTerm('');
     setStatus('');
     setFuel('');
     setOwner('');
@@ -220,61 +231,73 @@ const Vehicles = () => {
         />
       )}
 
-      {/* Header */}
-      <div className="flex justify-between items-start mb-8">
-
-        {/* LEFT */}
-        <div>
-          <h1 className="text-2xl font-black text-[#172B4D]">Vehicles</h1>
-          <p className="text-sm text-gray-400 mt-0.5">
-            All registered vehicles — click <span className="text-[#0052CC] font-semibold">View</span> for full details
-          </p>
+      {/* Page Title & Search Section */}
+      <div className="flex items-center mb-8">
+        <div className="w-1/4">
+          <h2 className="text-2xl font-bold text-[#172B4D]">Vehicles</h2>
+          <p className="text-gray-500 text-sm tracking-tight">All registered vehicles — click <span className="text-[#0052CC] font-semibold">View</span></p>
         </div>
 
-        {/* RIGHT SIDE ALL BUTTONS */}
-        <div className="flex items-center gap-3">
+        {/* Centered Search Bar */}
+        <div className="flex-1 max-w-2xl px-8">
+          <div className="relative group/search">
+            <Search className="absolute left-4 top-3.5 text-gray-400 group-focus-within/search:text-[#0052CC] transition-all duration-300 group-focus-within/search:scale-110" size={20} />
+            <input
+              type="text"
+              placeholder="Search registration, make, model..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-12 py-3 bg-white border border-gray-200 rounded-2xl text-[15px] font-medium placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-50 transition-all shadow-sm hover:shadow-md hover:border-gray-300"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-4 top-2 text-gray-400 hover:text-red-500 transition-all duration-500 hover:rotate-180 p-1.5 rounded-full hover:bg-red-50 flex items-center justify-center group/reset"
+                title="Clear search"
+              >
+                <RotateCcw size={18} className="animate-in fade-in zoom-in spin-in-180 duration-500 group-hover/reset:scale-110" />
+              </button>
+            )}
+          </div>
+        </div>
 
-          <button
-            onClick={() => navigate('/tenant/dashboard/vehicles/types')}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all"
-          >
-            <LayoutGrid size={14} /> Vehicle Types
-          </button>
-
-          <button
-            onClick={() => refetch()}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
-          >
-            <RefreshCw size={14} /> Refresh
-          </button>
-
-          <button
-            className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
-          >
-            <Download size={14} /> Export
-          </button>
-
-          <button
-            onClick={() => setFormModal('add')}
-            className="bg-[#0052CC] text-white px-4 py-2 rounded-md flex items-center gap-2 text-sm font-bold hover:bg-[#0747A6]"
-          >
-            <Plus size={18} /> Add Vehicle
-          </button>
-
+        {/* Action Buttons Group */}
+        <div className="flex items-center justify-end gap-2 ml-auto">
+          <div className="flex items-center gap-2 mr-2">
+            <button
+              onClick={() => navigate('/tenant/dashboard/vehicles/types')}
+              className="flex items-center gap-1.5 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm"
+            >
+              <LayoutGrid size={14} /> Types
+            </button>
+            <button
+              onClick={() => refetch()}
+              className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95 group"
+            >
+              <RefreshCw size={14} className="group-hover:rotate-180 transition-transform duration-500" />
+              <span>Refresh</span>
+            </button>
+            <button
+              className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95"
+            >
+              <Download size={14} />
+              <span>Export</span>
+            </button>
+          </div>
+          <div className="w-px h-8 bg-gray-200 mx-1" />
         </div>
       </div>
 
-      {/* Table Card */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex-1 flex flex-col min-h-0 mt-2">
-
-        {/* Compact Stats Row */}
+      {/* Table Container */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden mt-2">
+        {/* Stats Row */}
         <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
           {isLoading ? (
             <div className="flex gap-6 animate-pulse">
-               <div className="h-5 bg-gray-200 rounded w-24"></div>
-               <div className="h-5 bg-gray-200 rounded w-24"></div>
-               <div className="h-5 bg-gray-200 rounded w-24"></div>
-               <div className="h-5 bg-gray-200 rounded w-24"></div>
+              <div className="h-5 bg-gray-200 rounded w-24"></div>
+              <div className="h-5 bg-gray-200 rounded w-24"></div>
+              <div className="h-5 bg-gray-200 rounded w-24"></div>
+              <div className="h-5 bg-gray-200 rounded w-24"></div>
             </div>
           ) : (
             <>
@@ -291,7 +314,7 @@ const Vehicles = () => {
                 <span className="text-[18px] font-black text-orange-500">{maintenance}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Retired / Sold:</span>
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Retired/Sold:</span>
                 <span className="text-[18px] font-black text-red-500">{retired}</span>
               </div>
               <div className="flex items-center gap-2">
@@ -300,77 +323,91 @@ const Vehicles = () => {
               </div>
             </>
           )}
-        </div>
-
-        {/* Filters Bar */}
-        <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-white flex-wrap gap-4">
-          <div className="flex gap-3 items-center flex-wrap flex-1">
-            <div className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 p-1">
-              {[
-                { id: 'active', label: 'Active' },
-                { id: 'deleted', label: 'Deleted' },
-                { id: 'all', label: 'All' },
-              ].map((opt) => (
-                <button
-                  key={opt.id}
-                  onClick={() => {
-                    setVisibilityFilter(opt.id);
-                    setCurrentPage(1);
-                  }}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${
-                    visibilityFilter === opt.id
-                      ? 'bg-[#0052CC] text-white shadow-sm'
-                      : 'text-gray-600 hover:bg-white'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-            <div className="relative min-w-[200px]">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input type="text" placeholder="Search registration, make, model..."
-                value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
-                className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] bg-gray-50" />
-            </div>
-            {[
-              { val: statusFilter, set: setStatus, opts: ['ACTIVE', 'MAINTENANCE', 'RETIRED', 'SOLD', 'SCRAPPED'], ph: 'All Status' },
-              { val: fuelFilter, set: setFuel, opts: ['DIESEL', 'PETROL', 'CNG', 'LPG', 'ELECTRIC', 'HYBRID'], ph: 'All Fuel' },
-              { val: ownerFilter, set: setOwner, opts: ['OWNED', 'LEASED', 'RENTED'], ph: 'All Ownership' },
-            ].map(({ val, set, opts, ph }) => (
-              <div key={ph} className="relative">
-                <select value={val} onChange={e => { set(e.target.value); setCurrentPage(1); }}
-                  className="appearance-none pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none cursor-pointer">
-                  <option value="">{ph}</option>
-                  {opts.map(o => <option key={o} value={o}>{o}</option>)}
-                </select>
-                <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-              </div>
-            ))}
-            <button onClick={resetFilters}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-500 border border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100 transition-all">
-              <RefreshCw size={13} /> Reset
+          <div className="ml-auto w-1/4 flex justify-end">
+            <button
+              onClick={() => setFormModal('add')}
+              className="mr-0 bg-[#0052CC] text-white px-6 py-3 rounded-xl flex items-center gap-2 text-sm font-bold hover:bg-[#0747A6] transition-all shadow-lg hover:shadow-blue-200 active:scale-95 group"
+            >
+              <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" /> New Vehicle
             </button>
           </div>
+        </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1 || isLoading}
-              className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-            >
-              Previous
-            </button>
-            <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
-              {currentPage}
+        <div>
+          <div className="flex items-center gap-6 ml-auto justify-between h-15 border-b border-gray-50">
+            {/* Quick Filters in Pagination Row */}
+            <div className="flex items-center gap-3 px-5 py-2">
+              <div className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 p-1">
+                {[
+                  { id: 'active', label: 'Active' },
+                  { id: 'deleted', label: 'Deleted' },
+                  { id: 'all', label: 'All' },
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => {
+                      setVisibilityFilter(opt.id);
+                      setCurrentPage(1);
+                    }}
+                    className={`px-3 py-1 text-[11px] font-bold rounded-md transition-all ${visibilityFilter === opt.id
+                      ? 'bg-[#0052CC] text-white shadow-sm'
+                      : 'text-gray-600 hover:bg-white'
+                      }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              {[
+                { val: statusFilter, set: setStatus, opts: ['ACTIVE', 'MAINTENANCE', 'RETIRED', 'SOLD', 'SCRAPPED'], ph: 'All Status' },
+                { val: fuelFilter, set: setFuel, opts: ['DIESEL', 'PETROL', 'CNG', 'LPG', 'ELECTRIC', 'HYBRID'], ph: 'All Fuel' },
+                { val: ownerFilter, set: setOwner, opts: ['OWNED', 'LEASED', 'RENTED'], ph: 'All Ownership' },
+              ].map(({ val, set, opts, ph }) => (
+                <div key={ph} className="relative">
+                  <select value={val} onChange={e => { set(e.target.value); setCurrentPage(1); }}
+                    className="appearance-none pl-3 pr-8 py-1.5 text-s  text-[#172B4D] border border-gray-200 rounded-lg bg-gray-50 focus:outline-none cursor-pointer">
+                    <option value="">{ph}</option>
+                    {opts.map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                  <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                </div>
+              ))}
+
+              {(statusFilter || fuelFilter || ownerFilter || visibilityFilter !== 'active') && (
+                <button
+                  onClick={resetFilters}
+                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                  title="Clear Filters"
+                >
+                  <RotateCcw size={14} />
+                </button>
+              )}
             </div>
-            <button
-              onClick={() => setCurrentPage(prev => prev + 1)}
-              disabled={!data?.next || isLoading}
-              className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-            >
-              Next
-            </button>
+
+            <div className="justify-between h-10 w-px bg-gray-100 hidden sm:block" />
+
+            <div className="flex items-center justify-between gap-3 px-5 py-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1 || isLoading}
+                className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+              >
+                Previous
+              </button>
+
+              <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
+                {currentPage}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                disabled={!data?.next || isLoading}
+                className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+              >
+                Next
+              </button>
+            </div>
           </div>
         </div>
 
@@ -421,9 +458,11 @@ const Vehicles = () => {
 
         {/* Pagination Section */}
         {!isLoading && !isError && (
-          <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100 bg-white shrink-0">
-            <div className="text-sm text-gray-500">
-              Showing <span className="font-bold text-[#172B4D]">{vehicles.length}</span> of <span className="font-bold text-[#172B4D]">{total}</span> vehicles
+          <div className="flex flex-col md:flex-row items-center justify-between px-6 py-4 border-t border-gray-100 bg-white gap-4">
+            <div className="flex flex-col sm:flex-row items-center gap-6">
+              <div className="text-sm text-gray-500 font-medium whitespace-nowrap">
+                Showing <span className="font-bold text-[#172B4D]">{vehicles.length}</span> of <span className="font-bold text-[#172B4D]">{total}</span> vehicles
+              </div>
             </div>
           </div>
         )}

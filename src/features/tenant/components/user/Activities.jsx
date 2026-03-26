@@ -19,10 +19,10 @@ const Activities = () => {
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
-  const { data: activitiesData, isLoading, isError, error } = useActivities({ 
-    page: currentPage, 
+  const { data: activitiesData, isLoading, isError, error } = useActivities({
+    page: currentPage,
     page_size: 15,
-    search: debouncedSearch 
+    search: debouncedSearch
   });
 
   const activities = activitiesData?.results || [];
@@ -67,83 +67,112 @@ const Activities = () => {
 
   return (
     <div className="p-6 bg-[#f8fafc] flex-1 min-h-0 overflow-hidden flex flex-col relative font-sans text-slate-900">
-      {/* Header & Stats */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
-        <div>
-          <h1 className="text-2xl font-black text-[#172B4D] tracking-tight mb-1 uppercase">System Activities</h1>
-          <p className="text-sm text-gray-400 font-bold uppercase tracking-widest opacity-80">Track all events and audits across the platform</p>
+      {/* Page Title & Search Section */}
+      <div className="flex items-center mb-8">
+        <div className="w-1/4">
+          <h1 className="text-2xl font-black text-[#172B4D] tracking-tight uppercase">System Activities</h1>
+          <p className="text-gray-500 text-sm tracking-tight">Track all events and audits</p>
         </div>
-        
-        <div className="flex gap-4">
-          {stats.map((stat, idx) => (
-            <div key={idx} className={`bg-white p-4 rounded-2xl border border-gray-100 shadow-sm min-w-48`}>
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{stat.label}</p>
-              <div className="flex items-end gap-2">
-                <span className={`text-2xl font-black ${stat.color === 'blue' ? 'text-[#0052CC]' : 'text-purple-600'}`}>{stat.value}</span>
-                <span className="text-[10px] text-gray-400 font-bold mb-1 opacity-60 italic">{stat.sub}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6 overflow-hidden">
-        {/* Control Bar */}
-        <div className="p-4 flex flex-col md:flex-row gap-4 items-center justify-between bg-white flex-wrap">
-          <div className="flex gap-3 items-center flex-wrap flex-1">
-            <div className="relative w-full md:w-96">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-              <input 
-                type="text" 
-                placeholder="Search by description, type or user..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:bg-white transition-all font-medium py-3.5"
-              />
-            </div>
-            <button 
+        {/* Centered Search Bar */}
+        <div className="flex-1 max-w-2xl px-8">
+          <div className="relative group/search">
+            <Search className="absolute left-4 top-3.5 text-gray-400 group-focus-within/search:text-[#0052CC] transition-all duration-300 group-focus-within/search:scale-110" size={20} />
+            <input
+              type="text"
+              placeholder="Search by description, type or user..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-12 py-3 bg-white border border-gray-200 rounded-2xl text-[15px] font-medium placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-50 transition-all shadow-sm hover:shadow-md hover:border-gray-300"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-4 top-2 text-gray-400 hover:text-red-500 transition-all duration-500 hover:rotate-180 p-1.5 rounded-full hover:bg-red-50 flex items-center justify-center group/reset"
+                title="Clear search"
+              >
+                <RotateCcw size={18} className="animate-in fade-in zoom-in spin-in-180 duration-500 group-hover/reset:scale-110" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Action Buttons Group */}
+        <div className="flex items-center justify-end gap-2 ml-auto">
+          <div className="flex items-center gap-2 mr-2">
+            <button
               onClick={() => { setSearchTerm(''); setCurrentPage(1); }}
-              className="p-3 text-gray-400 hover:text-[#0052CC] hover:bg-blue-50 rounded-xl transition-all"
-              title="Reset Filters"
+              className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95 group"
             >
-              <RotateCcw size={20} />
+              <RotateCcw size={14} className={isLoading ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"} />
+              <span>Reset</span>
             </button>
           </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1 || isLoading}
-              className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-            >
-              Previous
-            </button>
-            <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
-              {currentPage}
-            </div>
-            <button
-              onClick={() => setCurrentPage(prev => prev + 1)}
-              disabled={!activitiesData?.next || isLoading}
-              className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-            >
-              Next
-            </button>
-          </div>
+          <div className="w-px h-8 bg-gray-200 mx-1" />
         </div>
       </div>
 
-      {/* Activities Table */}
-      <div className="flex-1 min-h-0 overflow-auto bg-white rounded-xl shadow-sm border border-gray-100 mt-2">
-        <table className="w-full text-left border-collapse relative">
-          <thead className="bg-[#F8FAFC] border-b border-gray-100 sticky top-0 z-10">
-            <tr className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-              <th className="px-6 py-4">Timestamp</th>
-              <th className="px-6 py-4">User Context</th>
-              <th className="px-6 py-4">Event Activity</th>
-              <th className="px-6 py-4">Access Point</th>
-              <th className="px-6 py-4 text-right">Action</th>
-            </tr>
-          </thead>
+      {/* Main Table Container */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden mt-2">
+        {/* Compact Stats Row */}
+        <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+          {isLoading ? (
+            <div className="flex gap-6 animate-pulse">
+              <div className="h-5 bg-gray-200 rounded w-28"></div>
+              <div className="h-5 bg-gray-200 rounded w-28"></div>
+            </div>
+          ) : (
+            stats.map((stat, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">{stat.label}:</span>
+                <span className={`text-[18px] font-black ${stat.color === 'blue' ? 'text-[#0052CC]' : 'text-purple-600'}`}>{stat.value}</span>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div>
+          <div className="flex items-center gap-6 ml-auto justify-between h-15 border-b border-gray-50">
+            {/* Quick Filters Placeholder */}
+            <div className="flex items-center gap-3 px-5 py-2">
+            </div>
+
+            <div className="justify-between h-10 w-px bg-gray-100 hidden sm:block px-5" />
+
+            <div className="flex items-center justify-between gap-3 px-5 py-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1 || isLoading}
+                className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+              >
+                Previous
+              </button>
+              <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
+                {currentPage}
+              </div>
+              <button
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                disabled={!activitiesData?.next || isLoading}
+                className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Activities Table */}
+        <div className="flex-1 min-h-0 overflow-auto bg-white rounded-xl mt-0">
+          <table className="w-full text-left border-collapse relative">
+            <thead className="bg-[#F8FAFC] border-b border-gray-100 sticky top-0 z-10">
+              <tr className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                <th className="px-6 py-4">Timestamp</th>
+                <th className="px-6 py-4">User Context</th>
+                <th className="px-6 py-4">Event Activity</th>
+                <th className="px-6 py-4">Access Point</th>
+                <th className="px-6 py-4 text-right">Action</th>
+              </tr>
+            </thead>
             <tbody className="divide-y divide-gray-50">
               {isLoading ? (
                 Array(5).fill(0).map((_, i) => (
@@ -214,7 +243,7 @@ const Activities = () => {
                       </div>
                     </td>
                     <td className="px-6 py-5 text-right">
-                      <button 
+                      <button
                         onClick={() => handleOpenDetailModal(activity)}
                         className="p-2.5 text-gray-400 hover:text-[#0052CC] hover:bg-blue-50 rounded-xl transition-all"
                       >
@@ -226,12 +255,13 @@ const Activities = () => {
               )}
             </tbody>
           </table>
-      </div>
+        </div>
 
-      {/* Pagination Section */}
-      <div className="flex items-center justify-between mt-4 px-2">
-        <div className="text-sm text-gray-500">
-          Showing <span className="font-bold text-[#172B4D]">{activities.length}</span> of <span className="font-bold text-[#172B4D]">{totalCount}</span> activities
+        {/* Pagination Footer */}
+        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-white gap-4">
+          <div className="text-sm text-gray-500">
+            Showing <span className="font-bold text-[#172B4D]">{activities.length}</span> of <span className="font-bold text-[#172B4D]">{totalCount}</span> items
+          </div>
         </div>
       </div>
 
@@ -244,7 +274,7 @@ const Activities = () => {
                 <h3 className="text-xl font-black uppercase tracking-tight">Log Details</h3>
                 <p className="text-[10px] text-blue-100 font-bold opacity-80 uppercase tracking-widest mt-0.5">Audit Trail #{selectedActivity.id}</p>
               </div>
-              <button 
+              <button
                 onClick={handleCloseModal}
                 className="p-2 hover:bg-white/10 rounded-full transition-colors text-white"
               >
@@ -304,8 +334,8 @@ const Activities = () => {
               {/* User Agent Block */}
               <div className="p-5 bg-gray-50 rounded-3xl border border-gray-100 space-y-3">
                 <div className="flex items-center justify-between">
-                   <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Access Point Signature</p>
-                   {selectedActivity.user_agent?.includes('Mozilla') ? <Monitor size={14} className="text-gray-400" /> : <Smartphone size={14} className="text-gray-400" />}
+                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Access Point Signature</p>
+                  {selectedActivity.user_agent?.includes('Mozilla') ? <Monitor size={14} className="text-gray-400" /> : <Smartphone size={14} className="text-gray-400" />}
                 </div>
                 <p className="text-xs font-mono text-gray-600 leading-relaxed break-all bg-white p-3 rounded-xl border border-gray-100 italic">
                   {selectedActivity.user_agent || 'No agent signature available for this system event.'}
@@ -314,7 +344,7 @@ const Activities = () => {
             </div>
 
             <div className="px-8 py-6 bg-gray-50/50 flex justify-end">
-              <button 
+              <button
                 onClick={handleCloseModal}
                 className="px-10 py-3 bg-[#0052CC] text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-blue-100 hover:bg-[#0747A6] transition-all hover:scale-[1.02] active:scale-95"
               >

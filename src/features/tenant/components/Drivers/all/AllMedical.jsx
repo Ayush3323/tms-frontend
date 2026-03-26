@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HeartPulse, Plus } from 'lucide-react';
+import { HeartPulse, Plus, RefreshCw, Download, Upload, RotateCcw } from 'lucide-react';
 import { useMedicalRecords } from '../../../queries/drivers/trainingAndMedicalQuery';
 
 import { LoadingState, ErrorState, EmptyState, PageLayoutShimmer } from '../common/StateFeedback';
@@ -68,15 +68,24 @@ const AllMedical = () => {
 
       <div className="p-6 lg:p-8 flex-1 flex flex-col min-h-0">
         {/* ── Header ── */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl font-black text-[#172B4D] tracking-tight">Medical Records</h1>
-            <p className="text-sm text-gray-500 mt-1">Manage health and medical history for all drivers</p>
+        <div className="flex items-center mb-8">
+          <div className="w-1/4">
+            <h1 className="text-2xl font-black text-[#172B4D] uppercase tracking-tight">Medical Records</h1>
+            <p className="text-gray-500 text-sm tracking-tight mt-0.5">Manage health and medical history for all drivers</p>
           </div>
-          <div className="flex items-center gap-3">
-            <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-[#0052CC] text-white rounded-lg text-sm font-bold shadow-sm hover:bg-[#0043A8] transition-all">
-              <Plus size={16} /> Add Record
-            </button>
+          <div className="flex-1" />
+          <div className="flex items-center justify-end gap-2 ml-auto">
+            <div className="flex items-center gap-2">
+              <button onClick={() => refetch()} className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95 group">
+                <RefreshCw size={14} className={isFetching ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'} /><span>Refresh</span>
+              </button>
+              <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95">
+                <Upload size={14} /><span>Import</span>
+              </button>
+              <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm active:scale-95">
+                <Download size={14} /><span>Export</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -111,57 +120,31 @@ const AllMedical = () => {
                 </div>
               </>
             )}
+            <div className="ml-auto flex justify-end">
+              <button onClick={() => setAddOpen(true)} className="bg-[#0052CC] text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm font-bold hover:bg-[#0747A6] transition-all shadow-md active:scale-95 group">
+                <Plus size={16} className="group-hover:rotate-90 transition-transform duration-300" /> Add Record
+              </button>
+            </div>
           </div>
 
           {/* ── Filters Bar ── */}
-          <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-white flex-wrap gap-4">
-            <div className="flex gap-3 items-center flex-wrap flex-1">
-              <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Driver</p>
-                <DriverSelect
-                  value={filters.driver}
-                  onChange={(val) => handleFilterChange('driver', val)}
-                  className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
-                />
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Fitness Status</p>
-                <Select
-                  value={filters.fitness_status}
-                  onChange={(e) => handleFilterChange('fitness_status', e.target.value)}
-                  className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
-                >
-                  <option value="">All Status</option>
-                  {FITNESS_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
-                </Select>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Exam Date</p>
-                <Input
-                  type="date"
-                  value={filters.examination_date}
-                  onChange={(e) => handleFilterChange('examination_date', e.target.value)}
-                  className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
-                />
-              </div>
-              <div className="flex items-end gap-2">
-                <div className="flex-1">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Next Due Date</p>
-                  <Input
-                    type="date"
-                    value={filters.next_due_date}
-                    onChange={(e) => handleFilterChange('next_due_date', e.target.value)}
-                    className="bg-[#f0f3f9] border-[#e2e8f0] text-[12px] py-1.5 font-medium text-[#1a202c] rounded-lg"
-                  />
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={clearFilters}
-              className="px-3 py-2 text-xs font-bold text-gray-500 hover:text-red-500 transition-colors self-end mb-1"
-            >
-              Clear
-            </button>
+          <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-50 bg-white flex-wrap">
+            <DriverSelect value={filters.driver} onChange={(val) => handleFilterChange('driver', val)}
+              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
+            <Select value={filters.fitness_status} onChange={(e) => handleFilterChange('fitness_status', e.target.value)}
+              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100">
+              <option value="">All Status</option>
+              {FITNESS_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
+            </Select>
+            <Input type="date" value={filters.examination_date} onChange={(e) => handleFilterChange('examination_date', e.target.value)}
+              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
+            <Input type="date" value={filters.next_due_date} onChange={(e) => handleFilterChange('next_due_date', e.target.value)}
+              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
+            {(filters.driver || filters.fitness_status || filters.examination_date || filters.next_due_date) && (
+              <button onClick={clearFilters} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Clear">
+                <RotateCcw size={14} />
+              </button>
+            )}
           </div>
 
           {/* ── Content ── */}
