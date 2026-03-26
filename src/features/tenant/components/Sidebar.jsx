@@ -46,6 +46,7 @@ const customerSubItems = [
   { name: 'Consignors', icon: <UserPlus size={13} />, path: '/tenant/dashboard/customers/consigners', badge: null },
   { name: 'Consignees', icon: <UserMinus size={13} />, path: '/tenant/dashboard/customers/consignees', badge: null },
   { name: 'Brokers', icon: <Briefcase size={13} />, path: '/tenant/dashboard/customers/brokers', badge: null },
+  { name: 'Agents', icon: <Globe size={13} />, path: '/tenant/dashboard/customers/agents', badge: null },
 ];
 
 const orderSubItems = [
