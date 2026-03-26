@@ -95,176 +95,120 @@ const Sidebar = ({ isCollapsed }) => {
   const [customersOpen, setCustomersOpen] = useState(isCustomerPath);
   const [ordersOpen, setOrdersOpen] = useState(isOrderPath);
 
+  const NavItem = ({ icon, label, isOpen, setIsOpen, isActive, subItems, title }) => (
+    <div className="relative group">
+      <button
+        onClick={() => !isCollapsed && setIsOpen((o) => !o)}
+        className={`w-full flex ${isCollapsed ? 'flex-col items-center justify-center py-3' : 'items-center gap-3 px-3 py-2.5'} rounded-lg transition-all border ${isActive
+          ? 'bg-[#EBF3FF] text-[#0052CC] border-[#D0E2FF]'
+          : 'text-gray-600 hover:bg-gray-100 border-transparent'
+          }`}
+        title={isCollapsed ? "" : title}
+      >
+        <div className={`${isActive ? 'text-[#0052CC]' : 'text-gray-400'} ${isCollapsed ? 'mb-1.5' : ''} flex items-center justify-center`}>
+          {React.cloneElement(icon, { size: isCollapsed ? 24 : 18 })}
+        </div>
+        {!isCollapsed ? (
+          <>
+            <span className="text-sm font-semibold flex-1 text-left animate-in fade-in duration-500">{label}</span>
+            <ChevronDown size={15} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : 'rotate-0'} ${isActive ? 'text-[#0052CC]' : 'text-gray-400'}`} />
+          </>
+        ) : (
+          <span className="text-[10px] font-bold text-gray-500 text-center leading-none">{label}</span>
+        )}
+      </button>
+
+      {/* Expanded Submenu (for desktop/expanded state) */}
+      {!isCollapsed && (
+        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
+          <SubMenu items={subItems} />
+        </div>
+      )}
+
+      {/* Floating Submenu for Collapsed State */}
+      {isCollapsed && (
+        <div className="absolute left-[calc(100%+8px)] top-0 w-48 bg-white border border-gray-200 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[999] py-2 animate-in fade-in slide-in-from-left-2 duration-200">
+          <div className="px-3 py-2 border-b border-gray-100 mb-1">
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{label}</span>
+          </div>
+          <SubMenu items={subItems} />
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <aside className={`${isCollapsed ? 'w-20' : 'w-64'} h-screen bg-[#F8FAFC] border-r border-gray-200 flex flex-col justify-between p-4 sticky top-0 z-50 overflow-y-auto flex-shrink-0 transition-all duration-300 ease-in-out`}>
-      <div>
+    <aside className={`${isCollapsed ? 'w-24' : 'w-64'} h-screen bg-[#F8FAFC] border-r border-gray-200 flex flex-col justify-between p-4 sticky top-0 z-50 transition-all duration-300 ease-in-out`}>
+      <div className="flex flex-col h-full">
         {/* Logo Section */}
-        <div className={`flex items-center gap-3 px-2 mb-10 ${isCollapsed ? 'justify-center' : ''}`}>
-          <div className="w-10 h-10 bg-[#0052CC] rounded-lg flex items-center justify-center flex-shrink-0">
+        <div className={`flex items-center gap-3 px-2 mb-8 ${isCollapsed ? 'flex-col justify-center mb-6' : ''}`}>
+          <div className="w-10 h-10 bg-[#0052CC] rounded-lg flex items-center justify-center flex-shrink-0 shadow-md">
             <LayoutGrid className="text-white" size={24} />
           </div>
-          {!isCollapsed && (
+          {!isCollapsed ? (
             <div className="animate-in fade-in duration-500">
               <h1 className="font-bold text-[#172B4D] text-sm leading-tight">Tenant Admin</h1>
               <p className="text-[10px] text-gray-500 font-medium">Management Console</p>
             </div>
+          ) : (
+             <div className="text-[9px] font-bold text-[#0052CC] mt-1.5 text-center uppercase tracking-wider">Admin</div>
           )}
         </div>
 
-        {/* Navigation Labels */}
-        <div className="mb-4">
-          {!isCollapsed && <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-2 mb-2 animate-in fade-in duration-500">Main</p>}
-          <nav className="space-y-1">
-
-            {/* Users Dropdown */}
-            <div>
-              <button
-                onClick={() => !isCollapsed && setUsersOpen((o) => !o)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all border ${isCollapsed ? 'justify-center' : ''} ${isUserPath
-                  ? 'bg-[#EBF3FF] text-[#0052CC] border-[#D0E2FF]'
-                  : 'text-gray-600 hover:bg-gray-100 border-transparent'
-                  }`}
-                title={isCollapsed ? "Users" : ""}
-              >
-                <span className={isUserPath ? 'text-[#0052CC]' : 'text-gray-400'}>
-                  <Users size={18} />
-                </span>
-                {!isCollapsed && (
-                  <>
-                    <span className="text-sm font-semibold flex-1 text-left animate-in fade-in duration-500">Users</span>
-                    <ChevronDown size={15} className={`transition-transform duration-200 ${usersOpen ? 'rotate-180' : 'rotate-0'} ${isUserPath ? 'text-[#0052CC]' : 'text-gray-400'}`} />
-                  </>
-                )}
-              </button>
-              {!isCollapsed && (
-                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${usersOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                  <SubMenu items={userSubItems} />
-                </div>
-              )}
-            </div>
-
-            {/* Vehicles Dropdown */}
-            <div>
-              <button
-                onClick={() => !isCollapsed && setVehiclesOpen((o) => !o)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all border ${isCollapsed ? 'justify-center' : ''} ${isVehiclePath
-                  ? 'bg-[#EBF3FF] text-[#0052CC] border-[#D0E2FF]'
-                  : 'text-gray-600 hover:bg-gray-100 border-transparent'
-                  }`}
-                title={isCollapsed ? "Vehicles" : ""}
-              >
-                <span className={isVehiclePath ? 'text-[#0052CC]' : 'text-gray-400'}>
-                  <Truck size={18} />
-                </span>
-                {!isCollapsed && (
-                  <>
-                    <span className="text-sm font-semibold flex-1 text-left animate-in fade-in duration-500">Vehicles</span>
-                    <ChevronDown size={15} className={`transition-transform duration-200 ${vehiclesOpen ? 'rotate-180' : 'rotate-0'} ${isVehiclePath ? 'text-[#0052CC]' : 'text-gray-400'}`} />
-                  </>
-                )}
-              </button>
-              {!isCollapsed && (
-                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${vehiclesOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                  <SubMenu items={vehicleSubItems} />
-                </div>
-              )}
-            </div>
-
-            {/* Drivers Dropdown */}
-            <div>
-              <button
-                onClick={() => !isCollapsed && setDriversOpen((o) => !o)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all border ${isCollapsed ? 'justify-center' : ''} ${isDriverPath
-                  ? 'bg-[#EBF3FF] text-[#0052CC] border-[#D0E2FF]'
-                  : 'text-gray-600 hover:bg-gray-100 border-transparent'
-                  }`}
-                title={isCollapsed ? "Drivers" : ""}
-              >
-                <span className={isDriverPath ? 'text-[#0052CC]' : 'text-gray-400'}>
-                  <Users size={18} />
-                </span>
-                {!isCollapsed && (
-                  <>
-                    <span className="text-sm font-semibold flex-1 text-left animate-in fade-in duration-500">Drivers</span>
-                    <ChevronDown size={15} className={`transition-transform duration-200 ${driversOpen ? 'rotate-180' : 'rotate-0'} ${isDriverPath ? 'text-[#0052CC]' : 'text-gray-400'}`} />
-                  </>
-                )}
-              </button>
-              {!isCollapsed && (
-                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${driversOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                  <SubMenu items={driverSubItems} />
-                </div>
-              )}
-            </div>
-
-            {/* Customers Dropdown */}
-            <div>
-              <button
-                onClick={() => !isCollapsed && setCustomersOpen((o) => !o)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all border ${isCollapsed ? 'justify-center' : ''} ${isCustomerPath
-                  ? 'bg-[#EBF3FF] text-[#0052CC] border-[#D0E2FF]'
-                  : 'text-gray-600 hover:bg-gray-100 border-transparent'
-                  }`}
-                title={isCollapsed ? "Customers" : ""}
-              >
-                <span className={isCustomerPath ? 'text-[#0052CC]' : 'text-gray-400'}>
-                  <Building2 size={18} />
-                </span>
-                {!isCollapsed && (
-                  <>
-                    <span className="text-sm font-semibold flex-1 text-left animate-in fade-in duration-500">Customers</span>
-                    <ChevronDown size={15} className={`transition-transform duration-200 ${customersOpen ? 'rotate-180' : 'rotate-0'} ${isCustomerPath ? 'text-[#0052CC]' : 'text-gray-400'}`} />
-                  </>
-                )}
-              </button>
-              {!isCollapsed && (
-                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${customersOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                  <SubMenu items={customerSubItems} />
-                </div>
-              )}
-            </div>
-
-            {/* Orders Dropdown (NEW) */}
-            <div>
-              <button
-                onClick={() => !isCollapsed && setOrdersOpen((o) => !o)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all border ${isCollapsed ? 'justify-center' : ''} ${isOrderPath
-                  ? 'bg-[#EBF3FF] text-[#0052CC] border-[#D0E2FF]'
-                  : 'text-gray-600 hover:bg-gray-100 border-transparent'
-                  }`}
-                title={isCollapsed ? "Orders" : ""}
-              >
-                <span className={isOrderPath ? 'text-[#0052CC]' : 'text-gray-400'}>
-                  <FileText size={18} />
-                </span>
-                {!isCollapsed && (
-                  <>
-                    <span className="text-sm font-semibold flex-1 text-left animate-in fade-in duration-500">Orders</span>
-                    <ChevronDown size={15} className={`transition-transform duration-200 ${ordersOpen ? 'rotate-180' : 'rotate-0'} ${isOrderPath ? 'text-[#0052CC]' : 'text-gray-400'}`} />
-                  </>
-                )}
-              </button>
-              {!isCollapsed && (
-                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${ordersOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                  <SubMenu items={orderSubItems} />
-                </div>
-              )}
-            </div>
-
-          </nav>
+        {/* Navigation Area */}
+        <div className={`flex-1 ${isCollapsed ? '' : 'overflow-y-auto scrollbar-hide'} -mx-2 px-2`}>
+          <div className="mb-4">
+            {!isCollapsed && <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-2 mb-2 animate-in fade-in duration-500">Main</p>}
+            <nav className="space-y-1 mt-2">
+              <NavItem
+                icon={<Users />}
+                label="Users"
+                isOpen={usersOpen}
+                setIsOpen={setUsersOpen}
+                isActive={isUserPath}
+                subItems={userSubItems}
+                title="Users Management"
+              />
+              <NavItem
+                icon={<Truck />}
+                label="Vehicles"
+                isOpen={vehiclesOpen}
+                setIsOpen={setVehiclesOpen}
+                isActive={isVehiclePath}
+                subItems={vehicleSubItems}
+                title="Vehicles Management"
+              />
+              <NavItem
+                icon={<Users />}
+                label="Drivers"
+                isOpen={driversOpen}
+                setIsOpen={setDriversOpen}
+                isActive={isDriverPath}
+                subItems={driverSubItems}
+                title="Drivers Management"
+              />
+              <NavItem
+                icon={<Building2 />}
+                label="Customers"
+                isOpen={customersOpen}
+                setIsOpen={setCustomersOpen}
+                isActive={isCustomerPath}
+                subItems={customerSubItems}
+                title="Customers Management"
+              />
+              <NavItem
+                icon={<FileText />}
+                label="Orders"
+                isOpen={ordersOpen}
+                setIsOpen={setOrdersOpen}
+                isActive={isOrderPath}
+                subItems={orderSubItems}
+                title="Orders Management"
+              />
+            </nav>
+          </div>
         </div>
       </div>
-
-      {/* Footer Profile Section */}
-      {/* <div className="bg-white border border-gray-100 rounded-xl p-3 shadow-sm flex items-center gap-3">
-        <div className="w-10 h-10 bg-[#4C9AFF] rounded flex items-center justify-center text-white font-bold text-xs uppercase">
-          PA
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          <p className="text-xs font-bold text-[#172B4D] truncate">Platform Admin</p>
-          <p className="text-[10px] text-gray-400 truncate">Super Admin</p>
-        </div>
-      </div> */}
     </aside>
   );
 };
