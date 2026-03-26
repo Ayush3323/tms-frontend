@@ -80,7 +80,7 @@ const SubMenu = ({ items }) => (
   </div>
 );
 
-const Sidebar = () => {
+const Sidebar = ({ isCollapsed }) => {
   const location = useLocation();
 
   const isVehiclePath = location.pathname.startsWith('/tenant/dashboard/vehicles');
@@ -96,122 +96,159 @@ const Sidebar = () => {
   const [ordersOpen, setOrdersOpen] = useState(isOrderPath);
 
   return (
-    <aside className="w-64 h-screen bg-[#F8FAFC] border-r border-gray-200 flex flex-col justify-between p-4 sticky top-0 z-50 overflow-y-auto flex-shrink-0">
+    <aside className={`${isCollapsed ? 'w-20' : 'w-64'} h-screen bg-[#F8FAFC] border-r border-gray-200 flex flex-col justify-between p-4 sticky top-0 z-50 overflow-y-auto flex-shrink-0 transition-all duration-300 ease-in-out`}>
       <div>
         {/* Logo Section */}
-        <div className="flex items-center gap-3 px-2 mb-10">
-          <div className="w-10 h-10 bg-[#0052CC] rounded-lg flex items-center justify-center">
+        <div className={`flex items-center gap-3 px-2 mb-10 ${isCollapsed ? 'justify-center' : ''}`}>
+          <div className="w-10 h-10 bg-[#0052CC] rounded-lg flex items-center justify-center flex-shrink-0">
             <LayoutGrid className="text-white" size={24} />
           </div>
-          <div>
-            <h1 className="font-bold text-[#172B4D] text-sm leading-tight">Tenant Admin</h1>
-            <p className="text-[10px] text-gray-500 font-medium">Management Console</p>
-          </div>
+          {!isCollapsed && (
+            <div className="animate-in fade-in duration-500">
+              <h1 className="font-bold text-[#172B4D] text-sm leading-tight">Tenant Admin</h1>
+              <p className="text-[10px] text-gray-500 font-medium">Management Console</p>
+            </div>
+          )}
         </div>
 
         {/* Navigation Labels */}
         <div className="mb-4">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-2 mb-2">Main</p>
+          {!isCollapsed && <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-2 mb-2 animate-in fade-in duration-500">Main</p>}
           <nav className="space-y-1">
 
             {/* Users Dropdown */}
             <div>
               <button
-                onClick={() => setUsersOpen((o) => !o)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all border ${isUserPath
+                onClick={() => !isCollapsed && setUsersOpen((o) => !o)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all border ${isCollapsed ? 'justify-center' : ''} ${isUserPath
                   ? 'bg-[#EBF3FF] text-[#0052CC] border-[#D0E2FF]'
                   : 'text-gray-600 hover:bg-gray-100 border-transparent'
                   }`}
+                title={isCollapsed ? "Users" : ""}
               >
                 <span className={isUserPath ? 'text-[#0052CC]' : 'text-gray-400'}>
                   <Users size={18} />
                 </span>
-                <span className="text-sm font-semibold flex-1 text-left">Users</span>
-                <ChevronDown size={15} className={`transition-transform duration-200 ${usersOpen ? 'rotate-180' : 'rotate-0'} ${isUserPath ? 'text-[#0052CC]' : 'text-gray-400'}`} />
+                {!isCollapsed && (
+                  <>
+                    <span className="text-sm font-semibold flex-1 text-left animate-in fade-in duration-500">Users</span>
+                    <ChevronDown size={15} className={`transition-transform duration-200 ${usersOpen ? 'rotate-180' : 'rotate-0'} ${isUserPath ? 'text-[#0052CC]' : 'text-gray-400'}`} />
+                  </>
+                )}
               </button>
-              <div className={`overflow-hidden transition-all duration-300 ease-in-out ${usersOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                <SubMenu items={userSubItems} />
-              </div>
+              {!isCollapsed && (
+                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${usersOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                  <SubMenu items={userSubItems} />
+                </div>
+              )}
             </div>
 
             {/* Vehicles Dropdown */}
             <div>
               <button
-                onClick={() => setVehiclesOpen((o) => !o)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all border ${isVehiclePath
+                onClick={() => !isCollapsed && setVehiclesOpen((o) => !o)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all border ${isCollapsed ? 'justify-center' : ''} ${isVehiclePath
                   ? 'bg-[#EBF3FF] text-[#0052CC] border-[#D0E2FF]'
                   : 'text-gray-600 hover:bg-gray-100 border-transparent'
                   }`}
+                title={isCollapsed ? "Vehicles" : ""}
               >
                 <span className={isVehiclePath ? 'text-[#0052CC]' : 'text-gray-400'}>
                   <Truck size={18} />
                 </span>
-                <span className="text-sm font-semibold flex-1 text-left">Vehicles</span>
-                <ChevronDown size={15} className={`transition-transform duration-200 ${vehiclesOpen ? 'rotate-180' : 'rotate-0'} ${isVehiclePath ? 'text-[#0052CC]' : 'text-gray-400'}`} />
+                {!isCollapsed && (
+                  <>
+                    <span className="text-sm font-semibold flex-1 text-left animate-in fade-in duration-500">Vehicles</span>
+                    <ChevronDown size={15} className={`transition-transform duration-200 ${vehiclesOpen ? 'rotate-180' : 'rotate-0'} ${isVehiclePath ? 'text-[#0052CC]' : 'text-gray-400'}`} />
+                  </>
+                )}
               </button>
-              <div className={`overflow-hidden transition-all duration-300 ease-in-out ${vehiclesOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                <SubMenu items={vehicleSubItems} />
-              </div>
+              {!isCollapsed && (
+                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${vehiclesOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                  <SubMenu items={vehicleSubItems} />
+                </div>
+              )}
             </div>
 
             {/* Drivers Dropdown */}
             <div>
               <button
-                onClick={() => setDriversOpen((o) => !o)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all border ${isDriverPath
+                onClick={() => !isCollapsed && setDriversOpen((o) => !o)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all border ${isCollapsed ? 'justify-center' : ''} ${isDriverPath
                   ? 'bg-[#EBF3FF] text-[#0052CC] border-[#D0E2FF]'
                   : 'text-gray-600 hover:bg-gray-100 border-transparent'
                   }`}
+                title={isCollapsed ? "Drivers" : ""}
               >
                 <span className={isDriverPath ? 'text-[#0052CC]' : 'text-gray-400'}>
                   <Users size={18} />
                 </span>
-                <span className="text-sm font-semibold flex-1 text-left">Drivers</span>
-                <ChevronDown size={15} className={`transition-transform duration-200 ${driversOpen ? 'rotate-180' : 'rotate-0'} ${isDriverPath ? 'text-[#0052CC]' : 'text-gray-400'}`} />
+                {!isCollapsed && (
+                  <>
+                    <span className="text-sm font-semibold flex-1 text-left animate-in fade-in duration-500">Drivers</span>
+                    <ChevronDown size={15} className={`transition-transform duration-200 ${driversOpen ? 'rotate-180' : 'rotate-0'} ${isDriverPath ? 'text-[#0052CC]' : 'text-gray-400'}`} />
+                  </>
+                )}
               </button>
-              <div className={`overflow-hidden transition-all duration-300 ease-in-out ${driversOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                <SubMenu items={driverSubItems} />
-              </div>
+              {!isCollapsed && (
+                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${driversOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                  <SubMenu items={driverSubItems} />
+                </div>
+              )}
             </div>
 
             {/* Customers Dropdown */}
             <div>
               <button
-                onClick={() => setCustomersOpen((o) => !o)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all border ${isCustomerPath
+                onClick={() => !isCollapsed && setCustomersOpen((o) => !o)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all border ${isCollapsed ? 'justify-center' : ''} ${isCustomerPath
                   ? 'bg-[#EBF3FF] text-[#0052CC] border-[#D0E2FF]'
                   : 'text-gray-600 hover:bg-gray-100 border-transparent'
                   }`}
+                title={isCollapsed ? "Customers" : ""}
               >
                 <span className={isCustomerPath ? 'text-[#0052CC]' : 'text-gray-400'}>
                   <Building2 size={18} />
                 </span>
-                <span className="text-sm font-semibold flex-1 text-left">Customers</span>
-                <ChevronDown size={15} className={`transition-transform duration-200 ${customersOpen ? 'rotate-180' : 'rotate-0'} ${isCustomerPath ? 'text-[#0052CC]' : 'text-gray-400'}`} />
+                {!isCollapsed && (
+                  <>
+                    <span className="text-sm font-semibold flex-1 text-left animate-in fade-in duration-500">Customers</span>
+                    <ChevronDown size={15} className={`transition-transform duration-200 ${customersOpen ? 'rotate-180' : 'rotate-0'} ${isCustomerPath ? 'text-[#0052CC]' : 'text-gray-400'}`} />
+                  </>
+                )}
               </button>
-              <div className={`overflow-hidden transition-all duration-300 ease-in-out ${customersOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                <SubMenu items={customerSubItems} />
-              </div>
+              {!isCollapsed && (
+                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${customersOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                  <SubMenu items={customerSubItems} />
+                </div>
+              )}
             </div>
 
-             {/* Orders Dropdown (NEW) */}
+            {/* Orders Dropdown (NEW) */}
             <div>
               <button
-                onClick={() => setOrdersOpen((o) => !o)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all border ${isOrderPath
+                onClick={() => !isCollapsed && setOrdersOpen((o) => !o)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all border ${isCollapsed ? 'justify-center' : ''} ${isOrderPath
                   ? 'bg-[#EBF3FF] text-[#0052CC] border-[#D0E2FF]'
                   : 'text-gray-600 hover:bg-gray-100 border-transparent'
                   }`}
+                title={isCollapsed ? "Orders" : ""}
               >
                 <span className={isOrderPath ? 'text-[#0052CC]' : 'text-gray-400'}>
                   <FileText size={18} />
                 </span>
-                <span className="text-sm font-semibold flex-1 text-left">Orders</span>
-                <ChevronDown size={15} className={`transition-transform duration-200 ${ordersOpen ? 'rotate-180' : 'rotate-0'} ${isOrderPath ? 'text-[#0052CC]' : 'text-gray-400'}`} />
+                {!isCollapsed && (
+                  <>
+                    <span className="text-sm font-semibold flex-1 text-left animate-in fade-in duration-500">Orders</span>
+                    <ChevronDown size={15} className={`transition-transform duration-200 ${ordersOpen ? 'rotate-180' : 'rotate-0'} ${isOrderPath ? 'text-[#0052CC]' : 'text-gray-400'}`} />
+                  </>
+                )}
               </button>
-              <div className={`overflow-hidden transition-all duration-300 ease-in-out ${ordersOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                <SubMenu items={orderSubItems} />
-              </div>
+              {!isCollapsed && (
+                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${ordersOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                  <SubMenu items={orderSubItems} />
+                </div>
+              )}
             </div>
 
           </nav>
