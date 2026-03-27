@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Loader2, Plus, Pencil } from 'lucide-react';
+import { Loader2, Plus, Edit } from 'lucide-react';
 import ModalWrapper from '../../common/ModalWrapper';
 import Label from '../../common/Label';
 import Input from '../../common/Input';
@@ -15,6 +15,10 @@ import {
 } from '../../../../queries/drivers/vehicleAssignmentQuery';
 import { useUsers } from '../../../../queries/users/userQuery';
 import { useCurrentUser } from '../../../../queries/users/userActionQuery';
+import { ASSIGNMENT_TYPES, ASSIGNMENT_STATUS_STYLES, ASSIGNMENT_TYPE_STYLES } from '../../common/constants';
+import { User, Car, Calendar, FileText, CheckSquare, Clock } from 'lucide-react';
+import StatusBadge from '../../common/StatusBadge';
+import { getInitials } from '../../common/utils';
 import DriverSelect from '../../common/DriverSelect';
 
 
@@ -34,7 +38,7 @@ export const VehicleSelect = ({ value, onChange }) => {
     </Select>
   );
 };
-import { ASSIGNMENT_TYPES } from '../../common/constants';
+
 
 export const AddAssignmentModal = ({ driverId, onClose }) => {
   const [targetDriverId, setTargetDriverId] = useState(driverId || '');
@@ -215,7 +219,7 @@ export const EditAssignmentModal = ({ assignment, driverId, onClose }) => {
             <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
             <button onClick={handleSubmit} disabled={!form.vehicle || !form.assigned_date || updateAssignment.isPending}
               className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed">
-              {updateAssignment.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Pencil size={14} /> Update Assignment</>}
+               {updateAssignment.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Edit size={14} /> Update Assignment</>}
             </button>
           </div>
         </div>
@@ -279,5 +283,96 @@ export const DeleteAssignmentDialog = ({ assignment, driverId, onClose }) => {
       onCancel={onClose}
       isDeleting={deleteMutation.isPending}
     />
+  );
+};
+
+export const ViewAssignmentModal = ({ record, driverName, employeeId, onClose, userMap = {} }) => {
+  const LabelValue = ({ label, value, color }) => (
+    <div className="py-2 border-b border-gray-50 last:border-0 flex flex-col gap-1">
+      <span className="text-xs font-semibold text-gray-700">{label}</span>
+      <span className={`text-[13px] font-medium text-[#172B4D] ${color || ''}`}>
+        {value || '—'}
+      </span>
+    </div>
+  );
+
+  const assignedBy = userMap[record.assigned_by] || record.assigned_by_name || record.assigned_by || '—';
+
+  return (
+    <ModalWrapper
+      title="Assignment Details"
+      onClose={onClose}
+      footer={
+        <div className="flex justify-end w-full">
+          <button 
+            onClick={onClose} 
+            className="px-8 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all"
+          >
+            Close
+          </button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
+        {/* Header Record Card */}
+        <div className="bg-gray-50/50 rounded-xl p-4 border border-gray-100/50">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-[#0052CC] shrink-0 border border-blue-100/50">
+              <Car size={20} />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-black text-[#172B4D] leading-none uppercase tracking-tight">{driverName || record.driver_name || 'System Driver'}</h3>
+                <StatusBadge
+                  label={record.is_active ? 'Active' : 'Inactive'}
+                  styles={ASSIGNMENT_STATUS_STYLES[record.is_active ? 'ACTIVE' : 'INACTIVE']}
+                />
+              </div>
+              <div className="text-gray-400 text-[10px] font-mono font-bold uppercase tracking-widest mt-1.5 flex items-center gap-1.5">
+                 <User size={12} /> Employee ID: {employeeId || record.employee_id || '—'}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Details Content */}
+        <div className="px-1">
+          <div className="grid grid-cols-2 gap-x-8 gap-y-1">
+            <div className="py-2 border-b border-gray-50 flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">vehicle</span>
+              <span className="font-mono text-[12px] text-[#0052CC] font-bold">
+                {record.vehicle_registration ?? '—'}
+              </span>
+            </div>
+            <div className="py-2 border-b border-gray-50 flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">assignment_type</span>
+              <div className="mt-0.5">
+                <StatusBadge
+                  label={record.assignment_type_display ?? record.assignment_type}
+                  styles={ASSIGNMENT_TYPE_STYLES[record.assignment_type]}
+                />
+              </div>
+            </div>
+            <LabelValue label="assigned_date" value={record.assigned_date} />
+            <LabelValue label="unassigned_date" value={record.unassigned_date} />
+            <LabelValue label="assigned_by" value={assignedBy} />
+            <LabelValue 
+              label="record_created_at" 
+              value={record.created_at ? new Date(record.created_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }).replace(',', '') : '—'} 
+            />
+          </div>
+
+          {/* Notes Section */}
+          <div className="mt-4 pt-4 border-t border-gray-50 uppercase">
+             <span className="text-[10px] font-bold text-gray-400 tracking-widest ">Notes & Remarks</span>
+             <div className="mt-2 bg-gray-50/50 rounded-lg p-3 border border-gray-100/50">
+                <p className="text-[12px] text-gray-600 leading-relaxed italic">
+                  {record.notes || 'No additional notes provided for this assignment.'}
+                </p>
+             </div>
+          </div>
+        </div>
+      </div>
+    </ModalWrapper>
   );
 };

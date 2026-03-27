@@ -4,7 +4,7 @@ import { useTrainingRecords } from '../../../queries/drivers/trainingAndMedicalQ
 
 import { LoadingState, ErrorState, EmptyState, PageLayoutShimmer } from '../common/StateFeedback';
 import TrainingTable from '../sub-features/Training/TrainingTable';
-import { AddTrainingModal, EditTrainingModal, DeleteTrainingDialog } from '../sub-features/Training/TrainingModals';
+import { AddTrainingModal, EditTrainingModal, ViewTrainingModal, DeleteTrainingDialog } from '../sub-features/Training/TrainingModals';
 import DriverSelect from '../common/DriverSelect';
 import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
 import Select from '../common/Select';
@@ -14,6 +14,7 @@ import Input from '../common/Input';
 const AllTraining = () => {
   const [addOpen, setAddOpen] = useState(false);
   const [editRecord, setEditRecord] = useState(null);
+  const [viewRecord, setViewRecord] = useState(null);
 
   const [filters, setFilters] = useState({
     driver: '',
@@ -51,10 +52,6 @@ const AllTraining = () => {
         { headerWidth: 'w-16', cellWidth: 'w-16', width: 'w-24' }, // Date
         { headerWidth: 'w-16', cellWidth: 'w-16', width: 'w-24', type: 'mono' }, // Expiry
         { headerWidth: 'w-16', cellWidth: 'w-20', width: 'w-24', type: 'badge' }, // Status
-        { headerWidth: 'w-20', cellWidth: 'w-24', width: 'w-24' }, // Trainer
-        { headerWidth: 'w-16', cellWidth: 'w-20', width: 'w-28', type: 'mono' }, // Cert No
-        { headerWidth: 'w-16', cellWidth: 'w-16', width: 'w-24' }, // Cert File
-        { headerWidth: 'w-24', cellWidth: 'w-28', width: 'w-32' }, // Notes
         { headerWidth: 'w-10', cellWidth: 'w-14', width: 'w-16', align: 'right', type: 'action' }, // Actions
       ]}
     />
@@ -66,6 +63,14 @@ const AllTraining = () => {
       {/* ── Modals ── */}
       {addOpen && <AddTrainingModal driverId={null} onClose={() => setAddOpen(false)} />}
       {editRecord && <EditTrainingModal record={editRecord} driverId={editRecord.driver} onClose={() => setEditRecord(null)} />}
+      {viewRecord && (
+        <ViewTrainingModal 
+          record={viewRecord} 
+          driverName={driverMap[viewRecord.driver]?.name} 
+          employeeId={driverMap[viewRecord.driver]?.employee_id}
+          onClose={() => setViewRecord(null)} 
+        />
+      )}
 
       <div className="p-6 lg:p-8 flex-1 flex flex-col min-h-0">
         {/* ── Header ── */}
@@ -131,21 +136,35 @@ const AllTraining = () => {
           {/* ── Filters Bar ── */}
           <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-50 bg-white flex-wrap">
             <DriverSelect value={filters.driver} onChange={(val) => handleFilterChange('driver', val)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
+              className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors" />
             <Select value={filters.training_type} onChange={(e) => handleFilterChange('training_type', e.target.value)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100">
+              className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors">
               <option value="">All Types</option>
               {TRAINING_TYPES.map(t => <option key={t} value={t}>{t.replaceAll('_', ' ')}</option>)}
             </Select>
             <Select value={filters.status} onChange={(e) => handleFilterChange('status', e.target.value)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100">
+              className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors">
               <option value="">All Status</option>
               {TRAINING_STATUS.map(s => <option key={s} value={s}>{s.replaceAll('_', ' ')}</option>)}
             </Select>
-            <Input type="date" value={filters.training_date} onChange={(e) => handleFilterChange('training_date', e.target.value)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
-            <Input type="date" value={filters.expiry_date} onChange={(e) => handleFilterChange('expiry_date', e.target.value)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
+            <div className="flex items-center gap-2 bg-white border border-gray-200 px-2 rounded-lg hover:bg-[#EDF1F7] transition-colors">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Training:</span>
+              <input 
+                type="date" 
+                value={filters.training_date} 
+                onChange={(e) => handleFilterChange('training_date', e.target.value)}
+                className="text-xs py-1 px-1 bg-transparent border-none focus:ring-0 font-bold text-[#172B4D]" 
+              />
+            </div>
+            <div className="flex items-center gap-2 bg-white border border-gray-200 px-2 rounded-lg hover:bg-[#EDF1F7] transition-colors">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Expiry:</span>
+              <input 
+                type="date" 
+                value={filters.expiry_date} 
+                onChange={(e) => handleFilterChange('expiry_date', e.target.value)}
+                className="text-xs py-1 px-1 bg-transparent border-none focus:ring-0 font-bold text-[#172B4D]" 
+              />
+            </div>
             {(filters.driver || filters.training_type || filters.status || filters.training_date || filters.expiry_date) && (
               <button onClick={clearFilters} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Clear Filters">
                 <RotateCcw size={14} />
@@ -160,7 +179,7 @@ const AllTraining = () => {
                   <EmptyState icon={GraduationCap} title="No records found" description="No training records have been added yet." />
                 </div>
               ) : (
-                <TrainingTable records={records} onEdit={setEditRecord} showDriver={true} driverMap={driverMap} />
+                <TrainingTable records={records} onEdit={setEditRecord} onView={setViewRecord} showDriver={true} driverMap={driverMap} />
           )}
         </div>
       </div>

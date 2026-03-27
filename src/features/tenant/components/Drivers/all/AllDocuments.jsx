@@ -4,7 +4,7 @@ import { useDocuments } from '../../../queries/drivers/driverDocumentQuery';
 
 import { LoadingState, ErrorState, EmptyState, GenericTableShimmer, PageLayoutShimmer } from '../common/StateFeedback';
 import DocumentTable from '../sub-features/Documents/DocumentTable';
-import { AddDocumentModal, EditDocumentModal, DeleteDocumentDialog } from '../sub-features/Documents/DocumentModals';
+import { AddDocumentModal, EditDocumentModal, DeleteDocumentDialog, ViewDocumentModal } from '../sub-features/Documents/DocumentModals';
 import DriverSelect from '../common/DriverSelect';
 import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
 import { useUsers as useSystemUsers } from '../../../queries/users/userQuery';
@@ -17,6 +17,7 @@ import { useDebounce } from '../common/hooks';
 const AllDocuments = () => {
   const [addOpen, setAddOpen] = useState(false);
   const [editDoc, setEditDoc] = useState(null);
+  const [viewDoc, setViewDoc] = useState(null);
 
   const [filters, setFilters] = useState({
     driver: '',
@@ -74,14 +75,10 @@ const AllDocuments = () => {
         { headerWidth: 'w-12', cellWidth: 'w-12', width: 'w-20', type: 'mono' }, // Emp ID
         { headerWidth: 'w-20', cellWidth: 'w-24', width: 'w-32', type: 'multiline' }, // Doc Type
         { headerWidth: 'w-20', cellWidth: 'w-20', width: 'w-28', type: 'mono' }, // Doc Num
-        { headerWidth: 'w-16', cellWidth: 'w-16', width: 'w-24' }, // Issue Date
         { headerWidth: 'w-16', cellWidth: 'w-16', width: 'w-24', type: 'mono' }, // Expiry
         { headerWidth: 'w-24', cellWidth: 'w-28', width: 'w-32' }, // Authority
         { headerWidth: 'w-16', cellWidth: 'w-20', width: 'w-24', type: 'badge' }, // Verification
-        { headerWidth: 'w-20', cellWidth: 'w-24', width: 'w-24' }, // Verified By
-        { headerWidth: 'w-28', cellWidth: 'w-32', width: 'w-32' }, // Verified At
         { headerWidth: 'w-16', cellWidth: 'w-16', width: 'w-24' }, // File URL
-        { headerWidth: 'w-24', cellWidth: 'w-32', width: 'w-40' }, // Notes
         { headerWidth: 'w-10', cellWidth: 'w-14', width: 'w-16', align: 'right', type: 'action' }, // Actions
       ]}
     />
@@ -93,6 +90,15 @@ const AllDocuments = () => {
       {/* ── Modals ── */}
       {addOpen && <AddDocumentModal driverId={null} onClose={() => setAddOpen(false)} />}
       {editDoc && <EditDocumentModal doc={editDoc} driverId={editDoc.driver} onClose={() => setEditDoc(null)} userMap={userMap} isLoadingUsers={isLoadingUsers} />}
+      {viewDoc && (
+        <ViewDocumentModal 
+          doc={viewDoc} 
+          onClose={() => setViewDoc(null)} 
+          userMap={userMap} 
+          driverMap={driverMap} 
+          isLoadingUsers={isLoadingUsers} 
+        />
+      )}
 
       <div className="p-6 lg:p-8 flex-1 flex flex-col min-h-0">
         {/* ── Header ── */}
@@ -172,22 +178,38 @@ const AllDocuments = () => {
           </div>
 
           {/* Filters Bar */}
-          <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-50 bg-white flex-wrap">
-            <DriverSelect value={filters.driver} onChange={(val) => handleFilterChange('driver', val)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
-            <Select value={filters.document_type} onChange={(e) => handleFilterChange('document_type', e.target.value)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100">
+          <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-100 bg-gray-50/30 overflow-x-auto no-scrollbar">
+            <DriverSelect 
+              value={filters.driver} 
+              onChange={(val) => handleFilterChange('driver', val)}
+              className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors" 
+            />
+            <Select 
+              value={filters.document_type} 
+              onChange={(e) => handleFilterChange('document_type', e.target.value)}
+              className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors min-w-[120px]"
+            >
               <option value="">All Types</option>
               {DOCUMENT_TYPES.map(t => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
             </Select>
-            <Select value={filters.verification_status} onChange={(e) => handleFilterChange('verification_status', e.target.value)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100">
+            <Select 
+              value={filters.verification_status} 
+              onChange={(e) => handleFilterChange('verification_status', e.target.value)}
+              className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-[#EDF1F7] border-[#E2E8F0] hover:bg-[#E2E8F0] transition-colors min-w-[120px]"
+            >
               <option value="">All Status</option>
               {VERIFICATION_LIST.map(s => <option key={s} value={s}>{s}</option>)}
             </Select>
-            <Input type="date" value={filters.expiry_after} onChange={(e) => handleFilterChange('expiry_after', e.target.value)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
-            {(filters.driver || filters.document_type || filters.verification_status || filters.expiry_after) && (
+            <div className="flex items-center gap-2 bg-white border border-gray-200 px-2 rounded-lg hover:bg-[#EDF1F7] transition-colors">
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">Expiry:</span>
+              <input 
+                type="date" 
+                value={filters.expiry_date} 
+                onChange={(e) => handleFilterChange('expiry_date', e.target.value)}
+                className="text-xs py-1 px-1 bg-transparent border-none focus:ring-0 font-bold text-[#172B4D]" 
+              />
+            </div>
+            {(filters.driver || filters.document_type || filters.verification_status || filters.expiry_date) && (
               <button onClick={clearFilters} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Clear Filters">
                 <RotateCcw size={14} />
               </button>
@@ -207,6 +229,7 @@ const AllDocuments = () => {
             ) : (
               <DocumentTable
                 documents={documents}
+                onView={setViewDoc}
                 onEdit={setEditDoc}
                 showDriver={true}
                 driverMap={driverMap}

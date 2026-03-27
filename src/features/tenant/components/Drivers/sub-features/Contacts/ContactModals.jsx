@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Loader2, Plus, Pencil } from 'lucide-react';
+import { Loader2, Plus, Edit, User, Phone, MapPin, ShieldCheck, CreditCard, Activity, Briefcase } from 'lucide-react';
 import ModalWrapper from '../../common/ModalWrapper';
 import Label from '../../common/Label';
 import Input from '../../common/Input';
@@ -164,7 +164,7 @@ export const EditContactModal = ({ contact, driverId, onClose }) => {
             <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
             <button onClick={handleSubmit} disabled={!form.contact_name || !form.phone || updateContact.isPending}
               className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed">
-              {updateContact.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Pencil size={14} /> Update Contact</>}
+              {updateContact.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Edit size={14} /> Update Contact</>}
             </button>
           </div>
         </div>
@@ -194,6 +194,84 @@ export const EditContactModal = ({ contact, driverId, onClose }) => {
         <div><Label>Address</Label>
           <textarea rows={2} placeholder="Home or work address..." value={form.address} onChange={set('address')}
             className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] placeholder:text-gray-300 resize-none" />
+        </div>
+      </div>
+    </ModalWrapper>
+  );
+};
+
+
+export const ViewContactModal = ({ contact, driverName, employeeId, onClose }) => {
+  const LabelValue = ({ label, value, color }) => (
+    <div className="py-2 border-b border-gray-50 last:border-0 flex flex-col gap-1">
+      <span className="text-xs font-semibold text-gray-700">{label}</span>
+      <span className={`text-[13px] font-medium text-[#172B4D] ${color || ''}`}>
+        {value || '—'}
+      </span>
+    </div>
+  );
+
+  return (
+    <ModalWrapper
+      title="Contact Information"
+      onClose={onClose}
+      footer={
+        <div className="flex justify-end w-full">
+          <button 
+            onClick={onClose} 
+            className="px-8 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all shadow-sm"
+          >
+            Close
+          </button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
+        {/* Identity Section - Header Card */}
+        <div className="flex items-center gap-4 p-4 bg-gray-50/50 rounded-xl border border-gray-100 mb-2">
+          <div className="w-12 h-12 rounded-xl bg-[#0052CC]/10 flex items-center justify-center text-[#0052CC] shadow-sm">
+            <User size={24} />
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-black text-[#172B4D] leading-none uppercase tracking-tight">{driverName || 'System Driver'}</h3>
+              {contact.is_primary && (
+                <span className="text-[10px] font-black text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-100 flex items-center gap-1 uppercase">
+                  <ShieldCheck size={10} /> Primary Contact
+                </span>
+              )}
+            </div>
+            <div className="text-gray-400 text-[10px] font-mono font-bold uppercase tracking-widest mt-1.5 flex items-center gap-1.5">
+               <User size={12} /> Employee ID: {employeeId || contact.employee_id || '—'}
+            </div>
+          </div>
+        </div>
+
+        {/* Core Info Grid */}
+        <div className="grid grid-cols-2 gap-x-8 px-2 border-b border-gray-50 mb-2">
+           <LabelValue label="Emergency Contact" value={`${contact.contact_name} (${contact.relationship})`} />
+           <LabelValue label="Primary Status" value={contact.is_primary ? 'Default Emergency Contact' : 'Secondary Contact'} />
+           <LabelValue label="Mobile Number" value={contact.phone} color="font-mono" />
+           <LabelValue label="Alternate Phone" value={contact.alternate_phone} color="font-mono" />
+        </div>
+
+        {/* Contact Status & Location */}
+        <div className="grid grid-cols-2 gap-x-8 px-2 pt-2">
+           <LabelValue 
+             label="Record Created At" 
+             value={contact.created_at ? new Date(contact.created_at).toLocaleString('en-GB', { 
+               day: '2-digit', month: 'short', year: 'numeric', 
+               hour: '2-digit', minute: '2-digit', hour12: true 
+             }) : '—'} 
+           />
+        </div>
+
+        {/* Address Section */}
+        <div className="px-2 pt-2 border-t border-gray-100">
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Detailed Address</span>
+          <div className="p-3 bg-gray-50 rounded-lg text-[13px] text-gray-600 border border-gray-100 italic leading-relaxed">
+             {contact.address || 'No address provided.'}
+          </div>
         </div>
       </div>
     </ModalWrapper>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Loader2, Plus, Pencil } from 'lucide-react';
+import { Loader2, Plus, Edit, HeartPulse, User, Clock, ShieldCheck, ExternalLink, Activity, FileText, AlertCircle } from 'lucide-react';
 import ModalWrapper from '../../common/ModalWrapper';
 import Label from '../../common/Label';
 import Input from '../../common/Input';
@@ -160,7 +160,7 @@ export const EditMedicalModal = ({ record, driverId, onClose }) => {
             <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
             <button onClick={handleSubmit} disabled={!form.examination_date || !form.next_due_date || updateMedical.isPending}
               className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed">
-              {updateMedical.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Pencil size={14} /> Update Record</>}
+              {updateMedical.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Edit size={14} /> Update Record</>}
             </button>
           </div>
         </div>
@@ -196,5 +196,118 @@ export const DeleteMedicalDialog = ({ record, driverId, onClose }) => {
       onCancel={onClose}
       isDeleting={deleteMutation.isPending}
     />
+  );
+};
+
+export const ViewMedicalModal = ({ record, driverName, employeeId, onClose }) => {
+  const LabelValue = ({ label, value, isLink, color }) => (
+    <div className="py-2 border-b border-gray-50 last:border-0 flex flex-col gap-1">
+      <span className="text-xs font-semibold text-gray-700">{label}</span>
+      {isLink && value ? (
+        <a href={value} target="_blank" rel="noopener noreferrer" className="text-[13px] font-bold text-[#0052CC] hover:underline flex items-center gap-1.5 bg-blue-50/50 px-2 py-1 rounded-md border border-blue-100 w-fit">
+          <ExternalLink size={12} /> View Certificate
+        </a>
+      ) : (
+        <span className={`text-[13px] font-medium text-[#172B4D] ${color || ''}`}>
+          {value || '—'}
+        </span>
+      )}
+    </div>
+  );
+
+  const daysToNextDue = record.next_due_date ? Math.ceil((new Date(record.next_due_date) - new Date()) / (1000 * 60 * 60 * 24)) : null;
+  const isDueSoon = daysToNextDue !== null && daysToNextDue <= 30 && daysToNextDue > 0;
+  const isOverdue = daysToNextDue !== null && daysToNextDue <= 0;
+
+  return (
+    <ModalWrapper
+      title="Medical Information"
+      onClose={onClose}
+      footer={
+        <div className="flex justify-end w-full">
+          <button 
+            onClick={onClose} 
+            className="px-8 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all shadow-sm"
+          >
+            Close
+          </button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
+        {/* Identity Section - Header Card */}
+        <div className="flex items-center gap-4 p-4 bg-gray-50/50 rounded-xl border border-gray-100 mb-2">
+          <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center text-red-500 shadow-sm border border-red-100">
+            <HeartPulse size={24} />
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-black text-[#172B4D] leading-none uppercase tracking-tight">{driverName || record.driver_name || 'System Driver'}</h3>
+              <div className={`px-2 py-0.5 rounded-full border text-[10px] font-black uppercase flex items-center gap-1
+                ${record.fitness_status === 'FIT' ? 'bg-green-50 text-green-600 border-green-100' : 
+                  record.fitness_status === 'UNFIT' ? 'bg-red-50 text-red-600 border-red-100' : 
+                  'bg-amber-50 text-amber-600 border-amber-100'}`}>
+                {record.fitness_status_display || record.fitness_status}
+              </div>
+            </div>
+            <div className="text-gray-400 text-[10px] font-mono font-bold uppercase tracking-widest mt-1.5 flex items-center gap-1.5">
+               <User size={12} /> Employee ID: {employeeId || record.employee_id || '—'}
+            </div>
+          </div>
+        </div>
+
+        {/* Core Info Grid */}
+        <div className="grid grid-cols-2 gap-x-8 px-2 border-b border-gray-50 mb-2">
+           <LabelValue label="Examination Date" value={record.examination_date} />
+           <LabelValue label="Fitness Status" value={record.fitness_status} />
+           <div className="flex items-center gap-3">
+             <LabelValue label="Next Due Date" value={record.next_due_date} />
+             {isDueSoon && (
+               <div className="flex items-center gap-1 mt-4 px-2 py-1 bg-amber-50 text-amber-600 rounded-md border border-amber-100 animate-pulse">
+                 <AlertCircle size={12} />
+                 <span className="text-[10px] font-bold uppercase whitespace-nowrap">Due in {daysToNextDue} days</span>
+               </div>
+             )}
+             {isOverdue && (
+               <div className="flex items-center gap-1 mt-4 px-2 py-1 bg-red-50 text-red-600 rounded-md border border-red-100 animate-pulse">
+                 <AlertCircle size={12} />
+                 <span className="text-[10px] font-bold uppercase whitespace-nowrap">Overdue by {Math.abs(daysToNextDue)} days</span>
+               </div>
+             )}
+           </div>
+           <LabelValue label="Blood Group" value={record.blood_group} color="font-mono" />
+        </div>
+
+        {/* Medical Details */}
+        <div className="grid grid-cols-2 gap-x-8 px-2 pt-2">
+           <LabelValue label="Examining Doctor" value={record.examining_doctor} />
+           <LabelValue label="Certificate No." value={record.certificate_number} />
+           <LabelValue label="Certificate File" value={record.certificate_url} isLink />
+           <LabelValue 
+             label="Record Created At" 
+             value={record.created_at ? new Date(record.created_at).toLocaleString('en-GB', { 
+               day: '2-digit', month: 'short', year: 'numeric', 
+               hour: '2-digit', minute: '2-digit', hour12: true 
+             }) : '—'} 
+           />
+        </div>
+
+        {/* Restrictions Section */}
+        <div className="px-2 pt-2 border-t border-gray-100">
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Medical Restrictions</span>
+          <div className="p-3 bg-amber-50/30 rounded-lg text-[13px] text-amber-900 border border-amber-100/50 leading-relaxed min-h-[50px]">
+             {record.restrictions || 'No medical restrictions noted.'}
+          </div>
+        </div>
+
+        {/* Notes Section */}
+        <div className="px-2 pt-4 border-t border-gray-50">
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Internal Notes</span>
+          <div className="text-[13px] text-gray-600 italic leading-relaxed">
+             {record.notes || 'No additional internal notes.'}
+          </div>
+        </div>
+      </div>
+    </ModalWrapper>
   );
 };

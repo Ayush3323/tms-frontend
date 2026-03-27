@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Loader2, Plus, Pencil } from 'lucide-react';
+import { Loader2, Plus, Edit } from 'lucide-react';
 import ModalWrapper from '../../common/ModalWrapper';
 import Label from '../../common/Label';
 import Input from '../../common/Input';
@@ -12,7 +12,9 @@ import {
   useDeleteAttendance,
 } from '../../../../queries/drivers/incidentsAndAttendance';
 import DriverSelect from '../../common/DriverSelect';
-import { ATTENDANCE_STATUS } from '../../common/constants';
+import { ATTENDANCE_STATUS, STATUS_STYLES } from '../../common/constants';
+import { User, FileText, Clock, Calendar, CheckSquare } from 'lucide-react';
+import StatusBadge from '../../common/StatusBadge';
 
 export const AddAttendanceModal = ({ driverId, onClose }) => {
   const [targetDriverId, setTargetDriverId] = useState(driverId || '');
@@ -128,7 +130,7 @@ export const EditAttendanceModal = ({ record, driverId, onClose }) => {
             <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
             <button onClick={handleSubmit} disabled={!form.date || !form.status || updateAttendance.isPending}
               className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed">
-              {updateAttendance.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Pencil size={14} /> Update Attendance</>}
+              {updateAttendance.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Edit size={14} /> Update Attendance</>}
             </button>
           </div>
         </div>
@@ -181,5 +183,80 @@ export const DeleteAttendanceDialog = ({ record, driverId, onClose }) => {
       onCancel={onClose}
       isDeleting={deleteMutation.isPending}
     />
+  );
+};
+
+export const ViewAttendanceModal = ({ record, driverName, employeeId, onClose }) => {
+  const LabelValue = ({ label, value, color }) => (
+    <div className="py-2 border-b border-gray-50 last:border-0 flex flex-col gap-1">
+      <span className="text-xs font-semibold text-gray-700">{label}</span>
+      <span className={`text-[13px] font-medium text-[#172B4D] ${color || ''}`}>
+        {value || '—'}
+      </span>
+    </div>
+  );
+
+  return (
+    <ModalWrapper
+      title="Attendance Details"
+      onClose={onClose}
+      footer={
+        <div className="flex justify-end w-full">
+          <button 
+            onClick={onClose} 
+            className="px-8 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all"
+          >
+            Close
+          </button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
+        {/* Header Record Card */}
+        <div className="bg-gray-50/50 rounded-xl p-4 border border-gray-100/50">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-[#0052CC] shrink-0 border border-blue-100/50">
+              <Calendar size={20} />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-black text-[#172B4D] leading-none uppercase tracking-tight">{driverName || record.driver_name || 'System Driver'}</h3>
+                <StatusBadge 
+                  label={record.status_display ?? record.status} 
+                  styles={STATUS_STYLES[record.status]} 
+                />
+              </div>
+              <div className="text-gray-400 text-[10px] font-mono font-bold uppercase tracking-widest mt-1.5 flex items-center gap-1.5">
+                 <User size={12} /> Employee ID: {employeeId || record.employee_id || '—'}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Details Content - Direct on White */}
+        <div className="px-1">
+          <div className="grid grid-cols-2 gap-x-8 gap-y-1">
+            <LabelValue label="Date" value={record.date} />
+            <LabelValue label="Check In" value={record.check_in || '—'} />
+            <LabelValue label="Check Out" value={record.check_out || '—'} />
+            <LabelValue label="Total Hours" value={record.total_hours != null ? `${record.total_hours} hrs` : '—'} />
+            <LabelValue 
+              label="Record Created At" 
+              value={record.created_at ? new Date(record.created_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }).replace(',', '') : '—'} 
+            />
+          </div>
+
+          {/* Notes Section */}
+          <div className="mt-4 pt-4 border-t border-gray-50 uppercase">
+             <span className="text-[10px] font-bold text-gray-400 tracking-widest ">Notes & Remarks</span>
+             <div className="mt-2 bg-gray-50/50 rounded-lg p-3 border border-gray-100/50">
+                <p className="text-[12px] text-gray-600 leading-relaxed italic">
+                  {record.notes || 'No additional notes provided for this record.'}
+                </p>
+             </div>
+          </div>
+        </div>
+      </div>
+    </ModalWrapper>
   );
 };

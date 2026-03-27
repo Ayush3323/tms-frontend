@@ -4,7 +4,7 @@ import { useIncidents } from '../../../queries/drivers/incidentsAndAttendance';
 
 import { LoadingState, ErrorState, EmptyState, GenericTableShimmer, PageLayoutShimmer } from '../common/StateFeedback';
 import IncidentTable from '../sub-features/Incidents/IncidentTable';
-import { AddIncidentModal, EditIncidentModal, DeleteIncidentDialog, VehicleSelect } from '../sub-features/Incidents/IncidentModals';
+import { AddIncidentModal, EditIncidentModal, ViewIncidentModal, DeleteIncidentDialog, VehicleSelect } from '../sub-features/Incidents/IncidentModals';
 import DriverSelect from '../common/DriverSelect';
 import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
 import { useVehiclesList } from '../../../queries/drivers/vehicleAssignmentQuery';
@@ -16,6 +16,7 @@ import Input from '../common/Input';
 const AllIncidents = () => {
   const [addOpen, setAddOpen] = useState(false);
   const [editIncident, setEditIncident] = useState(null);
+  const [viewIncident, setViewIncident] = useState(null);
 
   const [filters, setFilters] = useState({
     driver: '',
@@ -66,22 +67,16 @@ const AllIncidents = () => {
     <PageLayoutShimmer
       filterCount={7}
       columns={[
-        { headerWidth: 'w-24', cellWidth: 'w-28', width: 'min-w-[140px]' }, // Driver
-        { headerWidth: 'w-16', cellWidth: 'w-16', width: 'min-w-[100px]', type: 'mono' }, // Emp ID
-        { headerWidth: 'w-20', cellWidth: 'w-24', width: 'min-w-[120px]', type: 'badge' }, // Type
-        { headerWidth: 'w-16', cellWidth: 'w-20', width: 'min-w-[100px]', type: 'mono' }, // Vehicle
-        { headerWidth: 'w-12', cellWidth: 'w-12', width: 'min-w-[80px]', type: 'mono' }, // Trip
-        { headerWidth: 'w-28', cellWidth: 'w-32', width: 'min-w-[150px]' }, // Date
-        { headerWidth: 'w-20', cellWidth: 'w-24', width: 'min-w-[120px]' }, // Location
-        { headerWidth: 'w-16', cellWidth: 'w-20', width: 'min-w-[100px]', type: 'badge' }, // Severity
-        { headerWidth: 'w-32', cellWidth: 'w-40', width: 'min-w-[200px]' }, // Description
-        { headerWidth: 'w-20', cellWidth: 'w-24', width: 'min-w-[120px]', type: 'badge' }, // Status
-        { headerWidth: 'w-32', cellWidth: 'w-40', width: 'min-w-[200px]' }, // Res Notes
-        { headerWidth: 'w-20', cellWidth: 'w-28', width: 'min-w-[120px]' }, // Res By
-        { headerWidth: 'w-28', cellWidth: 'w-32', width: 'min-w-[150px]' }, // Res At
-        { headerWidth: 'w-20', cellWidth: 'w-20', width: 'min-w-[120px]', type: 'mono' }, // Police
-        { headerWidth: 'w-20', cellWidth: 'w-20', width: 'min-w-[120px]', type: 'mono' }, // Insurance
-        { headerWidth: 'w-10', cellWidth: 'w-14', width: 'min-w-[80px]', align: 'right', type: 'action' }, // Actions
+        { headerWidth: 'w-24', cellWidth: 'w-28' }, // Driver
+        { headerWidth: 'w-16', cellWidth: 'w-16', type: 'mono' }, // Emp ID
+        { headerWidth: 'w-20', cellWidth: 'w-24', type: 'badge' }, // Type
+        { headerWidth: 'w-16', cellWidth: 'w-20', type: 'mono' }, // Vehicle
+        { headerWidth: 'w-12', cellWidth: 'w-12', type: 'mono' }, // Trip
+        { headerWidth: 'w-28', cellWidth: 'w-32' }, // Date
+        { headerWidth: 'w-20', cellWidth: 'w-24' }, // Location
+        { headerWidth: 'w-16', cellWidth: 'w-20', type: 'badge' }, // Severity
+        { headerWidth: 'w-20', cellWidth: 'w-24', type: 'badge' }, // Status
+        { headerWidth: 'w-10', cellWidth: 'w-14', align: 'right', type: 'action' }, // Actions
       ]}
     />
   );
@@ -92,6 +87,16 @@ const AllIncidents = () => {
       {/* ── Modals ── */}
       {addOpen && <AddIncidentModal driverId={null} onClose={() => setAddOpen(false)} />}
       {editIncident && <EditIncidentModal incident={editIncident} driverId={editIncident.driver} onClose={() => setEditIncident(null)} />}
+      {viewIncident && (
+        <ViewIncidentModal 
+          incident={viewIncident} 
+          driverName={driverMap[viewIncident.driver]?.name}
+          employeeId={driverMap[viewIncident.driver]?.employee_id}
+          vehicleName={vehicleMap[viewIncident.vehicle]}
+          userMap={userMap}
+          onClose={() => setViewIncident(null)} 
+        />
+      )}
 
       <div className="p-6 lg:p-8 flex-1 flex flex-col min-h-0">
         {/* ── Header ── */}
@@ -157,26 +162,29 @@ const AllIncidents = () => {
           {/* ── Filters Bar ── */}
           <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-50 bg-white flex-wrap">
             <DriverSelect value={filters.driver} onChange={(val) => handleFilterChange('driver', val)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
+              className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors" />
             <VehicleSelect value={filters.vehicle} onChange={(e) => handleFilterChange('vehicle', e.target.value)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100 shadow-none" />
+              className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors" />
             <Select value={filters.incident_type} onChange={(e) => handleFilterChange('incident_type', e.target.value)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100">
+              className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors">
               <option value="">All Types</option>
               {INCIDENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
             </Select>
             <Select value={filters.severity} onChange={(e) => handleFilterChange('severity', e.target.value)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100">
+              className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors">
               <option value="">All Severities</option>
               {SEVERITY_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
             </Select>
             <Select value={filters.resolution_status} onChange={(e) => handleFilterChange('resolution_status', e.target.value)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100">
+              className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors">
               <option value="">All Status</option>
               {RESOLUTION_LIST.map(s => <option key={s} value={s}>{s}</option>)}
             </Select>
-            <Input type="date" value={filters.incident_date} onChange={(e) => handleFilterChange('incident_date', e.target.value)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
+            <div className="flex items-center gap-2 bg-white border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-[#EDF1F7] transition-colors">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight whitespace-nowrap">Incident:</span>
+              <input type="date" value={filters.incident_date} onChange={(e) => handleFilterChange('incident_date', e.target.value)}
+                className="px-1 py-0.5 text-xs bg-transparent border-none focus:ring-0 text-[#172B4D] font-bold cursor-pointer" />
+            </div>
             {(filters.driver || filters.vehicle || filters.incident_type || filters.severity || filters.resolution_status || filters.incident_date) && (
               <button onClick={clearFilters} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Clear">
                 <RotateCcw size={14} />
@@ -194,6 +202,7 @@ const AllIncidents = () => {
             <IncidentTable 
               incidents={incidents} 
               onEdit={setEditIncident} 
+              onView={setViewIncident}
               showDriver={true} 
               driverMap={driverMap}
               vehicleMap={vehicleMap}

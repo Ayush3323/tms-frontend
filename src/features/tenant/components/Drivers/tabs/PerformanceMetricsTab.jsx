@@ -7,11 +7,12 @@ import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
 
 import { LoadingState, ErrorState, EmptyState, TabLayoutShimmer } from '../common/StateFeedback';
 import PerformanceTable from '../sub-features/Performance/PerformanceTable';
-import { AddPerformanceModal, EditPerformanceModal, DeletePerformanceDialog } from '../sub-features/Performance/PerformanceModals';
+import { AddPerformanceModal, EditPerformanceModal, ViewPerformanceModal, DeletePerformanceDialog } from '../sub-features/Performance/PerformanceModals';
 
 const PerformanceTab = ({ driverId }) => {
   const [addOpen,      setAddOpen]      = useState(false);
   const [editMetric,   setEditMetric]   = useState(null);
+  const [viewMetric,   setViewMetric]   = useState(null);
   const [deleteRecord, setDeleteRecord] = useState(null);
 
   const { data, isLoading, isError, error, refetch } = useDriverPerformanceMetrics(driverId);
@@ -52,6 +53,14 @@ const PerformanceTab = ({ driverId }) => {
       {/* ── Modals ── */}
       {addOpen      && <AddPerformanceModal    driverId={driverId} onClose={() => setAddOpen(false)} />}
       {editMetric   && <EditPerformanceModal   metric={editMetric} driverId={driverId} onClose={() => setEditMetric(null)} />}
+      {viewMetric && (
+        <ViewPerformanceModal 
+          record={viewMetric} 
+          driverName={driverMap[driverId]?.name} 
+          employeeId={driverMap[driverId]?.employee_id}
+          onClose={() => setViewMetric(null)} 
+        />
+      )}
       {deleteRecord && <DeletePerformanceDialog metric={deleteRecord} driverId={driverId} onClose={() => setDeleteRecord(null)} />}
 
       {/* ── Header ── */}
@@ -82,6 +91,7 @@ const PerformanceTab = ({ driverId }) => {
         <PerformanceTable 
           metrics={metrics} 
           onEdit={setEditMetric} 
+          onView={setViewMetric}
           onDelete={setDeleteRecord} 
           showDriver={false}
           driverMap={driverMap}

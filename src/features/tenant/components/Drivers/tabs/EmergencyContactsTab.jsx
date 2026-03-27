@@ -12,6 +12,7 @@ import { AddContactModal, EditContactModal, DeleteContactDialog } from '../sub-f
 const EmergencyTab = ({ driverId }) => {
   const [addOpen,     setAddOpen]     = useState(false);
   const [editContact, setEditContact] = useState(null);
+  const [viewContact, setViewContact] = useState(null);
   const [deleteContact, setDeleteContact] = useState(null);
 
   const { data, isLoading, isError, error, refetch } = useDriverContacts(driverId);
@@ -50,6 +51,14 @@ const EmergencyTab = ({ driverId }) => {
       {/* ── Modals ── */}
       {addOpen       && <AddContactModal  driverId={driverId} onClose={() => setAddOpen(false)} />}
       {editContact   && <EditContactModal contact={editContact} driverId={driverId} onClose={() => setEditContact(null)} />}
+      {viewContact   && (
+        <ViewContactModal 
+          contact={viewContact} 
+          driverName={driverMap[driverId]?.name} 
+          employeeId={driverMap[driverId]?.employee_id}
+          onClose={() => setViewContact(null)} 
+        />
+      )}
       {deleteContact && <DeleteContactDialog contact={deleteContact} driverId={driverId} onClose={() => setDeleteContact(null)} />}
 
       {/* ── Header ── */}
@@ -82,6 +91,7 @@ const EmergencyTab = ({ driverId }) => {
         <ContactTable 
           contacts={contacts} 
           onEdit={setEditContact} 
+          onView={setViewContact}
           onDelete={setDeleteContact} 
           showDriver={false}
           driverMap={driverMap}

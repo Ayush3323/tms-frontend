@@ -4,7 +4,7 @@ import { useMedicalRecords } from '../../../queries/drivers/trainingAndMedicalQu
 
 import { LoadingState, ErrorState, EmptyState, PageLayoutShimmer } from '../common/StateFeedback';
 import MedicalTable from '../sub-features/Medical/MedicalTable';
-import { AddMedicalModal, EditMedicalModal, DeleteMedicalDialog } from '../sub-features/Medical/MedicalModals';
+import { AddMedicalModal, EditMedicalModal, ViewMedicalModal, DeleteMedicalDialog } from '../sub-features/Medical/MedicalModals';
 import { FITNESS_STATUS } from '../common/constants';
 import DriverSelect from '../common/DriverSelect';
 import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
@@ -14,6 +14,7 @@ import Input from '../common/Input';
 const AllMedical = () => {
   const [addOpen, setAddOpen] = useState(false);
   const [editRecord, setEditRecord] = useState(null);
+  const [viewRecord, setViewRecord] = useState(null);
 
   const [filters, setFilters] = useState({
     driver: '',
@@ -49,11 +50,6 @@ const AllMedical = () => {
         { headerWidth: 'w-20', cellWidth: 'w-24', width: 'w-24', type: 'mono' }, // Next Due
         { headerWidth: 'w-16', cellWidth: 'w-20', width: 'w-24', type: 'badge' }, // Status
         { headerWidth: 'w-16', cellWidth: 'w-16', width: 'w-20', type: 'mono' }, // Blood Group
-        { headerWidth: 'w-24', cellWidth: 'w-32', width: 'w-32' }, // Doctor
-        { headerWidth: 'w-20', cellWidth: 'w-24', width: 'w-28' }, // Cert No
-        { headerWidth: 'w-16', cellWidth: 'w-16', width: 'w-24' }, // File
-        { headerWidth: 'w-24', cellWidth: 'w-32', width: 'w-32' }, // Restrictions
-        { headerWidth: 'w-24', cellWidth: 'w-32', width: 'w-32' }, // Notes
         { headerWidth: 'w-10', cellWidth: 'w-14', width: 'w-16', align: 'right', type: 'action' }, // Actions
       ]}
     />
@@ -65,6 +61,14 @@ const AllMedical = () => {
       {/* ── Modals ── */}
       {addOpen && <AddMedicalModal driverId={null} onClose={() => setAddOpen(false)} />}
       {editRecord && <EditMedicalModal record={editRecord} driverId={editRecord.driver} onClose={() => setEditRecord(null)} />}
+      {viewRecord && (
+        <ViewMedicalModal 
+          record={viewRecord} 
+          driverName={driverMap[viewRecord.driver]?.name} 
+          employeeId={driverMap[viewRecord.driver]?.employee_id}
+          onClose={() => setViewRecord(null)} 
+        />
+      )}
 
       <div className="p-6 lg:p-8 flex-1 flex flex-col min-h-0">
         {/* ── Header ── */}
@@ -130,16 +134,30 @@ const AllMedical = () => {
           {/* ── Filters Bar ── */}
           <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-50 bg-white flex-wrap">
             <DriverSelect value={filters.driver} onChange={(val) => handleFilterChange('driver', val)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
+              className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors" />
             <Select value={filters.fitness_status} onChange={(e) => handleFilterChange('fitness_status', e.target.value)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100">
+              className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors">
               <option value="">All Status</option>
               {FITNESS_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
             </Select>
-            <Input type="date" value={filters.examination_date} onChange={(e) => handleFilterChange('examination_date', e.target.value)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
-            <Input type="date" value={filters.next_due_date} onChange={(e) => handleFilterChange('next_due_date', e.target.value)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
+            <div className="flex items-center gap-2 bg-white border border-gray-200 px-2 rounded-lg hover:bg-[#EDF1F7] transition-colors">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Exam:</span>
+              <input 
+                type="date" 
+                value={filters.examination_date} 
+                onChange={(e) => handleFilterChange('examination_date', e.target.value)}
+                className="text-xs py-1 px-1 bg-transparent border-none focus:ring-0 font-bold text-[#172B4D]" 
+              />
+            </div>
+            <div className="flex items-center gap-2 bg-white border border-gray-200 px-2 rounded-lg hover:bg-[#EDF1F7] transition-colors">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Next Due:</span>
+              <input 
+                type="date" 
+                value={filters.next_due_date} 
+                onChange={(e) => handleFilterChange('next_due_date', e.target.value)}
+                className="text-xs py-1 px-1 bg-transparent border-none focus:ring-0 font-bold text-[#172B4D]" 
+              />
+            </div>
             {(filters.driver || filters.fitness_status || filters.examination_date || filters.next_due_date) && (
               <button onClick={clearFilters} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Clear">
                 <RotateCcw size={14} />
@@ -154,7 +172,7 @@ const AllMedical = () => {
                 <EmptyState icon={HeartPulse} title="No records found" description="No medical records have been added yet." />
               </div>
             ) : (
-              <MedicalTable records={records} onEdit={setEditRecord} showDriver={true} driverMap={driverMap} />
+              <MedicalTable records={records} onEdit={setEditRecord} onView={setViewRecord} showDriver={true} driverMap={driverMap} />
             )}
           </div>
         </div>

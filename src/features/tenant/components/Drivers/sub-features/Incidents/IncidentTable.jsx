@@ -4,7 +4,7 @@ import TableActions from '../../common/TableActions';
 import { SEVERITY_STYLES, INCIDENT_TYPE_STYLES, STATUS_STYLES } from '../../common/constants';
 import { getInitials } from '../../common/utils';
 
-const IncidentTable = ({ incidents, onEdit, showDriver = false, driverMap = {}, vehicleMap = {}, userMap = {}, currentUser = null }) => {
+const IncidentTable = ({ incidents, onEdit, onView, showDriver = false, driverMap = {}, vehicleMap = {}, userMap = {}, currentUser = null }) => {
   const formatDate = (dateStr) => {
     if (!dateStr) return '—';
     return new Date(dateStr).toLocaleString('en-IN', {
@@ -20,13 +20,7 @@ const IncidentTable = ({ incidents, onEdit, showDriver = false, driverMap = {}, 
     { key: 'incident_date', label: 'Incident Date' },
     { key: 'location', label: 'Location' },
     { key: 'severity', label: 'Severity' },
-    { key: 'description', label: 'Description' },
     { key: 'resolution_status', label: 'Status' },
-    { key: 'resolution_notes', label: 'Res. Notes' },
-    { key: 'resolved_by', label: 'Resolved By' },
-    { key: 'resolved_at', label: 'Resolved At' },
-    { key: 'police_report_number', label: 'Police Ref' },
-    { key: 'insurance_claim_number', label: 'Insurance Ref' },
     { key: 'actions', label: 'Actions' }
   ];
 
@@ -45,7 +39,11 @@ const IncidentTable = ({ incidents, onEdit, showDriver = false, driverMap = {}, 
         </thead>
         <tbody className="divide-y divide-gray-50">
           {incidents.map(inc => (
-            <tr key={inc.id} className="hover:bg-blue-50/30 transition-colors text-nowrap">
+            <tr 
+              key={inc.id} 
+              onClick={() => onView && onView(inc)}
+              className="hover:bg-[#f7f9ff] transition-colors group cursor-pointer"
+            >
               {showDriver && (
                 <td className="px-4 py-3 whitespace-nowrap">
                   <div className="flex items-center gap-3">
@@ -71,7 +69,7 @@ const IncidentTable = ({ incidents, onEdit, showDriver = false, driverMap = {}, 
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-[12px] text-[#0052CC]">
                 <span className="bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100 font-mono">
-                  {vehicleMap[inc.vehicle] || inc.vehicle_registration_number || inc.vehicle || '—'}
+                  {vehicleMap[inc.vehicle] || inc.vehicle_registration || inc.vehicle || '—'}
                 </span>
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-500 font-mono">
@@ -80,7 +78,7 @@ const IncidentTable = ({ incidents, onEdit, showDriver = false, driverMap = {}, 
               <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600">
                 {formatDate(inc.incident_date)}
               </td>
-              <td className="px-4 py-3 text-[12px] text-gray-800 max-w-37.5 truncate whitespace-nowrap">
+              <td className="px-4 py-3 text-[12px] text-gray-600 truncate whitespace-nowrap">
                 {inc.location ?? '—'}
               </td>
               <td className="px-4 py-3 whitespace-nowrap">
@@ -89,48 +87,13 @@ const IncidentTable = ({ incidents, onEdit, showDriver = false, driverMap = {}, 
                   styles={SEVERITY_STYLES[inc.severity]}
                 />
               </td>
-              <td className="px-4 py-3 text-[12px] text-gray-800 max-w-xs truncate" title={inc.description}>
-                {inc.description || '—'}
-              </td>
               <td className="px-4 py-3 whitespace-nowrap">
                 <StatusBadge
                   label={inc.resolution_status_display ?? inc.resolution_status}
                   styles={STATUS_STYLES[inc.resolution_status]}
                 />
               </td>
-              <td className="px-4 py-3 text-[12px] text-gray-800 max-w-xs truncate" title={inc.resolution_notes}>
-                {inc.resolution_notes || '—'}
-              </td>
-              <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600">
-                {(() => {
-                  const resolvedBy = userMap[inc.resolved_by] || 
-                    (inc.resolved_by === currentUser?.id ? `${currentUser?.first_name || ''} ${currentUser?.last_name || ''}`.trim() || currentUser?.username : null) || 
-                    inc.resolved_by_name || inc.resolved_by || '—';
-                  
-                  if (resolvedBy === '—') return '—';
-
-                  return (
-                    <div className="flex items-center gap-2">
-                       <div className="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold text-white shadow-sm bg-[#0052CC]">
-                         {getInitials(resolvedBy)}
-                       </div>
-                       <span className="text-[12px] font-semibold text-[#1a202c]">{resolvedBy}</span>
-                    </div>
-                  );
-                })()}
-              </td>
-              <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-800">
-                {inc.resolved_at ? formatDate(inc.resolved_at) : '—'}
-              </td>
-              <td className="px-4 py-3 whitespace-nowrap">
-                {inc.police_report_number
-                  ? <span className="font-mono text-[12px] text-gray-600">{inc.police_report_number}</span>
-                  : <span className="text-[12px] text-gray-400">—</span>}
-              </td>
-              <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600 font-mono">
-                {inc.insurance_claim_number || '—'}
-              </td>
-              <td className="px-4 py-3 whitespace-nowrap">
+              <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                 <TableActions
                   onEdit={() => onEdit(inc)}
                 />

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Loader2, Plus, Pencil } from 'lucide-react';
+import { Loader2, Plus, Edit, AlertTriangle, MapPin, Calendar, Clock, Shield, Search, Info, User, Car } from 'lucide-react';
 import ModalWrapper from '../../common/ModalWrapper';
 import Label from '../../common/Label';
 import Input from '../../common/Input';
@@ -272,7 +272,7 @@ export const EditIncidentModal = ({ incident, driverId, onClose }) => {
             >
               {updateIncident.isPending
                 ? <><Loader2 size={14} className="animate-spin" /> Saving...</>
-                : <><Pencil size={14} /> Update Incident</>
+                : <><Edit size={14} /> Update Incident</>
               }
             </button>
           </div>
@@ -385,5 +385,113 @@ export const DeleteIncidentDialog = ({ incident, driverId, onClose }) => {
       onCancel={onClose}
       isDeleting={deleteMutation.isPending}
     />
+  );
+};
+
+export const ViewIncidentModal = ({ incident, driverName, employeeId, vehicleName, userMap, currentUser, onClose }) => {
+  // Record view logic
+  const LabelValue = ({ label, value, color }) => (
+    <div className="py-2 border-b border-gray-50 last:border-0 flex flex-col gap-1">
+      <span className="text-xs font-semibold text-gray-700">{label}</span>
+      <span className={`text-[13px] font-medium text-[#172B4D] ${color || ''}`}>
+        {value || '—'}
+      </span>
+    </div>
+  );
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '—';
+    return new Date(dateStr).toLocaleString('en-IN', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+  };
+
+  const resolvedBy = userMap[incident.resolved_by] || 
+    (incident.resolved_by === currentUser?.id ? `${currentUser?.first_name || ''} ${currentUser?.last_name || ''}`.trim() || currentUser?.username : null) || 
+    incident.resolved_by_name || incident.resolved_by || '—';
+
+  return (
+    <ModalWrapper
+      title="Incident Information"
+      onClose={onClose}
+      footer={
+        <div className="flex justify-end w-full">
+          <button 
+            onClick={onClose} 
+            className="px-8 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all shadow-sm"
+          >
+            Close
+          </button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
+        {/* Identity Section - Header Card */}
+        <div className="flex items-center gap-4 p-4 bg-gray-50/50 rounded-xl border border-gray-100 mb-2">
+          <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shadow-sm border border-amber-100">
+            <AlertTriangle size={24} />
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-black text-[#172B4D] leading-none uppercase tracking-tight">{driverName || incident.driver_name || 'System Driver'}</h3>
+              <div className={`px-2 py-0.5 rounded-full border text-[10px] font-black uppercase flex items-center gap-1
+                ${incident.resolution_status === 'RESOLVED' || incident.resolution_status === 'CLOSED' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-amber-50 text-amber-600 border-amber-100'}`}>
+                {incident.resolution_status_display || incident.resolution_status}
+              </div>
+            </div>
+            <div className="text-gray-400 text-[10px] font-mono font-bold uppercase tracking-widest mt-1.5 flex items-center gap-1.5">
+               <User size={12} /> Employee ID: {employeeId || incident.employee_id || '—'}
+            </div>
+          </div>
+        </div>
+
+        {/* Core Info Grid */}
+        <div className="grid grid-cols-2 gap-x-8 px-2 border-b border-gray-50 mb-2">
+           <LabelValue label="Incident Type" value={incident.incident_type_display || incident.incident_type} />
+           <LabelValue label="Incident Date" value={formatDate(incident.incident_date)} />
+           <LabelValue label="Vehicle Registration" value={vehicleName || incident.vehicle_registration} />
+           <LabelValue label="Trip ID" value={incident.trip_id} color="font-mono" />
+        </div>
+
+        {/* Detailed Metrics Grid */}
+        <div className="grid grid-cols-2 gap-x-8 px-2 pt-2">
+           <LabelValue label="Location" value={incident.location} />
+           <LabelValue label="Severity" value={incident.severity_display || incident.severity} />
+           <LabelValue label="Police Report Number" value={incident.police_report_number} color="font-mono" />
+           <LabelValue label="Insurance Claim Number" value={incident.insurance_claim_number} color="font-mono" />
+           <LabelValue label="Resolution Status" value={incident.resolution_status_display || incident.resolution_status} />
+           <LabelValue 
+             label="Record Created At" 
+             value={incident.created_at ? new Date(incident.created_at).toLocaleString('en-GB', { 
+               day: '2-digit', month: 'short', year: 'numeric', 
+               hour: '2-digit', minute: '2-digit', hour12: true 
+             }) : '—'} 
+           />
+        </div>
+
+        {/* Resolution Section */}
+        <div className="grid grid-cols-2 gap-x-8 px-2 pt-2 border-t border-gray-50">
+           <LabelValue label="Resolved By" value={resolvedBy} />
+           <LabelValue label="Resolved At" value={formatDate(incident.resolved_at)} />
+        </div>
+
+        {/* Description Section */}
+        <div className="px-2 pt-2 border-t border-gray-100">
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Incident Description</span>
+          <div className="p-3 bg-gray-50 rounded-lg text-[13px] text-gray-600 border border-gray-100 italic leading-relaxed">
+             {incident.description || 'No description provided.'}
+          </div>
+        </div>
+
+        {/* Resolution Notes Section */}
+        <div className="px-2 pt-2 border-t border-gray-100">
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Resolution Notes</span>
+          <div className="p-3 bg-green-50/30 rounded-lg text-[13px] text-green-900 border border-green-100/30 leading-relaxed">
+             {incident.resolution_notes || 'No resolution notes provided.'}
+          </div>
+        </div>
+      </div>
+    </ModalWrapper>
   );
 };

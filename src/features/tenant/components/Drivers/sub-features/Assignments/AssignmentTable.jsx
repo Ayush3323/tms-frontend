@@ -7,23 +7,27 @@ import {
 } from '../../common/constants';
 import { getInitials } from '../../common/utils';
 
-const AssignmentTable = ({ assignments, onEdit, showDriver = false, driverMap = {}, userMap = {}, currentUser = null }) => {
+const AssignmentTable = ({ assignments, onEdit, onView, showDriver = false, driverMap = {}, userMap = {}, currentUser = null }) => {
   return (
-    <div className="w-full min-w-max">
-      <table className="w-full text-sm">
+    <div className="w-full min-w-max text-sm">
+      <table className="w-full">
         <thead className="sticky top-0 z-10">
           <tr className="bg-[#fafbff] border-b border-gray-100">
             {showDriver && (
               <th className="text-left px-4 py-3 text-[10px] font-bold text-[#94a3b8] uppercase tracking-[0.1em] whitespace-nowrap bg-[#fafbff] shadow-[inset_0_-1px_0_#e2e8f0]">Driver</th>
             )}
-            {['vehicle', 'assignment_type', 'assigned_date', 'unassigned_date', 'is_active', 'assigned_by', 'notes', 'Actions'].map(h => (
+            {['Vehicle', 'Type', 'Assigned Date', 'Status', 'Actions'].map(h => (
               <th key={h} className="text-left px-4 py-3 text-[10px] font-bold text-[#94a3b8] uppercase tracking-[0.1em] whitespace-nowrap bg-[#fafbff] shadow-[inset_0_-1px_0_#e2e8f0]">{h}</th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-50">
+        <tbody className="divide-y divide-gray-50 bg-white">
           {assignments.map(a => (
-            <tr key={a.id} className="hover:bg-blue-50/30 transition-colors">
+            <tr 
+              key={a.id} 
+              onClick={() => onView && onView(a)}
+              className="hover:bg-gray-50 transition-colors cursor-pointer group"
+            >
               {showDriver && (
                 <td className="px-4 py-3 whitespace-nowrap">
                   <div className="flex items-center gap-3">
@@ -42,7 +46,7 @@ const AssignmentTable = ({ assignments, onEdit, showDriver = false, driverMap = 
                 </td>
               )}
               <td className="px-4 py-3 whitespace-nowrap">
-                <span className="font-mono text-[12px] text-[#0052CC] bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+                <span className="font-mono text-[12px] text-[#0052CC] bg-blue-50 px-2.5 py-1 rounded-md border border-blue-100 font-bold">
                   {a.vehicle_registration ?? '—'}
                 </span>
               </td>
@@ -52,36 +56,14 @@ const AssignmentTable = ({ assignments, onEdit, showDriver = false, driverMap = 
                   styles={ASSIGNMENT_TYPE_STYLES[a.assignment_type]}
                 />
               </td>
-              <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600">{a.assigned_date ?? '—'}</td>
-              <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600">{a.unassigned_date ?? '—'}</td>
+              <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600 font-medium">{a.assigned_date ?? '—'}</td>
               <td className="px-4 py-3 whitespace-nowrap">
                 <StatusBadge
                   label={a.is_active ? 'Active' : 'Inactive'}
                   styles={ASSIGNMENT_STATUS_STYLES[a.is_active ? 'ACTIVE' : 'INACTIVE']}
                 />
               </td>
-              <td className="px-4 py-3 whitespace-nowrap">
-                {(() => {
-                  const assignedBy = userMap[a.assigned_by] || 
-                    (a.assigned_by === currentUser?.id ? `${currentUser?.first_name || ''} ${currentUser?.last_name || ''}`.trim() || currentUser?.username : null) || 
-                    a.assigned_by_name || a.assigned_by || '—';
-                  
-                  if (assignedBy === '—') return <span className="text-[12px] text-gray-400">—</span>;
-
-                  return (
-                    <div className="flex items-center gap-2">
-                       <div className="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold text-white shadow-sm bg-[#0052CC]">
-                         {getInitials(assignedBy)}
-                       </div>
-                       <span className="text-[12px] font-semibold text-[#1a202c]">{assignedBy}</span>
-                    </div>
-                  );
-                })()}
-              </td>
-              <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-800 max-w-[150px] truncate" title={a.notes}>
-                {a.notes || '—'}
-              </td>
-              <td className="px-4 py-3 whitespace-nowrap">
+              <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                 <TableActions onEdit={() => onEdit(a)} />
               </td>
             </tr>
