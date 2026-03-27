@@ -518,35 +518,66 @@ const SchedulesTab = ({ onEdit, onDelete, onView, onAdd, vehicleId, isTab }) => 
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* Filters */}
-      <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input type="text" placeholder="Search vehicle, type..." value={search} onChange={e => setSearch(e.target.value)}
-            className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] bg-gray-50" />
-        </div>
-        {[
-          { val: statusFilter, set: setStatus, opts: STATUS_OPTIONS, ph: 'All Status' },
-          { val: typeFilter, set: setType, opts: MAINTENANCE_TYPES, ph: 'All Types' },
-        ].map(({ val, set, opts, ph }) => (
-          <div key={ph} className="relative">
-            <select value={val} onChange={e => set(e.target.value)}
-              className="appearance-none pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none cursor-pointer">
-              <option value="">{ph}</option>
-              {opts.map(o => <option key={o} value={o}>{o.replace(/_/g, ' ')}</option>)}
-            </select>
-            <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+      {/* Filters & Pagination Row */}
+      <div className="flex items-center justify-between px-5 py-3 bg-white border-b border-gray-50 h-[60px]">
+        <div className="flex items-center gap-6">
+          <div className="relative w-64 text-gray-400">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search vehicle, type..."
+              className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border-none rounded-lg focus:ring-2 focus:ring-[#0052CC]/10 text-[#172B4D] font-medium"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
           </div>
-        ))}
-        <button onClick={() => { setSearch(''); setStatus(''); setType(''); }}
-          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-500 border border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100">
-          <RefreshCw size={13} /> Reset
-        </button>
-        {isTab && (
-          <button onClick={onAdd}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] shadow-sm italic ml-auto transition-all active:scale-95">
-            <Plus size={14} /> Add Schedule
+          <div className="flex items-center gap-3">
+            {[
+              { val: statusFilter, set: setStatus, opts: STATUS_OPTIONS, ph: 'All Status' },
+              { val: typeFilter, set: setType, opts: MAINTENANCE_TYPES, ph: 'All Types' },
+            ].map(({ val, set, opts, ph }) => (
+              <div key={ph} className="relative">
+                <select value={val} onChange={e => set(e.target.value)}
+                  className="appearance-none pl-3 pr-8 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-[12px] font-bold text-[#172B4D] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all hover:border-gray-200 cursor-pointer shadow-sm">
+                  <option value="">{ph}</option>
+                  {opts.map(o => <option key={o} value={o}>{o.replace(/_/g, ' ')}</option>)}
+                </select>
+                <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              </div>
+            ))}
+            {(search || statusFilter || typeFilter) && (
+              <button
+                onClick={() => { setSearch(''); setStatus(''); setType(''); }}
+                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                title="Clear Filters"
+              >
+                <RotateCcw size={14} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1 || isLoading}
+            className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+          >
+            Previous
           </button>
-        )}
+
+          <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
+            {currentPage}
+          </div>
+
+          <button
+            onClick={() => setCurrentPage(prev => prev + 1)}
+            disabled={!data?.next || isLoading}
+            className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+          >
+            Next
+          </button>
+        </div>
       </div>
 
       {isLoading && <TabContentShimmer />}
@@ -630,15 +661,10 @@ const SchedulesTab = ({ onEdit, onDelete, onView, onAdd, vehicleId, isTab }) => 
         </div>
       )}
 
-      {!isLoading && !isError && (
-        <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
-          <span>Showing <span className="font-bold text-gray-600">{schedules.length}</span>{data?.count && data.count !== schedules.length && <> of <span className="font-bold text-gray-600">{data.count}</span></>} schedules</span>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1 || isLoading}
-              className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm">Prev</button>
-            <div className="flex items-center justify-center min-w-7 h-7 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-sm">{currentPage}</div>
-            <button onClick={() => setCurrentPage(p => p + 1)} disabled={!data?.next || isLoading}
-              className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm">Next</button>
+      {!isLoading && !isError && schedules.length > 0 && (
+        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-white shadow-sm z-20">
+          <div className="text-sm text-gray-500 font-medium whitespace-nowrap">
+            Showing <span className="font-bold text-[#172B4D] font-mono">{schedules.length}</span> of <span className="font-bold text-[#172B4D] font-mono">{data?.count ?? schedules.length}</span> schedules
           </div>
         </div>
       )}
@@ -666,22 +692,51 @@ const RecordsTab = ({ onEdit, onDelete, onView, onAdd, vehicleId, isTab }) => {
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* Filters */}
-      <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-3">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input type="text" placeholder="Search service type, provider..." value={search} onChange={e => setSearch(e.target.value)}
-            className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] bg-gray-50" />
+      {/* Filters & Pagination Row */}
+      <div className="flex items-center justify-between px-5 py-3 bg-white border-b border-gray-50 h-[60px]">
+        <div className="flex items-center gap-6">
+          <div className="relative w-64 text-gray-400">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search service type, provider..."
+              className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border-none rounded-lg focus:ring-2 focus:ring-[#0052CC]/10 text-[#172B4D] font-medium"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+              title="Clear Filters"
+            >
+              <RotateCcw size={14} />
+            </button>
+          )}
         </div>
-        <button onClick={() => setSearch('')}
-          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-500 border border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100">
-          <RefreshCw size={13} /> Reset
-        </button>
-        {isTab && (
-          <button onClick={onAdd}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] shadow-sm italic ml-auto transition-all active:scale-95">
-            <Plus size={14} /> Add Record
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1 || isLoading}
+            className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+          >
+            Previous
           </button>
-        )}
+
+          <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
+            {currentPage}
+          </div>
+
+          <button
+            onClick={() => setCurrentPage(prev => prev + 1)}
+            disabled={!data?.next || isLoading}
+            className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+          >
+            Next
+          </button>
+        </div>
       </div>
 
       {isLoading && <TabContentShimmer />}
@@ -753,15 +808,10 @@ const RecordsTab = ({ onEdit, onDelete, onView, onAdd, vehicleId, isTab }) => {
         </div>
       )}
 
-      {!isLoading && !isError && (
-        <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
-          <span>Showing <span className="font-bold text-gray-600">{records.length}</span>{data?.count && data.count !== records.length && <> of <span className="font-bold text-gray-600">{data.count}</span></>} records</span>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1 || isLoading}
-              className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm">Prev</button>
-            <div className="flex items-center justify-center min-w-7 h-7 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-sm">{currentPage}</div>
-            <button onClick={() => setCurrentPage(p => p + 1)} disabled={!data?.next || isLoading}
-              className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm">Next</button>
+      {!isLoading && !isError && records.length > 0 && (
+        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-white shadow-sm z-20">
+          <div className="text-sm text-gray-500 font-medium whitespace-nowrap">
+            Showing <span className="font-bold text-[#172B4D] font-mono">{records.length}</span> of <span className="font-bold text-[#172B4D] font-mono">{data?.count ?? records.length}</span> records
           </div>
         </div>
       )}
@@ -839,9 +889,10 @@ const MaintenanceSchedules = ({ vehicleId, tab: initialTab = 'schedules', isTab 
       {!isTab && (
         <div className="flex items-center mb-8">
           <div className="w-1/4">
-            <h1 className="text-2xl font-black text-[#172B4D] tracking-tight uppercase">Maintenance</h1>
+            <h2 className="text-2xl font-bold text-[#172B4D]">Maintenance</h2>
             <p className="text-gray-500 text-sm tracking-tight">Schedules and service history</p>
           </div>
+
           <div className="flex-1 max-w-2xl px-8">
             <div className="relative group/search">
               <Search className="absolute left-4 top-3.5 text-gray-400 group-focus-within/search:text-[#0052CC] transition-all duration-300 group-focus-within/search:scale-110" size={20} />
@@ -853,30 +904,36 @@ const MaintenanceSchedules = ({ vehicleId, tab: initialTab = 'schedules', isTab 
                 className="w-full pl-12 pr-12 py-3 bg-white border border-gray-200 rounded-2xl text-[15px] font-medium placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-50 transition-all shadow-sm hover:shadow-md hover:border-gray-300"
               />
               {search && (
-                <button onClick={() => setSearch('')} className="absolute right-4 top-2 text-gray-400 hover:text-red-500 transition-all duration-500 hover:rotate-180 p-1.5 rounded-full hover:bg-red-50 flex items-center justify-center group/reset" title="Clear search">
-                  <RefreshCw size={18} />
+                <button
+                  onClick={() => setSearch('')}
+                  className="absolute right-4 top-2 text-gray-400 hover:text-red-500 transition-all duration-500 hover:rotate-180 p-1.5 rounded-full hover:bg-red-50 flex items-center justify-center group/reset"
+                  title="Clear search"
+                >
+                  <RotateCcw size={18} className="animate-in fade-in zoom-in spin-in-180 duration-500 group-hover/reset:scale-110" />
                 </button>
               )}
             </div>
           </div>
+
           <div className="flex items-center justify-end gap-2 ml-auto">
             <div className="flex items-center gap-2 mr-2">
-              <button onClick={() => refetch()} className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95 group">
+              <button
+                onClick={() => refetch()}
+                className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95 group"
+              >
                 <RefreshCw size={14} className={isLoading ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"} />
                 <span>Refresh</span>
               </button>
               <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95">
-                <Download size={14} /><span>Export</span>
+                <Download size={14} />
+                <span>Export</span>
               </button>
               <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95">
-                <Upload size={14} /><span>Import</span>
+                <Upload size={14} />
+                <span>Import</span>
               </button>
             </div>
             <div className="w-px h-8 bg-gray-200 mx-1" />
-            <button onClick={() => setModal({ type: activeTab === 'schedules' ? 'schedule' : 'record', mode: 'add' })} className="flex items-center gap-2 px-4 py-2 bg-[#0052CC] text-white rounded-xl font-bold text-xs shadow-md hover:bg-[#0747A6] transition-all active:scale-95 group">
-              <Plus size={16} className="group-hover:rotate-90 transition-transform duration-300" />
-              <span>Add {activeTab === 'schedules' ? 'Schedule' : 'Record'}</span>
-            </button>
           </div>
         </div>
       )}
@@ -884,37 +941,45 @@ const MaintenanceSchedules = ({ vehicleId, tab: initialTab = 'schedules', isTab 
       {/* Main Container */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden mt-2">
         {/* Compact Stats Row */}
-        {!isTab && (
-          <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
-            {isLoading ? (
-              <div className="flex gap-6 animate-pulse">
-                <div className="h-5 bg-gray-200 rounded w-24"></div>
-                <div className="h-5 bg-gray-200 rounded w-24"></div>
-                <div className="h-5 bg-gray-200 rounded w-24"></div>
-                <div className="h-5 bg-gray-200 rounded w-24"></div>
+        {/* Compact Stats Row */}
+        <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+          {isLoading ? (
+            <div className="flex gap-6 animate-pulse">
+              <div className="h-5 bg-gray-200 rounded w-24"></div>
+              <div className="h-5 bg-gray-200 rounded w-24"></div>
+              <div className="h-5 bg-gray-200 rounded w-24"></div>
+              <div className="h-5 bg-gray-200 rounded w-24"></div>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total Schedules:</span>
+                <span className="text-[18px] font-black text-[#172B4D]">{schedCount}</span>
               </div>
-            ) : (
-              <>
-                <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Schedules:</span>
-                  <span className="text-[18px] font-black text-[#172B4D]">{schedCount}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Overdue:</span>
-                  <span className="text-[18px] font-black text-red-500">{overdue}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Upcoming:</span>
-                  <span className="text-[18px] font-black text-orange-500">{upcoming}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total Cost:</span>
-                  <span className="text-[18px] font-black text-green-600">{fmtINR(totalCost)}</span>
-                </div>
-              </>
-            )}
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Overdue:</span>
+                <span className="text-[18px] font-black text-red-600">{overdue}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Upcoming:</span>
+                <span className="text-[18px] font-black text-orange-500">{upcoming}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total Cost:</span>
+                <span className="text-[18px] font-black text-green-600">{fmtINR(totalCost)}</span>
+              </div>
+            </>
+          )}
+          <div className="ml-auto w-1/4 flex justify-end">
+            <button
+              onClick={() => setModal({ type: activeTab === 'schedules' ? 'schedule' : 'record', mode: 'add' })}
+              className="mr-0 bg-[#0052CC] text-white px-6 py-3 rounded-xl flex items-center gap-2 text-sm font-bold hover:bg-[#0747A6] transition-all shadow-lg hover:shadow-blue-200 active:scale-95 group"
+            >
+              <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" />
+              <span>Add {activeTab === 'schedules' ? 'Schedule' : 'Record'}</span>
+            </button>
           </div>
-        )}
+        </div>
         {/* Tabs Bar */}
         <div className="px-5 pt-4 border-b border-gray-100 flex items-center justify-between">
           <div className="flex gap-6">
@@ -969,3 +1034,4 @@ const MaintenanceSchedules = ({ vehicleId, tab: initialTab = 'schedules', isTab 
 };
 
 export default MaintenanceSchedules;
+

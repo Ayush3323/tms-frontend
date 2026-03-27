@@ -1,7 +1,7 @@
 // Forced rebuild to resolve possible HMR/Caching issues
 import React, { useState } from 'react';
 import {
-  Plus, RefreshCw, Loader2, AlertCircle, X,
+  Plus, RotateCcw, Loader2, AlertCircle, X,
   ChevronDown, Truck, Package, Weight,
   ToggleLeft, ToggleRight, Pencil, Trash2, Search,
   Download, Upload
@@ -21,23 +21,23 @@ import { TableShimmer, CardShimmer, ErrorState } from '../Common/StateFeedback';
 const CATEGORIES = ['Truck', 'LCV', 'HCV', 'Pickup', 'Tanker', 'Bus', 'Trailer', 'Container', 'Other'];
 
 const CATEGORY_COLORS = {
-  Truck:     'bg-blue-50 text-blue-600 border-blue-200',
-  LCV:       'bg-green-50 text-green-600 border-green-200',
-  HCV:       'bg-purple-50 text-purple-600 border-purple-200',
-  Pickup:    'bg-orange-50 text-orange-600 border-orange-200',
-  Tanker:    'bg-teal-50 text-teal-600 border-teal-200',
-  Bus:       'bg-pink-50 text-pink-600 border-pink-200',
-  Trailer:   'bg-yellow-50 text-yellow-600 border-yellow-200',
+  Truck: 'bg-blue-50 text-blue-600 border-blue-200',
+  LCV: 'bg-green-50 text-green-600 border-green-200',
+  HCV: 'bg-purple-50 text-purple-600 border-purple-200',
+  Pickup: 'bg-orange-50 text-orange-600 border-orange-200',
+  Tanker: 'bg-teal-50 text-teal-600 border-teal-200',
+  Bus: 'bg-pink-50 text-pink-600 border-pink-200',
+  Trailer: 'bg-yellow-50 text-yellow-600 border-yellow-200',
   Container: 'bg-indigo-50 text-indigo-600 border-indigo-200',
-  Other:     'bg-gray-50 text-gray-500 border-gray-200',
+  Other: 'bg-gray-50 text-gray-500 border-gray-200',
 };
 
 const EMPTY_FORM = {
-  type_code:                '',
-  type_name:                '',
-  category:                 '',
+  type_code: '',
+  type_name: '',
+  category: '',
   typical_capacity_tonnage: '',
-  is_active:                true,
+  is_active: true,
 };
 
 
@@ -93,27 +93,27 @@ const TypeDetailView = ({ data, onClose }) => {
 const TypeModal = ({ initial, onClose, isView, onDeleteRequest }) => {
   const [form, setForm] = useState(
     initial ? {
-      type_code:                initial.type_code                ?? '',
-      type_name:                initial.type_name                ?? '',
-      category:                 initial.category                 ?? '',
+      type_code: initial.type_code ?? '',
+      type_name: initial.type_name ?? '',
+      category: initial.category ?? '',
       typical_capacity_tonnage: initial.typical_capacity_tonnage != null
         ? String(parseFloat(initial.typical_capacity_tonnage)) : '',
-      is_active:                initial.is_active ?? true,
+      is_active: initial.is_active ?? true,
     } : EMPTY_FORM
   );
 
   const isEdit = !!initial?.id && !isView;
-  const create    = useCreateVehicleType();
-  const update    = useUpdateVehicleType();
+  const create = useCreateVehicleType();
+  const update = useUpdateVehicleType();
   const isPending = create.isPending || update.isPending;
-  const set       = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
+  const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
 
   const handleSubmit = () => {
     const clean = Object.fromEntries(
       Object.entries(form).map(([k, v]) => [k, v === '' ? null : v])
     );
     if (isEdit) update.mutate({ id: initial.id, data: clean }, { onSuccess: onClose });
-    else        create.mutate(clean, { onSuccess: onClose });
+    else create.mutate(clean, { onSuccess: onClose });
   };
 
   return (
@@ -154,11 +154,10 @@ const TypeModal = ({ initial, onClose, isView, onDeleteRequest }) => {
                 <p className="text-xs text-gray-400">Inactive types won't appear in vehicle creation</p>
               </div>
               <button onClick={() => setForm(p => ({ ...p, is_active: !p.is_active }))}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
-                  form.is_active
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${form.is_active
                     ? 'bg-green-50 text-green-600 border-green-200'
                     : 'bg-gray-100 text-gray-400 border-gray-200'
-                }`}>
+                  }`}>
                 {form.is_active ? <><ToggleRight size={16} /> Active</> : <><ToggleLeft size={16} /> Inactive</>}
               </button>
             </div>
@@ -172,28 +171,28 @@ const TypeModal = ({ initial, onClose, isView, onDeleteRequest }) => {
 
 // ── Main Page ─────────────────────────────────────────────────────────
 const VehicleTypes = () => {
-  const [search, setSearch]       = useState('');
-  const [catFilter, setCat]       = useState('');
+  const [search, setSearch] = useState('');
+  const [catFilter, setCat] = useState('');
   const [activeFilter, setActive] = useState('');
-  const [modal, setModal]         = useState(null);
-  const [viewModal, setViewModal]     = useState(null);
-  const [deleteTarget, setDelete]     = useState(null);
+  const [modal, setModal] = useState(null);
+  const [viewModal, setViewModal] = useState(null);
+  const [deleteTarget, setDelete] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
 
   const del = useDeleteVehicleType();
 
   const { data, isLoading, isError, error, refetch } = useVehicleTypes({
-    ...(catFilter    && { category: catFilter }),
+    ...(catFilter && { category: catFilter }),
     ...(activeFilter !== '' && { is_active: activeFilter }),
-    ...(search       && { search }),
+    ...(search && { search }),
     page: currentPage,
   });
 
-  const types    = data?.results ?? data ?? [];
-  const total    = data?.count   ?? types.length;
-  const active   = types.filter(t => t.is_active).length;
+  const types = data?.results ?? data ?? [];
+  const total = data?.count ?? types.length;
+  const active = types.filter(t => t.is_active).length;
   const inactive = types.filter(t => !t.is_active).length;
-  const cats     = [...new Set(types.map(t => t.category).filter(Boolean))].length;
+  const cats = [...new Set(types.map(t => t.category).filter(Boolean))].length;
 
   return (
     <div className="p-6 flex flex-col gap-6 bg-[#F8FAFC] flex-1 min-h-0 overflow-hidden relative">
@@ -213,7 +212,7 @@ const VehicleTypes = () => {
       {/* Header */}
       <div className="flex items-center mb-8">
         <div className="w-1/4">
-          <h1 className="text-2xl font-black text-[#172B4D] tracking-tight uppercase">Vehicle Types</h1>
+          <h2 className="text-2xl font-bold text-[#172B4D]">Vehicle Types</h2>
           <p className="text-gray-500 text-sm tracking-tight">Manage categories and capacity configs</p>
         </div>
         <div className="flex-1 max-w-2xl px-8">
@@ -227,30 +226,35 @@ const VehicleTypes = () => {
               className="w-full pl-12 pr-12 py-3 bg-white border border-gray-200 rounded-2xl text-[15px] font-medium placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-50 transition-all shadow-sm hover:shadow-md hover:border-gray-300"
             />
             {search && (
-              <button onClick={() => setSearch('')} className="absolute right-4 top-2 text-gray-400 hover:text-red-500 transition-all duration-500 hover:rotate-180 p-1.5 rounded-full hover:bg-red-50" title="Clear search">
-                <RefreshCw size={18} />
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-4 top-2 text-gray-400 hover:text-red-500 transition-all duration-500 hover:rotate-180 p-1.5 rounded-full hover:bg-red-50 flex items-center justify-center group/reset"
+                title="Clear search"
+              >
+                <RotateCcw size={18} className="animate-in fade-in zoom-in spin-in-180 duration-500 group-hover/reset:scale-110" />
               </button>
             )}
           </div>
         </div>
         <div className="flex items-center justify-end gap-2 ml-auto">
           <div className="flex items-center gap-2 mr-2">
-            <button onClick={() => refetch()} className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95 group">
-              <RefreshCw size={14} className={isLoading ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"} />
+            <button
+              onClick={() => refetch()}
+              className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95 group"
+            >
+              <RotateCcw size={14} className={isLoading ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"} />
               <span>Refresh</span>
             </button>
             <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95">
-              <Download size={14} /><span>Export</span>
+              <Download size={14} />
+              <span>Export</span>
             </button>
             <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95">
-              <Upload size={14} /><span>Import</span>
+              <Upload size={14} />
+              <span>Import</span>
             </button>
           </div>
           <div className="w-px h-8 bg-gray-200 mx-1" />
-          <button onClick={() => setModal('add')} className="flex items-center gap-2 px-4 py-2 bg-[#0052CC] text-white rounded-xl font-bold text-xs shadow-md hover:bg-[#0747A6] transition-all active:scale-95 group">
-            <Plus size={16} className="group-hover:rotate-90 transition-transform duration-300" />
-            <span>Add Type</span>
-          </button>
         </div>
       </div>
 
@@ -260,10 +264,10 @@ const VehicleTypes = () => {
         <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
           {isLoading ? (
             <div className="flex gap-6 animate-pulse">
-               <div className="h-5 bg-gray-200 rounded w-24"></div>
-               <div className="h-5 bg-gray-200 rounded w-24"></div>
-               <div className="h-5 bg-gray-200 rounded w-24"></div>
-               <div className="h-5 bg-gray-200 rounded w-24"></div>
+              <div className="h-5 bg-gray-200 rounded w-24"></div>
+              <div className="h-5 bg-gray-200 rounded w-24"></div>
+              <div className="h-5 bg-gray-200 rounded w-24"></div>
+              <div className="h-5 bg-gray-200 rounded w-24"></div>
             </div>
           ) : (
             <>
@@ -273,7 +277,7 @@ const VehicleTypes = () => {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Active:</span>
-                <span className="text-[18px] font-black text-green-600">{active}</span>
+                <span className="text-[18px] font-black text-emerald-600">{active}</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Inactive:</span>
@@ -283,34 +287,78 @@ const VehicleTypes = () => {
                 <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Categories:</span>
                 <span className="text-[18px] font-black text-purple-600">{cats}</span>
               </div>
+              <div className="ml-auto w-1/4 flex justify-end">
+                <button
+                  onClick={() => setModal('add')}
+                  className="mr-0 bg-[#0052CC] text-white px-6 py-3 rounded-xl flex items-center gap-2 text-sm font-bold hover:bg-[#0747A6] transition-all shadow-lg hover:shadow-blue-200 active:scale-95 group"
+                >
+                  <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" />
+                  <span>Add Type</span>
+                </button>
+              </div>
             </>
           )}
         </div>
 
-        <div className="flex items-center gap-6 justify-between border-b border-gray-50">
-          <div className="flex items-center gap-3 px-5 py-2 flex-1">
-            <select className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-600 outline-none focus:border-[#0052CC]" value={catFilter} onChange={e => setCat(e.target.value)}>
-              <option value="">All Categories</option>
-              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <select className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-600 outline-none focus:border-[#0052CC]" value={activeFilter} onChange={e => setActive(e.target.value)}>
-              <option value="">All Status</option>
-              <option value="true">Active</option>
-              <option value="false">Inactive</option>
-            </select>
-          </div>
-          <div className="w-px h-10 bg-gray-100 hidden sm:block" />
-          <div className="flex items-center justify-between gap-3 px-5 py-2">
-            <button onClick={() => { setSearch(''); setCat(''); setActive(''); setCurrentPage(1); }} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-gray-500 bg-gray-50 border border-gray-100 rounded-lg hover:bg-gray-100 transition-all">
-              <RefreshCw size={13} /> Reset
-            </button>
-            <div className="flex items-center gap-2 ml-auto">
-              <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1 || isLoading}
-                className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm">Prev</button>
-              <div className="flex items-center justify-center min-w-7 h-7 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-sm">{currentPage}</div>
-              <button onClick={() => setCurrentPage(p => p + 1)} disabled={!data?.next || isLoading}
-                className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm">Next</button>
+        {/* Filters & Pagination Row */}
+        <div className="flex items-center justify-between px-5 py-3 bg-white border-b border-gray-50 h-[60px]">
+          <div className="flex items-center gap-6">
+            <div className="relative">
+              <select
+                value={catFilter}
+                onChange={e => setCat(e.target.value)}
+                className="appearance-none pl-3 pr-8 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-[12px] font-bold text-[#172B4D] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all hover:border-gray-200 cursor-pointer shadow-sm"
+              >
+                <option value="">All Categories</option>
+                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             </div>
+
+            <div className="relative">
+              <select
+                value={activeFilter}
+                onChange={e => setActive(e.target.value)}
+                className="appearance-none pl-3 pr-8 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-[12px] font-bold text-[#172B4D] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all hover:border-gray-200 cursor-pointer shadow-sm"
+              >
+                <option value="">All Status</option>
+                <option value="true">Active</option>
+                <option value="false">Inactive</option>
+              </select>
+              <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            </div>
+
+            {(catFilter || activeFilter !== '') && (
+              <button
+                onClick={() => { setCat(''); setActive(''); }}
+                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                title="Clear Filters"
+              >
+                <RotateCcw size={14} />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1 || isLoading}
+              className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+            >
+              Previous
+            </button>
+
+            <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
+              {currentPage}
+            </div>
+
+            <button
+              onClick={() => setCurrentPage(prev => prev + 1)}
+              disabled={!data?.next || isLoading}
+              className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+            >
+              Next
+            </button>
           </div>
         </div>
 
@@ -343,12 +391,12 @@ const VehicleTypes = () => {
                   const catColor = CATEGORY_COLORS[t.category] ?? CATEGORY_COLORS.Other;
                   return (
                     <tr key={t.id} className="hover:bg-blue-50/30 transition-colors">
-                    <td className="px-4 py-3 whitespace-nowrap text-left">
-                      <button onClick={() => setViewModal(t)}
-                        className="font-bold text-[#172B4D] font-mono text-[13px] hover:text-[#0052CC] transition-all hover:scale-105 active:scale-95 text-left">
-                        {t.type_code}
-                      </button>
-                    </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-left">
+                        <button onClick={() => setViewModal(t)}
+                          className="font-bold text-[#172B4D] font-mono text-[13px] hover:text-[#0052CC] transition-all hover:scale-105 active:scale-95 text-left">
+                          {t.type_code}
+                        </button>
+                      </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span className="font-semibold text-gray-800">{t.type_name}</span>
                       </td>
@@ -358,9 +406,9 @@ const VehicleTypes = () => {
                       <td className="px-4 py-3 whitespace-nowrap">
                         {t.typical_capacity_tonnage
                           ? <span className="flex items-center gap-1 text-gray-700 font-semibold text-[13px]">
-                              <Weight size={13} className="text-gray-400" />
-                              {parseFloat(t.typical_capacity_tonnage)}T
-                            </span>
+                            <Weight size={13} className="text-gray-400" />
+                            {parseFloat(t.typical_capacity_tonnage)}T
+                          </span>
                           : <span className="text-gray-300">—</span>
                         }
                       </td>
