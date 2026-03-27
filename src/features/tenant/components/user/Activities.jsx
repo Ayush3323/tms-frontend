@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, RotateCcw, Activity, Clock, User, Calendar, Globe, Monitor, Smartphone, Info, X, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { Search, RotateCcw, Activity, Clock, User, Calendar, Globe, Monitor, Smartphone, Info, X, ChevronLeft, ChevronRight, Filter, Eye } from 'lucide-react';
 import { useActivities } from '../../queries/users/activitiesQuery';
 
 const Activities = () => {

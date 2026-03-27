@@ -393,12 +393,24 @@ const DriversList = () => {
     {
       header: 'Actions',
       render: d => (
-        <button
-          onClick={() => navigate(`/tenant/dashboard/drivers/${d.id}`)}
-          className="px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all font-sans"
-        >
-          View
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate(`/tenant/dashboard/drivers/${d.id}`)}
+            className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all font-sans"
+          >
+            <Eye size={12} /> View
+          </button>
+          {d.is_deleted && (
+            <button
+              onClick={() => restoreDriver.mutate(d.id)}
+              disabled={restoreDriver.isPending}
+              className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-all disabled:opacity-50"
+            >
+              {restoreDriver.isPending ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />}
+              Restore
+            </button>
+          )}
+        </div>
       ),
     },
   ];
@@ -521,8 +533,30 @@ const DriversList = () => {
         </div>
 
         {/* ── Filters Bar ── */}
-        <div className="flex items-center justify-between border-b border-gray-100 bg-white min-h-[56px] px-5 py-2">
-          <div className="flex items-center gap-3 overflow-x-auto no-scrollbar py-1">
+        <div className="border-b border-gray-100 bg-white">
+          <div className="flex items-center justify-between min-h-[56px] px-5 py-2">
+            <div className="flex items-center gap-3 overflow-x-auto no-scrollbar py-1">
+              <div className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 p-1">
+                {[
+                  { id: 'active', label: 'Active' },
+                  { id: 'deleted', label: 'Deleted' },
+                  { id: 'all', label: 'All' },
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => {
+                      setVisibilityFilter(opt.id);
+                      setCurrentPage(1);
+                    }}
+                    className={`px-3 py-1 text-[11px] font-bold rounded-md transition-all ${visibilityFilter === opt.id
+                      ? 'bg-[#0052CC] text-white shadow-sm'
+                      : 'text-gray-600 hover:bg-white'
+                      }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             {[
               { val: statusFilter, set: setStatus, opts: DRIVER_STATUS, ph: 'All Status' },
               { val: typeFilter, set: setType, opts: DRIVER_TYPES, ph: 'All Types' },
@@ -556,7 +590,7 @@ const DriversList = () => {
               />
             </div>
 
-            {(statusFilter || typeFilter || licFilter || joinedFrom || joinedTo) && (
+            {(statusFilter || typeFilter || licFilter || joinedFrom || joinedTo || visibilityFilter !== 'active') && (
               <button
                 onClick={resetFilters}
                 className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
@@ -567,7 +601,7 @@ const DriversList = () => {
             )}
           </div>
 
-          <div className="flex items-center gap-3 ml-4 bg-gray-50/50 p-1 rounded-xl border border-gray-100">
+            <div className="flex items-center gap-3 ml-4 bg-gray-50/50 p-1 rounded-xl border border-gray-100">
             <button
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               disabled={currentPage === 1 || isLoading}
@@ -585,8 +619,9 @@ const DriversList = () => {
             >
               Next
             </button>
+            </div>
           </div>
-          <div className="px-5 py-2 border-b border-gray-50 bg-blue-50/40">
+          <div className="px-5 py-2 border-t border-gray-50 bg-blue-50/40">
             <p className="text-[11px] text-gray-600">
               <span className="font-bold text-[#172B4D]">Note:</span> Inactive/Suspended are live driver states. Deleted means archived (soft-deleted).
             </p>
