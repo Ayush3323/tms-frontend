@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   LayoutGrid, Users, Globe, Truck, FileText, Shield,
   Wrench, Search, Fuel, Settings, Plug, Tag, ScrollText,
-  ChevronDown, UserCheck, Phone, GraduationCap,
+  ChevronDown, ChevronsRight, ChevronsLeft, UserCheck, Phone, GraduationCap,
   HeartPulse, BarChart2, AlertTriangle, CalendarClock, Car, Banknote, UserPlus, UserMinus, Briefcase, Building2
 } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
@@ -56,12 +56,13 @@ const orderSubItems = [
   { name: 'Deliveries (POD)', icon: <Shield size={13} />, path: '/tenant/dashboard/orders/deliveries', badge: null },
 ];
 
-const SubMenu = ({ items }) => (
+const SubMenu = ({ items, onNavigate }) => (
   <div className="ml-5 mt-1 mb-1 space-y-0.5">
     {items.map((item) => (
       <NavLink
         key={item.name}
         to={item.path}
+        onClick={onNavigate}
         end={item.path === '/tenant/dashboard/vehicles' || item.path === '/tenant/dashboard/drivers' || item.path === '/tenant/dashboard/users' || item.path === '/tenant/dashboard/customers'}
         className={({ isActive }) =>
           `flex items-center gap-2 px-2.5 py-[6px] rounded-md text-[12.5px] transition-all border ${isActive
@@ -81,7 +82,7 @@ const SubMenu = ({ items }) => (
   </div>
 );
 
-const Sidebar = ({ isCollapsed }) => {
+const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -103,8 +104,12 @@ const Sidebar = ({ isCollapsed }) => {
         onClick={() => {
            if (onClick) {
              onClick();
+             if (isCollapsed && setIsCollapsed) setIsCollapsed(false);
            } else if (!isCollapsed) {
              setIsOpen((o) => !o);
+           } else if (isCollapsed) {
+             if (setIsCollapsed) setIsCollapsed(false);
+             setIsOpen(true);
            }
         }}
         className={`w-full flex ${isCollapsed ? 'flex-col items-center justify-center py-3' : 'items-center gap-3 px-3 py-2.5'} rounded-lg transition-all border ${isActive
@@ -131,7 +136,7 @@ const Sidebar = ({ isCollapsed }) => {
       {/* Expanded Submenu (for desktop/expanded state) */}
       {!isCollapsed && (
         <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
-          <SubMenu items={subItems} />
+          <SubMenu items={subItems} onNavigate={() => setIsCollapsed?.(false)} />
         </div>
       )}
 
@@ -141,15 +146,15 @@ const Sidebar = ({ isCollapsed }) => {
           <div className="px-3 py-2 border-b border-gray-100 mb-1">
             <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{label}</span>
           </div>
-          <SubMenu items={subItems} />
+          <SubMenu items={subItems} onNavigate={() => setIsCollapsed?.(false)} />
         </div>
       )}
     </div>
   );
 
   return (
-    <aside className={`${isCollapsed ? 'w-24' : 'w-64'} h-screen bg-[#F8FAFC] border-r border-gray-200 flex flex-col justify-between p-4 sticky top-0 z-50 transition-all duration-300 ease-in-out`}>
-      <div className="flex flex-col h-full">
+    <aside className={`${isCollapsed ? 'w-24' : 'w-64'} h-screen bg-[#F8FAFC] border-r border-gray-200 flex flex-col p-4 sticky top-0 z-50 transition-all duration-300 ease-in-out`}>
+      <div className="flex-1 overflow-y-auto scrollbar-hide flex flex-col">
         {/* Logo Section */}
         <div className={`flex items-center gap-3 px-2 mb-8 ${isCollapsed ? 'flex-col justify-center mb-6' : ''}`}>
           <div className="w-10 h-10 bg-[#0052CC] rounded-lg flex items-center justify-center flex-shrink-0 shadow-md">
@@ -231,6 +236,19 @@ const Sidebar = ({ isCollapsed }) => {
           </div>
         </div>
       </div>
+
+      {/* Bottom Toggle Section */}
+      {setIsCollapsed && (
+        <div className={`mt-2 pt-4 border-t border-gray-200 flex ${isCollapsed ? 'justify-center' : 'justify-end'}`}>
+          <button 
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="p-2 text-gray-400 hover:text-[#0052CC] hover:bg-blue-50 rounded-lg transition-all shadow-sm active:scale-95 border border-transparent hover:border-blue-100"
+            title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+          >
+            {isCollapsed ? <ChevronsRight size={18} /> : <ChevronsLeft size={18} />}
+          </button>
+        </div>
+      )}
     </aside>
   );
 };
