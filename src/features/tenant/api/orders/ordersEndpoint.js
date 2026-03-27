@@ -3,7 +3,7 @@ import axiosInstance from '../axiosInstance'
 // ─── 1. PUBLIC / HEALTH ─────────────────────────────────────────────────────
 
 export const orderServiceHealthApi = {
-  check: () => 
+  check: () =>
     axiosInstance.get('health/').then(r => r.data),
 }
 
@@ -72,8 +72,12 @@ export const tripsApi = {
     axiosInstance.get(`${BASE_TRIPS}/${tripId}/charges/`).then(r => r.data),
   createCharge: (tripId, data) =>
     axiosInstance.post(`${BASE_TRIPS}/${tripId}/charges/`, data).then(r => r.data),
-}
 
+  update: (id, data) =>
+    axiosInstance.patch(`${BASE_TRIPS}/${id}/`, data).then(r => r.data),
+  replace: (id, data) =>
+    axiosInstance.put(`${BASE_TRIPS}/${id}/`, data).then(r => r.data),
+}
 // ─── 4. CARGO ──────────────────────────────────────────────────────────────
 
 const BASE_CARGO = 'api/v1/cargo'
@@ -87,6 +91,11 @@ export const cargoApi = {
 
   create: (data) =>
     axiosInstance.post(`${BASE_CARGO}/`, data).then(r => r.data),
+
+  update: (id, data) =>
+    axiosInstance.patch(`${BASE_CARGO}/${id}/`, data).then(r => r.data),
+  replace: (id, data) =>
+    axiosInstance.put(`${BASE_CARGO}/${id}/`, data).then(r => r.data),
 }
 
 // ─── 5. DELIVERIES (POD) ────────────────────────────────────────────────────
@@ -102,4 +111,9 @@ export const deliveriesApi = {
 
   create: (data) =>
     axiosInstance.post(`${BASE_DELIVERIES}/`, data).then(r => r.data),
+
+  update: (id, data) =>
+    axiosInstance.patch(`${BASE_DELIVERIES}/${id}/`, data).then(r => r.data),
+  replace: (id, data) =>
+    axiosInstance.put(`${BASE_DELIVERIES}/${id}/`, data).then(r => r.data),
 }

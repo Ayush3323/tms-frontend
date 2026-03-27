@@ -160,6 +160,20 @@ export const useCreateTrip = () => {
   })
 }
 
+export const useUpdateTrip = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data, fullReplace = false }) => 
+      fullReplace ? tripsApi.replace(id, data) : tripsApi.update(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.trips() })
+      queryClient.invalidateQueries({ queryKey: orderKeys.tripDetail(id) })
+      toast.success('Trip updated successfully')
+    },
+    onError: (err) => handleApiError(err, 'Update failed'),
+  })
+}
+
 // ─── 2.1 TRIP SUB-RESOURCE HOOKS ─────────────────────────────────────────────
 
 export const useTripStops = (tripId) => {
@@ -287,6 +301,20 @@ export const useCreateCargo = () => {
   })
 }
 
+export const useUpdateCargo = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data, fullReplace = false }) => 
+      fullReplace ? cargoApi.replace(id, data) : cargoApi.update(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.cargo() })
+      queryClient.invalidateQueries({ queryKey: orderKeys.cargoDetail(id) })
+      toast.success('Cargo item updated successfully')
+    },
+    onError: (err) => handleApiError(err, 'Update failed'),
+  })
+}
+
 // ─── 4. DELIVERY (POD) HOOKS ─────────────────────────────────────────────────
 
 export const useDeliveries = (params) => {
@@ -316,5 +344,19 @@ export const useCreatePOD = () => {
       toast.success('Proof of Delivery recorded')
     },
     onError: (err) => handleApiError(err, 'Failed to create POD'),
+  })
+}
+
+export const useUpdateDelivery = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data, fullReplace = false }) => 
+      fullReplace ? deliveriesApi.replace(id, data) : deliveriesApi.update(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.deliveries() })
+      queryClient.invalidateQueries({ queryKey: orderKeys.deliveryDetail(id) })
+      toast.success('Delivery record updated')
+    },
+    onError: (err) => handleApiError(err, 'Update failed'),
   })
 }
