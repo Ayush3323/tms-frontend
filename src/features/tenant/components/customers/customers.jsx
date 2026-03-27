@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Search, Plus, Download, RefreshCw, Eye,
-  Users, CheckCircle, AlertCircle, PauseCircle,
-  ChevronDown, Loader2, AlertTriangle, Building2, Pencil, X, Save, Trash2, RotateCcw,
-  MapPin, Phone, FileText, ClipboardList, Wallet, History, Info as LucideInfo
+  Building2, Pencil, RotateCcw,
+  Info as LucideInfo
 } from 'lucide-react';
-import { 
-  useCustomers, useCustomer, useCreateCustomer, useUpdateCustomer, useDeleteCustomer,
-  useCustomerAddresses, useCustomerContacts, useCustomerDocuments,
-  useCustomerContracts, useCustomerCreditHistory, useCustomerNotes
+import {
+  useCustomers, useDeleteCustomer,
 } from '../../queries/customers/customersQuery';
-import { StatCard, Modal, Field, Input, Sel, Section, EmptyState, Badge, SectionHeader, InfoCard } from '../Vehicles/Common/VehicleCommon';
 import { TableShimmer, ErrorState } from '../Vehicles/Common/StateFeedback';
+import { Badge, DeleteConfirm } from '../Vehicles/Common/VehicleCommon';
+import { CustomerFormModal } from './CustomerFormModal';
 
 // ── Status Styles ────────────────────────────────────────────────────
 const STATUS_STYLES = {
@@ -30,28 +29,18 @@ const TIER_STYLES = {
   STANDARD: 'bg-gray-50 text-gray-500 border-gray-200',
 };
 
-// ── Empty form template ──────────────────────────────────────────────
-const EMPTY_FORM = {
-  customer_code: '', customer_type: 'OTHER', legal_name: '', trading_name: '',
-  tax_id: '', pan_number: '', registration_number: '', incorporation_date: '',
-  status: 'ACTIVE', customer_tier: 'STANDARD',
-  credit_limit: '', payment_terms: '', credit_rating: '', credit_score: '',
-  business_type: '', industry_sector: '', website: '', notes: '',
-  sales_person_id: '', account_manager_id: '', parent_customer_id: '', user_id: ''
-};
 
 // ═══════════════════════════════════════════════════════════════════════
 // ── MAIN COMPONENT ───────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════
 const CustomersDashboard = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatus] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [modal, setModal] = useState(null);   // { type: 'view'|'create'|'edit', id?: string }
   const [deleteTarget, setDelete] = useState(null);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [errors, setErrors] = useState({});
 
   // Search Debouncing
   useEffect(() => {
@@ -59,19 +48,14 @@ const CustomersDashboard = () => {
       setDebouncedSearch(searchTerm);
       setCurrentPage(1); // Reset to first page on search
     }, 500);
-
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
-  // ── API Hooks ───────────────────────────────────────────────────────
   const { data, isLoading, isError, error, refetch } = useCustomers({
     page: currentPage,
     ...(statusFilter && { status: statusFilter }),
     ...(debouncedSearch && { search: debouncedSearch }),
   });
-  const createMutation = useCreateCustomer();
-  const updateMutation = useUpdateCustomer();
-  const deleteMutation = useDeleteCustomer();
 
   const customers = data?.results ?? data ?? [];
   const total = data?.count ?? customers.length;
@@ -82,85 +66,11 @@ const CustomersDashboard = () => {
   const resetFilters = () => { setSearchTerm(''); setStatus(''); setCurrentPage(1); };
 
   // ── Modal Handlers ──────────────────────────────────────────────────
-  const openCreate = () => {
-    setForm(EMPTY_FORM);
-    setErrors({});
-    setModal({ type: 'create' });
-  };
-
-  const openView = (c) => {
-    setModal({ type: 'view', id: c.id, customer: c });
-  };
-
-  const openEdit = (c) => {
-    setForm({
-      customer_code: c.customer_code ?? '',
-      customer_type: c.customer_type ?? 'OTHER',
-      legal_name: c.legal_name ?? '',
-      trading_name: c.trading_name ?? '',
-      tax_id: c.tax_id ?? '',
-      pan_number: c.pan_number ?? '',
-      registration_number: c.registration_number ?? '',
-      incorporation_date: c.incorporation_date ?? '',
-      status: c.status ?? 'ACTIVE',
-      customer_tier: c.customer_tier ?? 'STANDARD',
-      credit_limit: c.credit_limit ?? '',
-      payment_terms: c.payment_terms ?? '',
-      credit_rating: c.credit_rating ?? '',
-      credit_score: c.credit_score ?? '',
-      business_type: c.business_type ?? '',
-      industry_sector: c.industry_sector ?? '',
-      website: c.website ?? '',
-      notes: c.notes ?? '',
-      sales_person_id: c.sales_person_id ?? '',
-      account_manager_id: c.account_manager_id ?? '',
-      parent_customer_id: c.parent_customer_id ?? '',
-      user_id: c.user_id ?? ''
-    });
-    setErrors({});
-    setModal({ type: 'edit', id: c.id, customer: c });
-  };
-
-  const closeModal = () => { setModal(null); setErrors({}); };
-
-  const validate = () => {
-    const e = {};
-    if (!form.legal_name.trim()) e.legal_name = 'Legal name is required';
-    if (!form.customer_type) e.customer_type = 'Select a type';
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  };
-
-  const handleSubmit = () => {
-    if (!validate()) return;
-    const payload = { ...form };
-
-    // Convert numbers/nulls correctly
-    if (payload.credit_limit) payload.credit_limit = String(payload.credit_limit);
-    if (payload.credit_score) payload.credit_score = Number(payload.credit_score);
-    else delete payload.credit_score;
-
-    // Nullify empty ID or Date strings
-    ['user_id', 'sales_person_id', 'account_manager_id', 'parent_customer_id', 'incorporation_date'].forEach(key => {
-      if (typeof payload[key] === 'string' && !payload[key].trim()) payload[key] = null;
-    });
-
-    // customer_code is system-generated
-    delete payload.customer_code;
-
-    if (modal.type === 'create') {
-      createMutation.mutate(payload, { onSuccess: () => closeModal() });
-    } else {
-      updateMutation.mutate({ id: modal.id, data: payload }, { onSuccess: () => closeModal() });
-    }
-  };
-
-  const setField = (k, v) => {
-    setForm(prev => ({ ...prev, [k]: v }));
-    if (errors[k]) setErrors(prev => { const n = { ...prev }; delete n[k]; return n; });
-  };
-
-  const submitting = createMutation.isPending || updateMutation.isPending;
+  const openCreate = () => setModal({ type: 'create' });
+  const openView = (c) => navigate(`/tenant/dashboard/customers/${c.id}`);
+  const openEdit = (c) => setModal({ type: 'edit', customer: c });
+  const closeModal = () => setModal(null);
+  const deleteMutation = useDeleteCustomer();
 
   // ── Column Definitions ──────────────────────────────────────────────
   const COLUMNS = [
@@ -219,9 +129,10 @@ const CustomersDashboard = () => {
       header: 'Actions',
       render: c => (
         <div className="flex items-center gap-2">
-          <button onClick={() => openEdit(c)}
-            className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-all">
-            <Pencil size={12} /> Edit
+          <button onClick={() => openView(c)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-bold text-[#0052CC] bg-[#EBF3FF] border border-[#0052CC]/10 rounded-lg hover:bg-[#0052CC] hover:text-white transition-all shadow-sm group/view">
+            <Eye size={12} className="group-hover/view:scale-110 transition-transform" />
+            <span>View</span>
           </button>
         </div>
       ),
@@ -437,139 +348,21 @@ const CustomersDashboard = () => {
         )}
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* ── VIEW MODAL ─────────────────────────────────────────────── */}
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      {modal?.type === 'view' && (
-        <Modal title="Customer Details" onClose={closeModal} isView maxWidth="max-w-xl">
-          <ViewCustomerContent customer={modal.customer} onEdit={() => openEdit(modal.customer)} />
-        </Modal>
-      )}
 
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ── CREATE / EDIT MODAL ────────────────────────────────────── */}
       {/* ═══════════════════════════════════════════════════════════════ */}
       {(modal?.type === 'create' || modal?.type === 'edit') && (
-        <Modal
-          title={modal.type === 'create' ? 'Add New Customer' : `Edit — ${modal.customer?.legal_name}`}
+        <CustomerFormModal
+          initial={modal.customer}
           onClose={closeModal}
-          onSubmit={handleSubmit}
-          submitting={submitting}
-          onDelete={modal.type === 'edit' ? () => { closeModal(); setDelete(modal.customer); } : null}
-          maxWidth="max-w-2xl"
-        >
-          <div className="grid grid-cols-2 gap-4">
-            <Section title="Basic Information" className="col-span-2" />
-
-            <Field label="Legal Name" required error={errors.legal_name}>
-              <Input value={form.legal_name} onChange={e => setField('legal_name', e.target.value)}
-                placeholder="Full legal name" />
-            </Field>
-            <Field label="Trading Name">
-              <Input value={form.trading_name} onChange={e => setField('trading_name', e.target.value)}
-                placeholder="Short / trading name" />
-            </Field>
-            <Field label="Customer Type" required error={errors.customer_type}>
-              <Sel value={form.customer_type} onChange={e => setField('customer_type', e.target.value)}>
-                <option value="CONSIGNOR">CONSIGNOR</option>
-                <option value="CONSIGNEE">CONSIGNEE</option>
-                <option value="BOTH">BOTH</option>
-                <option value="BROKER">BROKER</option>
-                <option value="AGENT">AGENT</option>
-                <option value="OTHER">OTHER</option>
-              </Sel>
-            </Field>
-
-            <Section title="Tax & Registration" className="col-span-2" />
-
-            <Field label="Tax ID (GSTIN)">
-              <Input value={form.tax_id} onChange={e => setField('tax_id', e.target.value)}
-                placeholder="e.g. 27AAACR5055K1ZV" />
-            </Field>
-            <Field label="PAN Number">
-              <Input value={form.pan_number} onChange={e => setField('pan_number', e.target.value)}
-                placeholder="e.g. AAACR5055K" />
-            </Field>
-            <Field label="Registration No.">
-              <Input value={form.registration_number} onChange={e => setField('registration_number', e.target.value)}
-                placeholder="e.g. U52100DL..." />
-            </Field>
-            <Field label="Incorporation Date">
-              <Input type="date" value={form.incorporation_date} onChange={e => setField('incorporation_date', e.target.value)} />
-            </Field>
-
-            <Section title="Financial Details" className="col-span-2" />
-
-            <Field label="Credit Limit (₹)">
-              <Input type="number" value={form.credit_limit} onChange={e => setField('credit_limit', e.target.value)}
-                placeholder="e.g. 1000000" />
-            </Field>
-            <Field label="Customer Tier">
-              <Sel value={form.customer_tier} onChange={e => setField('customer_tier', e.target.value)}>
-                <option value="PLATINUM">PLATINUM</option>
-                <option value="GOLD">GOLD</option>
-                <option value="SILVER">SILVER</option>
-                <option value="STANDARD">STANDARD</option>
-              </Sel>
-            </Field>
-            <Field label="Payment Terms">
-              <Input value={form.payment_terms} onChange={e => setField('payment_terms', e.target.value)}
-                placeholder="e.g. Net 30" />
-            </Field>
-            <Field label="Status">
-              <Sel value={form.status} onChange={e => setField('status', e.target.value)}>
-                <option value="ACTIVE">ACTIVE</option>
-                <option value="INACTIVE">INACTIVE</option>
-                <option value="SUSPENDED">SUSPENDED</option>
-                <option value="BLACKLISTED">BLACKLISTED</option>
-              </Sel>
-            </Field>
-
-            <Section title="Additional Info" className="col-span-2" />
-
-            <Field label="Business Type">
-              <Input value={form.business_type} onChange={e => setField('business_type', e.target.value)}
-                placeholder="e.g. Pvt Ltd" />
-            </Field>
-            <Field label="Industry Sector">
-              <Input value={form.industry_sector} onChange={e => setField('industry_sector', e.target.value)}
-                placeholder="e.g. Logistics" />
-            </Field>
-            <Field label="Website" className="col-span-2">
-              <Input value={form.website} onChange={e => setField('website', e.target.value)}
-                placeholder="https://example.com" />
-            </Field>
-
-            <Section title="Assignments & Meta" className="col-span-2" />
-
-            <Field label="Sales Person ID">
-              <Input value={form.sales_person_id} onChange={e => setField('sales_person_id', e.target.value)}
-                placeholder="UUID" />
-            </Field>
-            <Field label="Account Mgr ID">
-              <Input value={form.account_manager_id} onChange={e => setField('account_manager_id', e.target.value)}
-                placeholder="UUID" />
-            </Field>
-            <Field label="Parent Customer ID">
-              <Input value={form.parent_customer_id} onChange={e => setField('parent_customer_id', e.target.value)}
-                placeholder="UUID" />
-            </Field>
-            <Field label="User ID">
-              <Input value={form.user_id} onChange={e => setField('user_id', e.target.value)}
-                placeholder="UUID" />
-            </Field>
-
-            <Field label="Notes" className="col-span-2">
-              <Input value={form.notes} onChange={e => setField('notes', e.target.value)}
-                placeholder="Additional notes..." />
-            </Field>
-          </div>
-        </Modal>
+          onSuccess={refetch}
+        />
       )}
 
       {deleteTarget && (
-        <DeleteConfirm 
-          label="Customer" 
+        <DeleteConfirm
+          label="Customer"
           onClose={() => setDelete(null)}
           onConfirm={() => deleteMutation.mutate(deleteTarget.id, { onSuccess: () => setDelete(null) })}
           deleting={deleteMutation.isPending}
@@ -579,327 +372,5 @@ const CustomersDashboard = () => {
   );
 };
 
-// ═══════════════════════════════════════════════════════════════════════
-// ── VIEW CONTENT SUB-COMPONENT ───────────────────────────────────────
-// ═══════════════════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════════════════
-// ── VIEW CONTENT SUB-COMPONENT ───────────────────────────────────────
-// ═══════════════════════════════════════════════════════════════════════
-
-const TABS = [
-  { id: 'OVERVIEW', label: 'Overview', icon: Building2 },
-  { id: 'ADDRESSES', label: 'Addresses', icon: MapPin },
-  { id: 'CONTACTS', label: 'Contacts', icon: Phone },
-  { id: 'DOCUMENTS', label: 'Documents', icon: FileText },
-  { id: 'CONTRACTS', label: 'Contracts', icon: ClipboardList },
-  { id: 'NOTES', label: 'Notes', icon: LucideInfo },
-  { id: 'CREDIT', label: 'Credit', icon: Wallet },
-];
-
-const ViewCustomerContent = ({ customer: c, onEdit }) => {
-  const [activeTab, setActiveTab] = useState('OVERVIEW');
-
-  return (
-    <div className="flex flex-col h-full max-h-[85vh]">
-      {/* Tabs Header */}
-      <div className="flex items-center gap-1 border-b border-gray-100 mb-4 overflow-x-auto no-scrollbar pb-1">
-        {TABS.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-bold whitespace-nowrap transition-all rounded-t-xl
-              ${activeTab === tab.id 
-                ? 'text-[#0052CC] bg-[#EBF3FF] border-b-2 border-[#0052CC]' 
-                : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'}`}
-          >
-            <tab.icon size={14} />
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Tab Content Container */}
-      <div className="flex-1 overflow-y-auto pr-1">
-        {activeTab === 'OVERVIEW' && (
-          <CustomerOverview customer={c} onEdit={onEdit} />
-        )}
-        {activeTab === 'ADDRESSES' && (
-          <CustomerAddresses customerId={c.id} />
-        )}
-        {activeTab === 'CONTACTS' && (
-          <CustomerContacts customerId={c.id} />
-        )}
-        {activeTab === 'DOCUMENTS' && (
-          <CustomerDocuments customerId={c.id} />
-        )}
-        {activeTab === 'CONTRACTS' && (
-          <CustomerContracts customerId={c.id} />
-        )}
-        {activeTab === 'NOTES' && (
-          <CustomerNotes customerId={c.id} />
-        )}
-        {activeTab === 'CREDIT' && (
-          <CustomerCreditHistoryView customerId={c.id} currentLimit={c.credit_limit} />
-        )}
-      </div>
-    </div>
-  );
-};
-
-// ── Tab: Overview ────────────────────────────────────────────────────
-const CustomerOverview = ({ customer: c, onEdit }) => (
-  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-    <div className="grid grid-cols-2 gap-4">
-      <InfoCard label="Legal Name" value={c.legal_name} accent />
-      <InfoCard label="Customer Code" value={c.customer_code} />
-      <InfoCard label="Trading Name" value={c.trading_name} />
-      <InfoCard label="Type" value={c.customer_type} />
-    </div>
-
-    <Section title="Tax & Registration" />
-    <div className="grid grid-cols-2 gap-3">
-      <InfoCard label="Tax ID (GSTIN)" value={c.tax_id} />
-      <InfoCard label="PAN Number" value={c.pan_number} />
-      <InfoCard label="Registration No." value={c.registration_number} />
-      <InfoCard label="Incorporation Date" value={c.incorporation_date ? new Date(c.incorporation_date).toLocaleDateString() : null} />
-    </div>
-
-    <Section title="Financial Details" />
-    <div className="grid grid-cols-2 gap-3">
-      <InfoCard label="Credit Limit" value={c.credit_limit ? `₹${Number(c.credit_limit).toLocaleString('en-IN')}` : null} />
-      <InfoCard label="Customer Tier" value={c.customer_tier} />
-      <InfoCard label="Payment Terms" value={c.payment_terms} />
-      <InfoCard label="Status" value={c.status} />
-    </div>
-
-    <div className="pt-3 border-t border-gray-100 flex justify-end">
-      <button onClick={onEdit}
-        className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-xl hover:bg-[#0043A8] transition-all shadow-sm">
-        <Pencil size={14} /> Edit Customer
-      </button>
-    </div>
-  </div>
-);
-
-// ── Tab: Addresses ──────────────────────────────────────────────────
-const CustomerAddresses = ({ customerId }) => {
-  const { data: addresses, isLoading } = useCustomerAddresses(customerId);
-  if (isLoading) return <Loader2 size={24} className="animate-spin text-[#0052CC] mx-auto my-12" />;
-
-  return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-      <SectionHeader title="Stored Addresses" count={addresses?.length} icon={MapPin} />
-      {addresses?.length === 0 ? (
-        <EmptyState text="No addresses found" icon={MapPin} />
-      ) : (
-        <div className="grid gap-3">
-          {addresses?.map(addr => (
-            <div key={addr.id} className="p-4 rounded-xl border border-gray-100 bg-white hover:border-blue-200 transition-all flex justify-between items-start group">
-              <div className="flex gap-3">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500 shrink-0">
-                  <MapPin size={14} />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-[#0052CC]">{addr.address_type}</span>
-                    {addr.is_default && (
-                      <Badge className="bg-green-50 text-green-700 border-green-200">Default</Badge>
-                    )}
-                  </div>
-                  <p className="text-sm font-bold text-[#172B4D] leading-tight">{addr.address_line1}</p>
-                  {addr.address_line2 && <p className="text-xs text-gray-500 mt-0.5">{addr.address_line2}</p>}
-                  <p className="text-xs text-gray-400 font-medium mt-1 uppercase tracking-tight">
-                    {addr.city}, {addr.state} — {addr.postal_code}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ── Tab: Contacts ───────────────────────────────────────────────────
-const CustomerContacts = ({ customerId }) => {
-  const { data: contacts, isLoading } = useCustomerContacts(customerId);
-  if (isLoading) return <Loader2 size={24} className="animate-spin text-[#0052CC] mx-auto my-12" />;
-
-  return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-      <SectionHeader title="Contact Directory" count={contacts?.length} icon={Phone} />
-      {contacts?.length === 0 ? (
-        <EmptyState text="No contacts found" icon={Phone} />
-      ) : (
-        <div className="grid gap-3">
-          {contacts?.map(contact => (
-            <div key={contact.id} className="p-4 rounded-xl border border-gray-100 bg-white hover:border-blue-200 transition-all flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-[#172B4D] font-black text-sm border border-gray-100">
-                  {contact.first_name[0]}{contact.last_name[0]}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-black text-[#172B4D]">{contact.first_name} {contact.last_name}</p>
-                    {contact.is_primary && <Badge className="bg-blue-50 text-blue-700 border-blue-200">Primary</Badge>}
-                  </div>
-                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-none mt-1">{contact.designation || 'Staff'}</p>
-                  <div className="flex items-center gap-4 mt-2">
-                    {contact.email && <span className="text-[11px] text-[#0052CC] font-mono flex items-center gap-1"><FileText size={10} /> {contact.email}</span>}
-                    {contact.mobile && <span className="text-[11px] text-gray-500 font-bold flex items-center gap-1"><Phone size={10} /> {contact.mobile}</span>}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ── Tab: Documents ──────────────────────────────────────────────────
-const CustomerDocuments = ({ customerId }) => {
-  const { data: docs, isLoading } = useCustomerDocuments(customerId);
-  if (isLoading) return <Loader2 size={24} className="animate-spin text-[#0052CC] mx-auto my-12" />;
-
-  return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-      <SectionHeader title="Compliance Documents" count={docs?.length} icon={FileText} />
-      {docs?.length === 0 ? (
-        <EmptyState text="No documents uploaded" icon={FileText} />
-      ) : (
-        <div className="grid gap-3">
-          {docs?.map(doc => (
-            <div key={doc.id} className="p-3 pr-4 rounded-xl border border-gray-100 bg-white hover:border-blue-200 transition-all flex items-center justify-between group">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400">
-                  <FileText size={20} />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-[#172B4D]">{doc.document_type}</p>
-                  <p className="text-[10px] font-mono text-gray-400 uppercase tracking-tight">{doc.document_number}</p>
-                  <div className="flex items-center gap-3 mt-1.5">
-                    <Badge className={doc.verified_status === 'VERIFIED' ? 'bg-green-50 text-green-700' : 'bg-orange-50 text-orange-700'}>
-                      {doc.verified_status}
-                    </Badge>
-                    {doc.expiry_date && (
-                      <span className="text-[10px] font-bold text-gray-400">Expires: {new Date(doc.expiry_date).toLocaleDateString()}</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <a href={doc.file_url} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-lg bg-gray-50 text-gray-400 flex items-center justify-center hover:bg-[#0052CC] hover:text-white transition-all">
-                <Eye size={14} />
-              </a>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ── Tab: Contracts ──────────────────────────────────────────────────
-const CustomerContracts = ({ customerId }) => {
-  const { data: contracts, isLoading } = useCustomerContracts(customerId);
-  if (isLoading) return <Loader2 size={24} className="animate-spin text-[#0052CC] mx-auto my-12" />;
-
-  return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-      <SectionHeader title="Legal Contracts" count={contracts?.length} icon={ClipboardList} />
-      {contracts?.length === 0 ? (
-        <EmptyState text="No contracts active" icon={ClipboardList} />
-      ) : (
-        <div className="grid gap-3">
-          {contracts?.map(contract => (
-            <div key={contract.id} className="p-4 rounded-xl border border-gray-100 bg-white hover:border-blue-200 transition-all">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <p className="text-sm font-black text-[#172B4D]">{contract.contract_number}</p>
-                  <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">{contract.contract_type}</p>
-                </div>
-                <Badge className={contract.status === 'ACTIVE' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}>
-                  {contract.status}
-                </Badge>
-              </div>
-              <div className="grid grid-cols-2 gap-4 mt-3 pt-3 border-t border-gray-50">
-                <div>
-                  <span className="text-[10px] font-black text-gray-300 uppercase block mb-0.5">Start Date</span>
-                  <span className="text-xs font-bold text-[#172B4D]">{new Date(contract.start_date).toLocaleDateString()}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] font-black text-gray-300 uppercase block mb-0.5">End Date</span>
-                  <span className="text-xs font-bold text-[#172B4D]">{contract.end_date ? new Date(contract.end_date).toLocaleDateString() : 'Indefinite'}</span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ── Tab: Notes ──────────────────────────────────────────────────────
-const CustomerNotes = ({ customerId }) => {
-  const { data: notes, isLoading } = useCustomerNotes(customerId);
-  if (isLoading) return <Loader2 size={24} className="animate-spin text-[#0052CC] mx-auto my-12" />;
-
-  return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-      <SectionHeader title="Customer Notes" count={notes?.length} icon={LucideInfo} />
-      {notes?.length === 0 ? (
-        <EmptyState text="No notes available" icon={LucideInfo} />
-      ) : (
-        <div className="space-y-3">
-          {notes?.map(note => (
-            <div key={note.id} className="p-4 rounded-xl bg-gray-50 border border-gray-100">
-              <div className="flex justify-between items-center mb-2">
-                <Badge className="bg-white border-gray-200 text-gray-600 tracking-widest uppercase">{note.note_type}</Badge>
-                <span className="text-[10px] text-gray-400 font-bold">{new Date(note.created_at).toLocaleString()}</span>
-              </div>
-              <p className="text-sm text-gray-700 leading-relaxed italic">"{note.note}"</p>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ── Tab: Credit History ─────────────────────────────────────────────
-const CustomerCreditHistoryView = ({ customerId, currentLimit }) => {
-  const { data: history, isLoading } = useCustomerCreditHistory(customerId);
-  if (isLoading) return <Loader2 size={24} className="animate-spin text-[#0052CC] mx-auto my-12" />;
-
-  return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-      <SectionHeader title="Credit Limit History" count={history?.length} icon={History} />
-      <div className="p-4 bg-[#EBF3FF] rounded-xl border border-[#0052CC]/10 mb-6">
-        <p className="text-[10px] font-black text-[#0052CC] uppercase tracking-widest mb-1 text-center">Current Active Limit</p>
-        <p className="text-3xl font-black text-[#172B4D] text-center">₹{Number(currentLimit || 0).toLocaleString('en-IN')}</p>
-      </div>
-      
-      {history?.length === 0 ? (
-        <EmptyState text="No history entries" icon={History} />
-      ) : (
-        <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-px before:bg-gray-100">
-          {history?.map(entry => (
-            <div key={entry.id} className="relative">
-              <div className="absolute -left-[2.15rem] top-1.5 w-3 h-3 rounded-full bg-white border-2 border-[#0052CC]" />
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-sm font-black text-[#172B4D]">₹{Number(entry.credit_limit).toLocaleString('en-IN')}</p>
-                <span className="text-[10px] text-gray-400 font-bold uppercase">{new Date(entry.effective_date).toLocaleDateString()}</span>
-              </div>
-              {entry.reason && <p className="text-xs text-gray-400 leading-tight italic">Reason: {entry.reason}</p>}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
 
 export default CustomersDashboard;

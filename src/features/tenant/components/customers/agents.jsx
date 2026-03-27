@@ -55,12 +55,17 @@ const AgentsDashboard = () => {
 
   const { data: customerData } = useCustomers({ limit: 1000 });
   const allCustomers = customerData?.results ?? customerData ?? [];
-  const eligibleCustomers = allCustomers.filter(c => c.customer_type === 'AGENT' || c.customer_type === 'OTHER');
-
   const [modal, setModal] = useState(null);
   const [deleteTarget, setDelete] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
+
+  const eligibleCustomers = allCustomers.filter(c =>
+    c.customer_type === 'AGENT' ||
+    c.customer_type === 'BOTH' ||
+    c.customer_type === 'OTHER' ||
+    c.id === form.customer_id
+  );
 
   const createMutation = useCreateAgent();
   const updateMutation = useUpdateAgent();
@@ -107,10 +112,18 @@ const AgentsDashboard = () => {
   const handleSubmit = () => {
     if (!validate()) return;
 
+    // Merge the selected customer's data into the payload (required by the API)
+    const selectedCustomer = eligibleCustomers.find(c => c.id === form.customer_id) || {};
     const payload = {
+      ...selectedCustomer,
       ...form,
       operating_ports: form.operating_ports ? form.operating_ports.split(',').map(s => s.trim()).filter(Boolean) : []
     };
+
+    // Clean up to avoid collisions
+    delete payload.customer;
+    delete payload.customer_code;
+    if (modal.type === 'create') delete payload.id;
 
     if (modal.type === 'create') {
       createMutation.mutate(payload, { onSuccess: () => closeModal() });

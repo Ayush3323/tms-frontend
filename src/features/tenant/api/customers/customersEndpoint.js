@@ -63,6 +63,8 @@ export const customersApi = {
   notes: {
     list: (customerId) => axiosInstance.get(`${BASE_CUSTOMERS}/${customerId}/notes/`).then(r => r.data),
     create: (customerId, data) => axiosInstance.post(`${BASE_CUSTOMERS}/${customerId}/notes/`, data).then(r => r.data),
+    update: (customerId, noteId, data) => axiosInstance.patch(`${BASE_CUSTOMERS}/${customerId}/notes/${noteId}/`, data).then(r => r.data),
+    delete: (customerId, noteId) => axiosInstance.delete(`${BASE_CUSTOMERS}/${customerId}/notes/${noteId}/`).then(r => r.data),
   }
 }
 
