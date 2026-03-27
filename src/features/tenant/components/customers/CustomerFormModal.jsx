@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Plus, Edit2, Loader2, Save, Trash2, X
 } from 'lucide-react';
-import { useCreateCustomer, useUpdateCustomer } from '../../queries/customers/customersQuery';
+import { useCustomers, useCreateCustomer, useUpdateCustomer } from '../../queries/customers/customersQuery';
 import { useUsers } from '../../queries/users/userQuery';
 import { Modal, Field, Input, Sel, Section } from '../Vehicles/Common/VehicleCommon';
 
@@ -47,6 +47,22 @@ export const CustomerFormModal = ({ initial, onClose, onSuccess }) => {
   const updateMutation = useUpdateCustomer();
   const { data: userData } = useUsers({ limit: 1000 });
   const allUsers = userData?.results ?? userData ?? [];
+
+  const { data: filterCustomers } = useCustomers({ limit: 1000 });
+  const allCustomers = filterCustomers?.results ?? filterCustomers ?? [];
+  
+  const assignedUserIds = new Set(
+    allCustomers
+      .filter(c => c.user?.id || c.user_id)
+      .map(c => c.user?.id || c.user_id)
+  );
+
+  const initialUserId = initial?.user?.id || initial?.user_id;
+  if (initialUserId) {
+    assignedUserIds.delete(initialUserId);
+  }
+
+  const availableUsers = allUsers.filter(u => !assignedUserIds.has(u.id));
 
   const [createPortalUser, setCreatePortalUser] = useState(false);
 
@@ -275,7 +291,7 @@ export const CustomerFormModal = ({ initial, onClose, onSuccess }) => {
           <Field label="Existing User ID" error={errors.user_id}>
             <Sel value={form.user_id} onChange={e => setField('user_id', e.target.value)}>
               <option value="">-- No Linked User --</option>
-              {allUsers.map(u => (
+              {availableUsers.map(u => (
                 <option key={u.id} value={u.id}>{u.full_name || u.username} ({u.email})</option>
               ))}
             </Sel>
