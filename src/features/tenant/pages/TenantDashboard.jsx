@@ -14,7 +14,7 @@ const TenantDashboard = () => {
   return (
     <div className="flex h-screen w-full bg-[#F4F5F7] overflow-hidden">
       {/* 1. Left Sidebar */}
-      <Sidebar isCollapsed={isCollapsed} />
+      <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
 
       {/* 2. Right Side Content Area */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden transition-all duration-300">
