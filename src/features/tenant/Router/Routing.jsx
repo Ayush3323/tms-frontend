@@ -21,12 +21,23 @@ import CustomersDashboard from '../components/customers/customers'
 import Consigners from '../components/customers/consigners'
 import Consignees from '../components/customers/consignees'
 import Brokers from '../components/customers/brokers';
+
 import Agents from '../components/customers/agents';
 import CustomerDetail from '../components/customers/Details/CustomerDetail';
-import OrdersDashboard from '../components/orders/orders';
-import TripsDashboard from '../components/orders/trips'
-import CargoDashboard from '../components/orders/cargo'
-import DeliveriesDashboard from '../components/orders/deliveries'
+
+import OrdersDashboard from '../components/orders/Orders';
+import OrderDetail from '../components/orders/OrderDetail';
+import TripsDashboard from '../components/orders/Trips';
+import TripDetail from '../components/orders/TripDetail';
+import TripNestedSubResource from '../components/orders/TripNestedSub-Resource';
+
+import CargoDashboard from '../components/orders/Cargo';
+import CargoDetail from '../components/orders/CargoDetail';
+import DeliveriesDashboard from '../components/orders/Deliveries';
+import DeliveryDetail from '../components/orders/DeliveryDetail';
+
+
+
 
 
 
@@ -97,7 +108,7 @@ const Routing = () => {
         <Route path="vehicles/toll-tags/:id" element={<VehicleTollTagsDashboard />} />
         <Route path="vehicles/ownership" element={<VehicleOwnershipDashboard />} />
         <Route path="vehicles/ownership/:id" element={<VehicleOwnershipDashboard />} />
-        
+
         {/* Customer Routes */}
         <Route path="customers/:id" element={<CustomerDetail />} />
 
@@ -110,11 +121,21 @@ const Routing = () => {
         <Route path="customers/agents" element={<Agents />} />
 
 
-        {/* Specific Orders Detail Route (Must be last to avoid catching sub-paths as IDs) */}
-         <Route path="orders" element={<OrdersDashboard />} />
-         <Route path="orders/trips" element={<TripsDashboard />} />
-         <Route path="orders/cargo" element={<CargoDashboard />} />
-         <Route path="orders/deliveries" element={<DeliveriesDashboard />} />
+        {/* Dynamic Detail Routes */}
+        <Route path="orders" element={<OrdersDashboard />} />
+
+        <Route path="orders/trips" element={<TripsDashboard />} />
+        <Route path="orders/trips/:id" element={<TripDetail />} />
+
+        <Route path="orders/cargo" element={<CargoDashboard />} />
+        <Route path="orders/cargo/:id" element={<CargoDetail />} />
+
+        <Route path="orders/deliveries" element={<DeliveriesDashboard />} />
+        <Route path="orders/deliveries/:id" element={<DeliveryDetail />} />
+
+        <Route path="orders/:id" element={<OrderDetail />} />
+        <Route path="orders/:id/trips" element={<TripNestedSubResource />} />
+        <Route path="orders/trip-manager" element={<TripNestedSubResource />} />
 
 
 
