@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import {
-  Fuel, Plus, Edit2, Trash2, X, 
-  RefreshCw, Loader2, AlertCircle, Calendar, 
+  Fuel, Plus, Edit2, Trash2, X,
+  RotateCcw, Loader2, AlertCircle, Calendar,
   IndianRupee, Zap, Gauge, MapPin, Pencil, Search,
-  Download, Upload, Eye
+  Download, Upload, Eye, ChevronDown
 } from 'lucide-react';
 import {
   useVehicleFuelLog,
@@ -12,6 +12,7 @@ import {
   useUpdateFuelLog,
   useDeleteFuelLog,
 } from '../../../queries/vehicles/vehicleInfoQuery';
+import { useTrips } from '../../../queries/orders/ordersQuery';
 import {
   Badge, InfoCard, SectionHeader, EmptyState, Modal, DeleteConfirm, ItemActions,
   Label, Input, Sel, Field, StatCard, Textarea, VehicleSelect,
@@ -25,27 +26,28 @@ import {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const FUEL_TYPE_OPTIONS = [
-  { value: 'DIESEL',   label: 'Diesel' },
-  { value: 'PETROL',   label: 'Petrol' },
-  { value: 'CNG',      label: 'CNG' },
-  { value: 'LPG',      label: 'LPG' },
+  { value: 'DIESEL', label: 'Diesel' },
+  { value: 'PETROL', label: 'Petrol' },
+  { value: 'CNG', label: 'CNG' },
+  { value: 'LPG', label: 'LPG' },
   { value: 'ELECTRIC', label: 'Electric' },
-  { value: 'HYBRID',   label: 'Hybrid' },
+  { value: 'HYBRID', label: 'Hybrid' },
 ];
 
 const FUEL_COLORS = {
-  DIESEL:   'bg-gray-100 text-gray-700 border-gray-200',
-  PETROL:   'bg-blue-50 text-blue-700 border-blue-200',
-  CNG:      'bg-green-50 text-green-700 border-green-200',
-  LPG:      'bg-orange-50 text-orange-700 border-orange-200',
+  DIESEL: 'bg-gray-100 text-gray-700 border-gray-200',
+  PETROL: 'bg-blue-50 text-blue-700 border-blue-200',
+  CNG: 'bg-green-50 text-green-700 border-green-200',
+  LPG: 'bg-orange-50 text-orange-700 border-orange-200',
   ELECTRIC: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  HYBRID:   'bg-indigo-50 text-indigo-700 border-indigo-200',
+  HYBRID: 'bg-indigo-50 text-indigo-700 border-indigo-200',
 };
 
 const EMPTY_FORM = {
   vehicle: '', fuel_date: '', fuel_type: '',
   quantity_liters: '', cost_per_liter: '', total_cost: '',
   odometer_reading: '', fuel_station: '', notes: '',
+  trip_id: '',
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -98,17 +100,24 @@ const FuelModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => 
 
   const [form, setForm] = useState(
     initial ? {
-      vehicle:            resolveVehicleId(),
-      fuel_date:           initial.fuel_date           ?? '',
-      fuel_type:           initial.fuel_type           ?? '',
-      quantity_liters:     initial.quantity_liters     ?? '',
-      cost_per_liter:      initial.cost_per_liter      ?? '',
-      total_cost:          initial.total_cost          ?? '',
-      odometer_reading:    initial.odometer_reading    ?? '',
-      fuel_station:        initial.fuel_station        ?? '',
-      notes:               initial.notes               ?? '',
+      vehicle: resolveVehicleId(),
+      fuel_date: initial.fuel_date ?? '',
+      fuel_type: initial.fuel_type ?? '',
+      quantity_liters: initial.quantity_liters ?? '',
+      cost_per_liter: initial.cost_per_liter ?? '',
+      total_cost: initial.total_cost ?? '',
+      odometer_reading: initial.odometer_reading ?? '',
+      fuel_station: initial.fuel_station ?? '',
+      notes: initial.notes ?? '',
+      trip_id: initial.trip_id ?? '',
     } : { ...EMPTY_FORM, vehicle: vehicleId ?? '' }
   );
+
+  const { data: tripsData } = useTrips({
+    vehicle: form.vehicle,
+    limit: 100
+  });
+  const tripsList = tripsData?.results ?? tripsData ?? [];
 
   const create = useCreateFuelLog();
   const update = useUpdateFuelLog();
@@ -130,7 +139,7 @@ const FuelModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => 
   const handleSubmit = () => {
     const clean = Object.fromEntries(Object.entries(form).map(([k, v]) => [k, v === '' ? null : v]));
     if (isEdit) update.mutate({ id: initial.id, data: clean }, { onSuccess: onClose });
-    else        create.mutate(clean, { onSuccess: onClose });
+    else create.mutate(clean, { onSuccess: onClose });
   };
 
   return (
@@ -164,6 +173,16 @@ const FuelModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => 
               </Field>
               <Field label="Fill Date" required>
                 <Input type="date" value={form.fuel_date} onChange={set('fuel_date')} />
+              </Field>
+              <Field label="Trip ID">
+                <Sel value={form.trip_id} onChange={set('trip_id')}>
+                  <option value="">Select Trip (Optional)</option>
+                  {tripsList.map(t => (
+                    <option key={t.id} value={t.id}>
+                      {t.trip_id} ({t.status})
+                    </option>
+                  ))}
+                </Sel>
               </Field>
             </div>
 
@@ -224,7 +243,7 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
   const stats = useMemo(() => {
     const totalSpend = logs.reduce((s, l) => s + (Number(l.total_cost) || 0), 0);
     const totalLiters = logs.reduce((s, l) => s + (Number(l.quantity_liters) || 0), 0);
-    
+
     // Process analytics data
     const monthlyMap = {};
     const trendData = [...logs]
@@ -261,7 +280,7 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
       {!isTab && (
         <div className="flex items-center mb-8">
           <div className="w-1/4">
-            <h1 className="text-2xl font-black text-[#172B4D] tracking-tight uppercase">Fuel</h1>
+            <h2 className="text-2xl font-bold text-[#172B4D]">Fuel</h2>
             <p className="text-gray-500 text-sm tracking-tight">Track consumption and expenditures</p>
           </div>
 
@@ -281,7 +300,7 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
                   className="absolute right-4 top-2 text-gray-400 hover:text-red-500 transition-all duration-500 hover:rotate-180 p-1.5 rounded-full hover:bg-red-50 flex items-center justify-center group/reset"
                   title="Clear search"
                 >
-                  <RefreshCw size={18} className="animate-in fade-in zoom-in spin-in-180 duration-500 group-hover/reset:scale-110" />
+                  <RotateCcw size={18} className="animate-in fade-in zoom-in spin-in-180 duration-500 group-hover/reset:scale-110" />
                 </button>
               )}
             </div>
@@ -294,7 +313,7 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
                 onClick={() => refetch()}
                 className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95 group"
               >
-                <RefreshCw size={14} className={isLoading ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"} />
+                <RotateCcw size={14} className={isLoading ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"} />
                 <span>Refresh</span>
               </button>
               <button
@@ -324,30 +343,33 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
       {activeTab === 'LOGS' ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden mt-2">
           {/* Stats Row */}
-          <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">Total Spend:</span>
-              <span className="text-[18px] font-black text-[#172B4D]">{fmtINR(stats.totalSpend)}</span>
+          {!isTab && (
+            <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total Spend:</span>
+                <span className="text-[18px] font-black text-[#172B4D]">{fmtINR(stats.totalSpend)}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total Liters:</span>
+                <span className="text-[18px] font-black text-emerald-600">{stats.totalLiters.toFixed(1)} L</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Avg Efficiency:</span>
+                <span className="text-[18px] font-black text-indigo-600">
+                  {stats.avgEfficiency > 0 ? `${stats.avgEfficiency.toFixed(2)} KM/L` : 'N/A'}
+                </span>
+              </div>
+              <div className="ml-auto w-1/4 flex justify-end">
+                <button
+                  onClick={() => setModal({ mode: 'add' })}
+                  className="mr-0 bg-[#0052CC] text-white px-6 py-3 rounded-xl flex items-center gap-2 text-sm font-bold hover:bg-[#0747A6] transition-all shadow-lg hover:shadow-blue-200 active:scale-95 group"
+                >
+                  <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" />
+                  <span>Add Fuel Log</span>
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">Total Liters:</span>
-              <span className="text-[18px] font-black text-emerald-600">{stats.totalLiters.toFixed(1)} L</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">Avg Efficiency:</span>
-              <span className="text-[18px] font-black text-indigo-600">
-                {stats.avgEfficiency > 0 ? `${stats.avgEfficiency.toFixed(2)} KM/L` : 'N/A'}
-              </span>
-            </div>
-            <div className="ml-auto w-1/4 flex justify-end">
-              <button
-                onClick={() => setModal({ mode: 'add' })}
-                className="mr-0 bg-[#0052CC] text-white px-6 py-3 rounded-xl flex items-center gap-2 text-sm font-bold hover:bg-[#0747A6] transition-all shadow-lg hover:shadow-blue-200 active:scale-95 group"
-              >
-                <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" /> New Fuel Log
-              </button>
-            </div>
-          </div>
+          )}
 
           {/* Filters & Pagination Row */}
           <div className="flex items-center justify-between px-5 py-3 bg-white border-b border-gray-50 h-[60px]">
@@ -361,22 +383,39 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                 />
+                {search && (
+                  <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500">
+                    <X size={14} />
+                  </button>
+                )}
               </div>
-              <select
-                value={typeFilter}
-                onChange={(e) => { setTypeFilter(e.target.value); setCurrentPage(1); }}
-                className="px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-[12px] font-bold text-[#172B4D] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all hover:border-gray-200 cursor-pointer shadow-sm"
-              >
-                <option value="">All Fuel Types</option>
-                {FUEL_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
+              <div className="relative">
+                <select
+                  value={typeFilter}
+                  onChange={(e) => { setTypeFilter(e.target.value); setCurrentPage(1); }}
+                  className="appearance-none pl-3 pr-8 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-[12px] font-bold text-[#172B4D] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all hover:border-gray-200 cursor-pointer shadow-sm"
+                >
+                  <option value="">All Fuel Types</option>
+                  {FUEL_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+                <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              </div>
+              {typeFilter && (
+                <button
+                  onClick={() => { setTypeFilter(''); setCurrentPage(1); }}
+                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                  title="Clear Filters"
+                >
+                  <RotateCcw size={14} />
+                </button>
+              )}
             </div>
 
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1 || isLoading}
-                className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+                className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
               >
                 Previous
               </button>
@@ -388,7 +427,7 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
               <button
                 onClick={() => setCurrentPage(prev => prev + 1)}
                 disabled={!data?.next || isLoading}
-                className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+                className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
               >
                 Next
               </button>
@@ -474,13 +513,13 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
           </div>
           {/* Bottom Info Row */}
           {!isLoading && !isError && logs.length > 0 && (
-              <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-white shadow-sm z-20">
-                <div className="text-sm text-gray-500 font-medium whitespace-nowrap">
-                  Showing <span className="font-bold text-[#172B4D] font-mono">{logs.length}</span> of <span className="font-bold text-[#172B4D] font-mono">{data?.count ?? logs.length}</span> fuel logs
-                </div>
+            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-white shadow-sm z-20">
+              <div className="text-sm text-gray-500 font-medium whitespace-nowrap">
+                Showing <span className="font-bold text-[#172B4D] font-mono">{logs.length}</span> of <span className="font-bold text-[#172B4D] font-mono">{data?.count ?? logs.length}</span> fuel logs
               </div>
-            )}
-          </div>
+            </div>
+          )}
+        </div>
       ) : (
         <div className="flex-1 min-h-0 overflow-auto py-6 space-y-6">
           {/* Dashboard Stats */}
@@ -515,77 +554,77 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
 
           {/* Charts Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 min-h-[400px] flex flex-col">
-                <h4 className="text-[14px] font-black text-[#172B4D] mb-6 flex items-center gap-2">
-                  Monthly Fuel Spend <span className="px-2 py-0.5 bg-blue-50 text-[#0052CC] text-[10px] rounded uppercase">Analytics</span>
-                </h4>
-                <div className="flex-1 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={stats.monthlyData}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 700, fill: '#64748B' }} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 700, fill: '#64748B' }} tickFormatter={(val) => `₹${val/1000}k`} />
-                      <Tooltip 
-                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontWeight: 800 }}
-                        formatter={(value) => [`₹${value.toLocaleString()}`, 'Spend']}
-                      />
-                      <Bar dataKey="spend" radius={[6, 6, 0, 0]}>
-                        {stats.monthlyData.map((entry, index) => (
-                           <Cell key={`cell-${index}`} fill={index === stats.monthlyData.length - 1 ? '#0052CC' : '#E2E8F0'} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-             </div>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 min-h-[400px] flex flex-col">
+              <h4 className="text-[14px] font-black text-[#172B4D] mb-6 flex items-center gap-2">
+                Monthly Fuel Spend <span className="px-2 py-0.5 bg-blue-50 text-[#0052CC] text-[10px] rounded uppercase">Analytics</span>
+              </h4>
+              <div className="flex-1 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={stats.monthlyData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 700, fill: '#64748B' }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 700, fill: '#64748B' }} tickFormatter={(val) => `₹${val / 1000}k`} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontWeight: 800 }}
+                      formatter={(value) => [`₹${value.toLocaleString()}`, 'Spend']}
+                    />
+                    <Bar dataKey="spend" radius={[6, 6, 0, 0]}>
+                      {stats.monthlyData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={index === stats.monthlyData.length - 1 ? '#0052CC' : '#E2E8F0'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
 
-             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 min-h-[400px] flex flex-col">
-                <h4 className="text-[14px] font-black text-[#172B4D] mb-6 flex items-center gap-2">
-                  Liters Refilled <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[10px] rounded uppercase">Consumption</span>
-                </h4>
-                <div className="flex-1 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={stats.trendData}>
-                      <defs>
-                        <linearGradient id="colorQty" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#10B981" stopOpacity={0.1}/>
-                          <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                      <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#64748B' }} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 700, fill: '#64748B' }} unit="L" />
-                      <Tooltip 
-                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontWeight: 800 }}
-                      />
-                      <Area type="monotone" dataKey="quantity" stroke="#10B981" strokeWidth={3} fillOpacity={1} fill="url(#colorQty)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-             </div>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 min-h-[400px] flex flex-col">
+              <h4 className="text-[14px] font-black text-[#172B4D] mb-6 flex items-center gap-2">
+                Liters Refilled <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[10px] rounded uppercase">Consumption</span>
+              </h4>
+              <div className="flex-1 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={stats.trendData}>
+                    <defs>
+                      <linearGradient id="colorQty" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10B981" stopOpacity={0.1} />
+                        <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#64748B' }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 700, fill: '#64748B' }} unit="L" />
+                    <Tooltip
+                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontWeight: 800 }}
+                    />
+                    <Area type="monotone" dataKey="quantity" stroke="#10B981" strokeWidth={3} fillOpacity={1} fill="url(#colorQty)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
       {modal && (
-        <FuelModal 
-          initial={modal.data} 
-          onClose={() => setModal(null)} 
+        <FuelModal
+          initial={modal.data}
+          onClose={() => setModal(null)}
           vehicleId={vehicleId}
           onDeleteRequest={() => { setModal(null); setDeleting(modal.data); }}
         />
       )}
       {viewing && (
-        <FuelDetailView 
-          id={viewing.id} 
-          onClose={() => setViewing(null)} 
-          vehicleId={vehicleId} 
+        <FuelDetailView
+          id={viewing.id}
+          onClose={() => setViewing(null)}
+          vehicleId={vehicleId}
         />
       )}
       {deleting && (
-        <DeleteConfirm 
-          label="Fuel Log" 
-          onClose={() => setDeleting(null)} 
+        <DeleteConfirm
+          label="Fuel Log"
+          onClose={() => setDeleting(null)}
           onConfirm={() => del.mutate(deleting.id, { onSuccess: () => setDeleting(null) })}
           deleting={del.isPending}
         />

@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  FileText, Plus, Eye, X, Search, RefreshCw,
+  FileText, Plus, Eye, X, Search, RotateCcw,
   Loader2, AlertCircle, CheckCircle, XCircle, Clock, AlertTriangle,
-  Download, Upload, Calendar, Pencil, Trash2
+  Download, Upload, Calendar, Pencil, Trash2, ChevronDown
 } from 'lucide-react';
 import {
   useVehicleDocuments,
@@ -259,7 +259,7 @@ const VehicleDocuments = ({ vehicleId, isTab }) => {
       {!isTab && (
         <div className="flex items-center mb-8">
           <div className="w-1/4">
-            <h1 className="text-2xl font-black text-[#172B4D] tracking-tight uppercase">Documents</h1>
+            <h2 className="text-2xl font-bold text-[#172B4D]">Documents</h2>
             <p className="text-gray-500 text-sm tracking-tight">RC, Insurance, PUC, Fitness</p>
           </div>
 
@@ -287,25 +287,23 @@ const VehicleDocuments = ({ vehicleId, isTab }) => {
 
           <div className="flex items-center justify-end gap-2 ml-auto">
             <div className="flex items-center gap-2 mr-2">
-              <button onClick={() => refetch()} className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95 group">
-                <RefreshCw size={14} className={isLoading ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"} />
+              <button
+                onClick={() => refetch()}
+                className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95 group"
+              >
+                <RotateCcw size={14} className={isLoading ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"} />
                 <span>Refresh</span>
               </button>
               <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95">
-                <Download size={14} /><span>Export</span>
+                <Download size={14} />
+                <span>Export</span>
               </button>
               <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all duration-300 font-bold text-xs shadow-sm active:scale-95">
-                <Upload size={14} /><span>Import</span>
+                <Upload size={14} />
+                <span>Import</span>
               </button>
             </div>
             <div className="w-px h-8 bg-gray-200 mx-1" />
-            <button
-              onClick={() => setModal('add')}
-              className="flex items-center gap-2 px-4 py-2 bg-[#0052CC] text-white rounded-xl font-bold text-xs shadow-md hover:bg-[#0747A6] transition-all active:scale-95 group"
-            >
-              <Plus size={16} className="group-hover:rotate-90 transition-transform duration-300" />
-              <span>Add Document</span>
-            </button>
           </div>
         </div>
       )}
@@ -330,7 +328,7 @@ const VehicleDocuments = ({ vehicleId, isTab }) => {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Valid:</span>
-                  <span className="text-[18px] font-black text-green-600">{valid}</span>
+                  <span className="text-[18px] font-black text-emerald-600">{valid}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Expiring:</span>
@@ -338,63 +336,88 @@ const VehicleDocuments = ({ vehicleId, isTab }) => {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Expired:</span>
-                  <span className="text-[18px] font-black text-red-500">{expired}</span>
+                  <span className="text-[18px] font-black text-red-600">{expired}</span>
                 </div>
               </>
             )}
+            <div className="ml-auto w-1/4 flex justify-end">
+              <button
+                onClick={() => setModal('add')}
+                className="mr-0 bg-[#0052CC] text-white px-6 py-3 rounded-xl flex items-center gap-2 text-sm font-bold hover:bg-[#0747A6] transition-all shadow-lg hover:shadow-blue-200 active:scale-95 group"
+              >
+                <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" />
+                <span>Add Document</span>
+              </button>
+            </div>
           </div>
         )}
 
+
         <div>
-           <div className="flex items-center gap-6 ml-auto justify-between h-15 border-b border-gray-50">
-             <div className="flex items-center gap-3 px-5 py-2 flex-1">
-                {isTab && (
-                  <div className="relative group/search max-w-xs">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within/search:text-[#0052CC] transition-all duration-300" size={16} />
-                    <input
-                      type="text"
-                      placeholder="Search number..."
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      className="w-full pl-10 pr-8 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all shadow-sm"
-                    />
-                    {search && (
-                      <button
-                        onClick={() => setSearch('')}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-all duration-300"
-                        title="Clear search"
-                      >
-                        <X size={14} />
-                      </button>
-                    )}
-                  </div>
+        {/* Filters & Pagination Row */}
+        <div className="flex items-center justify-between px-5 py-3 bg-white border-b border-gray-50 h-[60px]">
+          <div className="flex items-center gap-6">
+            {isTab && (
+              <div className="relative w-64 text-gray-400">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search number..."
+                  className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border-none rounded-lg focus:ring-2 focus:ring-[#0052CC]/10 text-[#172B4D] font-medium"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                />
+                {search && (
+                  <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500">
+                    <X size={14} />
+                  </button>
                 )}
-                
-                <select className="w-40 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-600 outline-none focus:border-[#0052CC]" value={typeFilter} onChange={e => setType(e.target.value)}>
-                  <option value="">All Types</option>
-                  {DOC_TYPES.map(o => <option key={o} value={o}>{o}</option>)}
-                </select>
-             </div>
+              </div>
+            )}
+            <div className="relative">
+              <select
+                value={typeFilter}
+                onChange={e => setType(e.target.value)}
+                className="appearance-none pl-3 pr-8 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-[12px] font-bold text-[#172B4D] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all hover:border-gray-200 cursor-pointer shadow-sm"
+              >
+                <option value="">All Types</option>
+                {DOC_TYPES.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+              <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            </div>
+            {typeFilter && (
+              <button
+                onClick={() => setType('')}
+                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                title="Clear Filters"
+              >
+                <RotateCcw size={14} />
+              </button>
+            )}
+          </div>
 
-             <div className="justify-between h-10 w-px bg-gray-100 hidden sm:block px-5" />
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1 || isLoading}
+              className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+            >
+              Previous
+            </button>
 
-             <div className="flex items-center justify-between gap-3 px-5 py-2">
-                {isTab && (
-                   <button
-                     onClick={() => setModal('add')}
-                     className="flex items-center gap-2 px-3 py-1.5 bg-[#0052CC] text-white rounded-lg font-bold text-xs shadow-md hover:bg-[#0747A6] transition-all active:scale-95 group"
-                   >
-                     <Plus size={14} className="group-hover:rotate-90 transition-transform duration-300" />
-                     <span>Add</span>
-                   </button>
-                )}
-                <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1 || isLoading}
-                  className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm">Prev</button>
-                <div className="flex items-center justify-center min-w-7 h-7 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-sm">{currentPage}</div>
-                <button onClick={() => setCurrentPage(p => p + 1)} disabled={!data?.next || isLoading}
-                  className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm">Next</button>
-             </div>
-           </div>
+            <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
+              {currentPage}
+            </div>
+
+            <button
+              onClick={() => setCurrentPage(prev => prev + 1)}
+              disabled={!data?.next || isLoading}
+              className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+            >
+              Next
+            </button>
+          </div>
+        </div>
         </div>
 
         {isLoading && <TabContentShimmer />}
