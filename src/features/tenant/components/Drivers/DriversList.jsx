@@ -336,11 +336,30 @@ const DriversList = () => {
     },
     {
       header: 'License Expiry',
-      render: d => (
-        <span className={`text-[12px] font-mono ${getExpiryColor(d.license_expiry)}`}>
-          {d.license_expiry ?? '—'}
-        </span>
-      ),
+      render: d => {
+        const daysToExpiry = d.license_expiry ? Math.ceil((new Date(d.license_expiry) - new Date()) / (1000 * 60 * 60 * 24)) : null;
+        const isExpiringSoon = daysToExpiry !== null && daysToExpiry <= 30 && daysToExpiry > 0;
+        const isExpired = d.license_expiry && new Date(d.license_expiry) < new Date();
+
+        return (
+          <div className="flex items-center gap-2">
+            <span className="text-[12px] font-mono text-gray-600 font-medium">
+              {d.license_expiry ?? '—'}
+            </span>
+            {(isExpiringSoon || isExpired) && (
+              <div className="relative group/tooltip">
+                <AlertCircle size={14} className={isExpired ? "text-red-500" : "text-red-500 animate-pulse"} />
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/tooltip:block z-50">
+                  <div className="bg-gray-900 text-white text-[10px] py-1 px-2 rounded whitespace-nowrap shadow-xl border border-gray-700 font-sans">
+                    {isExpired ? `Expired ${Math.abs(daysToExpiry)} days ago!` : `Expiring in ${daysToExpiry} days!`}
+                  </div>
+                  <div className="w-2 h-2 bg-gray-900 rotate-45 absolute -bottom-1 left-1/2 -translate-x-1/2 border-r border-b border-gray-700" />
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      },
     },
     {
       header: 'Experience',
@@ -374,24 +393,12 @@ const DriversList = () => {
     {
       header: 'Actions',
       render: d => (
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate(`/tenant/dashboard/drivers/${d.id}`)}
-            className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all font-sans"
-          >
-            <Eye size={12} /> View
-          </button>
-          {d.is_deleted && (
-            <button
-              onClick={() => restoreDriver.mutate(d.id)}
-              disabled={restoreDriver.isPending}
-              className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-all disabled:opacity-50"
-            >
-              {restoreDriver.isPending ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />}
-              Restore
-            </button>
-          )}
-        </div>
+        <button
+          onClick={() => navigate(`/tenant/dashboard/drivers/${d.id}`)}
+          className="px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all font-sans"
+        >
+          View
+        </button>
       ),
     },
   ];
@@ -513,99 +520,71 @@ const DriversList = () => {
           </div>
         </div>
 
-        {/* ── Filters Row 1 ── */}
-        <div>
-          <div className="flex items-center gap-6 ml-auto justify-between h-15">
-            <div className="flex items-center gap-3 px-5 py-3">
-              <div className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 p-1">
-                {[
-                  { id: 'active', label: 'Active' },
-                  { id: 'deleted', label: 'Deleted' },
-                  { id: 'all', label: 'All' },
-                ].map((opt) => (
-                  <button
-                    key={opt.id}
-                    onClick={() => {
-                      setVisibilityFilter(opt.id);
-                      setCurrentPage(1);
-                    }}
-                    className={`px-3 py-1 text-[11px] font-bold rounded-md transition-all ${visibilityFilter === opt.id
-                      ? 'bg-[#0052CC] text-white shadow-sm'
-                      : 'text-gray-600 hover:bg-white'
-                      }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
+        {/* ── Filters Bar ── */}
+        <div className="flex items-center justify-between border-b border-gray-100 bg-white min-h-[56px] px-5 py-2">
+          <div className="flex items-center gap-3 overflow-x-auto no-scrollbar py-1">
+            {[
+              { val: statusFilter, set: setStatus, opts: DRIVER_STATUS, ph: 'All Status' },
+              { val: typeFilter, set: setType, opts: DRIVER_TYPES, ph: 'All Types' },
+              { val: licFilter, set: setLic, opts: LICENSE_TYPES, ph: 'All Licenses' },
+            ].map(({ val, set, opts, ph }) => (
+              <select
+                key={ph}
+                value={val}
+                onChange={e => { set(e.target.value); setCurrentPage(1); }}
+                className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-[#172B4D] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all hover:bg-[#EDF1F7] cursor-pointer"
+              >
+                <option value="">{ph}</option>
+                {opts.map(o => <option key={o} value={o}>{o.replaceAll('_', ' ')}</option>)}
+              </select>
+            ))}
 
-              {[
-                { val: statusFilter, set: setStatus, opts: DRIVER_STATUS, ph: 'All Status' },
-                { val: typeFilter, set: setType, opts: DRIVER_TYPES, ph: 'All Types' },
-                { val: licFilter, set: setLic, opts: LICENSE_TYPES, ph: 'All Licenses' },
-              ].map(({ val, set, opts, ph }) => (
-                <div key={ph} className="flex items-center gap-2">
-                  <select
-                    value={val}
-                    onChange={e => { set(e.target.value); setCurrentPage(1); }}
-                    disabled={visibilityFilter === 'deleted' && ph === 'All Status'}
-                    className="px-3 py-1 bg-gray-50 border border-gray-100 rounded-lg text-xs font-medium text-[#172B4D] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all hover:border-gray-200 cursor-pointer shadow-sm"
-                  >
-                    <option value="">{ph}</option>
-                    {opts.map(o => <option key={o} value={o}>{o.replaceAll('_', ' ')}</option>)}
-                  </select>
-                </div>
-              ))}
-              
-              <div className="flex items-center gap-1 ml-2 border border-gray-100 rounded-lg px-2 bg-gray-50">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Joined:</span>
-                <input
-                  type="date"
-                  value={joinedFrom}
-                  onChange={e => { setJoinedFrom(e.target.value); setCurrentPage(1); }}
-                  className="px-1 py-1 text-xs bg-transparent border-none focus:ring-0 text-[#172B4D] font-medium cursor-pointer"
-                />
-                <span className="text-gray-400 text-[10px] leading-none">to</span>
-                <input
-                  type="date"
-                  value={joinedTo}
-                  onChange={e => { setJoinedTo(e.target.value); setCurrentPage(1); }}
-                  className="px-1 py-1 text-xs bg-transparent border-none focus:ring-0 text-[#172B4D] font-medium cursor-pointer"
-                />
-              </div>
-
-              {(statusFilter || typeFilter || licFilter || joinedFrom || joinedTo || visibilityFilter !== 'active') && (
-                <button
-                  onClick={resetFilters}
-                  className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                  title="Clear Filters"
-                >
-                  <RotateCcw size={14} />
-                </button>
-              )}
+            <div className="flex items-center gap-2 bg-white border border-gray-200 px-3 py-1 rounded-lg hover:bg-[#EDF1F7] transition-colors">
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tight whitespace-nowrap">Joined:</span>
+              <input
+                type="date"
+                value={joinedFrom}
+                onChange={e => { setJoinedFrom(e.target.value); setCurrentPage(1); }}
+                className="px-1 py-0.5 text-xs bg-transparent border-none focus:ring-0 text-[#172B4D] font-bold cursor-pointer"
+              />
+              <span className="text-gray-400 text-[10px] font-bold leading-none">to</span>
+              <input
+                type="date"
+                value={joinedTo}
+                onChange={e => { setJoinedTo(e.target.value); setCurrentPage(1); }}
+                className="px-1 py-0.5 text-xs bg-transparent border-none focus:ring-0 text-[#172B4D] font-bold cursor-pointer"
+              />
             </div>
 
-            <div className="justify-between h-10 w-px bg-gray-100 hidden sm:block " />
+            {(statusFilter || typeFilter || licFilter || joinedFrom || joinedTo) && (
+              <button
+                onClick={resetFilters}
+                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                title="Clear Filters"
+              >
+                <RotateCcw size={14} />
+              </button>
+            )}
+          </div>
 
-            <div className="flex items-center justify-between gap-3 px-5 py-3">
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1 || isLoading}
-                className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-              >
-                Previous
-              </button>
-              <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
-                {currentPage}
-              </div>
-              <button
-                onClick={() => setCurrentPage(prev => prev + 1)}
-                disabled={!data?.next || isLoading}
-                className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-              >
-                Next
-              </button>
+          <div className="flex items-center gap-3 ml-4 bg-gray-50/50 p-1 rounded-xl border border-gray-100">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1 || isLoading}
+              className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+            >
+              Prev
+            </button>
+            <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-black shadow-md shadow-blue-100">
+              {currentPage}
             </div>
+            <button
+              onClick={() => setCurrentPage(prev => prev + 1)}
+              disabled={!data?.next || isLoading}
+              className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+            >
+              Next
+            </button>
           </div>
           <div className="px-5 py-2 border-b border-gray-50 bg-blue-50/40">
             <p className="text-[11px] text-gray-600">
@@ -614,68 +593,57 @@ const DriversList = () => {
           </div>
         </div>
 
-        {/* Loading */}
-        {isLoading && (
-          <GenericTableShimmer
-            rows={10}
-            columns={[
-              { headerWidth: 'w-24', cellWidth: 'w-32', width: 'w-40', type: 'multiline', subWidth: 'w-16' }, // Name/ID
-              { headerWidth: 'w-24', cellWidth: 'w-28', width: 'w-32', type: 'badge' }, // License No
-              { headerWidth: 'w-20', cellWidth: 'w-24', width: 'w-28', type: 'badge' }, // License Type
-              { headerWidth: 'w-20', cellWidth: 'w-24', width: 'w-28', type: 'badge' }, // Driver Type
-              { headerWidth: 'w-24', cellWidth: 'w-28', width: 'w-32' }, // Expiry
-              { headerWidth: 'w-16', cellWidth: 'w-16', width: 'w-24' }, // Exp
-              { headerWidth: 'w-16', cellWidth: 'w-16', width: 'w-24' }, // Joined
-              { headerWidth: 'w-16', cellWidth: 'w-20', width: 'w-24', type: 'badge' }, // Status
-              { headerWidth: 'w-10', cellWidth: 'w-14', width: 'w-24', align: 'right', type: 'action' }, // Actions
-            ]}
-          />
-        )}
-
-        {/* Error */}
-        {isError && (
-          <ErrorState
-            message="Failed to load drivers"
-            error={error?.response?.data?.detail || error?.message}
-            onRetry={() => refetch()}
-          />
-        )}
-
-        {/* Table */}
-        {!isLoading && !isError && (
-          <div className="flex-1 overflow-auto min-h-0">
-            {drivers.length > 0 ? (
-              <table className="w-full text-sm">
-                <thead className="bg-[#F8FAFC] border-b border-gray-100 sticky top-0 z-10">
-                  <tr className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+        {/* Loading / Table / Error Area */}
+        <div className="flex-1 overflow-auto min-h-0 bg-white">
+          {isLoading ? (
+            <GenericTableShimmer
+              rows={10}
+              columns={[
+                { headerWidth: 'w-24', cellWidth: 'w-32', width: 'w-40', type: 'multiline', subWidth: 'w-16' },
+                { headerWidth: 'w-24', cellWidth: 'w-28', width: 'w-32', type: 'badge' },
+                { headerWidth: 'w-20', cellWidth: 'w-24', width: 'w-28', type: 'badge' },
+                { headerWidth: 'w-20', cellWidth: 'w-24', width: 'w-28', type: 'badge' },
+                { headerWidth: 'w-24', cellWidth: 'w-28', width: 'w-32' },
+                { headerWidth: 'w-16', cellWidth: 'w-16', width: 'w-24' },
+                { headerWidth: 'w-16', cellWidth: 'w-16', width: 'w-24' },
+                { headerWidth: 'w-16', cellWidth: 'w-20', width: 'w-24', type: 'badge' },
+                { headerWidth: 'w-10', cellWidth: 'w-14', width: 'w-24', align: 'right', type: 'action' },
+              ]}
+            />
+          ) : isError ? (
+            <ErrorState message="Failed to load drivers" error={error?.message} onRetry={() => refetch()} />
+          ) : drivers.length > 0 ? (
+            <table className="w-full text-sm">
+              <thead className="bg-[#F8FAFC] border-b border-gray-100 sticky top-0 z-10">
+                <tr className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                  {COLUMNS.map(c => (
+                    c.sortField
+                      ? <SortableTH key={c.header} label={c.header} field={c.sortField} />
+                      : <th key={c.header} className="px-4 py-4">{c.header}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {drivers.map(d => (
+                  <tr key={d.id} className="hover:bg-[#f7f9ff] transition-colors group">
                     {COLUMNS.map(c => (
-                      c.sortField
-                        ? <SortableTH key={c.header} label={c.header} field={c.sortField} />
-                        : <th key={c.header} className="px-4 py-4">{c.header}</th>
+                      <td key={c.header} className="px-4 py-3 whitespace-nowrap align-middle">
+                        {c.render(d)}
+                      </td>
                     ))}
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {drivers.map(d => (
-                    <tr key={d.id} className="hover:bg-[#f7f9ff] transition-colors group">
-                      {COLUMNS.map(c => (
-                        <td key={c.header} className="px-4 py-3 whitespace-nowrap align-middle">
-                          {c.render(d)}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <EmptyState
-                icon={IdCard}
-                title="No drivers found"
-                description="Click Add Driver to register a new one"
-              />
-            )}
-          </div>
-        )}
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <EmptyState
+              icon={IdCard}
+              title="No drivers found"
+              description="Click Add Driver to register a new one"
+            />
+          )}
+        </div>
+
         {/* Footer */}
         {!isLoading && !isError && (
           <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100 bg-white shrink-0">
@@ -685,7 +653,7 @@ const DriversList = () => {
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 };
 

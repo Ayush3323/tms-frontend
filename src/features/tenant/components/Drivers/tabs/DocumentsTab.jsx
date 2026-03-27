@@ -7,11 +7,12 @@ import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
 
 import { LoadingState, ErrorState, EmptyState, TabLayoutShimmer } from '../common/StateFeedback';
 import DocumentTable from '../sub-features/Documents/DocumentTable';
-import { AddDocumentModal, EditDocumentModal, DeleteDocumentDialog } from '../sub-features/Documents/DocumentModals';
+import { AddDocumentModal, EditDocumentModal, DeleteDocumentDialog, ViewDocumentModal } from '../sub-features/Documents/DocumentModals';
 
 const DocumentsTab = ({ driverId }) => {
   const [addOpen, setAddOpen] = useState(false);
   const [editDoc, setEditDoc] = useState(null);
+  const [viewDoc, setViewDoc] = useState(null);
   const [deleteDoc, setDeleteDoc] = useState(null);
 
   const { data, isLoading, isError, error, refetch } = useDriverDocuments(driverId);
@@ -34,18 +35,12 @@ const DocumentsTab = ({ driverId }) => {
   if (isLoading) return (
     <TabLayoutShimmer
       columns={[
-        { headerWidth: 'w-24', cellWidth: 'w-28' }, // Driver
-        { headerWidth: 'w-12', cellWidth: 'w-12', type: 'mono' }, // Emp ID
         { headerWidth: 'w-24', cellWidth: 'w-28', type: 'multiline' }, // Type
         { headerWidth: 'w-20', cellWidth: 'w-24', type: 'mono' }, // Number
-        { headerWidth: 'w-16', cellWidth: 'w-20' }, // Issue Date
         { headerWidth: 'w-16', cellWidth: 'w-20', type: 'mono' }, // Expiry Date
         { headerWidth: 'w-24', cellWidth: 'w-32' }, // Authority
         { headerWidth: 'w-16', cellWidth: 'w-20', type: 'badge' }, // Verification
-        { headerWidth: 'w-20', cellWidth: 'w-24' }, // Verified By
-        { headerWidth: 'w-28', cellWidth: 'w-32' }, // Verified At
         { headerWidth: 'w-16', cellWidth: 'w-20' }, // File
-        { headerWidth: 'w-24', cellWidth: 'w-32' }, // Notes
         { headerWidth: 'w-10', cellWidth: 'w-14', align: 'right', type: 'action' }, // Actions
       ]}
     />
@@ -57,6 +52,7 @@ const DocumentsTab = ({ driverId }) => {
       {/* ── Modals ── */}
       {addOpen && <AddDocumentModal driverId={driverId} onClose={() => setAddOpen(false)} />}
       {editDoc && <EditDocumentModal doc={editDoc} driverId={driverId} onClose={() => setEditDoc(null)} userMap={userMap} />}
+      {viewDoc && <ViewDocumentModal doc={viewDoc} onClose={() => setViewDoc(null)} userMap={userMap} driverMap={driverMap} />}
       {deleteDoc && <DeleteDocumentDialog doc={deleteDoc} driverId={driverId} onClose={() => setDeleteDoc(null)} />}
 
       {/* ── Header ── */}
@@ -88,6 +84,7 @@ const DocumentsTab = ({ driverId }) => {
       {documents.length > 0 && (
         <DocumentTable
           documents={documents}
+          onView={setViewDoc}
           onEdit={setEditDoc}
           onDelete={setDeleteDoc}
           showDriver={false}

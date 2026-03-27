@@ -1,33 +1,25 @@
 import React, { useState } from 'react';
-import { Users, Plus, Search, RefreshCw, Download, Upload, X, RotateCcw } from 'lucide-react';
+import { Users, Plus, RefreshCw, Download, Upload, RotateCcw } from 'lucide-react';
 import { useEmergencyContacts } from '../../../queries/drivers/driverContactQuery';
 import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
 import { LoadingState, ErrorState, EmptyState, PageLayoutShimmer } from '../common/StateFeedback';
 import ContactTable from '../sub-features/Contacts/ContactTable';
-import { AddContactModal, EditContactModal, DeleteContactDialog } from '../sub-features/Contacts/ContactModals';
+import { AddContactModal, EditContactModal, ViewContactModal, DeleteContactDialog } from '../sub-features/Contacts/ContactModals';
 import DriverSelect from '../common/DriverSelect';
 import Select from '../common/Select';
 
 const AllContacts = () => {
   const [addOpen,       setAddOpen]       = useState(false);
   const [editContact,   setEditContact]   = useState(null);
+  const [viewContact,   setViewContact]   = useState(null);
   const [filters, setFilters] = useState({
-    search: '',
     driver: '',
     is_primary: '',
-    relationship: '',
   });
 
   const { data, isLoading, isError, error, refetch, isFetching } = useEmergencyContacts(filters);
   const driverMap = useDriverLookup();
   const contacts = data?.results ?? [];
-
-  // Extract unique relationships for the filter
-  const relationships = React.useMemo(() => {
-    const rs = new Set();
-    contacts.forEach(c => { if (c.relationship) rs.add(c.relationship); });
-    return Array.from(rs).sort();
-  }, [contacts]);
 
   const handleFilterChange = (field, value) => {
     setFilters(prev => ({ ...prev, [field]: value }));
@@ -35,10 +27,8 @@ const AllContacts = () => {
 
   const clearFilters = () => {
     setFilters({
-      search: '',
       driver: '',
       is_primary: '',
-      relationship: '',
     });
   };
 
@@ -64,6 +54,14 @@ const AllContacts = () => {
       {/* ── Modals ── */}
       {addOpen       && <AddContactModal    driverId={null} onClose={() => setAddOpen(false)} />}
       {editContact   && <EditContactModal   contact={editContact} driverId={editContact.driver} onClose={() => setEditContact(null)} />}
+      {viewContact   && (
+        <ViewContactModal   
+          contact={viewContact} 
+          driverName={driverMap[viewContact.driver]?.name} 
+          employeeId={driverMap[viewContact.driver]?.employee_id}
+          onClose={() => setViewContact(null)} 
+        />
+      )}
 
       <div className="p-6 lg:p-8 flex-1 flex flex-col min-h-0">
         {/* ── Header ── */}
@@ -124,25 +122,14 @@ const AllContacts = () => {
         {/* ── Filters Bar ── */}
         <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-50 bg-white flex-wrap">
           <DriverSelect value={filters.driver} onChange={(val) => handleFilterChange('driver', val)}
-            className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
-          <select value={filters.is_primary} onChange={(e) => handleFilterChange('is_primary', e.target.value)}
-            className="px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-xs font-medium text-[#172B4D] focus:outline-none">
-            <option value="">All Contacts</option>
+            className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors" />
+          <Select value={filters.is_primary} onChange={(e) => handleFilterChange('is_primary', e.target.value)}
+            className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors min-w-[120px]">
+            <option value="">All Status</option>
             <option value="true">Primary Only</option>
             <option value="false">Secondary Only</option>
-          </select>
-          <select value={filters.relationship} onChange={(e) => handleFilterChange('relationship', e.target.value)}
-            className="px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-xs font-medium text-[#172B4D] focus:outline-none">
-            <option value="">All Relations</option>
-            {relationships.map(r => <option key={r} value={r}>{r}</option>)}
-          </select>
-          <div className="relative">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input type="text" placeholder="Search contact..." value={filters.search}
-              onChange={(e) => handleFilterChange('search', e.target.value)}
-              className="pl-8 pr-3 py-1.5 text-xs bg-gray-50 border border-gray-100 rounded-lg focus:outline-none font-medium text-[#172B4D]" />
-          </div>
-          {(filters.driver || filters.is_primary || filters.relationship || filters.search) && (
+          </Select>
+          {(filters.driver || filters.is_primary) && (
             <button onClick={clearFilters} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Clear Filters">
               <RotateCcw size={14} />
             </button>
@@ -157,13 +144,13 @@ const AllContacts = () => {
           </div>
         ) : (
           <div className="p-4">
-             <ContactTable contacts={contacts} onEdit={setEditContact} showDriver={true} driverMap={driverMap} />
+             <ContactTable contacts={contacts} onEdit={setEditContact} onView={setViewContact} showDriver={true} driverMap={driverMap} />
           </div>
         )}
         </div>
       </div>
-      </div>
     </div>
+  </div>
   );
 };
 

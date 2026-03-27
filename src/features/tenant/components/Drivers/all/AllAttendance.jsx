@@ -4,7 +4,7 @@ import { useAttendance } from '../../../queries/drivers/incidentsAndAttendance';
 
 import { LoadingState, ErrorState, EmptyState, PageLayoutShimmer } from '../common/StateFeedback';
 import AttendanceTable from '../sub-features/Attendance/AttendanceTable';
-import { AddAttendanceModal, EditAttendanceModal, DeleteAttendanceDialog } from '../sub-features/Attendance/AttendanceModals';
+import { AddAttendanceModal, EditAttendanceModal, ViewAttendanceModal, DeleteAttendanceDialog } from '../sub-features/Attendance/AttendanceModals';
 import DriverSelect from '../common/DriverSelect';
 import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
 import { ATTENDANCE_STATUS_LIST } from '../common/constants';
@@ -14,6 +14,7 @@ import Input from '../common/Input';
 const AllAttendance = () => {
   const [addOpen, setAddOpen] = useState(false);
   const [editAtten, setEditAtten] = useState(null);
+  const [viewAtten, setViewAtten] = useState(null);
 
   const [filters, setFilters] = useState({
     driver: '',
@@ -60,6 +61,14 @@ const AllAttendance = () => {
       {/* ── Modals ── */}
       {addOpen && <AddAttendanceModal driverId={null} onClose={() => setAddOpen(false)} />}
       {editAtten && <EditAttendanceModal record={editAtten} driverId={editAtten.driver} onClose={() => setEditAtten(null)} />}
+      {viewAtten && (
+        <ViewAttendanceModal
+          record={viewAtten}
+          onClose={() => setViewAtten(null)}
+          driverName={driverMap[viewAtten.driver]?.name}
+          employeeId={driverMap[viewAtten.driver]?.employee_id}
+        />
+      )}
 
       <div className="p-6 lg:p-8 flex-1 flex flex-col min-h-0">
         {/* ── Header ── */}
@@ -125,14 +134,17 @@ const AllAttendance = () => {
           {/* ── Filters Bar ── */}
           <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-50 bg-white flex-wrap">
             <DriverSelect value={filters.driver} onChange={(val) => handleFilterChange('driver', val)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
+              className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors" />
             <Select value={filters.status} onChange={(e) => handleFilterChange('status', e.target.value)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100">
+              className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors">
               <option value="">All Status</option>
               {ATTENDANCE_STATUS_LIST.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
             </Select>
-            <Input type="date" value={filters.date} onChange={(e) => handleFilterChange('date', e.target.value)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
+            <div className="flex items-center gap-2 bg-white border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-[#EDF1F7] transition-colors">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight whitespace-nowrap">Date:</span>
+              <input type="date" value={filters.date} onChange={(e) => handleFilterChange('date', e.target.value)}
+                className="px-1 py-0.5 text-xs bg-transparent border-none focus:ring-0 text-[#172B4D] font-bold cursor-pointer" />
+            </div>
             {(filters.driver || filters.status || filters.date) && (
               <button onClick={clearFilters} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Clear Filters">
                 <RotateCcw size={14} />
@@ -147,7 +159,7 @@ const AllAttendance = () => {
             <EmptyState icon={Calendar} title="No attendance records found" description="No attendance has been logged yet." />
           </div>
         ) : (
-          <AttendanceTable records={attendance} onEdit={setEditAtten} showDriver={true} driverMap={driverMap} />
+          <AttendanceTable records={attendance} onEdit={setEditAtten} onView={setViewAtten} showDriver={true} driverMap={driverMap} />
         )}
         </div>
       </div>

@@ -6,7 +6,7 @@ import {
   FileText, ShieldAlert, GraduationCap,
   Stethoscope, BarChart2, AlertTriangle,
   CalendarCheck, Truck, Wallet, PauseCircle,
-  PlayCircle, Pencil, ChevronRight, X, ChevronDown, Save, Trash2
+  PlayCircle, Edit, ChevronRight, X, ChevronDown, Save, Trash2
 } from 'lucide-react';
 import { useDriverDetail, useUpdateDriver, useDeleteDriver } from '../../queries/drivers/driverCoreQuery';
 import { useUpdateUser } from '../../queries/users/userQuery';
@@ -279,9 +279,30 @@ const OverviewTab = ({ driver }) => (
         <DF label="License Type" value={driver.license_type_display ?? driver.license_type} />
         <DF label="Expiry Date"
           value={
-            <span className={getExpiryColor(driver.license_expiry)}>
-              {driver.license_expiry ?? '—'}
-            </span>
+            (() => {
+              const daysToExpiry = driver.license_expiry ? Math.ceil((new Date(driver.license_expiry) - new Date()) / (1000 * 60 * 60 * 24)) : null;
+              const isExpiringSoon = daysToExpiry !== null && daysToExpiry <= 30 && daysToExpiry > 0;
+              const isExpired = driver.license_expiry && new Date(driver.license_expiry) < new Date();
+
+              return (
+                <div className="flex items-center gap-2">
+                  <span className="text-[#172B4D] font-bold">
+                    {driver.license_expiry ?? '—'}
+                  </span>
+                  {(isExpiringSoon || isExpired) && (
+                    <div className="relative group/tooltip">
+                      <AlertCircle size={14} className={isExpired ? "text-red-500" : "text-red-500 animate-pulse"} />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/tooltip:block z-50">
+                        <div className="bg-gray-900 text-white text-[10px] py-1 px-2 rounded whitespace-nowrap shadow-xl border border-gray-700 font-sans">
+                          {isExpired ? `Expired ${Math.abs(daysToExpiry)} days ago!` : `Expiring in ${daysToExpiry} days!`}
+                        </div>
+                        <div className="w-2 h-2 bg-gray-900 rotate-45 absolute -bottom-1 left-1/2 -translate-x-1/2 border-r border-b border-gray-700" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()
           }
         />
         <DF label="Issuing Authority" value={driver.license_issuing_authority} />
@@ -416,7 +437,7 @@ const DriverDetail = () => {
             {activeTab === 'overview' && (
               <button onClick={() => setEditOpen(true)}
                 className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-gradient-to-r from-[#2563eb] to-[#4f46e5] rounded-lg shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
-                <Pencil size={13} /> Edit Driver
+                <Edit size={13} /> Edit Driver
               </button>
             )}
             {driver.status === 'ACTIVE' && (

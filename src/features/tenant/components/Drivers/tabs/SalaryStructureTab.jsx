@@ -56,8 +56,15 @@ const SalaryTab = ({ driverId }) => {
       {/* ── Modals ── */}
       {addOpen      && <AddSalaryModal    driverId={driverId} onClose={() => setAddOpen(false)} />}
       {editSalary   && <EditSalaryModal   salary={editSalary} driverId={driverId} onClose={() => setEditSalary(null)} />}
-      {viewSalary   && <ViewSalaryModal   salary={viewSalary} onClose={() => setViewSalary(null)} />}
       {deleteSalary && <DeleteSalaryDialog salary={deleteSalary} driverId={driverId} onClose={() => setDeleteSalary(null)} />}
+      {viewSalary   && (
+        <ViewSalaryModal   
+          salary={viewSalary} 
+          onClose={() => setViewSalary(null)} 
+          driverName={driverMap[driverId]?.name}
+          employeeId={driverMap[driverId]?.employee_id}
+        />
+      )}
 
       {/* ── Header ── */}
       <div className="flex items-center justify-between mb-4">
@@ -87,7 +94,6 @@ const SalaryTab = ({ driverId }) => {
         <SalaryTable 
           salaries={salaries} 
           onEdit={setEditSalary} 
-          onDelete={setDeleteSalary} 
           onView={setViewSalary}
           showDriver={false}
           driverMap={driverMap}

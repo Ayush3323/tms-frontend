@@ -4,7 +4,7 @@ import TableActions from '../../common/TableActions';
 import { STATUS_STYLES } from '../../common/constants';
 import { getInitials } from '../../common/utils';
 
-const AttendanceTable = ({ records, onEdit, showDriver = false, driverMap = {} }) => {
+const AttendanceTable = ({ records, onEdit, onView, showDriver = false, driverMap = {} }) => {
   const formatTime = (timeStr) => {
     if (!timeStr) return '—';
     return timeStr;
@@ -18,14 +18,18 @@ const AttendanceTable = ({ records, onEdit, showDriver = false, driverMap = {} }
             {showDriver && (
               <th className="text-left px-4 py-3 text-[10px] font-bold text-[#94a3b8] uppercase tracking-[0.1em] whitespace-nowrap bg-[#fafbff] shadow-[inset_0_-1px_0_#e2e8f0]">Driver</th>
             )}
-            {['Date', 'Status', 'Check In', 'Check Out', 'Total Hours', 'Notes', 'Actions'].map(h => (
+            {['Date', 'Status', 'Check In', 'Check Out', 'Total Hours', 'Actions'].map(h => (
               <th key={h} className="text-left px-4 py-3 text-[10px] font-bold text-[#94a3b8] uppercase tracking-[0.1em] whitespace-nowrap bg-[#fafbff] shadow-[inset_0_-1px_0_#e2e8f0]">{h}</th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-50">
+        <tbody className="divide-y divide-gray-50 bg-white">
           {records.map(rec => (
-            <tr key={rec.id} className="hover:bg-blue-50/30 transition-colors">
+            <tr 
+              key={rec.id} 
+              onClick={() => onView && onView(rec)}
+              className="hover:bg-gray-50 transition-colors cursor-pointer group"
+            >
               {showDriver && (
                 <td className="px-4 py-3 whitespace-nowrap">
                   <div className="flex items-center gap-3">
@@ -61,10 +65,7 @@ const AttendanceTable = ({ records, onEdit, showDriver = false, driverMap = {} }
               <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600">
                 {rec.total_hours != null ? `${rec.total_hours} hrs` : '—'}
               </td>
-              <td className="px-4 py-3 text-[12px] text-gray-600 max-w-xs truncate" title={rec.notes}>
-                {rec.notes || '—'}
-              </td>
-              <td className="px-4 py-3 whitespace-nowrap">
+              <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                 <TableActions
                   onEdit={() => onEdit(rec)}
                 />

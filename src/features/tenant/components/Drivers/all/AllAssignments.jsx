@@ -4,7 +4,7 @@ import { useVehicleAssignments } from '../../../queries/drivers/vehicleAssignmen
 
 import { LoadingState, ErrorState, EmptyState, GenericTableShimmer, PageLayoutShimmer } from '../common/StateFeedback';
 import AssignmentTable from '../sub-features/Assignments/AssignmentTable';
-import { AddAssignmentModal, EditAssignmentModal, DeleteAssignmentDialog, VehicleSelect } from '../sub-features/Assignments/AssignmentModals';
+import { AddAssignmentModal, EditAssignmentModal, ViewAssignmentModal, DeleteAssignmentDialog, VehicleSelect } from '../sub-features/Assignments/AssignmentModals';
 import DriverSelect from '../common/DriverSelect';
 import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
 import { useUsers } from '../../../queries/users/userQuery';
@@ -16,6 +16,7 @@ import Input from '../common/Input';
 const AllAssignments = () => {
   const [addOpen, setAddOpen] = useState(false);
   const [editAssignment, setEditAssignment] = useState(null);
+  const [viewAssignment, setViewAssignment] = useState(null);
 
   const [filters, setFilters] = useState({
     driver: '',
@@ -79,6 +80,15 @@ const AllAssignments = () => {
       {/* ── Modals ── */}
       {addOpen && <AddAssignmentModal driverId={null} onClose={() => setAddOpen(false)} />}
       {editAssignment && <EditAssignmentModal assignment={editAssignment} driverId={editAssignment.driver} onClose={() => setEditAssignment(null)} />}
+      {viewAssignment && (
+        <ViewAssignmentModal
+          record={viewAssignment}
+          onClose={() => setViewAssignment(null)}
+          driverName={driverMap[viewAssignment.driver]?.name}
+          employeeId={driverMap[viewAssignment.driver]?.employee_id}
+          userMap={userMap}
+        />
+      )}
 
       <div className="p-6 lg:p-8 flex-1 flex flex-col min-h-0">
         {/* ── Header ── */}
@@ -139,22 +149,25 @@ const AllAssignments = () => {
           {/* ── Filters Bar ── */}
           <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-50 bg-white flex-wrap">
             <DriverSelect value={filters.driver} onChange={(val) => handleFilterChange('driver', val)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
+              className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors" />
             <VehicleSelect value={filters.vehicle} onChange={(e) => handleFilterChange('vehicle', e.target.value)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100 shadow-none" />
+              className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors" />
             <Select value={filters.assignment_type} onChange={(e) => handleFilterChange('assignment_type', e.target.value)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100">
+              className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors">
               <option value="">All Types</option>
               {ASSIGNMENT_TYPES.map(t => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
             </Select>
             <Select value={filters.is_active} onChange={(e) => handleFilterChange('is_active', e.target.value)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100">
+              className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors">
               <option value="">All Status</option>
               <option value="true">Active Only</option>
               <option value="false">Inactive Only</option>
             </Select>
-            <Input type="date" value={filters.assigned_date} onChange={(e) => handleFilterChange('assigned_date', e.target.value)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
+            <div className="flex items-center gap-2 bg-white border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-[#EDF1F7] transition-colors">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight whitespace-nowrap">Assigned:</span>
+              <input type="date" value={filters.assigned_date} onChange={(e) => handleFilterChange('assigned_date', e.target.value)}
+                className="px-1 py-0.5 text-xs bg-transparent border-none focus:ring-0 text-[#172B4D] font-bold cursor-pointer" />
+            </div>
             {(filters.driver || filters.vehicle || filters.assignment_type || filters.is_active || filters.assigned_date) && (
               <button onClick={clearFilters} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Clear">
                 <RotateCcw size={14} />
@@ -169,7 +182,7 @@ const AllAssignments = () => {
             <EmptyState icon={Truck} title="No assignments found" description="No vehicles have been assigned to drivers yet." />
           </div>
         ) : (
-          <AssignmentTable assignments={assignments} onEdit={setEditAssignment} showDriver={true} driverMap={driverMap} userMap={userMap} currentUser={currentUser} />
+          <AssignmentTable assignments={assignments} onEdit={setEditAssignment} onView={setViewAssignment} showDriver={true} driverMap={driverMap} userMap={userMap} currentUser={currentUser} />
         )}
         </div>
       </div>

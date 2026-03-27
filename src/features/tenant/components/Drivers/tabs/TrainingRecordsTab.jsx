@@ -7,11 +7,12 @@ import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
 
 import { LoadingState, ErrorState, EmptyState, TabLayoutShimmer } from '../common/StateFeedback';
 import TrainingTable from '../sub-features/Training/TrainingTable';
-import { AddTrainingModal, EditTrainingModal, DeleteTrainingDialog } from '../sub-features/Training/TrainingModals';
+import { AddTrainingModal, EditTrainingModal, ViewTrainingModal, DeleteTrainingDialog } from '../sub-features/Training/TrainingModals';
 
 const TrainingRecordsTab = ({ driverId }) => {
   const [addOpen,      setAddOpen]      = useState(false);
   const [editRecord,   setEditRecord]   = useState(null);
+  const [viewRecord,   setViewRecord]   = useState(null);
   const [deleteRecord, setDeleteRecord] = useState(null);
 
   const { data, isLoading, isError, error, refetch } = useDriverTrainingRecords(driverId);
@@ -52,6 +53,14 @@ const TrainingRecordsTab = ({ driverId }) => {
       {/* ── Modals ── */}
       {addOpen && <AddTrainingModal driverId={driverId} onClose={() => setAddOpen(false)} />}
       {editRecord && <EditTrainingModal record={editRecord} driverId={driverId} onClose={() => setEditRecord(null)} />}
+      {viewRecord && (
+        <ViewTrainingModal 
+          record={viewRecord} 
+          driverName={driverMap[driverId]?.name} 
+          employeeId={driverMap[driverId]?.employee_id}
+          onClose={() => setViewRecord(null)} 
+        />
+      )}
       {deleteRecord && <DeleteTrainingDialog record={deleteRecord} driverId={driverId} onClose={() => setDeleteRecord(null)} />}
 
       {/* ── Header ── */}
@@ -82,6 +91,7 @@ const TrainingRecordsTab = ({ driverId }) => {
         <TrainingTable 
           records={records} 
           onEdit={setEditRecord} 
+          onView={setViewRecord}
           onDelete={setDeleteRecord} 
           showDriver={false}
           driverMap={driverMap}

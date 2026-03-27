@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pencil, Trash2, Eye } from 'lucide-react';
+import { Edit, Trash2, Eye } from 'lucide-react';
 
 const TableActions = ({ onView, onEdit, onDelete, viewLabel = 'View', editLabel = 'Edit', deleteLabel = 'Delete' }) => {
   return (
@@ -7,25 +7,27 @@ const TableActions = ({ onView, onEdit, onDelete, viewLabel = 'View', editLabel 
       {onView && (
         <button
           onClick={onView}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-[#0052CC] bg-blue-50 border border-blue-100 rounded-lg hover:bg-blue-100 hover:border-blue-200 transition-all shadow-sm"
+          className="px-3 py-1.5 text-[11px] font-bold text-[#0052CC] bg-blue-50 border border-blue-100 rounded-lg hover:bg-blue-100 hover:border-blue-200 transition-all shadow-sm"
         >
-          <Eye size={11} /> {viewLabel}
+          {viewLabel}
         </button>
       )}
       {onEdit && (
         <button
           onClick={onEdit}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+          title={editLabel}
+          className="p-1.5 hover:bg-gray-100 rounded text-gray-400 border border-gray-200 transition-colors"
         >
-          <Pencil size={11} /> {editLabel}
+          <Edit size={14} />
         </button>
       )}
       {onDelete && (
         <button
           onClick={onDelete}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-red-600 bg-red-50 border border-red-100 rounded-lg hover:bg-red-100 hover:border-red-200 transition-all shadow-sm"
+          title={deleteLabel}
+          className="p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-500 border border-gray-200 hover:border-red-100 transition-colors"
         >
-          <Trash2 size={11} /> {deleteLabel}
+          <Trash2 size={14} />
         </button>
       )}
     </div>

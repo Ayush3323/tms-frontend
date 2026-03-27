@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Loader2, Plus, Pencil } from 'lucide-react';
+import { Loader2, Plus, Edit, IndianRupee, User } from 'lucide-react';
 import ModalWrapper from '../../common/ModalWrapper';
 import Label from '../../common/Label';
 import Input from '../../common/Input';
@@ -206,7 +206,7 @@ export const EditSalaryModal = ({ salary, driverId, onClose }) => {
             <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
             <button onClick={handleSubmit} disabled={!form.base_salary || !form.effective_from || updateSalary.isPending}
               className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed">
-              {updateSalary.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Pencil size={14} /> Update Salary</>}
+              {updateSalary.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Edit size={14} /> Update Salary</>}
             </button>
           </div>
         </div>
@@ -248,7 +248,7 @@ export const EditSalaryModal = ({ salary, driverId, onClose }) => {
   );
 };
 
-export const ViewSalaryModal = ({ salary, onClose }) => {
+export const ViewSalaryModal = ({ salary, driverName, employeeId, onClose }) => {
   const b = parseFloat(salary.base_salary) || 0;
   
   const getArr = (val) => {
@@ -263,86 +263,86 @@ export const ViewSalaryModal = ({ salary, onClose }) => {
   const dTotal = sumObjectValues(salary.deductions);
   const net = b + aTotal - dTotal;
 
+  const LabelValue = ({ label, value, color }) => (
+    <div className="py-2 border-b border-gray-50 last:border-0 flex flex-col gap-1">
+      <span className="text-xs font-semibold text-gray-700">{label}</span>
+      <span className={`text-[13px] font-medium text-[#172B4D] ${color || ''}`}>
+        {value || '—'}
+      </span>
+    </div>
+  );
+
   return (
     <ModalWrapper
-      title="Salary Structure Detail"
-      description={<span>Effective from: <span className="font-semibold text-gray-600">{salary.effective_from}</span></span>}
+      title="Salary Structure Details"
       onClose={onClose}
-      maxWidth="max-w-md"
+      footer={
+        <div className="flex justify-end w-full">
+          <button 
+            onClick={onClose} 
+            className="px-8 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all"
+          >
+            Close
+          </button>
+        </div>
+      }
     >
-      <div className="space-y-5 pb-1">
-        {/* Core Info */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">payment_frequency</p>
-            <StatusBadge label={salary.payment_frequency_display || salary.payment_frequency} styles={FREQUENCY_STYLES[salary.payment_frequency]} />
-          </div>
-          <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Effective Range</p>
-            <p className="text-sm font-bold text-[#172B4D]">
-              {salary.effective_from} → {salary.effective_to || 'Current'}
-            </p>
-          </div>
-        </div>
-
-        {/* Breakdown */}
-        <div className="space-y-3">
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-gray-500">Base Salary</span>
-            <span className="font-bold text-[#172B4D]">{formatCurrency(b)}</span>
-          </div>
-
-          {allowancesArr.length > 0 && (
-            <div className="space-y-1.5 pt-2 border-t border-dashed border-gray-100">
-              <p className="text-[10px] font-bold text-green-600 uppercase tracking-widest">Allowances</p>
-              {allowancesArr.map(([key, val]) => (
-                <div key={key} className="flex justify-between items-center text-xs">
-                  <span className="text-gray-400">{key}</span>
-                  <span className="font-medium text-green-700">+{formatCurrency(val)}</span>
-                </div>
-              ))}
+      <div className="space-y-4">
+        {/* Header Record Card */}
+        <div className="bg-gray-50/50 rounded-xl p-4 border border-gray-100/50">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-[#0052CC] shrink-0 border border-blue-100/50">
+              <IndianRupee size={20} />
             </div>
-          )}
-
-          {deductionsArr.length > 0 && (
-            <div className="space-y-1.5 pt-2 border-t border-dashed border-gray-100">
-              <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest">Deductions</p>
-              {deductionsArr.map(([key, val]) => (
-                <div key={key} className="flex justify-between items-center text-xs">
-                  <span className="text-gray-400">{key}</span>
-                  <span className="font-medium text-red-600">-{formatCurrency(val)}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Rates */}
-          <div className="grid grid-cols-3 gap-3 pt-3 border-t border-gray-100">
-             <div><p className="text-[9px] text-gray-400 uppercase font-bold">per_trip_rate</p><p className="text-xs font-bold">{formatCurrency(salary.per_trip_rate)}</p></div>
-             <div><p className="text-[9px] text-gray-400 uppercase font-bold">per_km_rate</p><p className="text-xs font-bold">{formatCurrency(salary.per_km_rate)}</p></div>
-             <div><p className="text-[9px] text-gray-400 uppercase font-bold">overtime_rate</p><p className="text-xs font-bold">{formatCurrency(salary.overtime_rate)}/hr</p></div>
-          </div>
-        </div>
-
-        {/* Final Net */}
-        <div className="p-4 bg-[#0052CC] rounded-2xl shadow-xl shadow-blue-100 text-white">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-[10px] font-bold text-blue-100 uppercase tracking-widest mb-0.5">Final Net Salary</p>
-              <p className="text-2xl font-black">{formatCurrency(salary.net_salary || net)}</p>
-            </div>
-            <div className="text-right">
-               <p className="text-[9px] text-blue-200">Base + Allowances - Deductions</p>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-black text-[#172B4D] leading-none uppercase tracking-tight">{driverName || salary.driver_name || 'System Driver'}</h3>
+                <StatusBadge 
+                  label={salary.payment_frequency_display ?? salary.payment_frequency} 
+                  styles={FREQUENCY_STYLES[salary.payment_frequency]} 
+                />
+              </div>
+              <div className="text-gray-400 text-[10px] font-mono font-bold uppercase tracking-widest mt-1.5 flex items-center gap-1.5">
+                 <User size={12} /> Employee ID: {employeeId || salary.employee_id || '—'}
+              </div>
             </div>
           </div>
         </div>
 
-        {salary.notes && (
-          <div className="p-3 bg-yellow-50 rounded-xl border border-yellow-100">
-            <p className="text-[10px] font-bold text-yellow-600 uppercase tracking-widest mb-1">Notes</p>
-            <p className="text-xs text-yellow-800 leading-relaxed italic">"{salary.notes}"</p>
+        {/* Details Content - Direct on White */}
+        <div className="px-1">
+          <div className="grid grid-cols-2 gap-x-8 gap-y-1">
+            <LabelValue label="base_salary (₹)" value={formatCurrency(b)} />
+            <LabelValue label="allowances (₹)" value={aTotal ? formatCurrency(aTotal) : '—'} />
+            <LabelValue label="deductions (₹)" value={dTotal ? formatCurrency(dTotal) : '—'} />
+            <div className="py-2 border-b border-gray-50 flex flex-col gap-1">
+              <span className="text-xs font-semibold text-gray-700">net_salary (₹)</span>
+              <span className="font-semibold text-[13px] text-[#0052CC]">
+                {formatCurrency(salary.net_salary || net)}
+              </span>
+            </div>
+
+            <LabelValue label="per_trip_rate (₹)" value={formatCurrency(salary.per_trip_rate)} />
+            <LabelValue label="per_km_rate (₹)" value={formatCurrency(salary.per_km_rate)} />
+            <LabelValue label="overtime_rate (₹/hr)" value={`${formatCurrency(salary.overtime_rate)}/hr`} />
+            <LabelValue label="effective_dates" value={`${salary.effective_from} → ${salary.effective_to || 'Current'}`} />
+            
+            <LabelValue 
+              label="record_created_at" 
+              value={salary.created_at ? new Date(salary.created_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }).replace(',', '') : '—'} 
+            />
           </div>
-        )}
+
+          {/* Notes Section */}
+          <div className="mt-4 pt-4 border-t border-gray-50 uppercase">
+             <span className="text-[10px] font-bold text-gray-400 tracking-widest ">Notes & Remarks</span>
+             <div className="mt-2 bg-gray-50/50 rounded-lg p-3 border border-gray-100/50">
+                <p className="text-[12px] text-gray-600 leading-relaxed italic">
+                  {salary.notes || 'No additional notes provided for this salary structure.'}
+                </p>
+             </div>
+          </div>
+        </div>
       </div>
     </ModalWrapper>
   );

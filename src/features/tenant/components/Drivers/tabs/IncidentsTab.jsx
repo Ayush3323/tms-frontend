@@ -8,11 +8,12 @@ import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
 
 import { LoadingState, ErrorState, EmptyState, TabLayoutShimmer } from '../common/StateFeedback';
 import IncidentTable from '../sub-features/Incidents/IncidentTable';
-import { AddIncidentModal, EditIncidentModal, DeleteIncidentDialog } from '../sub-features/Incidents/IncidentModals';
+import { AddIncidentModal, EditIncidentModal, ViewIncidentModal, DeleteIncidentDialog } from '../sub-features/Incidents/IncidentModals';
 
 const IncidentsTab = ({ driverId }) => {
   const [addOpen, setAddOpen] = useState(false);
   const [editIncident, setEditIncident] = useState(null);
+  const [viewIncident, setViewIncident] = useState(null);
   const [deleteIncident, setDeleteIncident] = useState(null);
 
   const { data, isLoading, isError, error, refetch } = useDriverIncidents(driverId);
@@ -48,13 +49,7 @@ const IncidentsTab = ({ driverId }) => {
         { headerWidth: 'w-28', cellWidth: 'w-32' }, // Date
         { headerWidth: 'w-20', cellWidth: 'w-24' }, // Location
         { headerWidth: 'w-16', cellWidth: 'w-20', type: 'badge' }, // Severity
-        { headerWidth: 'w-32', cellWidth: 'w-40' }, // Description
         { headerWidth: 'w-20', cellWidth: 'w-24', type: 'badge' }, // Status
-        { headerWidth: 'w-32', cellWidth: 'w-40' }, // Res. Notes
-        { headerWidth: 'w-24', cellWidth: 'w-28' }, // Res. By
-        { headerWidth: 'w-28', cellWidth: 'w-32' }, // Res. At
-        { headerWidth: 'w-16', cellWidth: 'w-20', type: 'mono' }, // Police Ref
-        { headerWidth: 'w-16', cellWidth: 'w-20', type: 'mono' }, // Insurance Ref
         { headerWidth: 'w-10', cellWidth: 'w-14', align: 'right', type: 'action' }, // Actions
       ]}
     />
@@ -66,6 +61,17 @@ const IncidentsTab = ({ driverId }) => {
       {/* ── Modals ── */}
       {addOpen && <AddIncidentModal driverId={driverId} onClose={() => setAddOpen(false)} />}
       {editIncident && <EditIncidentModal incident={editIncident} driverId={driverId} onClose={() => setEditIncident(null)} />}
+      {viewIncident && (
+        <ViewIncidentModal 
+          incident={viewIncident} 
+          driverName={driverMap[driverId]?.name} 
+          employeeId={driverMap[driverId]?.employee_id}
+          vehicleName={vehicleMap[viewIncident.vehicle]}
+          userMap={userMap}
+          currentUser={currentUser}
+          onClose={() => setViewIncident(null)} 
+        />
+      )}
       {deleteIncident && <DeleteIncidentDialog incident={deleteIncident} driverId={driverId} onClose={() => setDeleteIncident(null)} />}
 
       {/* ── Header ── */}
@@ -96,6 +102,7 @@ const IncidentsTab = ({ driverId }) => {
         <IncidentTable
           incidents={incidents}
           onEdit={setEditIncident}
+          onView={setViewIncident}
           onDelete={setDeleteIncident}
           showDriver={false}
           driverMap={driverMap}

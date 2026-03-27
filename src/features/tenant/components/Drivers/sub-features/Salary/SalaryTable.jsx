@@ -5,7 +5,7 @@ import { FREQUENCY_STYLES } from '../../common/constants';
 import { formatCurrency, sumObjectValues } from './SalaryModals';
 import { getInitials } from '../../common/utils';
 
-const SalaryTable = ({ salaries, onEdit, showDriver = false, driverMap = {} }) => {
+const SalaryTable = ({ salaries, onEdit, onView, showDriver = false, driverMap = {} }) => {
   return (
     <div className="w-full min-w-max">
       <table className="w-full text-sm">
@@ -19,20 +19,16 @@ const SalaryTable = ({ salaries, onEdit, showDriver = false, driverMap = {} }) =
               { key: 'allowances', label: 'Allowances' },
               { key: 'deductions', label: 'Deductions' },
               { key: 'net_salary', label: 'Net Salary' },
-              { key: 'per_trip_rate', label: 'Trip Rate' },
-              { key: 'per_km_rate', label: 'KM Rate' },
-              { key: 'overtime_rate', label: 'OT Rate' },
               { key: 'payment_frequency', label: 'Frequency' },
               { key: 'effective_from', label: 'Effective From' },
               { key: 'effective_to', label: 'Effective To' },
-              { key: 'notes', label: 'Notes' },
               { key: 'actions', label: 'Actions' }
             ].map(h => (
               <th key={h.key} className="text-left px-4 py-3 text-[10px] font-bold text-[#94a3b8] uppercase tracking-[0.1em] whitespace-nowrap bg-[#fafbff] shadow-[inset_0_-1px_0_#e2e8f0]">{h.label}</th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-50">
+        <tbody className="divide-y divide-gray-50 bg-white">
           {salaries.map(sal => {
             const b = parseFloat(sal.base_salary) || 0;
             const a = sumObjectValues(sal.allowances);
@@ -40,7 +36,11 @@ const SalaryTable = ({ salaries, onEdit, showDriver = false, driverMap = {} }) =
             const calculatedNet = b + a - d;
 
             return (
-              <tr key={sal.id} className="hover:bg-blue-50/30 transition-colors">
+              <tr 
+                key={sal.id} 
+                onClick={() => onView && onView(sal)}
+                className="hover:bg-gray-50 transition-colors cursor-pointer group"
+              >
                 {showDriver && (
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center gap-3">
@@ -61,25 +61,16 @@ const SalaryTable = ({ salaries, onEdit, showDriver = false, driverMap = {} }) =
                 <td className="px-4 py-3 whitespace-nowrap font-semibold text-[#172B4D] text-[13px]">
                   {formatCurrency(sal.base_salary)}
                 </td>
-                <td className="px-4 py-3 whitespace-nowrap text-[12px] text-green-600 font-semibold">
-                  {sal.allowances ? `+${formatCurrency(sal.allowances)}` : '—'}
+                <td className="px-4 py-3 whitespace-nowrap text-[12px] text-[#172B4D] font-semibold">
+                  {sal.allowances ? formatCurrency(sal.allowances) : '—'}
                 </td>
-                <td className="px-4 py-3 whitespace-nowrap text-[12px] text-red-500 font-semibold">
-                  {sal.deductions ? `-${formatCurrency(sal.deductions)}` : '—'}
+                <td className="px-4 py-3 whitespace-nowrap text-[12px] text-[#172B4D] font-semibold">
+                  {sal.deductions ? formatCurrency(sal.deductions) : '—'}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
                   <span className="font-black text-[13px] text-[#0052CC]">
                     {formatCurrency(sal.net_salary || calculatedNet)}
                   </span>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600 font-mono">
-                  {formatCurrency(sal.per_trip_rate)}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600 font-mono">
-                  {formatCurrency(sal.per_km_rate)}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600 font-mono">
-                  {formatCurrency(sal.overtime_rate)}/hr
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
                   <StatusBadge
@@ -87,16 +78,13 @@ const SalaryTable = ({ salaries, onEdit, showDriver = false, driverMap = {} }) =
                     styles={FREQUENCY_STYLES[sal.payment_frequency]}
                   />
                 </td>
-                <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600">
+                <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600 font-medium">
                   {sal.effective_from ?? '—'}
                 </td>
-                <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600">
+                <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600 font-medium">
                   {sal.effective_to ?? <span className="text-green-600 font-semibold">Current</span>}
                 </td>
-                <td className="px-4 py-3 text-[12px] text-gray-800 max-w-xs truncate" title={sal.notes}>
-                  {sal.notes || '—'}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap">
+                <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                   <TableActions 
                     onEdit={() => onEdit(sal)} 
                   />

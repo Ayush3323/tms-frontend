@@ -13,6 +13,7 @@ import Input from '../common/Input';
 const AllSalaryStructures = () => {
   const [addOpen,      setAddOpen]      = useState(false);
   const [editSalary,   setEditSalary]   = useState(null);
+  const [viewSalary,   setViewSalary]   = useState(null);
 
   const [filters, setFilters] = useState({
     driver: '',
@@ -66,6 +67,14 @@ const AllSalaryStructures = () => {
       {/* ── Modals ── */}
       {addOpen      && <AddSalaryModal    driverId={null} onClose={() => setAddOpen(false)} />}
       {editSalary   && <EditSalaryModal   salary={editSalary} driverId={editSalary.driver} onClose={() => setEditSalary(null)} />}
+      {viewSalary   && (
+        <ViewSalaryModal
+          salary={viewSalary}
+          onClose={() => setViewSalary(null)}
+          driverName={driverMap[viewSalary.driver]?.name}
+          employeeId={driverMap[viewSalary.driver]?.employee_id}
+        />
+      )}
 
       <div className="p-6 lg:p-8 flex-1 flex flex-col min-h-0">
         {/* ── Header ── */}
@@ -133,16 +142,22 @@ const AllSalaryStructures = () => {
           {/* ── Filters Bar ── */}
           <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-50 bg-white flex-wrap">
             <DriverSelect value={filters.driver} onChange={(val) => handleFilterChange('driver', val)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
+              className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors" />
             <Select value={filters.payment_frequency} onChange={(e) => handleFilterChange('payment_frequency', e.target.value)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100">
+              className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors">
               <option value="">All Frequencies</option>
               {PAYMENT_FREQUENCIES.map(f => <option key={f} value={f}>{f}</option>)}
             </Select>
-            <Input type="date" value={filters.effective_from} onChange={(e) => handleFilterChange('effective_from', e.target.value)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
-            <Input type="date" value={filters.effective_to} onChange={(e) => handleFilterChange('effective_to', e.target.value)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
+            <div className="flex items-center gap-2 bg-white border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-[#EDF1F7] transition-colors">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight whitespace-nowrap">From:</span>
+              <input type="date" value={filters.effective_from} onChange={(e) => handleFilterChange('effective_from', e.target.value)}
+                className="px-1 py-0.5 text-xs bg-transparent border-none focus:ring-0 text-[#172B4D] font-bold cursor-pointer" />
+            </div>
+            <div className="flex items-center gap-2 bg-white border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-[#EDF1F7] transition-colors">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight whitespace-nowrap">To:</span>
+              <input type="date" value={filters.effective_to} onChange={(e) => handleFilterChange('effective_to', e.target.value)}
+                className="px-1 py-0.5 text-xs bg-transparent border-none focus:ring-0 text-[#172B4D] font-bold cursor-pointer" />
+            </div>
             {(filters.driver || filters.payment_frequency || filters.effective_from || filters.effective_to) && (
               <button onClick={clearFilters} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Clear">
                 <RotateCcw size={14} />
@@ -157,7 +172,7 @@ const AllSalaryStructures = () => {
             <EmptyState icon={Wallet} title="No salary structures found" description="No salary structures have been defined yet." />
           </div>
         ) : (
-          <SalaryTable salaries={salaries} onEdit={setEditSalary} showDriver={true} driverMap={driverMap} />
+          <SalaryTable salaries={salaries} onEdit={setEditSalary} onView={setViewSalary} showDriver={true} driverMap={driverMap} />
         )}
         </div>
       </div>

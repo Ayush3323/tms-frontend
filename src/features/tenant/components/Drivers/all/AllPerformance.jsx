@@ -4,7 +4,7 @@ import { usePerformanceMetrics } from '../../../queries/drivers/performanceMetri
 
 import { LoadingState, ErrorState, EmptyState, GenericTableShimmer, PageLayoutShimmer } from '../common/StateFeedback';
 import PerformanceTable from '../sub-features/Performance/PerformanceTable';
-import { AddPerformanceModal, EditPerformanceModal, DeletePerformanceDialog } from '../sub-features/Performance/PerformanceModals';
+import { AddPerformanceModal, EditPerformanceModal, ViewPerformanceModal, DeletePerformanceDialog } from '../sub-features/Performance/PerformanceModals';
 import DriverSelect from '../common/DriverSelect';
 import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
 import Input from '../common/Input';
@@ -12,6 +12,7 @@ import Input from '../common/Input';
 const AllPerformance = () => {
   const [addOpen, setAddOpen] = useState(false);
   const [editMetric, setEditMetric] = useState(null);
+  const [viewMetric, setViewMetric] = useState(null);
 
   const [filters, setFilters] = useState({
     driver: '',
@@ -46,9 +47,6 @@ const AllPerformance = () => {
         { headerWidth: 'w-16', cellWidth: 'w-16' }, // Distance
         { headerWidth: 'w-16', cellWidth: 'w-16' }, // OT
         { headerWidth: 'w-16', cellWidth: 'w-16' }, // Fuel
-        { headerWidth: 'w-16', cellWidth: 'w-16' }, // Safety
-        { headerWidth: 'w-16', cellWidth: 'w-12' }, // Rating
-        { headerWidth: 'w-24', cellWidth: 'w-32' }, // Notes
         { headerWidth: 'w-10', cellWidth: 'w-14', align: 'right', type: 'action' }, // Actions
       ]}
     />
@@ -60,6 +58,14 @@ const AllPerformance = () => {
       {/* ── Modals ── */}
       {addOpen && <AddPerformanceModal driverId={null} onClose={() => setAddOpen(false)} />}
       {editMetric && <EditPerformanceModal metric={editMetric} driverId={editMetric.driver} onClose={() => setEditMetric(null)} />}
+      {viewMetric && (
+        <ViewPerformanceModal 
+          record={viewMetric} 
+          driverName={driverMap[viewMetric.driver]?.name} 
+          employeeId={driverMap[viewMetric.driver]?.employee_id}
+          onClose={() => setViewMetric(null)} 
+        />
+      )}
 
       <div className="p-6 lg:p-8 flex-1 flex flex-col min-h-0">
         {/* ── Header ── */}
@@ -127,11 +133,25 @@ const AllPerformance = () => {
           {/* ── Filters Bar ── */}
           <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-50 bg-white flex-wrap">
             <DriverSelect value={filters.driver} onChange={(val) => handleFilterChange('driver', val)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
-            <Input type="date" value={filters.period_start} onChange={(e) => handleFilterChange('period_start', e.target.value)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
-            <Input type="date" value={filters.period_end} onChange={(e) => handleFilterChange('period_end', e.target.value)}
-              className="text-xs py-1.5 font-medium text-[#172B4D] rounded-lg bg-gray-50 border-gray-100" />
+              className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors" />
+            <div className="flex items-center gap-2 bg-white border border-gray-200 px-2 rounded-lg hover:bg-[#EDF1F7] transition-colors">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Start:</span>
+              <input 
+                type="date" 
+                value={filters.period_start} 
+                onChange={(e) => handleFilterChange('period_start', e.target.value)}
+                className="text-xs py-1 px-1 bg-transparent border-none focus:ring-0 font-bold text-[#172B4D]" 
+              />
+            </div>
+            <div className="flex items-center gap-2 bg-white border border-gray-200 px-2 rounded-lg hover:bg-[#EDF1F7] transition-colors">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">End:</span>
+              <input 
+                type="date" 
+                value={filters.period_end} 
+                onChange={(e) => handleFilterChange('period_end', e.target.value)}
+                className="text-xs py-1 px-1 bg-transparent border-none focus:ring-0 font-bold text-[#172B4D]" 
+              />
+            </div>
             {(filters.driver || filters.period_start || filters.period_end) && (
               <button onClick={clearFilters} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Clear">
                 <RotateCcw size={14} />
@@ -146,7 +166,7 @@ const AllPerformance = () => {
             <EmptyState icon={BarChart3} title="No metrics found" description="No performance metrics have been recorded yet." />
           </div>
         ) : (
-          <PerformanceTable metrics={metrics} onEdit={setEditMetric} showDriver={true} driverMap={driverMap} />
+          <PerformanceTable metrics={metrics} onEdit={setEditMetric} onView={setViewMetric} showDriver={true} driverMap={driverMap} />
         )}
         </div>
       </div>

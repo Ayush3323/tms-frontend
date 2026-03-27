@@ -3,8 +3,9 @@ import StatusBadge from '../../common/StatusBadge';
 import TableActions from '../../common/TableActions';
 import { STATUS_STYLES as VERIFICATION_STYLES } from '../../common/constants';
 import { getExpiryColor, getInitials } from '../../common/utils';
+import { AlertCircle } from 'lucide-react';
 
-const DocumentTable = ({ documents, onEdit, showDriver = false, driverMap = {}, userMap = {}, currentUser = null }) => {
+const DocumentTable = ({ documents, onView, onEdit, showDriver = false, driverMap = {}, userMap = {}, currentUser = null }) => {
   return (
     <div className="w-full min-w-max">
       <table className="w-full text-sm">
@@ -14,17 +15,27 @@ const DocumentTable = ({ documents, onEdit, showDriver = false, driverMap = {}, 
               <th className="text-left px-4 py-3 text-[10px] font-bold text-[#94a3b8] uppercase tracking-[0.1em] whitespace-nowrap bg-[#fafbff] shadow-[inset_0_-1px_0_#e2e8f0]">Driver</th>
             )}
             {[
-              'Document Type', 'Document Number', 'Issue Date', 'Expiry Date', 
-              'Issuing Authority', 'Verification', 'Verified By', 'Verified At', 
-              'File URL', 'Notes', 'Actions'
+              'Document Type', 'Document Number', 'Expiry Date', 
+              'Issuing Authority', 'Verification', 
+              'File URL', 'Actions'
             ].map(h => (
               <th key={h} className="text-left px-4 py-3 text-[10px] font-bold text-[#94a3b8] uppercase tracking-[0.1em] whitespace-nowrap bg-[#fafbff] shadow-[inset_0_-1px_0_#e2e8f0]">{h}</th>
             ))}
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-50 bg-white">
-          {documents.map(doc => (
-            <tr key={doc.id} className="hover:bg-blue-50/30 transition-colors">
+          {documents.map(doc => {
+            const isLicense = doc.document_type === 'LICENSE' || (doc.document_type_display && doc.document_type_display.toLowerCase().includes('license'));
+            const daysToExpiry = doc.expiry_date ? Math.ceil((new Date(doc.expiry_date) - new Date()) / (1000 * 60 * 60 * 24)) : null;
+            const isExpiringSoon = isLicense && daysToExpiry !== null && daysToExpiry <= 30 && daysToExpiry > 0;
+            const isAlreadyExpired = isLicense && daysToExpiry !== null && daysToExpiry <= 0;
+
+            return (
+              <tr 
+                key={doc.id} 
+                className="hover:bg-gray-50 transition-colors cursor-pointer group"
+                onClick={() => onView(doc)}
+              >
               {showDriver && (
                 <td className="px-4 py-3 whitespace-nowrap">
                   <div className="flex items-center gap-3">
@@ -50,12 +61,27 @@ const DocumentTable = ({ documents, onEdit, showDriver = false, driverMap = {}, 
                   {doc.document_number ?? '—'}
                 </span>
               </td>
-              <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600">{doc.issue_date ?? '—'}</td>
-              <td className="px-4 py-3 whitespace-nowrap">
-                <span className={`text-[12px] font-mono ${getExpiryColor(doc.expiry_date)}`}>
-                  {doc.expiry_date ?? '—'}
-                </span>
-              </td>
+                <td className="px-4 py-3 whitespace-nowrap">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[12px] text-gray-600 font-medium">
+                      {doc.expiry_date ? new Date(doc.expiry_date).toLocaleDateString() : '—'}
+                    </span>
+                    {isExpiringSoon && (
+                      <div className="relative group/tooltip">
+                        <AlertCircle size={14} className="text-red-500 animate-pulse" />
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/tooltip:block z-50">
+                          <div className="bg-gray-900 text-white text-[10px] py-1 px-2 rounded whitespace-nowrap shadow-xl border border-gray-700">
+                            Expiring in {daysToExpiry} days!
+                          </div>
+                          <div className="w-2 h-2 bg-gray-900 rotate-45 absolute -bottom-1 left-1/2 -translate-x-1/2 border-r border-b border-gray-700" />
+                        </div>
+                      </div>
+                    )}
+                    {isAlreadyExpired && (
+                       <AlertCircle size={14} className="text-red-700" title="Already Expired!" />
+                    )}
+                  </div>
+                </td>
               <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600">{doc.issuing_authority ?? '—'}</td>
               <td className="px-4 py-3 whitespace-nowrap">
                 <StatusBadge
@@ -63,43 +89,30 @@ const DocumentTable = ({ documents, onEdit, showDriver = false, driverMap = {}, 
                   styles={VERIFICATION_STYLES[doc.verification_status]}
                 />
               </td>
-              <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600">
-                {doc.verification_status === 'VERIFIED' ? (() => {
-                  const verifier = userMap[doc.verified_by]?.name || 
-                    (doc.verified_by === currentUser?.id ? `${currentUser?.first_name || ''} ${currentUser?.last_name || ''}`.trim() || currentUser?.username : null) ||
-                    doc.verified_by || '—';
-                  
-                  if (verifier === '—') return '—';
-
-                  return (
-                    <div className="flex items-center gap-2">
-                       <div className="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold text-white shadow-sm bg-[#0052CC]">
-                         {getInitials(verifier)}
-                       </div>
-                       <span className="text-[12px] font-semibold text-[#1a202c]">{verifier}</span>
-                    </div>
-                  );
-                })() : '—'}
-              </td>
-              <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600">
-                {doc.verification_status === 'VERIFIED' && doc.verified_at ? new Date(doc.verified_at).toLocaleString() : '—'}
-              </td>
               <td className="px-4 py-3 whitespace-nowrap text-[12px]">
                 {doc.file_url 
-                  ? <a href={doc.file_url} target="_blank" rel="noopener noreferrer" className="text-[#0052CC] hover:underline flex items-center gap-1">View File</a>
+                  ? (
+                    <a 
+                      href={doc.file_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-[#0052CC] hover:underline flex items-center gap-1"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      View File
+                    </a>
+                  )
                   : <span className="text-gray-400">—</span>
                 }
               </td>
-              <td className="px-4 py-3 text-[12px] text-gray-800 max-w-xs truncate" title={doc.notes}>
-                {doc.notes || '—'}
-              </td>
-              <td className="px-4 py-3 whitespace-nowrap">
+               <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                 <TableActions
                   onEdit={() => onEdit(doc)}
                 />
               </td>
             </tr>
-          ))}
+          );
+          })}
         </tbody>
       </table>
     </div>

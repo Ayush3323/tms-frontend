@@ -7,11 +7,12 @@ import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
 
 import { LoadingState, ErrorState, EmptyState, TabLayoutShimmer } from '../common/StateFeedback';
 import MedicalTable from '../sub-features/Medical/MedicalTable';
-import { AddMedicalModal, EditMedicalModal, DeleteMedicalDialog } from '../sub-features/Medical/MedicalModals';
+import { AddMedicalModal, EditMedicalModal, ViewMedicalModal, DeleteMedicalDialog } from '../sub-features/Medical/MedicalModals';
 
 const MedicalRecordsTab = ({ driverId }) => {
   const [addOpen,      setAddOpen]      = useState(false);
   const [editRecord,   setEditRecord]   = useState(null);
+  const [viewRecord,   setViewRecord]   = useState(null);
   const [deleteRecord, setDeleteRecord] = useState(null);
 
   const { data, isLoading, isError, error, refetch } = useDriverMedicalRecords(driverId);
@@ -53,6 +54,14 @@ const MedicalRecordsTab = ({ driverId }) => {
       {/* ── Modals ── */}
       {addOpen    && <AddMedicalModal    driverId={driverId} onClose={() => setAddOpen(false)} />}
       {editRecord && <EditMedicalModal   record={editRecord} driverId={driverId} onClose={() => setEditRecord(null)} />}
+      {viewRecord && (
+        <ViewMedicalModal 
+          record={viewRecord} 
+          driverName={driverMap[driverId]?.name} 
+          employeeId={driverMap[driverId]?.employee_id}
+          onClose={() => setViewRecord(null)} 
+        />
+      )}
       {deleteRecord && <DeleteMedicalDialog record={deleteRecord} driverId={driverId} onClose={() => setDeleteRecord(null)} />}
 
       {/* ── Header ── */}
@@ -83,6 +92,7 @@ const MedicalRecordsTab = ({ driverId }) => {
         <MedicalTable 
           records={records} 
           onEdit={setEditRecord} 
+          onView={setViewRecord}
           onDelete={setDeleteRecord} 
           showDriver={false}
           driverMap={driverMap}

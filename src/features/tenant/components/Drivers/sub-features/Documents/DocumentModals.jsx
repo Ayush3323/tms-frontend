@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, Plus, Pencil, User, Clock } from 'lucide-react';
+import { Loader2, Plus, Edit, User, Clock, FileText, ExternalLink, AlertCircle } from 'lucide-react';
+import StatusBadge from '../../common/StatusBadge';
 import ModalWrapper from '../../common/ModalWrapper';
 import Label from '../../common/Label';
 import Input from '../../common/Input';
@@ -14,7 +15,8 @@ import {
 import { useUsers } from '../../../../queries/users/userQuery';
 import { useCurrentUser } from '../../../../queries/users/userActionQuery';
 import DriverSelect from '../../common/DriverSelect';
-import { DOCUMENT_TYPES, VERIFICATION_STATUS as VERIFICATION_LIST } from '../../common/constants';
+import { DOCUMENT_TYPES, VERIFICATION_STATUS as VERIFICATION_LIST, STATUS_STYLES as VERIFICATION_STYLES } from '../../common/constants';
+import { getExpiryColor, getInitials } from '../../common/utils';
 
 // Shared Form Fields for Documents
 const DocumentFormFields = ({ form, setForm, error, userMap = {}, onStatusChange, currentUser, isLoadingUsers }) => {
@@ -257,7 +259,7 @@ export const EditDocumentModal = ({ doc, driverId, onClose, userMap = {}, isLoad
             <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
             <button onClick={handleSubmit} disabled={!form.document_type || !form.document_number || updateDocument.isPending}
               className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed">
-              {updateDocument.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Pencil size={14} /> Update Document</>}
+              {updateDocument.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Edit size={14} /> Update Document</>}
             </button>
           </div>
         </div>
@@ -303,3 +305,116 @@ export const DeleteDocumentDialog = ({ doc, driverId, onClose }) => {
     />
   );
 };
+
+export const ViewDocumentModal = ({ doc, onClose, userMap = {}, driverMap = {} }) => {
+  const LabelValue = ({ label, value, isLink, isDate, color }) => (
+    <div className="py-2 border-b border-gray-50 last:border-0 flex flex-col gap-1">
+      <span className="text-xs font-semibold text-gray-700">{label}</span>
+      {isLink && value ? (
+        <a href={value} target="_blank" rel="noopener noreferrer" className="text-[13px] font-bold text-[#0052CC] hover:underline flex items-center gap-1.5 bg-blue-50/50 px-2 py-1 rounded-md border border-blue-100 w-fit">
+          <ExternalLink size={12} /> Open File
+        </a>
+      ) : (
+        <span className={`text-[13px] font-medium text-[#172B4D] ${color || ''}`}>
+          {isDate && value ? new Date(value).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : (value || '—')}
+        </span>
+      )}
+    </div>
+  );
+
+  const verifier = userMap[doc.verified_by]?.name || doc.verified_by_name || doc.verified_by || '—';
+  const driver = driverMap[doc.driver]?.name || doc.driver_name || '—';
+  const employeeId = driverMap[doc.driver]?.employee_id || doc.employee_id || '—';
+
+  const daysToExpiry = doc.expiry_date ? Math.ceil((new Date(doc.expiry_date) - new Date()) / (1000 * 60 * 60 * 24)) : null;
+  const isExpiringSoon = daysToExpiry !== null && daysToExpiry <= 30 && daysToExpiry > 0;
+  const isExpired = daysToExpiry !== null && daysToExpiry <= 0;
+
+  return (
+    <ModalWrapper
+      title="Document Information"
+      onClose={onClose}
+      footer={
+        <div className="flex justify-end w-full">
+          <button 
+            onClick={onClose} 
+            className="px-8 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all shadow-sm"
+          >
+            Close
+          </button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
+        {/* Identity Section - Header Card */}
+        <div className="flex items-center gap-4 p-4 bg-gray-50/50 rounded-xl border border-gray-100 mb-2">
+          <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-[#0052CC] shadow-sm border border-blue-100">
+            <FileText size={24} />
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-black text-[#172B4D] leading-none uppercase tracking-tight">{driver}</h3>
+              <div className={`px-2 py-0.5 rounded-full border text-[10px] font-black uppercase flex items-center gap-1
+                ${doc.verification_status === 'VERIFIED' ? 'bg-green-50 text-green-600 border-green-100' : 
+                  doc.verification_status === 'REJECTED' ? 'bg-red-50 text-red-600 border-red-100' : 
+                  'bg-amber-50 text-amber-600 border-amber-100'}`}>
+                {doc.verification_status_display || doc.verification_status}
+              </div>
+            </div>
+            <div className="text-gray-400 text-[10px] font-mono font-bold uppercase tracking-widest mt-1.5 flex items-center gap-1.5">
+               <User size={12} /> Employee ID: {employeeId}
+            </div>
+          </div>
+        </div>
+
+        {/* Core Info Grid */}
+        <div className="grid grid-cols-2 gap-x-8 px-2 border-b border-gray-50 mb-2">
+          <LabelValue label="Document Type" value={doc.document_type_display || doc.document_type} />
+          <LabelValue label="Document Number" value={doc.document_number} color="font-mono" />
+        </div>
+
+        {/* Detailed Info Grid */}
+        <div className="grid grid-cols-2 gap-x-8 px-2">
+          <LabelValue label="Issue Date" value={doc.issue_date} isDate />
+          <div className="flex items-center gap-3">
+            <LabelValue label="Expiry Date" value={doc.expiry_date} isDate />
+            {isExpiringSoon && (
+              <div className="flex items-center gap-1 mt-4 px-2 py-1 bg-amber-50 text-amber-600 rounded-md border border-amber-100 animate-pulse">
+                <AlertCircle size={12} />
+                <span className="text-[10px] font-bold uppercase whitespace-nowrap">Expires in {daysToExpiry} days</span>
+              </div>
+            )}
+            {isExpired && (
+              <div className="flex items-center gap-1 mt-4 px-2 py-1 bg-red-50 text-red-600 rounded-md border border-red-100 animate-pulse">
+                <AlertCircle size={12} />
+                <span className="text-[10px] font-bold uppercase whitespace-nowrap">Expired {Math.abs(daysToExpiry)} days ago</span>
+              </div>
+            )}
+          </div>
+          <LabelValue label="Issuing Authority" value={doc.issuing_authority} />
+          <LabelValue label="Verification Status" value={doc.verification_status_display || doc.verification_status} />
+          <LabelValue label="Verified By" value={verifier} />
+          <LabelValue label="Verified At" value={doc.verified_at} isDate />
+          <LabelValue label="File Attachment" value={doc.file_url} isLink />
+          <LabelValue 
+            label="Record Created At" 
+            value={doc.created_at ? new Date(doc.created_at).toLocaleString('en-GB', { 
+              day: '2-digit', month: 'short', year: 'numeric', 
+              hour: '2-digit', minute: '2-digit', hour12: true 
+            }) : '—'} 
+          />
+        </div>
+
+        {/* Notes Section - Full Width */}
+        <div className="px-2 pt-2 border-t border-gray-100">
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Notes & Remarks</span>
+          <div className="p-3 bg-gray-50 rounded-lg text-[13px] text-gray-600 border border-gray-100 italic leading-relaxed">
+            {doc.notes || 'No additional notes provided.'}
+          </div>
+        </div>
+      </div>
+    </ModalWrapper>
+  );
+};
+
+

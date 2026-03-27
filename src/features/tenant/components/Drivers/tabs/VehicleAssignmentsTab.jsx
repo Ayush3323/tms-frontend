@@ -7,12 +7,13 @@ import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
 
 import { LoadingState, ErrorState, EmptyState, TabLayoutShimmer } from '../common/StateFeedback';
 import AssignmentTable from '../sub-features/Assignments/AssignmentTable';
-import { AddAssignmentModal, EditAssignmentModal, DeleteAssignmentDialog } from '../sub-features/Assignments/AssignmentModals';
+import { AddAssignmentModal, EditAssignmentModal, ViewAssignmentModal, DeleteAssignmentDialog } from '../sub-features/Assignments/AssignmentModals';
 
 const VehicleTab = ({ driverId }) => {
   const [addOpen, setAddOpen] = useState(false);
   const [editAssignment, setEditAssignment] = useState(null);
   const [deleteAssignment, setDeleteAssignment] = useState(null);
+  const [viewRecord, setViewRecord] = useState(null);
 
   const { data, isLoading, isError, error, refetch } = useDriverVehicleAssignments(driverId);
   const { data: usersData } = useUsers({ page_size: 1000 });
@@ -54,6 +55,15 @@ const VehicleTab = ({ driverId }) => {
       {addOpen && <AddAssignmentModal driverId={driverId} onClose={() => setAddOpen(false)} />}
       {editAssignment && <EditAssignmentModal assignment={editAssignment} driverId={driverId} onClose={() => setEditAssignment(null)} />}
       {deleteAssignment && <DeleteAssignmentDialog assignment={deleteAssignment} driverId={driverId} onClose={() => setDeleteAssignment(null)} />}
+      {viewRecord && (
+        <ViewAssignmentModal
+          record={viewRecord}
+          onClose={() => setViewRecord(null)}
+          driverName={driverMap[driverId]?.name}
+          employeeId={driverMap[driverId]?.employee_id}
+          userMap={userMap}
+        />
+      )}
 
       {/* ── Header ── */}
       <div className="flex items-center justify-between mb-4">
@@ -91,7 +101,7 @@ const VehicleTab = ({ driverId }) => {
         <AssignmentTable
           assignments={assignments}
           onEdit={setEditAssignment}
-          onDelete={setDeleteAssignment}
+          onView={setViewRecord}
           showDriver={false}
           driverMap={driverMap}
           userMap={userMap}

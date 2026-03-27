@@ -7,11 +7,12 @@ import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
 
 import { LoadingState, ErrorState, EmptyState, TabLayoutShimmer } from '../common/StateFeedback';
 import AttendanceTable from '../sub-features/Attendance/AttendanceTable';
-import { AddAttendanceModal, EditAttendanceModal, DeleteAttendanceDialog } from '../sub-features/Attendance/AttendanceModals';
+import { AddAttendanceModal, EditAttendanceModal, ViewAttendanceModal, DeleteAttendanceDialog } from '../sub-features/Attendance/AttendanceModals';
 
 const AttendanceTab = ({ driverId }) => {
   const [addOpen,      setAddOpen]      = useState(false);
   const [editRecord,   setEditRecord]   = useState(null);
+  const [viewRecord,   setViewRecord]   = useState(null);
   const [deleteRecord, setDeleteRecord] = useState(null);
 
   const { data, isLoading, isError, error, refetch } = useDriverAttendance(driverId);
@@ -48,6 +49,14 @@ const AttendanceTab = ({ driverId }) => {
       {/* ── Modals ── */}
       {addOpen      && <AddAttendanceModal  driverId={driverId} onClose={() => setAddOpen(false)} />}
       {editRecord   && <EditAttendanceModal record={editRecord} driverId={driverId} onClose={() => setEditRecord(null)} />}
+      {viewRecord   && (
+        <ViewAttendanceModal
+          record={viewRecord}
+          onClose={() => setViewRecord(null)}
+          driverName={driverMap[driverId]?.name}
+          employeeId={driverMap[driverId]?.employee_id}
+        />
+      )}
       {deleteRecord && <DeleteAttendanceDialog record={deleteRecord} driverId={driverId} onClose={() => setDeleteRecord(null)} />}
 
       {/* ── Header ── */}
@@ -78,6 +87,7 @@ const AttendanceTab = ({ driverId }) => {
         <AttendanceTable 
           records={records} 
           onEdit={setEditRecord} 
+          onView={setViewRecord}
           onDelete={setDeleteRecord} 
           showDriver={false}
           driverMap={driverMap}

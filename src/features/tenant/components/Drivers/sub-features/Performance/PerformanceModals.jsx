@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Loader2, Plus, Pencil } from 'lucide-react';
+import { Loader2, Plus, Edit, User, Clock, BarChart2, TrendingUp, Star, MessageSquare, BarChart3, Target } from 'lucide-react';
 import ModalWrapper from '../../common/ModalWrapper';
 import Label from '../../common/Label';
 import Input from '../../common/Input';
@@ -211,7 +211,7 @@ export const EditPerformanceModal = ({ metric, driverId, onClose }) => {
             <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
             <button onClick={handleSubmit} disabled={!form.period_start || !form.period_end || updateMetric.isPending}
               className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed">
-              {updateMetric.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Pencil size={14} /> Update Metric</>}
+              {updateMetric.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Edit size={14} /> Update Record</>}
             </button>
           </div>
         </div>
@@ -247,5 +247,86 @@ export const DeletePerformanceDialog = ({ metric, driverId, onClose }) => {
       onCancel={onClose}
       isDeleting={deleteMutation.isPending}
     />
+  );
+};
+
+export const ViewPerformanceModal = ({ record, driverName, employeeId, onClose }) => {
+  const LabelValue = ({ label, value, color }) => (
+    <div className="py-2 border-b border-gray-50 last:border-0 flex flex-col gap-1">
+      <span className="text-xs font-semibold text-gray-700">{label}</span>
+      <span className={`text-[13px] font-medium text-[#172B4D] ${color || ''}`}>
+        {value || '—'}
+      </span>
+    </div>
+  );
+
+  return (
+    <ModalWrapper
+      title="Performance Details"
+      onClose={onClose}
+      footer={
+        <div className="flex justify-end w-full">
+          <button 
+            onClick={onClose} 
+            className="px-8 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all shadow-sm"
+          >
+            Close
+          </button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
+        {/* Identity Section - Header Card */}
+        <div className="flex items-center gap-4 p-4 bg-gray-50/50 rounded-xl border border-gray-100 mb-2">
+          <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-[#0052CC] shadow-sm border border-blue-100">
+            <BarChart3 size={24} />
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-black text-[#172B4D] leading-none uppercase tracking-tight">{driverName || record.driver_name || 'System Driver'}</h3>
+            </div>
+            <div className="text-gray-400 text-[10px] font-mono font-bold uppercase tracking-widest mt-1.5 flex items-center gap-1.5">
+               <User size={12} /> Employee ID: {employeeId || record.employee_id || '—'}
+            </div>
+          </div>
+        </div>
+
+        {/* Core Info Grid */}
+        <div className="grid grid-cols-2 gap-x-8 px-2 border-b border-gray-50 mb-2">
+           <LabelValue label="Performance Period" value={`${record.period_start} to ${record.period_end}`} />
+           <LabelValue label="Trips Completed" value={record.trips_completed} />
+           <LabelValue label="Distance Covered" value={record.distance_covered ? `${Number(record.distance_covered).toLocaleString()} km` : '—'} />
+           <LabelValue label="On-Time Delivery Rate" value={record.on_time_delivery_rate != null ? `${record.on_time_delivery_rate}%` : '—'} />
+           <LabelValue label="Fuel Efficiency" value={record.fuel_efficiency != null ? `${record.fuel_efficiency} km/L` : '—'} />
+        </div>
+
+        {/* Detailed Metrics Grid */}
+        <div className="grid grid-cols-2 gap-x-8 px-2 pt-2">
+           <LabelValue 
+             label="Record Created At" 
+             value={record.created_at ? new Date(record.created_at).toLocaleString('en-GB', { 
+               day: '2-digit', month: 'short', year: 'numeric', 
+               hour: '2-digit', minute: '2-digit', hour12: true 
+             }) : '—'} 
+           />
+           <LabelValue label="Safety Score" value={record.safety_score != null ? `${record.safety_score} / 100` : '—'} />
+           <div className="py-3 border-b border-gray-50 last:border-0 flex flex-col gap-1">
+             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-left">Customer Rating</span>
+             <div className="flex items-center gap-1">
+               <span className="text-[13px] font-bold text-[#172B4D]">{record.customer_rating || '—'}</span>
+               {record.customer_rating && <Star size={12} className="text-amber-400 fill-amber-400" />}
+             </div>
+           </div>
+        </div>
+
+        {/* Notes Section */}
+        <div className="px-2 pt-4 border-t border-gray-50">
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5">Internal Performance Notes</span>
+          <div className="text-[13px] text-gray-600 italic leading-relaxed bg-gray-50/50 p-3 rounded-lg border border-gray-100/50">
+             {record.notes || 'No performance feedback notes available.'}
+          </div>
+        </div>
+      </div>
+    </ModalWrapper>
   );
 };
