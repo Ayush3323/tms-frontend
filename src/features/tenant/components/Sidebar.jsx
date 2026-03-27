@@ -52,6 +52,7 @@ const customerSubItems = [
 const orderSubItems = [
   { name: 'All Orders (LR)', icon: <FileText size={13} />, path: '/tenant/dashboard/orders', badge: null },
   { name: 'Trips', icon: <Globe size={13} />, path: '/tenant/dashboard/orders/trips', badge: null },
+  { name: 'Trip Manager', icon: <Wrench size={13} />, path: '/tenant/dashboard/orders/trip-manager', badge: null },
   { name: 'Cargo Items', icon: <LayoutGrid size={13} />, path: '/tenant/dashboard/orders/cargo', badge: null },
   { name: 'Deliveries (POD)', icon: <Shield size={13} />, path: '/tenant/dashboard/orders/deliveries', badge: null },
 ];
@@ -62,8 +63,11 @@ const SubMenu = ({ items, onNavigate }) => (
       <NavLink
         key={item.name}
         to={item.path}
+
         onClick={onNavigate}
-        end={item.path === '/tenant/dashboard/vehicles' || item.path === '/tenant/dashboard/drivers' || item.path === '/tenant/dashboard/users' || item.path === '/tenant/dashboard/customers'}
+
+        end={item.path === '/tenant/dashboard/vehicles' || item.path === '/tenant/dashboard/drivers' || item.path === '/tenant/dashboard/users' || item.path === '/tenant/dashboard/customers' || item.path === '/tenant/dashboard/orders'}
+
         className={({ isActive }) =>
           `flex items-center gap-2 px-2.5 py-[6px] rounded-md text-[12.5px] transition-all border ${isActive
             ? 'bg-[#EBF3FF] text-[#0052CC] border-[#D0E2FF] font-semibold'
@@ -102,15 +106,15 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
     <div className="relative group">
       <button
         onClick={() => {
-           if (onClick) {
-             onClick();
-             if (isCollapsed && setIsCollapsed) setIsCollapsed(false);
-           } else if (!isCollapsed) {
-             setIsOpen((o) => !o);
-           } else if (isCollapsed) {
-             if (setIsCollapsed) setIsCollapsed(false);
-             setIsOpen(true);
-           }
+          if (onClick) {
+            onClick();
+            if (isCollapsed && setIsCollapsed) setIsCollapsed(false);
+          } else if (!isCollapsed) {
+            setIsOpen((o) => !o);
+          } else if (isCollapsed) {
+            if (setIsCollapsed) setIsCollapsed(false);
+            setIsOpen(true);
+          }
         }}
         className={`w-full flex ${isCollapsed ? 'flex-col items-center justify-center py-3' : 'items-center gap-3 px-3 py-2.5'} rounded-lg transition-all border ${isActive
           ? 'bg-[#EBF3FF] text-[#0052CC] border-[#D0E2FF]'
@@ -166,7 +170,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
               <p className="text-[10px] text-gray-500 font-medium">Management Console</p>
             </div>
           ) : (
-             <div className="text-[9px] font-bold text-[#0052CC] mt-1.5 text-center uppercase tracking-wider">Admin</div>
+            <div className="text-[9px] font-bold text-[#0052CC] mt-1.5 text-center uppercase tracking-wider">Admin</div>
           )}
         </div>
 
@@ -179,7 +183,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                 icon={<LayoutGrid />}
                 label="Dashboard"
                 isOpen={false}
-                setIsOpen={() => {}}
+                setIsOpen={() => { }}
                 isActive={location.pathname === '/tenant/dashboard' || location.pathname === '/tenant/dashboard/overview'}
                 subItems={[]}
                 title="Dashboard Overview"
@@ -240,7 +244,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
       {/* Bottom Toggle Section */}
       {setIsCollapsed && (
         <div className={`mt-2 pt-4 border-t border-gray-200 flex ${isCollapsed ? 'justify-center' : 'justify-end'}`}>
-          <button 
+          <button
             onClick={() => setIsCollapsed(!isCollapsed)}
             className="p-2 text-gray-400 hover:text-[#0052CC] hover:bg-blue-50 rounded-lg transition-all shadow-sm active:scale-95 border border-transparent hover:border-blue-100"
             title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
