@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, RotateCcw, Plus, User, Mail, Lock, Phone, X, Edit, Calendar, UserCircle2, ShieldAlert, CheckCircle2, Unlock, Download, Upload, RefreshCw } from 'lucide-react';
-import { useUsers, useUpdateUser, useCreateUser, useUser } from '../../queries/users/userQuery';
+import { Search, RotateCcw, Plus, User, Mail, Lock, Phone, X, Edit, Calendar, UserCircle2, ShieldAlert, CheckCircle2, Unlock, Download, Upload, RefreshCw, Loader2 } from 'lucide-react';
+import { useUsers, useUpdateUser, useCreateUser, useUser, useRestoreUser, useUserStats } from '../../queries/users/userQuery';
 import { useLockUser, useUnlockUser } from '../../queries/users/userActionQuery';
 import { useEffect } from 'react';
 
@@ -12,6 +12,7 @@ const UserDetail = () => {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterAccountType, setFilterAccountType] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [visibilityFilter, setVisibilityFilter] = useState('active'); // active | deleted | all
 
   // Search Debouncing
   useEffect(() => {
@@ -23,17 +24,21 @@ const UserDetail = () => {
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
-  const { data: usersData, isLoading, isError, error } = useUsers({
+  const { data: usersData, isLoading, isError, error, refetch } = useUsers({
     page: currentPage,
     page_size: 10,
     search: debouncedSearch,
     account_type: filterAccountType || undefined,
-    status: filterStatus || undefined
+    status: filterStatus || undefined,
+    ...(visibilityFilter === 'deleted' && { deleted_only: true }),
+    ...(visibilityFilter === 'all' && { include_deleted: true }),
   });
+  const { data: statsData } = useUserStats();
   const updateMutation = useUpdateUser();
   const createMutation = useCreateUser();
   const lockMutation = useLockUser();
   const unlockMutation = useUnlockUser();
+  const restoreMutation = useRestoreUser();
 
   // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -70,12 +75,24 @@ const UserDetail = () => {
     department: ''
   });
 
-  const users = usersData?.results || [];
-  const activeUsersCount = users.filter(u => u.status === 'ACTIVE').length;
+  const rawUsers = usersData?.results || [];
+  const users = rawUsers.filter((u) => {
+    if (visibilityFilter === 'deleted') return Boolean(u.is_deleted);
+    if (visibilityFilter === 'all') return true;
+    return !u.is_deleted;
+  });
+  const totalUsers = statsData?.total ?? usersData?.count ?? users.length;
+  const activeUsersCount = statsData?.active ?? users.filter(u => !u.is_deleted && u.status === 'ACTIVE').length;
+  const inactiveUsersCount = statsData?.inactive ?? users.filter(u => !u.is_deleted && u.status === 'INACTIVE').length;
+  const suspendedUsersCount = statsData?.suspended ?? users.filter(u => !u.is_deleted && u.status === 'SUSPENDED').length;
+  const deletedUsersCount = statsData?.deleted ?? users.filter(u => u.is_deleted).length;
 
   const stats = [
-    { label: "TOTAL USERS", value: usersData?.count || 0, sub: "All registered users", border: "border-gray-100" },
+    { label: "TOTAL USERS", value: totalUsers, sub: "All registered users", border: "border-gray-100" },
     { label: "ACTIVE", value: activeUsersCount, sub: "Active accounts", border: "border-green-100", textColor: "text-green-500" },
+    { label: "INACTIVE (LIVE)", value: inactiveUsersCount, sub: "Live inactive users", border: "border-orange-100", textColor: "text-orange-500" },
+    { label: "SUSPENDED (LIVE)", value: suspendedUsersCount, sub: "Live suspended users", border: "border-red-100", textColor: "text-red-500" },
+    { label: "DELETED", value: deletedUsersCount, sub: "Archived users", border: "border-red-100", textColor: "text-red-600" },
   ];
 
   const handleOpenModal = (type, user = null) => {
@@ -438,6 +455,28 @@ const UserDetail = () => {
           <div className="flex items-center gap-6 ml-auto justify-between h-15">
             {/* Quick Filters in Pagination Row */}
             <div className="flex items-center gap-3 px-5">
+              <div className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 p-1">
+                {[
+                  { id: 'active', label: 'Active' },
+                  { id: 'deleted', label: 'Deleted' },
+                  { id: 'all', label: 'All' },
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => {
+                      setVisibilityFilter(opt.id);
+                      setCurrentPage(1);
+                    }}
+                    className={`px-3 py-1 text-[11px] font-bold rounded-md transition-all ${visibilityFilter === opt.id
+                      ? 'bg-[#0052CC] text-white shadow-sm'
+                      : 'text-gray-600 hover:bg-white'
+                      }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
               <div className="flex items-center gap-2">
 
                 <select
@@ -468,6 +507,7 @@ const UserDetail = () => {
                     setFilterStatus(e.target.value);
                     setCurrentPage(1);
                   }}
+                  disabled={visibilityFilter === 'deleted'}
                   className="px-3 py-1 bg-gray-50 border border-gray-100 rounded-lg text-s font text-[#172B4D] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all hover:border-gray-200 cursor-pointer shadow-sm"
                 >
                   <option value="">All Status</option>
@@ -480,11 +520,12 @@ const UserDetail = () => {
                 </select>
               </div>
 
-              {(filterAccountType || filterStatus) && (
+              {(filterAccountType || filterStatus || visibilityFilter !== 'active') && (
                 <button
                   onClick={() => {
                     setFilterAccountType('');
                     setFilterStatus('');
+                    setVisibilityFilter('active');
                     setCurrentPage(1);
                   }}
                   className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
@@ -518,6 +559,11 @@ const UserDetail = () => {
                 Next
               </button>
             </div>
+          </div>
+          <div className="px-5 py-2 border-b border-gray-50 bg-blue-50/40">
+            <p className="text-[11px] text-gray-600">
+              <span className="font-bold text-[#172B4D]">Note:</span> Inactive/Suspended are live user states. Deleted means archived (soft-deleted).
+            </p>
           </div>
 
         </div>
@@ -560,35 +606,54 @@ const UserDetail = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${user.status === 'ACTIVE' ? 'bg-green-50 text-green-600 border-green-100' :
-                        user.status === 'INACTIVE' ? 'bg-gray-50 text-gray-600 border-gray-100' :
-                          user.status === 'SUSPENDED' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                            user.status === 'PENDING_ACTIVATION' ? 'bg-blue-50 text-blue-600 border-blue-100' :
-                              user.status === 'LOCKED' ? 'bg-red-50 text-red-600 border-red-100' :
-                                user.status === 'DEACTIVATED' ? 'bg-gray-100 text-gray-800 border-gray-200' :
-                                  'bg-red-50 text-red-600 border-red-100'
-                        }`}>
-                        {user.status?.replace('_', ' ') || 'ACTIVE'}
-                      </span>
+                      {user.is_deleted ? (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-red-50 text-red-700 border-red-200">
+                          DELETED
+                        </span>
+                      ) : (
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${user.status === 'ACTIVE' ? 'bg-green-50 text-green-600 border-green-100' :
+                          user.status === 'INACTIVE' ? 'bg-gray-50 text-gray-600 border-gray-100' :
+                            user.status === 'SUSPENDED' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                              user.status === 'PENDING_ACTIVATION' ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                                user.status === 'LOCKED' ? 'bg-red-50 text-red-600 border-red-100' :
+                                  user.status === 'DEACTIVATED' ? 'bg-gray-100 text-gray-800 border-gray-200' :
+                                    'bg-red-50 text-red-600 border-red-100'
+                          }`}>
+                          {user.status?.replace('_', ' ') || 'ACTIVE'}
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex gap-2 justify-end">
-                        <button
-                          onClick={() => handleToggleLock(user)}
-                          title={(user.status === 'SUSPENDED' || user.status === 'LOCKED') ? 'Unlock User' : 'Lock User'}
-                          className={`p-1.5 rounded border transition-colors ${(user.status === 'SUSPENDED' || user.status === 'LOCKED')
-                            ? 'bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100'
-                            : 'hover:bg-gray-100 text-gray-400 border-gray-200'
-                            }`}
-                        >
-                          {(user.status === 'SUSPENDED' || user.status === 'LOCKED') ? <Unlock size={14} /> : <Lock size={14} />}
-                        </button>
-                        <button
-                          onClick={() => handleOpenModal('edit', user)}
-                          className="p-1.5 hover:bg-gray-100 rounded text-gray-400 border border-gray-200 transition-colors"
-                        >
-                          <Edit size={14} />
-                        </button>
+                        {user.is_deleted ? (
+                          <button
+                            onClick={() => restoreMutation.mutate(user.id)}
+                            disabled={restoreMutation.isPending}
+                            className="p-1.5 rounded border transition-colors bg-green-50 text-green-600 border-green-100 hover:bg-green-100 disabled:opacity-50"
+                            title="Restore User"
+                          >
+                            {restoreMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => handleToggleLock(user)}
+                              title={(user.status === 'SUSPENDED' || user.status === 'LOCKED') ? 'Unlock User' : 'Lock User'}
+                              className={`p-1.5 rounded border transition-colors ${(user.status === 'SUSPENDED' || user.status === 'LOCKED')
+                                ? 'bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100'
+                                : 'hover:bg-gray-100 text-gray-400 border-gray-200'
+                                }`}
+                            >
+                              {(user.status === 'SUSPENDED' || user.status === 'LOCKED') ? <Unlock size={14} /> : <Lock size={14} />}
+                            </button>
+                            <button
+                              onClick={() => handleOpenModal('edit', user)}
+                              className="p-1.5 hover:bg-gray-100 rounded text-gray-400 border border-gray-200 transition-colors"
+                            >
+                              <Edit size={14} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>

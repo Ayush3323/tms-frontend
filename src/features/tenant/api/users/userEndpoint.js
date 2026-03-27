@@ -122,3 +122,28 @@ export const deleteUser = async (id) => {
     handleApiError(error);
   }
 };
+
+/**
+ * Restore soft-deleted user
+ */
+export const restoreUser = async (id) => {
+  if (!id) throw new Error("User ID is required for restore");
+  try {
+    const response = await axiosInstance.post(`${BASE_URL}${id}/restore/`);
+    return response.data;
+  } catch (error) {
+    handleApiError(error);
+  }
+};
+
+/**
+ * Get users dashboard stats
+ */
+export const getUserStats = async () => {
+  try {
+    const response = await axiosInstance.get(`${BASE_URL}stats/`);
+    return response.data;
+  } catch (error) {
+    handleApiError(error);
+  }
+};

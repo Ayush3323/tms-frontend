@@ -8,6 +8,7 @@ export const driverKeys = {
   lists: () => [...driverKeys.all, 'list'],
   list: (filters) => [...driverKeys.lists(), filters],
   detail: (id) => [...driverKeys.all, 'detail', id],
+  stats: () => [...driverKeys.all, 'stats'],
 };
 
 // ─── Error Handler ────────────────────────────────────────
@@ -69,6 +70,24 @@ export const useDrivers = (params = {}) => {
         // Use params.ordering if provided, otherwise default to '-id' for newest first
         const effectiveParams = { ordering: '-id', ...params };
         const response = await driverApi.getDrivers(effectiveParams);
+        return response.data;
+      } catch (error) {
+        handleError(error);
+      }
+    },
+    staleTime: 0,
+    retry: 0,
+    refetchOnWindowFocus: false,
+  });
+};
+
+// ─── 1b. useDriverStats (Global Counters) ──────────────────
+export const useDriverStats = () => {
+  return useQuery({
+    queryKey: driverKeys.stats(),
+    queryFn: async () => {
+      try {
+        const response = await driverApi.getDriverStats();
         return response.data;
       } catch (error) {
         handleError(error);
@@ -165,7 +184,22 @@ export const useDeleteDriver = () => {
   });
 };
 
-// ─── 6. useDriverLookup (ID -> Name Map) ──────────────────
+// ─── 6. useRestoreDriver ───────────────────────────────────
+export const useRestoreDriver = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id) => driverApi.restoreDriver(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: driverKeys.all });
+    },
+    onError: (error) => {
+      handleError(error);
+    },
+  });
+};
+
+// ─── 7. useDriverLookup (ID -> Name Map) ──────────────────
 export const useDriverLookup = () => {
   const { data } = useDrivers({ page_size: 1000, ordering: 'id' });
 

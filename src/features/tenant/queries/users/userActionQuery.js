@@ -129,6 +129,7 @@ export const useLockUser = () => {
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["user", variables.id] });
       queryClient.invalidateQueries({ queryKey: ["users"] });
+      queryClient.invalidateQueries({ queryKey: ["users-stats"] });
     },
     onError: (error) => {
       console.error("Failed to lock user:", error.message);
@@ -143,6 +144,7 @@ export const useUnlockUser = () => {
     onSuccess: (data, id) => {
       queryClient.invalidateQueries({ queryKey: ["user", id] });
       queryClient.invalidateQueries({ queryKey: ["users"] });
+      queryClient.invalidateQueries({ queryKey: ["users-stats"] });
     },
     onError: (error) => {
       console.error("Failed to unlock user:", error.message);
