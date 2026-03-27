@@ -57,6 +57,15 @@ export const useVehicles = (params, options = {}) =>
     onError: (error) => toast.error(parseError(error))
   })
 
+export const useVehicleStats = (options = {}) =>
+  useQuery({
+    queryKey: ['vehicle-stats'],
+    queryFn: () => vehiclesApi.stats(),
+    staleTime: 60 * 1000,
+    ...options,
+    onError: (error) => toast.error(parseError(error))
+  })
+
 
 // ─────────────── GET SINGLE VEHICLE ───────────────
 
@@ -99,6 +108,7 @@ export const useUpdateVehicle = () => {
     onSuccess: (responseData, variables) => {
       qc.invalidateQueries({ queryKey: ['vehicles'] })
       qc.invalidateQueries({ queryKey: ['vehicle'] })
+      qc.invalidateQueries({ queryKey: ['vehicle-stats'] })
       
       const isStatusOnly = Object.keys(variables.data).length === 1 && variables.data.status;
       if (isStatusOnly) {
@@ -132,6 +142,7 @@ export const useDeleteVehicle = () => {
 
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['vehicles'] })
+      qc.invalidateQueries({ queryKey: ['vehicle-stats'] })
       toast.success('Vehicle deleted successfully')
     },
 
@@ -150,6 +161,7 @@ export const useRestoreVehicle = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['vehicles'] })
       qc.invalidateQueries({ queryKey: ['vehicle'] })
+      qc.invalidateQueries({ queryKey: ['vehicle-stats'] })
       toast.success('Vehicle restored successfully')
     },
 

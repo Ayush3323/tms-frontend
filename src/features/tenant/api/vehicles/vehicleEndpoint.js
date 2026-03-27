@@ -29,6 +29,9 @@ export const vehiclesApi = {
   list: (params) =>
     axiosInstance.get(`${BASE_VEHICLES}/`, { params }).then(r => r.data),
 
+  stats: () =>
+    axiosInstance.get(`${BASE_VEHICLES}/stats/`).then(r => r.data),
+
   get: (id) =>
     axiosInstance.get(`${BASE_VEHICLES}/${id}/`).then(r => r.data),
 

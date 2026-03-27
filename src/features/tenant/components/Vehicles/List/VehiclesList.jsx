@@ -6,7 +6,7 @@ import {
   ChevronDown, Loader2, AlertCircle, X, RotateCcw,
   Pencil, LayoutGrid
 } from 'lucide-react';
-import { useVehicles, useVehicle, useUpdateVehicle, useRestoreVehicle } from '../../../queries/vehicles/vehicleQuery';
+import { useVehicles, useVehicle, useUpdateVehicle, useRestoreVehicle, useVehicleStats } from '../../../queries/vehicles/vehicleQuery';
 import { useVehicleTypes } from '../../../queries/vehicles/vehicletypeQuery';
 
 import {
@@ -75,12 +75,13 @@ const Vehicles = () => {
 
   const updateVehicle = useUpdateVehicle();
   const restoreVehicle = useRestoreVehicle();
+  const { data: statsData } = useVehicleStats();
   const vehicles = data?.results ?? data ?? [];
-  const total = data?.count ?? vehicles.length;
-  const active = vehicles.filter(v => v.status === 'ACTIVE').length;
-  const maintenance = vehicles.filter(v => v.status === 'MAINTENANCE').length;
-  const retired = vehicles.filter(v => ['RETIRED', 'SOLD', 'SCRAPPED'].includes(v.status)).length;
-  const deleted = vehicles.filter(v => v.is_deleted).length;
+  const total = statsData?.total ?? data?.count ?? vehicles.length;
+  const active = statsData?.active ?? vehicles.filter(v => !v.is_deleted && v.status === 'ACTIVE').length;
+  const maintenance = statsData?.maintenance ?? vehicles.filter(v => !v.is_deleted && v.status === 'MAINTENANCE').length;
+  const retired = statsData?.retired ?? vehicles.filter(v => !v.is_deleted && ['RETIRED', 'SOLD', 'SCRAPPED'].includes(v.status)).length;
+  const deleted = statsData?.deleted ?? vehicles.filter(v => v.is_deleted).length;
 
   const handleStatusToggle = (v) =>
     updateVehicle.mutate({ id: v.id, data: { status: v.status === 'ACTIVE' ? 'MAINTENANCE' : 'ACTIVE' } });
@@ -366,6 +367,7 @@ const Vehicles = () => {
               ].map(({ val, set, opts, ph }) => (
                 <div key={ph} className="relative">
                   <select value={val} onChange={e => { set(e.target.value); setCurrentPage(1); }}
+                    disabled={visibilityFilter === 'deleted' && ph === 'All Status'}
                     className="appearance-none pl-3 pr-8 py-1.5 text-s  text-[#172B4D] border border-gray-200 rounded-lg bg-gray-50 focus:outline-none cursor-pointer">
                     <option value="">{ph}</option>
                     {opts.map(o => <option key={o} value={o}>{o}</option>)}
@@ -408,6 +410,11 @@ const Vehicles = () => {
                 Next
               </button>
             </div>
+          </div>
+          <div className="px-5 py-2 border-b border-gray-50 bg-blue-50/40">
+            <p className="text-[11px] text-gray-600">
+              <span className="font-bold text-[#172B4D]">Note:</span> Active/Maintenance/Retired are live vehicle states. Deleted means archived (soft-deleted).
+            </p>
           </div>
         </div>
 

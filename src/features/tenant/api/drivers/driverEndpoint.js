@@ -14,6 +14,10 @@ const driverApi = {
   getDrivers: (params) =>
     axiosInstance.get(`${BASE}/drivers/`, { params }),
 
+  // GLOBAL STATS (independent of list filters/pagination)
+  getDriverStats: () =>
+    axiosInstance.get(`${BASE}/drivers/stats/`),
+
   // DETAIL
   getDriverById: (id) =>
     axiosInstance.get(`${BASE}/drivers/${id}/`),
@@ -29,6 +33,10 @@ const driverApi = {
   // DELETE - Response: 204 No Content
   deleteDriver: (id) =>
     axiosInstance.delete(`${BASE}/drivers/${id}/`),
+
+  // RESTORE - Response: 200
+  restoreDriver: (id) =>
+    axiosInstance.post(`${BASE}/drivers/${id}/restore/`),
 
 
   // ─── 2. Documents ────────────────────────────────

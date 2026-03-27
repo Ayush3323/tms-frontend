@@ -6,7 +6,7 @@ import {
   IdCard, ArrowUpDown, ArrowUp, ArrowDown,
   X, User, Car,
 } from 'lucide-react';
-import { useDrivers, useRegisterDriver } from '../../queries/drivers/driverCoreQuery';
+import { useDrivers, useRegisterDriver, useRestoreDriver, useDriverStats } from '../../queries/drivers/driverCoreQuery';
 
 import Label from './common/Label';
 import Input from './common/Input';
@@ -226,6 +226,7 @@ const DriversList = () => {
   const [joinedFrom, setJoinedFrom] = useState('');
   const [joinedTo, setJoinedTo] = useState('');
   const [ordering, setOrdering] = useState('-id');
+  const [visibilityFilter, setVisibilityFilter] = useState('active'); // active | deleted | all
   const [currentPage, setCurrentPage] = useState(1);
   const [addOpen, setAddOpen] = useState(false);  // ← Add Driver modal
   const navigate = useNavigate();
@@ -248,13 +249,26 @@ const DriversList = () => {
     ...(joinedFrom && { joined_date__gte: joinedFrom }),
     ...(joinedTo && { joined_date__lte: joinedTo }),
     ...(ordering && { ordering }),
+    ...(visibilityFilter === 'deleted' && { deleted_only: true }),
+    ...(visibilityFilter === 'all' && { include_deleted: true }),
+  });
+  const { data: statsData } = useDriverStats();
+  const restoreDriver = useRestoreDriver();
+
+  const rawDrivers = data?.results ?? [];
+  // Defensive client-side visibility filter to keep tabs consistent even when stale cache or
+  // backend query params are not yet reflected.
+  const drivers = rawDrivers.filter((d) => {
+    if (visibilityFilter === 'deleted') return Boolean(d.is_deleted);
+    if (visibilityFilter === 'all') return true;
+    return !d.is_deleted;
   });
 
-  const drivers = data?.results ?? [];
-  const total = data?.count ?? drivers.length;
-  const active = drivers.filter(d => d.status === 'ACTIVE').length;
-  const inactive = drivers.filter(d => d.status === 'INACTIVE').length;
-  const suspended = drivers.filter(d => d.status === 'SUSPENDED').length;
+  const total = statsData?.total ?? drivers.length;
+  const active = statsData?.active ?? drivers.filter(d => !d.is_deleted && d.status === 'ACTIVE').length;
+  const inactive = statsData?.inactive ?? drivers.filter(d => !d.is_deleted && d.status === 'INACTIVE').length;
+  const suspended = statsData?.suspended ?? drivers.filter(d => !d.is_deleted && d.status === 'SUSPENDED').length;
+  const deleted = statsData?.deleted ?? drivers.filter(d => d.is_deleted).length;
 
   const handleSort = (field) => {
     setOrdering(prev => prev === field ? `-${field}` : field);
@@ -262,7 +276,7 @@ const DriversList = () => {
 
   const resetFilters = () => {
     setSearch(''); setStatus(''); setType(''); setLic('');
-    setJoinedFrom(''); setJoinedTo(''); setOrdering(''); setCurrentPage(1);
+    setJoinedFrom(''); setJoinedTo(''); setOrdering(''); setVisibilityFilter('active'); setCurrentPage(1);
   };
 
   const SortableTH = ({ label, field }) => (
@@ -345,7 +359,12 @@ const DriversList = () => {
     },
     {
       header: 'Status',
-      render: d => (
+      render: d => d.is_deleted ? (
+        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold w-fit whitespace-nowrap bg-red-50 border border-red-200 text-red-700">
+          <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+          Deleted
+        </span>
+      ) : (
         <StatusBadge
           label={d.status_display ?? d.status}
           styles={STATUS_STYLES[d.status]}
@@ -355,12 +374,24 @@ const DriversList = () => {
     {
       header: 'Actions',
       render: d => (
-        <button
-          onClick={() => navigate(`/tenant/dashboard/drivers/${d.id}`)}
-          className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all font-sans"
-        >
-          <Eye size={12} /> View
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate(`/tenant/dashboard/drivers/${d.id}`)}
+            className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all font-sans"
+          >
+            <Eye size={12} /> View
+          </button>
+          {d.is_deleted && (
+            <button
+              onClick={() => restoreDriver.mutate(d.id)}
+              disabled={restoreDriver.isPending}
+              className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-all disabled:opacity-50"
+            >
+              {restoreDriver.isPending ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />}
+              Restore
+            </button>
+          )}
+        </div>
       ),
     },
   ];
@@ -459,12 +490,16 @@ const DriversList = () => {
                 <span className="text-[18px] font-black text-green-600">{active}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Inactive:</span>
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Inactive (Live):</span>
                 <span className="text-[18px] font-black text-orange-500">{inactive}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Suspended:</span>
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Suspended (Live):</span>
                 <span className="text-[18px] font-black text-red-500">{suspended}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Deleted:</span>
+                <span className="text-[18px] font-black text-red-600">{deleted}</span>
               </div>
             </>
           )}
@@ -482,6 +517,28 @@ const DriversList = () => {
         <div>
           <div className="flex items-center gap-6 ml-auto justify-between h-15">
             <div className="flex items-center gap-3 px-5 py-3">
+              <div className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 p-1">
+                {[
+                  { id: 'active', label: 'Active' },
+                  { id: 'deleted', label: 'Deleted' },
+                  { id: 'all', label: 'All' },
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => {
+                      setVisibilityFilter(opt.id);
+                      setCurrentPage(1);
+                    }}
+                    className={`px-3 py-1 text-[11px] font-bold rounded-md transition-all ${visibilityFilter === opt.id
+                      ? 'bg-[#0052CC] text-white shadow-sm'
+                      : 'text-gray-600 hover:bg-white'
+                      }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
               {[
                 { val: statusFilter, set: setStatus, opts: DRIVER_STATUS, ph: 'All Status' },
                 { val: typeFilter, set: setType, opts: DRIVER_TYPES, ph: 'All Types' },
@@ -491,6 +548,7 @@ const DriversList = () => {
                   <select
                     value={val}
                     onChange={e => { set(e.target.value); setCurrentPage(1); }}
+                    disabled={visibilityFilter === 'deleted' && ph === 'All Status'}
                     className="px-3 py-1 bg-gray-50 border border-gray-100 rounded-lg text-xs font-medium text-[#172B4D] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all hover:border-gray-200 cursor-pointer shadow-sm"
                   >
                     <option value="">{ph}</option>
@@ -516,7 +574,7 @@ const DriversList = () => {
                 />
               </div>
 
-              {(statusFilter || typeFilter || licFilter || joinedFrom || joinedTo) && (
+              {(statusFilter || typeFilter || licFilter || joinedFrom || joinedTo || visibilityFilter !== 'active') && (
                 <button
                   onClick={resetFilters}
                   className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
@@ -548,6 +606,11 @@ const DriversList = () => {
                 Next
               </button>
             </div>
+          </div>
+          <div className="px-5 py-2 border-b border-gray-50 bg-blue-50/40">
+            <p className="text-[11px] text-gray-600">
+              <span className="font-bold text-[#172B4D]">Note:</span> Inactive/Suspended are live driver states. Deleted means archived (soft-deleted).
+            </p>
           </div>
         </div>
 
