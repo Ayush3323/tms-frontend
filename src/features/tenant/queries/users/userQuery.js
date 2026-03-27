@@ -6,6 +6,8 @@ import {
   createUser,
   updateUser,
   deleteUser,
+  restoreUser,
+  getUserStats,
 } from "../../api/users/userEndpoint";
 
 /**
@@ -90,5 +92,35 @@ export const useDeleteUser = () => {
     onError: (error) => {
       console.error("Failed to delete user:", error.message);
     },
+  });
+};
+
+/**
+ * Restore soft-deleted user
+ */
+export const useRestoreUser = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: restoreUser,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      queryClient.invalidateQueries({ queryKey: ["users-stats"] });
+    },
+    onError: (error) => {
+      console.error("Failed to restore user:", error.message);
+    },
+  });
+};
+
+/**
+ * Users stats
+ */
+export const useUserStats = () => {
+  return useQuery({
+    queryKey: ["users-stats"],
+    queryFn: getUserStats,
+    staleTime: 60 * 1000,
+    retry: 1,
   });
 };
