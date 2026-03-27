@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft, Building2, MapPin, Phone, FileText,
   ClipboardList, Info as LucideInfo, History, Wallet,
@@ -27,7 +27,12 @@ const TABS = [
 const CustomerDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('OVERVIEW');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab')?.toUpperCase() || 'OVERVIEW';
+
+  const setActiveTab = (tabId) => {
+    setSearchParams({ tab: tabId.toLowerCase() });
+  };
   const { data: customer, isLoading, isError, error, refetch } = useCustomer(id);
   const deleteMutation = useDeleteCustomer();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft, Edit2, Pause, Play,
   Truck, FileText, Shield, Wrench, ClipboardCheck,
@@ -245,7 +245,12 @@ const VehicleHeader = ({ v, onEdit, onToggle, onDelete, updating }) => {
 const VehicleDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('overview');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'overview';
+
+  const setActiveTab = (tabId) => {
+    setSearchParams({ tab: tabId });
+  };
 
   const { data: v, isLoading, isError, error, refetch } = useVehicle(id);
   const updateVehicle = useUpdateVehicle();
