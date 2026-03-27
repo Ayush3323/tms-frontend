@@ -51,12 +51,17 @@ const ConsigneesDashboard = () => {
 
   const { data: customerData } = useCustomers({ limit: 1000 });
   const allCustomers = customerData?.results ?? customerData ?? [];
-  const eligibleCustomers = allCustomers.filter(c => c.customer_type === 'CONSIGNEE' || c.customer_type === 'BOTH' || c.customer_type === 'OTHER');
-
   const [modal, setModal] = useState(null);
   const [deleteTarget, setDelete] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
+
+  const eligibleCustomers = allCustomers.filter(c =>
+    c.customer_type === 'CONSIGNEE' ||
+    c.customer_type === 'BOTH' ||
+    c.customer_type === 'OTHER' ||
+    c.id === form.customer_id
+  );
 
   const createMutation = useCreateConsignee();
   const updateMutation = useUpdateConsignee();

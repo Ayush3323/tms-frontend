@@ -94,11 +94,83 @@ export const useCustomerAddresses = (customerId) => {
   })
 }
 
+export const useCreateCustomerAddress = (customerId) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data) => customersApi.addresses.create(customerId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...customerKeys.detail(customerId), 'addresses'] })
+      toast.success('Address added')
+    },
+    onError: (err) => handleApiError(err, 'Could not add address')
+  })
+}
+
+export const useUpdateCustomerAddress = (customerId) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => customersApi.addresses.update(customerId, id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...customerKeys.detail(customerId), 'addresses'] })
+      toast.success('Address updated')
+    },
+    onError: (err) => handleApiError(err, 'Could not update address')
+  })
+}
+
+export const useDeleteCustomerAddress = (customerId) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id) => customersApi.addresses.delete(customerId, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...customerKeys.detail(customerId), 'addresses'] })
+      toast.success('Address removed')
+    },
+    onError: (err) => handleApiError(err, 'Could not remove address')
+  })
+}
+
 export const useCustomerContacts = (customerId) => {
   return useQuery({
     queryKey: [...customerKeys.detail(customerId), 'contacts'],
     queryFn: () => customersApi.contacts.list(customerId),
     enabled: !!customerId,
+  })
+}
+
+export const useCreateCustomerContact = (customerId) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data) => customersApi.contacts.create(customerId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...customerKeys.detail(customerId), 'contacts'] })
+      toast.success('Contact added')
+    },
+    onError: (err) => handleApiError(err, 'Could not add contact')
+  })
+}
+
+export const useUpdateCustomerContact = (customerId) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => customersApi.contacts.update(customerId, id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...customerKeys.detail(customerId), 'contacts'] })
+      toast.success('Contact updated')
+    },
+    onError: (err) => handleApiError(err, 'Could not update contact')
+  })
+}
+
+export const useDeleteCustomerContact = (customerId) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id) => customersApi.contacts.delete(customerId, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...customerKeys.detail(customerId), 'contacts'] })
+      toast.success('Contact removed')
+    },
+    onError: (err) => handleApiError(err, 'Could not remove contact')
   })
 }
 
@@ -110,11 +182,83 @@ export const useCustomerDocuments = (customerId) => {
   })
 }
 
+export const useCreateCustomerDocument = (customerId) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data) => customersApi.documents.create(customerId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...customerKeys.detail(customerId), 'documents'] })
+      toast.success('Document uploaded')
+    },
+    onError: (err) => handleApiError(err, 'Upload failed')
+  })
+}
+
+export const useUpdateCustomerDocument = (customerId) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => customersApi.documents.update(customerId, id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...customerKeys.detail(customerId), 'documents'] })
+      toast.success('Document updated')
+    },
+    onError: (err) => handleApiError(err, 'Update failed')
+  })
+}
+
+export const useDeleteCustomerDocument = (customerId) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id) => customersApi.documents.delete(customerId, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...customerKeys.detail(customerId), 'documents'] })
+      toast.success('Document deleted')
+    },
+    onError: (err) => handleApiError(err, 'Delete failed')
+  })
+}
+
 export const useCustomerContracts = (customerId) => {
   return useQuery({
     queryKey: [...customerKeys.detail(customerId), 'contracts'],
     queryFn: () => customersApi.contracts.list(customerId),
     enabled: !!customerId,
+  })
+}
+
+export const useCreateCustomerContract = (customerId) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data) => customersApi.contracts.create(customerId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...customerKeys.detail(customerId), 'contracts'] })
+      toast.success('Contract created')
+    },
+    onError: (err) => handleApiError(err, 'Could not create contract')
+  })
+}
+
+export const useUpdateCustomerContract = (customerId) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => customersApi.contracts.update(customerId, id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...customerKeys.detail(customerId), 'contracts'] })
+      toast.success('Contract updated')
+    },
+    onError: (err) => handleApiError(err, 'Could not update contract')
+  })
+}
+
+export const useDeleteCustomerContract = (customerId) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id) => customersApi.contracts.delete(customerId, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...customerKeys.detail(customerId), 'contracts'] })
+      toast.success('Contract deleted')
+    },
+    onError: (err) => handleApiError(err, 'Could not delete contract')
   })
 }
 
@@ -131,6 +275,42 @@ export const useCustomerNotes = (customerId) => {
     queryKey: [...customerKeys.detail(customerId), 'notes'],
     queryFn: () => customersApi.notes.list(customerId),
     enabled: !!customerId,
+  })
+}
+
+export const useCreateCustomerNote = (customerId) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data) => customersApi.notes.create(customerId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...customerKeys.detail(customerId), 'notes'] })
+      toast.success('Note added')
+    },
+    onError: (err) => handleApiError(err, 'Could not add note')
+  })
+}
+
+export const useUpdateCustomerNote = (customerId) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => customersApi.notes.update(customerId, id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...customerKeys.detail(customerId), 'notes'] })
+      toast.success('Note updated')
+    },
+    onError: (err) => handleApiError(err, 'Could not update note')
+  })
+}
+
+export const useDeleteCustomerNote = (customerId) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id) => customersApi.notes.delete(customerId, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...customerKeys.detail(customerId), 'notes'] })
+      toast.success('Note removed')
+    },
+    onError: (err) => handleApiError(err, 'Could not remove note')
   })
 }
 

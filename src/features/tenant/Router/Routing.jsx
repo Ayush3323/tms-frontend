@@ -22,6 +22,7 @@ import Consigners from '../components/customers/consigners'
 import Consignees from '../components/customers/consignees'
 import Brokers from '../components/customers/brokers';
 import Agents from '../components/customers/agents';
+import CustomerDetail from '../components/customers/Details/CustomerDetail';
 import OrdersDashboard from '../components/orders/orders';
 import TripsDashboard from '../components/orders/trips'
 import CargoDashboard from '../components/orders/cargo'
@@ -96,6 +97,9 @@ const Routing = () => {
         <Route path="vehicles/toll-tags/:id" element={<VehicleTollTagsDashboard />} />
         <Route path="vehicles/ownership" element={<VehicleOwnershipDashboard />} />
         <Route path="vehicles/ownership/:id" element={<VehicleOwnershipDashboard />} />
+        
+        {/* Customer Routes */}
+        <Route path="customers/:id" element={<CustomerDetail />} />
 
         {/* Specific Customer Detail Route (Must be last to avoid catching sub-paths as IDs) */}
 
