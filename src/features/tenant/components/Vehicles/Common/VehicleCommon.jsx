@@ -275,12 +275,12 @@ export const ItemActions = ({ onEdit, onDelete, editLabel = "Edit", deleteLabel 
 );
 
 // ── Vehicle Searchable Dropdown ───────────────────────────────────────
-export const VehicleSelect = ({ value, onChange }) => {
+export const VehicleSelect = ({ value, onChange, placeholder }) => {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
-  const { data: vData, isLoading } = useVehicles({}, { enabled: open });
+  const { data: vData, isLoading } = useVehicles({}, { enabled: open || !!value });
   const allVehicles = vData?.results ?? vData ?? [];
   const vehicles = query
     ? allVehicles.filter(v =>
@@ -302,8 +302,8 @@ export const VehicleSelect = ({ value, onChange }) => {
       <div onClick={() => setOpen(o => !o)}
         className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50
           cursor-pointer flex items-center justify-between gap-2 transition-all hover:border-[#0052CC]/40">
-        <span className={`font-mono truncate ${selected ? 'text-[#172B4D] font-bold' : 'text-gray-300'}`}>
-          {selected ? `${selected.registration_number} — ${selected.make ?? ''} ${selected.model ?? ''}`.trim() : 'Select vehicle...'}
+        <span className={`font-mono truncate ${selected || placeholder ? 'text-[#172B4D] font-bold' : 'text-gray-300'}`}>
+          {selected ? `${selected.registration_number} — ${selected.make ?? ''} ${selected.model ?? ''}`.trim() : (placeholder || 'Select vehicle...')}
         </span>
         <ChevronDown size={13} className={`text-gray-400 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </div>

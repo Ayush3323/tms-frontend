@@ -19,13 +19,13 @@ import {
 import { TabContentShimmer, ErrorState } from '../Common/StateFeedback';
 
 // ── Constants ─────────────────────────────────────────────────────────
-const POLICY_TYPES = ['COMPREHENSIVE', 'THIRD_PARTY', 'FIRE_THEFT'];
+const POLICY_TYPES = ['COMPREHENSIVE', 'THIRD_PARTY', 'LIABILITY'];
 const STATUS_OPTIONS = ['ACTIVE', 'EXPIRED', 'CANCELLED'];
 
 const TYPE_COLORS = {
   COMPREHENSIVE: 'bg-blue-50 text-blue-600 border-blue-200',
   THIRD_PARTY: 'bg-purple-50 text-purple-600 border-purple-200',
-  FIRE_THEFT: 'bg-orange-50 text-orange-600 border-orange-200',
+  LIABILITY: 'bg-orange-50 text-orange-600 border-orange-200',
 };
 
 const STATUS_COLORS = {
@@ -143,13 +143,14 @@ const InsuranceDetailView = ({ data, onClose }) => {
 
 // ── Add / Edit Modal ──────────────────────────────────────────────────
 const InsuranceModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => {
+  // Force browser reload comment: v2
   const isEdit = !!initial?.id && !isView;
+  console.log('InsuranceModal Debug:', { initial, vehicleId, isEdit });
 
   const resolveVehicleId = () => {
     if (vehicleId) return vehicleId;
-    if (!initial?.vehicle) return '';
-    if (typeof initial.vehicle === 'object') return initial.vehicle?.id ?? '';
-    return initial.vehicle;
+    if (typeof initial?.vehicle === 'object') return initial.vehicle?.id ?? '';
+    return initial?.vehicle_id ?? initial?.vehicle ?? '';
   };
 
   const [form, setForm] = useState(
@@ -213,10 +214,14 @@ const InsuranceModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }
           <>
             {!vehicleId && (
               <Field label="Vehicle" required={!isEdit} error={errors.vehicle}>
-                <VehicleSelect value={form.vehicle} onChange={(id) => {
-                  setForm(p => ({ ...p, vehicle: id }));
-                  setErrors(p => ({ ...p, vehicle: null }));
-                }} />
+                <VehicleSelect
+                  value={form.vehicle}
+                  placeholder={initial?.vehicle_registration_number || initial?.vehicle_registration || initial?.vehicle_display}
+                  onChange={(id) => {
+                    setForm(p => ({ ...p, vehicle: id }));
+                    setErrors(p => ({ ...p, vehicle: null }));
+                  }}
+                />
                 {isEdit && !form.vehicle && (
                   <p className="text-[11px] text-orange-500 mt-1">⚠ Vehicle info not available in API — will be preserved on update</p>
                 )}

@@ -122,9 +122,8 @@ const InspectionModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest 
 
   const resolveVehicleId = () => {
     if (vehicleId) return vehicleId;
-    if (!initial?.vehicle) return '';
-    if (typeof initial.vehicle === 'object') return initial.vehicle?.id ?? '';
-    return initial.vehicle;
+    if (typeof initial?.vehicle === 'object') return initial.vehicle?.id ?? '';
+    return initial?.vehicle_id ?? initial?.vehicle ?? '';
   };
 
   // Resolve driver: always store UUID. If the API returns an object, extract its id.
@@ -193,13 +192,17 @@ const InspectionModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest 
               {!vehicleId && (
                 <div className="col-span-2">
                   <Label required={!isEdit}>Vehicle</Label>
-                  <VehicleSelect value={form.vehicle} onChange={(id, v) => {
-                    setForm(p => ({
-                      ...p,
-                      vehicle: id,
-                      driver: v ? (v.assigned_driver_name ?? resolveDriver(v.assigned_driver)) : p.driver
-                    }));
-                  }} />
+                  <VehicleSelect
+                    value={form.vehicle}
+                    placeholder={initial?.vehicle_registration_number || initial?.vehicle_registration || initial?.vehicle_display}
+                    onChange={(id, v) => {
+                      setForm(p => ({
+                        ...p,
+                        vehicle: id,
+                        driver: v ? (v.assigned_driver_name ?? resolveDriverId(v.assigned_driver)) : p.driver
+                      }));
+                    }}
+                  />
                 </div>
               )}
               <Field label="Inspector Name" required>
@@ -435,6 +438,7 @@ const VehicleInspections = ({ vehicleId, isTab }) => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
+                  {!vehicleId && <th className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Vehicle</th>}
                   {['Inspection Info', 'Date', 'Status', 'Actions'].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
                   ))}
