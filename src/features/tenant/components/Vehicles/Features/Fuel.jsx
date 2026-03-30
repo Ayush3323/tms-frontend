@@ -16,7 +16,7 @@ import { useTrips } from '../../../queries/orders/ordersQuery';
 import {
   Badge, InfoCard, SectionHeader, EmptyState, Modal, DeleteConfirm, ItemActions,
   Label, Input, Sel, Field, StatCard, Textarea, VehicleSelect,
-  fmtDate, fmtINR, fmtKm
+  FUEL_COLORS, fmtDate, fmtINR, fmtKm
 } from '../Common/VehicleCommon';
 import { TabContentShimmer, ErrorState } from '../Common/StateFeedback';
 import {
@@ -34,14 +34,7 @@ const FUEL_TYPE_OPTIONS = [
   { value: 'HYBRID', label: 'Hybrid' },
 ];
 
-const FUEL_COLORS = {
-  DIESEL: 'bg-gray-100 text-gray-700 border-gray-200',
-  PETROL: 'bg-blue-50 text-blue-700 border-blue-200',
-  CNG: 'bg-green-50 text-green-700 border-green-200',
-  LPG: 'bg-orange-50 text-orange-700 border-orange-200',
-  ELECTRIC: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  HYBRID: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-};
+
 
 const EMPTY_FORM = {
   vehicle: '', fuel_date: '', fuel_type: '',
@@ -59,34 +52,48 @@ const FormSec = ({ title }) => (
 
 
 // ─── Components ───────────────────────────────────────────────────────────────
-const ViewDetail = ({ data, onClose }) => (
-  <div className="space-y-6">
-    <div className="grid grid-cols-2 gap-6">
-      <InfoCard label="Fuel Type" value={data.fuel_type_display ?? data.fuel_type} />
-      <InfoCard label="Date" value={fmtDate(data.fuel_date)} icon={Calendar} />
-      <InfoCard label="Quantity" value={data.quantity_liters ? `${data.quantity_liters} L` : '—'} icon={Fuel} />
-      <InfoCard label="Total Cost" value={fmtINR(data.total_cost)} icon={IndianRupee} accent />
-      <InfoCard label="Per Litre" value={data.cost_per_liter ? `₹${data.cost_per_liter}` : '—'} />
-      <InfoCard label="Odometer" value={fmtKm(data.odometer_reading)} icon={Gauge} />
-    </div>
+const ViewDetail = ({ data, onClose }) => {
+  const { data: tripData } = useTrips({ page_size: 1000 });
+  const trips = tripData?.results || [];
+  const trip = trips.find(t => t.id === data.trip_id);
 
-    <div className="grid grid-cols-2 gap-6 pt-4 border-t border-gray-100">
-      <InfoCard label="Driver" value={data.driver_name || '—'} />
-      <InfoCard label="Trip ID" value={data.trip_id || '—'} />
-    </div>
+  const tripDisplay = trip
+    ? `${trip.trip_number} | ${trip.origin} → ${trip.destination} (${trip.status})`
+    : data.trip_id || '—';
 
-    <div className="pt-4 border-t border-gray-100">
-      <InfoCard label="Station" value={data.fuel_station || '—'} icon={MapPin} />
-    </div>
-
-    {data.notes && (
-      <div className="pt-4 border-t border-gray-100">
-        <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1 italic">Notes</p>
-        <p className="text-xs text-gray-600 leading-relaxed font-medium">{data.notes}</p>
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 gap-6">
+        <InfoCard label="Fuel Type" value={
+          <Badge className={FUEL_COLORS[data.fuel_type] ?? 'bg-gray-100 text-gray-600 border-gray-200'}>
+            <span className={`w-1.5 h-1.5 rounded-full ${FUEL_COLORS[data.fuel_type]?.includes('orange') ? 'bg-orange-500' : 'bg-blue-500'}`} />
+            {data.fuel_type_display ?? data.fuel_type}
+          </Badge>
+        } />
+        <InfoCard label="Date" value={fmtDate(data.fuel_date)} icon={Calendar} />
+        <InfoCard label="Quantity" value={data.quantity_liters ? `${data.quantity_liters} L` : '—'} icon={Fuel} />
+        <InfoCard label="Total Cost" value={fmtINR(data.total_cost)} icon={IndianRupee} accent />
+        <InfoCard label="Per Litre" value={data.cost_per_liter ? `₹${data.cost_per_liter}` : '—'} />
+        <InfoCard label="Odometer" value={fmtKm(data.odometer_reading)} icon={Gauge} />
       </div>
-    )}
-  </div>
-);
+
+      <div className="grid grid-cols-2 gap-6 pt-4 border-t border-gray-100">
+        <InfoCard label="Trip" value={tripDisplay} />
+      </div>
+
+      <div className="pt-4 border-t border-gray-100">
+        <InfoCard label="Station" value={data.fuel_station || '—'} icon={MapPin} />
+      </div>
+
+      {data.notes && (
+        <div className="pt-4 border-t border-gray-100">
+          <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1 italic">Notes</p>
+          <p className="text-xs text-gray-600 leading-relaxed font-medium">{data.notes}</p>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const FuelModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => {
   const isEdit = !!initial?.id && !isView;
@@ -162,7 +169,15 @@ const FuelModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => 
               {!vehicleId && (
                 <div className="col-span-2">
                   <Label required={!isEdit}>Vehicle</Label>
-                  <VehicleSelect value={form.vehicle} onChange={(id) => setForm(p => ({ ...p, vehicle: id }))} />
+                  <VehicleSelect
+                    value={form.vehicle}
+                    onChange={(id, v) => setForm(p => ({
+                      ...p,
+                      vehicle: id,
+                      ...(v?.fuel_type ? { fuel_type: v.fuel_type.toUpperCase() } : {}),
+                      ...(v?.current_odometer ? { odometer_reading: v.current_odometer } : {})
+                    }))}
+                  />
                 </div>
               )}
               <Field label="Fuel Type" required>
@@ -179,7 +194,7 @@ const FuelModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => 
                   <option value="">Select Trip (Optional)</option>
                   {tripsList.map(t => (
                     <option key={t.id} value={t.id}>
-                      {t.trip_id} ({t.status})
+                      {t.trip_number || `TRIP-${t.id.slice(-6)}`} | {t.origin || 'N/A'} → {t.destination || 'N/A'} ({t.status})
                     </option>
                   ))}
                 </Sel>
@@ -447,7 +462,6 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
                   <tr className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
                     {!vehicleId && <th className="px-4 py-4">Vehicle</th>}
                     <th className="px-4 py-4">Type</th>
-                    <th className="px-4 py-4">Driver</th>
                     <th className="px-4 py-4 text-center">Fuel Details</th>
                     <th className="px-4 py-4 text-center">Cost Info</th>
                     <th className="px-4 py-4">Date</th>
@@ -464,16 +478,11 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
                           </span>
                         </td>
                       )}
-                      <td className="px-4 py-3 whitespace-nowrap align-middle">
-                        <Badge className={`${FUEL_COLORS[l.fuel_type] ?? 'bg-gray-100 text-gray-600 border-gray-200'} border-transparent`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${l.fuel_type === 'DIESEL' ? 'bg-gray-500' : 'bg-blue-500'}`} />
+                      <td className="px-4 py-3 align-middle whitespace-nowrap">
+                        <Badge className={`${FUEL_COLORS[l.fuel_type] ?? 'bg-gray-100 text-gray-600 border-gray-200'} uppercase py-1`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${l.fuel_type === 'DIESEL' ? 'bg-orange-500' : 'bg-sky-500'}`} />
                           {l.fuel_type_display ?? l.fuel_type}
                         </Badge>
-                      </td>
-                      <td className="px-4 py-3 align-middle">
-                        <span className="text-xs font-bold text-gray-600">
-                          {l.driver_name || '—'}
-                        </span>
                       </td>
                       <td className="px-4 py-3 align-middle text-center">
                         <p className="text-[13px] font-bold text-[#172B4D]">{l.quantity_liters} L</p>

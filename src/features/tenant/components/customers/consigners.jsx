@@ -25,6 +25,7 @@ const EMPTY_FORM = {
   loading_bay_count: '',
   avg_loading_time_minutes: '',
   preferred_vehicle_types: '',
+  status: 'ACTIVE',
 };
 
 const STATUS_STYLES = {
@@ -95,6 +96,7 @@ const Consignors = () => {
       loading_bay_count: c.loading_bay_count ?? '',
       avg_loading_time_minutes: c.avg_loading_time_minutes ?? '',
       preferred_vehicle_types: c.preferred_vehicle_types?.join(', ') || '',
+      status: c.customer?.status ?? 'ACTIVE',
     });
     setErrors({});
     setModal({ type: 'edit', id: c.id, consignor: c });
@@ -440,6 +442,14 @@ const Consignors = () => {
             <Field label="Consignor Code" required error={errors.consignor_code}>
               <Input value={form.consignor_code} onChange={e => setField('consignor_code', e.target.value)} disabled={modal.type === 'view'}
                 placeholder="e.g. CONS-001" />
+            </Field>
+            <Field label="Status">
+              <Sel value={form.status} onChange={e => setField('status', e.target.value)} disabled={modal.type === 'view'}>
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive</option>
+                <option value="SUSPENDED">Suspended</option>
+                <option value="BLACKLISTED">Blacklisted</option>
+              </Sel>
             </Field>
 
             <Section title="Operations" className="col-span-2" />
