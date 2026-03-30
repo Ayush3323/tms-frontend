@@ -338,7 +338,6 @@ const VehicleInspections = ({ vehicleId, isTab }) => {
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 mt-2 overflow-hidden">
         {/* Compact Stats Row */}
-        {!isTab && (
           <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
             <div className="flex items-center gap-2">
               <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total Inspections:</span>
@@ -362,7 +361,6 @@ const VehicleInspections = ({ vehicleId, isTab }) => {
               </button>
             </div>
           </div>
-        )}
 
         {/* Filters & Pagination Row */}
         <div className="flex items-center justify-between px-5 py-3 bg-white border-b border-gray-50 h-[60px]">
@@ -406,27 +404,29 @@ const VehicleInspections = ({ vehicleId, isTab }) => {
             )}
           </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1 || isLoading}
-              className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-            >
-              Previous
-            </button>
+          {!isTab && (
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1 || isLoading}
+                className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+              >
+                Previous
+              </button>
 
-            <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
-              {currentPage}
+              <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
+                {currentPage}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                disabled={!data?.next || isLoading}
+                className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+              >
+                Next
+              </button>
             </div>
-
-            <button
-              onClick={() => setCurrentPage(prev => prev + 1)}
-              disabled={!data?.next || isLoading}
-              className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-            >
-              Next
-            </button>
-          </div>
+          )}
         </div>
 
         <div className="flex-1 overflow-auto">
