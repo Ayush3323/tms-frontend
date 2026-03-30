@@ -328,46 +328,44 @@ const VehicleDocuments = ({ vehicleId, isTab }) => {
       {/* Table / List Card */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden mt-2">
         {/* Compact Stats Row */}
-        {!isTab && (
-          <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
-            {isLoading ? (
-              <div className="flex gap-6 animate-pulse">
-                <div className="h-5 bg-gray-200 rounded w-24"></div>
-                <div className="h-5 bg-gray-200 rounded w-24"></div>
-                <div className="h-5 bg-gray-200 rounded w-24"></div>
-                <div className="h-5 bg-gray-200 rounded w-24"></div>
-              </div>
-            ) : (
-              <>
-                <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total:</span>
-                  <span className="text-[18px] font-black text-[#172B4D]">{total}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Valid:</span>
-                  <span className="text-[18px] font-black text-emerald-600">{valid}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Expiring:</span>
-                  <span className="text-[18px] font-black text-orange-500">{expiring}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Expired:</span>
-                  <span className="text-[18px] font-black text-red-600">{expired}</span>
-                </div>
-              </>
-            )}
-            <div className="ml-auto w-1/4 flex justify-end">
-              <button
-                onClick={() => setModal('add')}
-                className="mr-0 bg-[#0052CC] text-white px-6 py-3 rounded-xl flex items-center gap-2 text-sm font-bold hover:bg-[#0747A6] transition-all shadow-lg hover:shadow-blue-200 active:scale-95 group"
-              >
-                <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" />
-                <span>Add Document</span>
-              </button>
+        <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+          {isLoading ? (
+            <div className="flex gap-6 animate-pulse">
+              <div className="h-5 bg-gray-200 rounded w-24"></div>
+              <div className="h-5 bg-gray-200 rounded w-24"></div>
+              <div className="h-5 bg-gray-200 rounded w-24"></div>
+              <div className="h-5 bg-gray-200 rounded w-24"></div>
             </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total:</span>
+                <span className="text-[18px] font-black text-[#172B4D]">{total}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Valid:</span>
+                <span className="text-[18px] font-black text-emerald-600">{valid}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Expiring:</span>
+                <span className="text-[18px] font-black text-orange-500">{expiring}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Expired:</span>
+                <span className="text-[18px] font-black text-red-600">{expired}</span>
+              </div>
+            </>
+          )}
+          <div className="ml-auto w-1/4 flex justify-end">
+            <button
+              onClick={() => setModal('add')}
+              className="mr-0 bg-[#0052CC] text-white px-6 py-3 rounded-xl flex items-center gap-2 text-sm font-bold hover:bg-[#0747A6] transition-all shadow-lg hover:shadow-blue-200 active:scale-95 group"
+            >
+              <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" />
+              <span>Add Document</span>
+            </button>
           </div>
-        )}
+        </div>
 
 
         <div>
@@ -413,27 +411,29 @@ const VehicleDocuments = ({ vehicleId, isTab }) => {
             )}
           </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1 || isLoading}
-              className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-            >
-              Previous
-            </button>
+          {!isTab && (
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1 || isLoading}
+                className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+              >
+                Previous
+              </button>
 
-            <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
-              {currentPage}
+              <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
+                {currentPage}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                disabled={!data?.next || isLoading}
+                className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+              >
+                Next
+              </button>
             </div>
-
-            <button
-              onClick={() => setCurrentPage(prev => prev + 1)}
-              disabled={!data?.next || isLoading}
-              className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-            >
-              Next
-            </button>
-          </div>
+          )}
         </div>
         </div>
 
@@ -524,7 +524,7 @@ const VehicleDocuments = ({ vehicleId, isTab }) => {
           </div>
         )}
 
-        {!isLoading && !isError && (
+        {!isTab && !isLoading && !isError && (
           <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
             <span>Showing <span className="font-bold text-gray-600">{docs.length}</span>{data?.count && data.count !== docs.length && <> of <span className="font-bold text-gray-600">{data.count}</span></>} documents</span>
             {!isTab && <span className="text-[11px]">Fleet Management System</span>}

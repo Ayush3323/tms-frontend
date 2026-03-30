@@ -467,27 +467,29 @@ const VehicleInsurance = ({ vehicleId, isTab }) => {
             )}
           </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1 || isLoading}
-              className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-            >
-              Previous
-            </button>
+          {!isTab && (
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1 || isLoading}
+                className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+              >
+                Previous
+              </button>
 
-            <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
-              {currentPage}
+              <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
+                {currentPage}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                disabled={!data?.next || isLoading}
+                className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+              >
+                Next
+              </button>
             </div>
-
-            <button
-              onClick={() => setCurrentPage(prev => prev + 1)}
-              disabled={!data?.next || isLoading}
-              className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-            >
-              Next
-            </button>
-          </div>
+          )}
         </div>
 
 
@@ -583,7 +585,7 @@ const VehicleInsurance = ({ vehicleId, isTab }) => {
           </div>
         )}
 
-        {!isLoading && !isError && (
+        {!isTab && !isLoading && !isError && (
           <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
             <span>Showing <span className="font-bold text-gray-600">{docs.length}</span>
               {data?.count && data.count !== docs.length &&

@@ -314,7 +314,6 @@ const VehicleTires = ({ vehicleId, isTab }) => {
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden mt-2">
         {/* Compact Stats Row */}
-        {!isTab && (
           <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
             <div className="flex items-center gap-2">
               <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total Tires:</span>
@@ -342,7 +341,6 @@ const VehicleTires = ({ vehicleId, isTab }) => {
               </button>
             </div>
           </div>
-        )}
 
         {/* Filters & Pagination Row */}
         <div className="flex items-center justify-between px-5 py-3 bg-white border-b border-gray-50 h-[60px]">
@@ -399,27 +397,29 @@ const VehicleTires = ({ vehicleId, isTab }) => {
             )}
           </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1 || isLoading}
-              className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-            >
-              Previous
-            </button>
+          {!isTab && (
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1 || isLoading}
+                className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+              >
+                Previous
+              </button>
 
-            <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
-              {currentPage}
+              <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
+                {currentPage}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                disabled={!data?.next || isLoading}
+                className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+              >
+                Next
+              </button>
             </div>
-
-            <button
-              onClick={() => setCurrentPage(prev => prev + 1)}
-              disabled={!data?.next || isLoading}
-              className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-            >
-              Next
-            </button>
-          </div>
+          )}
         </div>
 
         <div className="flex-1 overflow-auto min-h-0">
@@ -494,7 +494,7 @@ const VehicleTires = ({ vehicleId, isTab }) => {
           )}
         </div>
 
-        {!isLoading && (
+        {!isTab && !isLoading && (
           <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
             <span>Showing <span className="font-bold text-gray-600">{tires.length}</span>{data?.count && data.count !== tires.length && <> of <span className="font-bold text-gray-600">{data.count}</span></>} tires</span>
 
