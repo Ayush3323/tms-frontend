@@ -34,6 +34,7 @@ const STATUS_STYLES = {
   VALID: { label: 'Valid', color: 'bg-green-50 text-green-600 border-green-200', dot: 'bg-green-500' },
   EXPIRED: { label: 'Expired', color: 'bg-red-50 text-red-600 border-red-200', dot: 'bg-red-500' },
   EXPIRING_SOON: { label: 'Expiring', color: 'bg-orange-50 text-orange-600 border-orange-200', dot: 'bg-orange-500' },
+  RENEWED: { label: 'Renewed', color: 'bg-blue-50 text-blue-600 border-blue-200', dot: 'bg-blue-500' },
 };
 
 const EMPTY_FORM = {
@@ -43,6 +44,7 @@ const EMPTY_FORM = {
   issue_date: '',
   expiry_date: '',
   issuing_authority: '',
+  status: 'VALID',
   notes: '',
 };
 
@@ -124,14 +126,15 @@ const DocDetailView = ({ data, onClose }) => {
 
 // ── Add / Edit Modal ──────────────────────────────────────────────────
 const DocModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => {
+  // Force browser reload comment: v2
   const isEdit = !!initial?.id && !isView;
+  console.log('DocModal Debug:', { initial, vehicleId, isEdit });
 
   // Resolve vehicle id from initial or prop
   const resolveVehicleId = () => {
     if (vehicleId) return vehicleId;
-    if (!initial?.vehicle) return '';
-    if (typeof initial.vehicle === 'object') return initial.vehicle?.id ?? '';
-    return initial.vehicle;
+    if (typeof initial?.vehicle === 'object') return initial.vehicle?.id ?? '';
+    return initial?.vehicle_id ?? initial?.vehicle ?? '';
   };
 
   const [form, setForm] = useState(
@@ -142,6 +145,7 @@ const DocModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => {
       issue_date: initial.issue_date ?? '',
       expiry_date: initial.expiry_date ?? '',
       issuing_authority: initial.issuing_authority ?? '',
+      status: initial.status ?? 'VALID',
       notes: initial.notes ?? '',
     } : { ...EMPTY_FORM, vehicle: vehicleId ?? '' }
   );
@@ -181,7 +185,11 @@ const DocModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => {
           <>
             {!vehicleId && (
               <Field label="Vehicle" required={!isEdit}>
-                <VehicleSelect value={form.vehicle} onChange={(id) => setForm(p => ({ ...p, vehicle: id }))} />
+                <VehicleSelect
+                  value={form.vehicle}
+                  placeholder={initial?.vehicle_registration_number || initial?.vehicle_registration || initial?.vehicle_display}
+                  onChange={(id) => setForm(p => ({ ...p, vehicle: id }))}
+                />
                 {isEdit && !form.vehicle && (
                   <p className="text-[11px] text-orange-500 mt-1">⚠ Vehicle info not available in API — will be preserved on update</p>
                 )}
@@ -202,7 +210,16 @@ const DocModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => {
               <Field label="Issue Date"><Input type="date" value={form.issue_date} onChange={set('issue_date')} /></Field>
               <Field label="Expiry Date" error={errors.expiry_date}><Input type="date" value={form.expiry_date} onChange={set('expiry_date')} /></Field>
             </div>
-            <Field label="Issuing Authority"><Input placeholder="e.g. RTO Mumbai" value={form.issuing_authority} onChange={set('issuing_authority')} /></Field>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Issuing Authority"><Input placeholder="e.g. RTO Mumbai" value={form.issuing_authority} onChange={set('issuing_authority')} /></Field>
+              <Field label="Status">
+                <Sel value={form.status} onChange={set('status')}>
+                  <option value="VALID">Valid</option>
+                  <option value="EXPIRED">Expired</option>
+                  <option value="RENEWED">Renewed</option>
+                </Sel>
+              </Field>
+            </div>
             <Field label="Notes">
               <Textarea value={form.notes ?? ''} onChange={set('notes')} rows={3} placeholder="Any additional notes..." />
             </Field>
