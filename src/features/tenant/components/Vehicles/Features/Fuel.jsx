@@ -96,13 +96,14 @@ const ViewDetail = ({ data, onClose }) => {
 };
 
 const FuelModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => {
+  // Force browser reload comment: v2
   const isEdit = !!initial?.id && !isView;
+  console.log('FuelModal Debug:', { initial, vehicleId, isEdit });
 
   const resolveVehicleId = () => {
     if (vehicleId) return vehicleId;
-    if (!initial?.vehicle) return '';
-    if (typeof initial.vehicle === 'object') return initial.vehicle?.id ?? '';
-    return initial.vehicle;
+    if (typeof initial?.vehicle === 'object') return initial.vehicle?.id ?? '';
+    return initial?.vehicle_id ?? initial?.vehicle ?? '';
   };
 
   const [form, setForm] = useState(
@@ -171,6 +172,7 @@ const FuelModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => 
                   <Label required={!isEdit}>Vehicle</Label>
                   <VehicleSelect
                     value={form.vehicle}
+                    placeholder={initial?.vehicle_registration_number || initial?.vehicle_registration || initial?.vehicle_display}
                     onChange={(id, v) => setForm(p => ({
                       ...p,
                       vehicle: id,
