@@ -23,6 +23,7 @@ const EMPTY_FORM = {
   is_internal_broker: false,
   specialization: '',
   regions_covered: '',
+  status: 'ACTIVE',
 };
 
 const STATUS_STYLES = {
@@ -86,6 +87,7 @@ const BrokersDashboard = () => {
       brokerage_type: b.brokerage_type ?? 'PERCENTAGE',
       is_internal_broker: b.is_internal_broker ?? false,
       regions_covered: b.regions_covered?.join(', ') || '',
+      status: b.customer?.status ?? 'ACTIVE',
     });
     setErrors({});
     setModal({ type: 'edit', id: b.id, broker: b });
@@ -398,6 +400,14 @@ const BrokersDashboard = () => {
             </Field>
             <Field label="Broker Code" required error={errors.broker_code}>
               <Input value={form.broker_code} onChange={e => setField('broker_code', e.target.value)} placeholder="e.g. BRK-001" />
+            </Field>
+            <Field label="Status">
+              <Sel value={form.status} onChange={e => setField('status', e.target.value)} disabled={modal.type === 'view'}>
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive</option>
+                <option value="SUSPENDED">Suspended</option>
+                <option value="BLACKLISTED">Blacklisted</option>
+              </Sel>
             </Field>
             <Field label="Brokerage Type">
               <Sel value={form.brokerage_type} onChange={e => setField('brokerage_type', e.target.value)}>
