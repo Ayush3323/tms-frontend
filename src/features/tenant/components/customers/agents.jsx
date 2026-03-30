@@ -22,6 +22,7 @@ const EMPTY_FORM = {
   agent_type: 'CLEARING',
   license_number: '',
   operating_ports: '',
+  status: 'ACTIVE',
 };
 
 const STATUS_STYLES = {
@@ -85,6 +86,7 @@ const AgentsDashboard = () => {
       agent_type: a.agent_type ?? 'CLEARING',
       license_number: a.license_number ?? '',
       operating_ports: a.operating_ports?.join(', ') || '',
+      status: a.customer?.status ?? 'ACTIVE',
     });
     setErrors({});
     setModal({ type: 'edit', id: a.id, agent: a });
@@ -399,6 +401,14 @@ const AgentsDashboard = () => {
             </Field>
             <Field label="Agent Code" required error={errors.agent_code}>
               <Input value={form.agent_code} onChange={e => setField('agent_code', e.target.value)} placeholder="e.g. AG-001" />
+            </Field>
+            <Field label="Status">
+              <Sel value={form.status} onChange={e => setField('status', e.target.value)} disabled={modal.type === 'view'}>
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive</option>
+                <option value="SUSPENDED">Suspended</option>
+                <option value="BLACKLISTED">Blacklisted</option>
+              </Sel>
             </Field>
             <Field label="Agency Name" required error={errors.agency_name} className="col-span-2">
               <Input value={form.agency_name} onChange={e => setField('agency_name', e.target.value)} placeholder="e.g. Blue Water Shipping" />
