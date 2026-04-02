@@ -24,10 +24,20 @@ export const customerKeys = {
 
 // ─── ERROR HANDLER ───────────────────────────────────────────────────────────
 const handleApiError = (error, customMessage) => {
-  const message = error.response?.data?.message || error.response?.data?.detail || error.message || customMessage
-  toast.error(message)
-  console.error(`API Error [${customMessage}]:`, error)
-}
+  const data = error.response?.data;
+  
+  // If it's a validation error with field details, we let the component handle it 
+  // via local state rather than showing a generic toast.
+  if (error.response?.status === 400 && data?.details) {
+    console.error(`Validation Error [${customMessage}]:`, data.details);
+    return; 
+  }
+
+  const resData = error.response?.data;
+  const message = resData?.message || resData?.detail || error.message || customMessage;
+  toast.error(message);
+  console.error(`API Error [${customMessage}]:`, error);
+};
 
 // ─── 1. CUSTOMER HOOKS ───────────────────────────────────────────────────────
 

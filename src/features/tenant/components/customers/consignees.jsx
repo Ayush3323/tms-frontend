@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   ChevronDown, Loader2, AlertTriangle, UserMinus, Pencil, RotateCcw,
   MapPin, Phone, FileText, ClipboardList, Wallet, History, Building2, Info as LucideInfo,
@@ -13,24 +13,22 @@ import {
   useCustomerContracts, useCustomerNotes, useCustomerCreditHistory,
   useConsignees, useCustomers, useCreateConsignee, useUpdateConsignee, useDeleteConsignee
 } from '../../queries/customers/customersQuery';
+import { useUsers } from '../../queries/users/userQuery';
+import { useVehicleTypes } from '../../queries/vehicles/vehicletypeQuery';
 import { TableShimmer, ErrorState } from '../Vehicles/Common/StateFeedback';
 import CustomerListFilterBar from './CustomerListFilterBar';
 
 const EMPTY_FORM = {
   customer_id: '',
+  legal_name: '',
   consignee_code: '',
-  delivery_time_slot_start: '',
-  delivery_time_slot_end: '',
-  receiving_hours_start: '',
-  receiving_hours_end: '',
-  dock_available: false,
-  dock_count: '',
-  forklift_available: false,
-  storage_capacity_sqft: '',
-  unloading_instructions: '',
-  security_instructions: '',
-  documentation_requirements: '',
-  avg_unloading_time_minutes: '',
+  hazardous_material_handling: false,
+  temperature_controlled: false,
+  business_volume_tons_per_month: '',
+  business_volume_value_per_month: '',
+  loading_bay_count: '',
+  avg_loading_time_minutes: '',
+  preferred_vehicle_types: '',
   status: 'ACTIVE',
 };
 
@@ -47,23 +45,13 @@ const getStatusStyle = (status) => STATUS_STYLES[status] || { bg: 'bg-gray-50', 
 
 const ConsigneesDashboard = () => {
   const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatus] = useState('');
   const [ordering, setOrdering] = useState('customer__legal_name');
   const [currentPage, setCurrentPage] = useState(1);
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearch(search);
-      setCurrentPage(1);
-    }, 500);
-    return () => clearTimeout(handler);
-  }, [search]);
-
   const { data, isLoading, isError, error, refetch } = useConsignees({
-    ...(statusFilter && { customer__status: statusFilter }),
-    ...(ordering && { ordering }),
-    ...(debouncedSearch && { search: debouncedSearch }),
+    ...(statusFilter && { status: statusFilter }),
+    ...(search && { search }),
     page: currentPage,
   });
 
@@ -73,6 +61,25 @@ const ConsigneesDashboard = () => {
   const [deleteTarget, setDelete] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
+
+  const { data: userData } = useUsers({ limit: 1000 });
+  const allUsers = userData?.results ?? userData ?? [];
+
+  const userToCustomerMap = useMemo(() => {
+    const map = {};
+    allCustomers?.forEach(c => {
+      const uid = c.user?.id || c.user_id || c.portal_user_id;
+      if (uid) {
+        map[String(uid)] = c.legal_name || c.name || c.trading_name || 'Another Customer';
+      }
+    });
+    console.log('UserToCustomerMap Built (Consignees):', map);
+    return map;
+  }, [allCustomers]);
+
+  const portalUsers = useMemo(() => {
+    return (allUsers || []).filter(u => u.account_type === 'CUSTOMER');
+  }, [allUsers]);
 
   const eligibleCustomers = allCustomers.filter(c =>
     c.customer_type === 'CONSIGNEE' ||
@@ -94,19 +101,15 @@ const ConsigneesDashboard = () => {
   const openEdit = (c) => {
     setForm({
       customer_id: c.customer_id ?? '',
+      legal_name: c.customer?.legal_name ?? '',
       consignee_code: c.consignee_code ?? '',
-      delivery_time_slot_start: c.delivery_time_slot_start ?? '',
-      delivery_time_slot_end: c.delivery_time_slot_end ?? '',
-      receiving_hours_start: c.receiving_hours_start ?? '',
-      receiving_hours_end: c.receiving_hours_end ?? '',
-      dock_available: c.dock_available ?? false,
-      dock_count: c.dock_count ?? '',
-      forklift_available: c.forklift_available ?? false,
-      storage_capacity_sqft: c.storage_capacity_sqft ?? '',
-      unloading_instructions: c.unloading_instructions ?? '',
-      security_instructions: c.security_instructions ?? '',
-      documentation_requirements: c.documentation_requirements?.join(', ') || '',
-      avg_unloading_time_minutes: c.avg_unloading_time_minutes ?? '',
+      business_volume_tons_per_month: c.business_volume_tons_per_month ?? '',
+      business_volume_value_per_month: c.business_volume_value_per_month ?? '',
+      hazardous_material_handling: c.hazardous_material_handling ?? false,
+      temperature_controlled: c.temperature_controlled ?? false,
+      loading_bay_count: c.loading_bay_count ?? '',
+      avg_loading_time_minutes: c.avg_loading_time_minutes ?? '',
+      preferred_vehicle_types: c.preferred_vehicle_types?.join(', ') || '',
       status: c.customer?.status ?? 'ACTIVE',
     });
     setErrors({});
@@ -120,10 +123,31 @@ const ConsigneesDashboard = () => {
 
   const closeModal = () => { setModal(null); setErrors({}); };
 
+  // Auto-generate Consignee Code when Legal Name is typed in Create mode
+  useEffect(() => {
+    if (modal?.type === 'create' && form.legal_name && !form.consignee_code) {
+      const initials = (form.legal_name || 'CONE')
+        .split(' ')
+        .map(word => word[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 3);
+      const randomSuffix = Math.floor(100 + Math.random() * 900);
+      setField('consignee_code', `CONE-${initials}-${randomSuffix}`);
+    }
+  }, [form.legal_name, modal?.type]);
+
   const validate = () => {
     const e = {};
-    if (!form.customer_id) e.customer_id = 'Customer ID is required';
-    if (!form.consignee_code?.trim()) e.consignee_code = 'Consignee code is required';
+    if (form.legal_name) {
+      const match = eligibleCustomers.find(c => c.legal_name?.toLowerCase() === form.legal_name.toLowerCase());
+      if (match) form.customer_id = match.id;
+    }
+    if (!form.legal_name?.trim()) e.customer_id = 'Legal Name is required';
+    if (!form.consignee_code?.trim()) {
+      const initials = (form.legal_name || 'CONE').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3);
+      form.consignee_code = `CONE-${initials}-${Math.floor(1000 + Math.random() * 9000)}`;
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -145,6 +169,11 @@ const ConsigneesDashboard = () => {
     delete payload.customer_code;
     if (modal.type === 'create') delete payload.id;
 
+    // Nullify empty ID and address fields
+    ['sales_person_id', 'account_manager_id', 'user_id', 'warehouse_address'].forEach(key => {
+      if (typeof payload[key] === 'string' && !payload[key].trim()) payload[key] = null;
+    });
+
     if (!payload.dock_count) payload.dock_count = null;
     if (!payload.storage_capacity_sqft) payload.storage_capacity_sqft = null;
     if (!payload.avg_unloading_time_minutes) payload.avg_unloading_time_minutes = null;
@@ -153,9 +182,23 @@ const ConsigneesDashboard = () => {
       : [];
 
     if (modal.type === 'create') {
-      createMutation.mutate(payload, { onSuccess: () => closeModal() });
+      createMutation.mutate(payload, {
+        onSuccess: () => closeModal(),
+        onError: (err) => {
+          if (err.response?.status === 400 && err.response.data?.details) {
+            setErrors(err.response.data.details);
+          }
+        }
+      });
     } else {
-      updateMutation.mutate({ id: modal.id, data: payload }, { onSuccess: () => closeModal() });
+      updateMutation.mutate({ id: modal.id, data: payload }, {
+        onSuccess: () => closeModal(),
+        onError: (err) => {
+          if (err.response?.status === 400 && err.response.data?.details) {
+            setErrors(err.response.data.details);
+          }
+        }
+      });
     }
   };
 
@@ -171,14 +214,25 @@ const ConsigneesDashboard = () => {
 
   const COLUMNS = [
     {
+      header: 'Customer Code',
+      render: c => (
+        <div className="flex flex-col items-start gap-0.5 leading-none">
+          <span className="font-mono text-[13px] font-black text-[#172B4D] block uppercase">
+            {c.customer?.customer_code ?? '—'}
+          </span>
+          <span className="text-[9px] font-mono text-blue-500/60 tracking-tighter uppercase font-bold block">
+            Cone: {c.consignee_code ?? '—'}
+          </span>
+        </div>
+      ),
+    },
+    {
       header: 'Legal Name',
       render: c => (
-        <div className="text-left">
-          <button onClick={() => openView(c)}
-            className="font-bold text-[#172B4D] text-[13px] hover:text-[#0052CC] transition-all hover:scale-105 active:scale-95 text-left block">
-            {c.customer?.legal_name ?? '—'}
-          </button>
-          <div className="text-[11px] font-mono text-gray-400">{c.consignee_code ?? ''}</div>
+        <div className="text-left py-1">
+          <span className="font-bold text-[#172B4D] text-[13px] block leading-tight">
+            {c.customer?.legal_name || c.legal_name || '—'}
+          </span>
         </div>
       ),
     },
@@ -217,7 +271,10 @@ const ConsigneesDashboard = () => {
       header: 'Actions',
       render: c => (
         <div className="flex items-center gap-2">
-          <button onClick={() => openEdit(c)} className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-all">
+          <button
+            onClick={(e) => { e.stopPropagation(); openEdit(c); }}
+            className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-all active:scale-95 shadow-sm"
+          >
             <Pencil size={12} /> Edit
           </button>
         </div>
@@ -243,13 +300,13 @@ const ConsigneesDashboard = () => {
             <input
               type="text"
               placeholder="Search consignee name, code..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-12 py-3 bg-white border border-gray-200 rounded-2xl text-[15px] font-medium placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-50  transition-all shadow-sm hover:shadow-md hover:border-gray-300"
             />
-            {search && (
+            {searchTerm && (
               <button
-                onClick={() => setSearch('')}
+                onClick={() => setSearchTerm('')}
                 className="absolute right-4 top-2 text-gray-400 hover:text-red-500 transition-all duration-500 hover:rotate-180 p-1.5 rounded-full hover:bg-red-50 flex items-center justify-center group/reset"
                 title="Clear search"
               >
@@ -365,7 +422,11 @@ const ConsigneesDashboard = () => {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {consignees.map(c => (
-                  <tr key={c.id || c.consignee_code} className="hover:bg-blue-50/30 transition-colors">
+                  <tr
+                    key={c.id || (c.customer?.customer_code + '-' + c.consignee_code)}
+                    onClick={() => openView(c)}
+                    className="hover:bg-blue-50/40 transition-all cursor-pointer border-l-2 border-l-transparent hover:border-l-[#0052CC] group/row"
+                  >
                     {COLUMNS.map(col => (
                       <td key={col.header} className="px-4 py-3 whitespace-nowrap align-middle">{col.render(c)}</td>
                     ))}
@@ -395,7 +456,7 @@ const ConsigneesDashboard = () => {
 
       {deleteTarget && (
         <DeleteConfirm label="Consignee" onClose={() => setDelete(null)}
-          onConfirm={() => deleteMutation.mutate(deleteTarget.id, { onSuccess: () => setDelete(null) })}
+          onConfirm={() => deleteMutation.mutate(deleteTarget.customer_id || deleteTarget.id, { onSuccess: () => setDelete(null) })}
           deleting={deleteMutation.isPending} />
       )}
 
@@ -410,19 +471,20 @@ const ConsigneesDashboard = () => {
         >
           <div className="grid grid-cols-2 gap-4">
             <Section title="Consignee Details" className="col-span-2" />
-            <Field label="Customer" required error={errors.customer_id}>
-              <Sel value={form.customer_id} onChange={e => setField('customer_id', e.target.value)} disabled={modal.type === 'edit'}>
-                <option value="">-- Select Customer --</option>
-                {eligibleCustomers.map(c => (
-                  <option key={c.id} value={c.id}>
-                    {c.legal_name || c.trading_name || 'Unnamed'}
-                  </option>
-                ))}
-              </Sel>
-            </Field>
-            <Field label="Consignee Code" required error={errors.consignee_code}>
-              <Input value={form.consignee_code} onChange={e => setField('consignee_code', e.target.value)} disabled={modal.type === 'view'}
-                placeholder="e.g. CONE-001" />
+            <Field label="Legal Name" required error={errors.customer_id}>
+              <Input
+                value={form.legal_name || ''}
+                onChange={e => {
+                  const val = e.target.value;
+                  setField('legal_name', val);
+                  const match = eligibleCustomers.find(c => c.legal_name?.toLowerCase() === val.toLowerCase());
+                  if (match) setField('customer_id', match.id);
+                  else setField('customer_id', '');
+                }}
+                disabled={modal.type === 'edit' || modal.type === 'view'}
+                placeholder="Enter customer legal name..."
+                className="bg-white"
+              />
             </Field>
             <Field label="Status">
               <Sel value={form.status} onChange={e => setField('status', e.target.value)} disabled={modal.type === 'view'}>
@@ -476,8 +538,10 @@ const ConsigneesDashboard = () => {
             <Field label="Unloading Instructions" className="col-span-2">
               <Input value={form.unloading_instructions} onChange={e => setField('unloading_instructions', e.target.value)} disabled={modal.type === 'view'} />
             </Field>
-            <Field label="Security Instructions" className="col-span-2">
-              <Input value={form.security_instructions} onChange={e => setField('security_instructions', e.target.value)} disabled={modal.type === 'view'} />
+
+            <Field label="Preferred Vehicle Types" className="col-span-2">
+              <Input value={form.preferred_vehicle_types} onChange={e => setField('preferred_vehicle_types', e.target.value)} disabled={modal.type === 'view'}
+                placeholder="TRUCK, VAN, TRAILER (comma separated)" />
             </Field>
           </div>
         </Modal>
@@ -488,6 +552,7 @@ const ConsigneesDashboard = () => {
           title={`View — ${modal.consignee?.customer?.legal_name || modal.consignee?.consignee_code}`}
           onClose={closeModal}
           maxWidth="max-w-4xl"
+          isView={true}
         >
           <ViewConsigneeContent
             consignee={modal.consignee}
@@ -503,58 +568,20 @@ const ConsigneesDashboard = () => {
   );
 };
 
-const TABS = [
-  { id: 'OVERVIEW', label: 'Overview', icon: LucideInfo },
-  { id: 'ADDRESSES', label: 'Addresses', icon: MapPin },
-  { id: 'CONTACTS', label: 'Contacts', icon: Phone },
-  { id: 'DOCUMENTS', label: 'Documents', icon: FileText },
-  { id: 'CONTRACTS', label: 'Contracts', icon: ClipboardList },
-  { id: 'NOTES', label: 'Notes', icon: LucideInfo },
-  { id: 'CREDIT', label: 'Credit', icon: History },
-];
+const ViewConsigneeContent = ({ consignee: c, onEdit }) => (
+  <div className="animate-in fade-in slide-in-from-bottom-3 duration-300">
+    <ConsigneeOverview consignee={c} onEdit={onEdit} />
+  </div>
+);
 
-const ViewConsigneeContent = ({ consignee: c, onEdit }) => {
-  const [activeTab, setActiveTab] = useState('OVERVIEW');
-  const customerId = c?.customer?.id;
-
-  return (
-    <div className="flex flex-col h-full max-h-[85vh]">
-      <div className="flex items-center gap-1 border-b border-gray-100 mb-4 overflow-x-auto no-scrollbar pb-1">
-        {TABS.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-bold whitespace-nowrap transition-all rounded-t-xl
-              ${activeTab === tab.id
-                ? 'text-[#0052CC] bg-[#EBF3FF] border-b-2 border-[#0052CC]'
-                : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'}`}
-          >
-            <tab.icon size={14} />
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="flex-1 overflow-y-auto pr-1">
-        {activeTab === 'OVERVIEW' && <ConsigneeOverview consignee={c} onEdit={onEdit} />}
-        {activeTab === 'ADDRESSES' && <CustomerAddresses customerId={customerId} />}
-        {activeTab === 'CONTACTS' && <CustomerContacts customerId={customerId} />}
-        {activeTab === 'DOCUMENTS' && <CustomerDocuments customerId={customerId} />}
-        {activeTab === 'CONTRACTS' && <CustomerContracts customerId={customerId} />}
-        {activeTab === 'NOTES' && <CustomerNotes customerId={customerId} />}
-        {activeTab === 'CREDIT' && <CustomerCreditHistoryView customerId={customerId} currentLimit={c?.customer?.credit_limit} />}
-      </div>
-    </div>
-  );
-};
-
-const ConsigneeOverview = ({ consignee: c, onEdit }) => (
+const ConsigneeOverview = ({ consignee: c }) => (
   <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
     <div className="grid grid-cols-2 gap-4">
       <InfoCard label="Legal Name" value={c.customer?.legal_name} accent />
+      <InfoCard label="Customer Code" value={c.customer?.customer_code} />
       <InfoCard label="Consignee Code" value={c.consignee_code} />
-      <InfoCard label="Dock Available" value={c.dock_available ? 'Yes' : 'No'} />
-      <InfoCard label="Forklift Available" value={c.forklift_available ? 'Yes' : 'No'} />
+      <InfoCard label="Hazardous Handling" value={c.hazardous_material_handling ? 'Yes' : 'No'} />
+      <InfoCard label="Temp Controlled" value={c.temperature_controlled ? 'Yes' : 'No'} />
     </div>
 
     <Section title="Receiving Capacity" />
@@ -572,208 +599,116 @@ const ConsigneeOverview = ({ consignee: c, onEdit }) => (
       <InfoCard label="Unloading Instructions" value={c.unloading_instructions} />
     </div>
 
-    <div className="pt-3 border-t border-gray-100 flex justify-end">
-      <button onClick={onEdit}
-        className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-xl hover:bg-[#0043A8] transition-all shadow-sm">
-        <Pencil size={14} /> Edit Profile
-      </button>
+    <Section title="Relationship Management" />
+    <div className="grid grid-cols-2 gap-3">
+      <InfoCard label="Sales Person" value={c.customer?.sales_person?.full_name || c.customer?.sales_person?.name || 'Not Assigned'} />
+      <InfoCard label="Account Manager" value={c.customer?.account_manager?.full_name || c.customer?.account_manager?.name || 'Not Assigned'} />
+      <InfoCard label="Portal User" value={c.customer?.portal_user?.username || c.customer?.user?.username || 'None'} />
+      <InfoCard label="Warehouse Address" value={c.warehouse_address || 'Not Provided'} />
+    </div>
+
+    <div className="pt-3 border-t border-gray-100 flex justify-end items-center gap-4">
+      <p className="text-[10px] text-gray-400 font-mono italic mr-auto">Created: {c.created_at ? new Date(c.created_at).toLocaleString() : '—'}</p>
     </div>
   </div>
 );
 
-const CustomerAddresses = ({ customerId }) => {
-  const { data: addresses, isLoading } = useCustomerAddresses(customerId);
-  if (isLoading) return <Loader2 size={24} className="animate-spin text-[#0052CC] mx-auto my-12" />;
+
+const VehicleTypeMultiSelect = ({ value, onChange, disabled }) => {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const ref = useRef(null);
+
+  const { data: vtData, isLoading } = useVehicleTypes({ all: true }, { enabled: open || !!value });
+  const allTypes = vtData?.results ?? vtData ?? [];
+
+  const selectedIds = value ? value.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+  const filtered = query
+    ? allTypes.filter(t => (t.type_name || t.name || '').toLowerCase().includes(query.toLowerCase()))
+    : allTypes;
+
+  useEffect(() => {
+    const fn = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', fn);
+    return () => document.removeEventListener('mousedown', fn);
+  }, []);
+
+  const toggle = (typeName) => {
+    let next;
+    if (selectedIds.includes(typeName)) {
+      next = selectedIds.filter(id => id !== typeName);
+    } else {
+      next = [...selectedIds, typeName];
+    }
+    onChange(next.join(', '));
+  };
 
   return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-      <SectionHeader title="Stored Addresses" count={addresses?.length} icon={MapPin} />
-      {addresses?.length === 0 ? (
-        <EmptyState text="No addresses found" icon={MapPin} />
-      ) : (
-        <div className="grid gap-3">
-          {addresses?.map(addr => (
-            <div key={addr.id} className="p-4 rounded-xl border border-gray-100 bg-white hover:border-blue-200 transition-all flex justify-between items-start group">
-              <div className="flex gap-3">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500 shrink-0">
-                  <MapPin size={14} />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-[#0052CC]">{addr.address_type}</span>
-                    {addr.is_default && <Badge className="bg-green-50 text-green-700 border-green-200">Default</Badge>}
-                  </div>
-                  <p className="text-sm font-bold text-[#172B4D] leading-tight">{addr.address_line1}</p>
-                  {addr.address_line2 && <p className="text-xs text-gray-500 mt-0.5">{addr.address_line2}</p>}
-                  <p className="text-xs text-gray-400 font-medium mt-1 uppercase tracking-tight">{addr.city}, {addr.state} — {addr.postal_code}</p>
-                </div>
-              </div>
-            </div>
-          ))}
+    <div className="relative" ref={ref}>
+      <div
+        onClick={() => !disabled && setOpen(!open)}
+        className={`w-full min-h-[42px] px-3 py-2 border border-gray-200 rounded-xl bg-white flex flex-wrap gap-1.5 items-center transition-all
+          ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:border-[#0052CC]/40 focus-within:ring-2 focus-within:ring-[#0052CC]/10'}`}
+      >
+        {selectedIds.length === 0 ? (
+          <span className="text-sm text-gray-400">Select vehicle types...</span>
+        ) : (
+          selectedIds.map(id => (
+            <span key={id} className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 text-[#0052CC] text-[11px] font-black rounded-lg border border-blue-100 animate-in zoom-in-95">
+              {id}
+              {!disabled && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); toggle(id); }}
+                  className="px-1 hover:text-blue-700 transition-colors"
+                >
+                  <RotateCcw size={12} />
+                </button>
+              )}
+            </span>
+          ))
+        )}
+        <div className="ml-auto text-gray-300">
+          <ChevronDown size={16} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
         </div>
-      )}
-    </div>
-  );
-};
-
-const CustomerContacts = ({ customerId }) => {
-  const { data: contacts, isLoading } = useCustomerContacts(customerId);
-  if (isLoading) return <Loader2 size={24} className="animate-spin text-[#0052CC] mx-auto my-12" />;
-
-  return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-      <SectionHeader title="Contact Directory" count={contacts?.length} icon={Phone} />
-      {contacts?.length === 0 ? (
-        <EmptyState text="No contacts found" icon={Phone} />
-      ) : (
-        <div className="grid gap-3">
-          {contacts?.map(contact => (
-            <div key={contact.id} className="p-4 rounded-xl border border-gray-100 bg-white hover:border-blue-200 transition-all flex gap-3">
-              <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-[#172B4D] font-black text-sm border border-gray-100 shrink-0">
-                {contact.first_name?.[0]}{contact.last_name?.[0]}
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-black text-[#172B4D]">{contact.first_name} {contact.last_name}</p>
-                  {contact.is_primary && <Badge className="bg-blue-50 text-blue-700 border-blue-200">Primary</Badge>}
-                </div>
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-none mt-1">{contact.designation || 'Staff'}</p>
-                <div className="flex items-center gap-4 mt-2">
-                  {contact.email && <span className="text-[11px] text-[#0052CC] font-mono flex items-center gap-1"><FileText size={10} /> {contact.email}</span>}
-                  {contact.mobile && <span className="text-[11px] text-gray-500 font-bold flex items-center gap-1"><Phone size={10} /> {contact.mobile}</span>}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const CustomerDocuments = ({ customerId }) => {
-  const { data: docs, isLoading } = useCustomerDocuments(customerId);
-  if (isLoading) return <Loader2 size={24} className="animate-spin text-[#0052CC] mx-auto my-12" />;
-
-  return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-      <SectionHeader title="Compliance Documents" count={docs?.length} icon={FileText} />
-      {docs?.length === 0 ? (
-        <EmptyState text="No documents uploaded" icon={FileText} />
-      ) : (
-        <div className="grid gap-3">
-          {docs?.map(doc => (
-            <div key={doc.id} className="p-3 pr-4 rounded-xl border border-gray-100 bg-white hover:border-blue-200 transition-all flex items-center justify-between group">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400"><FileText size={20} /></div>
-                <div>
-                  <p className="text-sm font-bold text-[#172B4D]">{doc.document_type}</p>
-                  <p className="text-[10px] font-mono text-gray-400 uppercase tracking-tight">{doc.document_number}</p>
-                  <div className="flex items-center gap-3 mt-1.5">
-                    <Badge className={doc.verified_status === 'VERIFIED' ? 'bg-green-50 text-green-700' : 'bg-orange-50 text-orange-700'}>{doc.verified_status}</Badge>
-                    {doc.expiry_date && <span className="text-[10px] font-bold text-gray-400">Expires: {new Date(doc.expiry_date).toLocaleDateString()}</span>}
-                  </div>
-                </div>
-              </div>
-              <a href={doc.file_url} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-lg bg-gray-50 text-gray-400 flex items-center justify-center hover:bg-[#0052CC] hover:text-white transition-all"><Eye size={14} /></a>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const CustomerContracts = ({ customerId }) => {
-  const { data: contracts, isLoading } = useCustomerContracts(customerId);
-  if (isLoading) return <Loader2 size={24} className="animate-spin text-[#0052CC] mx-auto my-12" />;
-
-  return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-      <SectionHeader title="Legal Contracts" count={contracts?.length} icon={ClipboardList} />
-      {contracts?.length === 0 ? (
-        <EmptyState text="No contracts active" icon={ClipboardList} />
-      ) : (
-        <div className="grid gap-3">
-          {contracts?.map(contract => (
-            <div key={contract.id} className="p-4 rounded-xl border border-gray-100 bg-white hover:border-blue-200 transition-all">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <p className="text-sm font-black text-[#172B4D]">{contract.contract_number}</p>
-                  <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">{contract.contract_type}</p>
-                </div>
-                <Badge className={contract.status === 'ACTIVE' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}>{contract.status}</Badge>
-              </div>
-              <div className="grid grid-cols-2 gap-4 mt-3 pt-3 border-t border-gray-50">
-                <div>
-                  <span className="text-[10px] font-black text-gray-300 uppercase block mb-0.5">Start Date</span>
-                  <span className="text-xs font-bold text-[#172B4D]">{new Date(contract.start_date).toLocaleDateString()}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] font-black text-gray-300 uppercase block mb-0.5">End Date</span>
-                  <span className="text-xs font-bold text-[#172B4D]">{contract.end_date ? new Date(contract.end_date).toLocaleDateString() : 'Indefinite'}</span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const CustomerNotes = ({ customerId }) => {
-  const { data: notes, isLoading } = useCustomerNotes(customerId);
-  if (isLoading) return <Loader2 size={24} className="animate-spin text-[#0052CC] mx-auto my-12" />;
-
-  return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-      <SectionHeader title="Consignee Notes" count={notes?.length} icon={LucideInfo} />
-      {notes?.length === 0 ? (
-        <EmptyState text="No notes available" icon={LucideInfo} />
-      ) : (
-        <div className="space-y-3">
-          {notes?.map(note => (
-            <div key={note.id} className="p-4 rounded-xl bg-gray-50 border border-gray-100">
-              <div className="flex justify-between items-center mb-2">
-                <Badge className="bg-white border-gray-200 text-gray-600 tracking-widest uppercase">{note.note_type}</Badge>
-                <span className="text-[10px] text-gray-400 font-bold">{new Date(note.created_at).toLocaleString()}</span>
-              </div>
-              <p className="text-sm text-gray-700 leading-relaxed italic">"{note.note}"</p>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const CustomerCreditHistoryView = ({ customerId, currentLimit }) => {
-  const { data: history, isLoading } = useCustomerCreditHistory(customerId);
-  if (isLoading) return <Loader2 size={24} className="animate-spin text-[#0052CC] mx-auto my-12" />;
-
-  return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-      <SectionHeader title="Credit Limit History" count={history?.length} icon={History} />
-      <div className="p-4 bg-[#EBF3FF] rounded-xl border border-[#0052CC]/10 mb-6">
-        <p className="text-[10px] font-black text-[#0052CC] uppercase tracking-widest mb-1 text-center">Current Active Limit</p>
-        <p className="text-3xl font-black text-[#172B4D] text-center">₹{Number(currentLimit || 0).toLocaleString('en-IN')}</p>
       </div>
 
-      {history?.length === 0 ? (
-        <EmptyState text="No history entries" icon={History} />
-      ) : (
-        <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-px before:bg-gray-100">
-          {history?.map(entry => (
-            <div key={entry.id} className="relative">
-              <div className="absolute -left-[2.15rem] top-1.5 w-3 h-3 rounded-full bg-white border-2 border-[#0052CC]" />
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-sm font-black text-[#172B4D]">₹{Number(entry.credit_limit).toLocaleString('en-IN')}</p>
-                <span className="text-[10px] text-gray-400 font-bold uppercase">{new Date(entry.effective_date).toLocaleDateString()}</span>
-              </div>
-              {entry.reason && <p className="text-xs text-gray-400 leading-tight italic">Reason: {entry.reason}</p>}
-            </div>
-          ))}
+      {open && !disabled && (
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-100 rounded-2xl shadow-2xl z-[100] p-3 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden">
+          <div className="relative">
+            <Search className="absolute left-3 top-2.5 text-gray-400" size={14} />
+            <input
+              autoFocus
+              className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-transparent rounded-xl text-xs focus:bg-white focus:border-blue-100 transition-all outline-none"
+              placeholder="Search types..."
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+            />
+          </div>
+
+          <div className="max-h-[220px] overflow-y-auto pr-1 space-y-1 custom-scrollbar">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8"><Loader2 size={16} className="animate-spin text-blue-500" /></div>
+            ) : filtered.length === 0 ? (
+              <p className="text-center py-8 text-xs text-gray-400">No results found</p>
+            ) : (
+              filtered.map(t => {
+                const name = t.type_name || t.name;
+                const isSelected = selectedIds.includes(name);
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => toggle(name)}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all
+                      ${isSelected ? 'bg-blue-50 text-[#0052CC]' : 'hover:bg-gray-50 text-gray-600'}`}
+                  >
+                    {name}
+                    {isSelected && <CheckCircle size={14} />}
+                  </button>
+                );
+              })
+            )}
+          </div>
         </div>
       )}
     </div>
