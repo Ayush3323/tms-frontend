@@ -269,6 +269,7 @@ const DriversList = () => {
   const inactive = statsData?.inactive ?? drivers.filter(d => !d.is_deleted && d.status === 'INACTIVE').length;
   const suspended = statsData?.suspended ?? drivers.filter(d => !d.is_deleted && d.status === 'SUSPENDED').length;
   const deleted = statsData?.deleted ?? drivers.filter(d => d.is_deleted).length;
+  const statsLoading = !statsData;
 
   const handleSort = (field) => {
     setOrdering(prev => prev === field ? `-${field}` : field);
@@ -424,7 +425,7 @@ const DriversList = () => {
       )}
 
       {/* ── Header ── */}
-      <div className="flex items-center mb-8">
+      <div className="flex items-center">
         {/* Title Block */}
         <div className="w-1/4">
           <h1 className="text-2xl font-black text-[#172B4D] uppercase tracking-tight">Drivers</h1>
@@ -491,7 +492,7 @@ const DriversList = () => {
 
         {/* Compact Stats Row */}
         <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
-          {isLoading ? (
+          {statsLoading ? (
             <div className="flex gap-6 animate-pulse">
               <div className="h-5 bg-gray-200 rounded w-24"></div>
               <div className="h-5 bg-gray-200 rounded w-24"></div>

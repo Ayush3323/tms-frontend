@@ -127,6 +127,7 @@ const AgentsDashboard = () => {
     delete payload.customer;
     delete payload.customer_code;
     if (modal.type === 'create') delete payload.id;
+    if (!payload.commission_rate) payload.commission_rate = null;
 
     if (modal.type === 'create') {
       createMutation.mutate(payload, { onSuccess: () => closeModal() });

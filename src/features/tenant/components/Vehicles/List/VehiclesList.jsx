@@ -82,6 +82,7 @@ const Vehicles = () => {
   const maintenance = statsData?.maintenance ?? vehicles.filter(v => !v.is_deleted && v.status === 'MAINTENANCE').length;
   const retired = statsData?.retired ?? vehicles.filter(v => !v.is_deleted && ['RETIRED', 'SOLD', 'SCRAPPED'].includes(v.status)).length;
   const deleted = statsData?.deleted ?? vehicles.filter(v => v.is_deleted).length;
+  const statsLoading = !statsData;
 
   const handleStatusToggle = (v) =>
     updateVehicle.mutate({ id: v.id, data: { status: v.status === 'ACTIVE' ? 'MAINTENANCE' : 'ACTIVE' } });
@@ -233,7 +234,7 @@ const Vehicles = () => {
       )}
 
       {/* Page Title & Search Section */}
-      <div className="flex items-center mb-8">
+      <div className="flex items-center">
         <div className="w-1/4">
           <h2 className="text-2xl font-bold text-[#172B4D]">Vehicles</h2>
           <p className="text-gray-500 text-sm tracking-tight">All registered vehicles — click <span className="text-[#0052CC] font-semibold">View</span></p>
@@ -293,7 +294,7 @@ const Vehicles = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden mt-2">
         {/* Stats Row */}
         <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
-          {isLoading ? (
+          {statsLoading ? (
             <div className="flex gap-6 animate-pulse">
               <div className="h-5 bg-gray-200 rounded w-24"></div>
               <div className="h-5 bg-gray-200 rounded w-24"></div>

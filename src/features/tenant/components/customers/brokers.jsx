@@ -133,6 +133,7 @@ const BrokersDashboard = () => {
 
     // Nullify empty numeric fields
     if (!payload.commission_rate) payload.commission_rate = null;
+    if (!payload.license_expiry) payload.license_expiry = null;
 
     if (modal.type === 'create') {
       createMutation.mutate(payload, { onSuccess: () => closeModal() });
