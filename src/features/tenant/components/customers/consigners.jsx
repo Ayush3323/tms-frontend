@@ -109,10 +109,11 @@ const Consignors = () => {
   }, [allUsers]);
 
   // For Consignor-specific `warehouse_address` FK selection.
-  const { data: customerAddresses, isLoading: isCustomerAddressesLoading } = useCustomerAddresses(form.customer_id);
+  const { data: customerAddressData, isLoading: isCustomerAddressesLoading } = useCustomerAddresses(form.customer_id);
+  const customerAddresses = customerAddressData?.results ?? customerAddressData ?? [];
 
-  const warehouseAddressCandidates = (customerAddresses ?? []).filter(a => a.address_type === 'WAREHOUSE');
-  const warehouseAddressOptions = warehouseAddressCandidates.length > 0 ? warehouseAddressCandidates : (customerAddresses ?? []);
+  const warehouseAddressCandidates = (Array.isArray(customerAddresses) ? customerAddresses : []).filter(a => a.address_type === 'WAREHOUSE');
+  const warehouseAddressOptions = warehouseAddressCandidates.length > 0 ? warehouseAddressCandidates : (Array.isArray(customerAddresses) ? customerAddresses : []);
 
   const eligibleCustomers = allCustomers.filter(c =>
     c.customer_type === 'CONSIGNOR' ||
@@ -748,7 +749,7 @@ const Consignors = () => {
           maxWidth="max-w-4xl"
           isView={true}
         >
-          <ViewConsignorContent
+          <ConsignorOverview
             consignor={modal.consignor}
             onEdit={() => {
               const c = modal.consignor;
@@ -764,13 +765,7 @@ const Consignors = () => {
 
 // TABS removed as per user request to simplify the view
 
-const ViewConsignorContent = ({ consignor: c, onEdit }) => {
-  return (
-    <div className="animate-in fade-in slide-in-from-bottom-3 duration-300">
-      <ConsignorOverview consignor={c} onEdit={onEdit} />
-    </div>
-  );
-};
+
 
 const ConsignorOverview = ({ consignor: c, onEdit }) => (
   <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
@@ -820,204 +815,11 @@ const ConsignorOverview = ({ consignor: c, onEdit }) => (
   </div>
 );
 
-const CustomerAddresses = ({ customerId }) => {
-  const { data: addresses, isLoading } = useCustomerAddresses(customerId);
-  if (isLoading) return <Loader2 size={24} className="animate-spin text-[#0052CC] mx-auto my-12" />;
 
-  return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-      <SectionHeader title="Stored Addresses" count={addresses?.length} icon={MapPin} />
-      {addresses?.length === 0 ? (
-        <EmptyState text="No addresses found" icon={MapPin} />
-      ) : (
-        <div className="grid gap-3">
-          {addresses?.map(addr => (
-            <div key={addr.id} className="p-4 rounded-xl border border-gray-100 bg-white hover:border-blue-200 transition-all flex justify-between items-start group">
-              <div className="flex gap-3">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500 shrink-0">
-                  <MapPin size={14} />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-[#0052CC]">{addr.address_type}</span>
-                    {addr.is_default && <Badge className="bg-green-50 text-green-700 border-green-200">Default</Badge>}
-                  </div>
-                  <p className="text-sm font-bold text-[#172B4D] leading-tight">{addr.address_line1}</p>
-                  {addr.address_line2 && <p className="text-xs text-gray-500 mt-0.5">{addr.address_line2}</p>}
-                  <p className="text-xs text-gray-400 font-medium mt-1 uppercase tracking-tight">{addr.city}, {addr.state} — {addr.postal_code}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
 
-const CustomerContacts = ({ customerId }) => {
-  const { data: contacts, isLoading } = useCustomerContacts(customerId);
-  if (isLoading) return <Loader2 size={24} className="animate-spin text-[#0052CC] mx-auto my-12" />;
 
-  return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-      <SectionHeader title="Contact Directory" count={contacts?.length} icon={Phone} />
-      {contacts?.length === 0 ? (
-        <EmptyState text="No contacts found" icon={Phone} />
-      ) : (
-        <div className="grid gap-3">
-          {contacts?.map(contact => (
-            <div key={contact.id} className="p-4 rounded-xl border border-gray-100 bg-white hover:border-blue-200 transition-all flex gap-3">
-              <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-[#172B4D] font-black text-sm border border-gray-100 shrink-0">
-                {contact.first_name?.[0]}{contact.last_name?.[0]}
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-black text-[#172B4D]">{contact.first_name} {contact.last_name}</p>
-                  {contact.is_primary && <Badge className="bg-blue-50 text-blue-700 border-blue-200">Primary</Badge>}
-                </div>
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-none mt-1">{contact.designation || 'Staff'}</p>
-                <div className="flex items-center gap-4 mt-2">
-                  {contact.email && <span className="text-[11px] text-[#0052CC] font-mono flex items-center gap-1"><FileText size={10} /> {contact.email}</span>}
-                  {contact.mobile && <span className="text-[11px] text-gray-500 font-bold flex items-center gap-1"><Phone size={10} /> {contact.mobile}</span>}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
 
-const CustomerDocuments = ({ customerId }) => {
-  const { data: docs, isLoading } = useCustomerDocuments(customerId);
-  if (isLoading) return <Loader2 size={24} className="animate-spin text-[#0052CC] mx-auto my-12" />;
 
-  return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-      <SectionHeader title="Compliance Documents" count={docs?.length} icon={FileText} />
-      {docs?.length === 0 ? (
-        <EmptyState text="No documents uploaded" icon={FileText} />
-      ) : (
-        <div className="grid gap-3">
-          {docs?.map(doc => (
-            <div key={doc.id} className="p-3 pr-4 rounded-xl border border-gray-100 bg-white hover:border-blue-200 transition-all flex items-center justify-between group">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400"><FileText size={20} /></div>
-                <div>
-                  <p className="text-sm font-bold text-[#172B4D]">{doc.document_type}</p>
-                  <p className="text-[10px] font-mono text-gray-400 uppercase tracking-tight">{doc.document_number}</p>
-                  <div className="flex items-center gap-3 mt-1.5">
-                    <Badge className={doc.verified_status === 'VERIFIED' ? 'bg-green-50 text-green-700' : 'bg-orange-50 text-orange-700'}>{doc.verified_status}</Badge>
-                    {doc.expiry_date && <span className="text-[10px] font-bold text-gray-400">Expires: {new Date(doc.expiry_date).toLocaleDateString()}</span>}
-                  </div>
-                </div>
-              </div>
-              <a href={doc.file_url} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-lg bg-gray-50 text-gray-400 flex items-center justify-center hover:bg-[#0052CC] hover:text-white transition-all"><Eye size={14} /></a>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const CustomerContracts = ({ customerId }) => {
-  const { data: contracts, isLoading } = useCustomerContracts(customerId);
-  if (isLoading) return <Loader2 size={24} className="animate-spin text-[#0052CC] mx-auto my-12" />;
-
-  return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-      <SectionHeader title="Legal Contracts" count={contracts?.length} icon={ClipboardList} />
-      {contracts?.length === 0 ? (
-        <EmptyState text="No contracts active" icon={ClipboardList} />
-      ) : (
-        <div className="grid gap-3">
-          {contracts?.map(contract => (
-            <div key={contract.id} className="p-4 rounded-xl border border-gray-100 bg-white hover:border-blue-200 transition-all">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <p className="text-sm font-black text-[#172B4D]">{contract.contract_number}</p>
-                  <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">{contract.contract_type}</p>
-                </div>
-                <Badge className={contract.status === 'ACTIVE' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}>{contract.status}</Badge>
-              </div>
-              <div className="grid grid-cols-2 gap-4 mt-3 pt-3 border-t border-gray-50">
-                <div>
-                  <span className="text-[10px] font-black text-gray-300 uppercase block mb-0.5">Start Date</span>
-                  <span className="text-xs font-bold text-[#172B4D]">{new Date(contract.start_date).toLocaleDateString()}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] font-black text-gray-300 uppercase block mb-0.5">End Date</span>
-                  <span className="text-xs font-bold text-[#172B4D]">{contract.end_date ? new Date(contract.end_date).toLocaleDateString() : 'Indefinite'}</span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const CustomerNotes = ({ customerId }) => {
-  const { data: notes, isLoading } = useCustomerNotes(customerId);
-  if (isLoading) return <Loader2 size={24} className="animate-spin text-[#0052CC] mx-auto my-12" />;
-
-  return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-      <SectionHeader title="Consignor Notes" count={notes?.length} icon={LucideInfo} />
-      {notes?.length === 0 ? (
-        <EmptyState text="No notes available" icon={LucideInfo} />
-      ) : (
-        <div className="space-y-3">
-          {notes?.map(note => (
-            <div key={note.id} className="p-4 rounded-xl bg-gray-50 border border-gray-100">
-              <div className="flex justify-between items-center mb-2">
-                <Badge className="bg-white border-gray-200 text-gray-600 tracking-widest uppercase">{note.note_type}</Badge>
-                <span className="text-[10px] text-gray-400 font-bold">{new Date(note.created_at).toLocaleString()}</span>
-              </div>
-              <p className="text-sm text-gray-700 leading-relaxed italic">"{note.note}"</p>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const CustomerCreditHistoryView = ({ customerId, currentLimit }) => {
-  const { data: history, isLoading } = useCustomerCreditHistory(customerId);
-  if (isLoading) return <Loader2 size={24} className="animate-spin text-[#0052CC] mx-auto my-12" />;
-
-  return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-      <SectionHeader title="Credit Limit History" count={history?.length} icon={History} />
-      <div className="p-4 bg-[#EBF3FF] rounded-xl border border-[#0052CC]/10 mb-6">
-        <p className="text-[10px] font-black text-[#0052CC] uppercase tracking-widest mb-1 text-center">Current Active Limit</p>
-        <p className="text-3xl font-black text-[#172B4D] text-center">₹{Number(currentLimit || 0).toLocaleString('en-IN')}</p>
-      </div>
-
-      {history?.length === 0 ? (
-        <EmptyState text="No history entries" icon={History} />
-      ) : (
-        <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-px before:bg-gray-100">
-          {history?.map(entry => (
-            <div key={entry.id} className="relative">
-              <div className="absolute -left-[2.15rem] top-1.5 w-3 h-3 rounded-full bg-white border-2 border-[#0052CC]" />
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-sm font-black text-[#172B4D]">₹{Number(entry.credit_limit).toLocaleString('en-IN')}</p>
-                <span className="text-[10px] text-gray-400 font-bold uppercase">{new Date(entry.effective_date).toLocaleDateString()}</span>
-              </div>
-              {entry.reason && <p className="text-xs text-gray-400 leading-tight italic">Reason: {entry.reason}</p>}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
 
 
 // CustomerAutocomplete removed as per user request for a plain text field
