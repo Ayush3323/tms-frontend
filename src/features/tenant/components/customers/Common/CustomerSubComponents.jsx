@@ -11,8 +11,8 @@ import {
   useCreateCustomerDocument, useUpdateCustomerDocument, useDeleteCustomerDocument,
   useCreateCustomerContract, useUpdateCustomerContract, useDeleteCustomerContract,
   useCreateCustomerNote, useUpdateCustomerNote, useDeleteCustomerNote
-} from '../../queries/customers/customersQuery';
-import { Badge, InfoCard, SectionHeader, EmptyState, Section, Modal, Field, Input, Sel, DeleteConfirm, ItemActions } from '../Vehicles/Common/VehicleCommon';
+} from '../../../queries/customers/customersQuery';
+import { Badge, InfoCard, SectionHeader, EmptyState, Section, Modal, Field, Input, Sel, DeleteConfirm, ItemActions } from '../../Vehicles/Common/VehicleCommon';
 
 // ── Tab: Overview ────────────────────────────────────────────────────
 export const CustomerOverview = ({ customer: c, onEdit }) => (

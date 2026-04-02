@@ -6,8 +6,9 @@ import {
 } from 'lucide-react';
 import {
   Modal, Field, Input, Sel, Section, DeleteConfirm, Badge,
-  InfoCard, SectionHeader, EmptyState
-} from '../Vehicles/Common/VehicleCommon';
+  InfoCard, SectionHeader, EmptyState,
+  RelationshipManagementFields, CreatePortalUserSection, RelationshipOverviewSection
+} from './Common/CustomerCommon';
 import {
   useCustomerAddresses, useCustomerContacts, useCustomerDocuments,
   useCustomerContracts, useCustomerNotes, useCustomerCreditHistory,
@@ -15,7 +16,7 @@ import {
 } from '../../queries/customers/customersQuery';
 import { useUsers } from '../../queries/users/userQuery';
 import { TableShimmer, ErrorState } from '../Vehicles/Common/StateFeedback';
-import CustomerListFilterBar from './CustomerListFilterBar';
+import CustomerListFilterBar from './Common/CustomerListFilterBar';
 
 const EMPTY_FORM = {
   customer_id: '',
@@ -126,20 +127,22 @@ const AgentsDashboard = () => {
   };
 
   const openEdit = (a) => {
-    const editId = a.customer?.id || a.id;
-    console.log('Opening Agent Edit:', { profile_id: a.id, customer_id: a.customer?.id, target_id: editId });
+    const { customer: cust = {}, ...agt } = a;
+    const editId = cust.id || agt.id;
+    console.log('Opening Agent Edit:', { profile_id: agt.id, customer_id: cust.id, target_id: editId });
     setForm({
-      customer_id: a.customer?.id ?? '',
-      legal_name: a.customer?.legal_name ?? '',
-      agent_code: a.agent_code ?? '',
-      territory: a.territory ?? '',
-      commission_rate: a.commission_rate ?? '',
-      commission_type: a.commission_type ?? 'PERCENTAGE',
-      contact_person: a.contact_person ?? '',
-      sales_person_id: a.customer?.sales_person_id ?? a.customer?.sales_person?.id ?? '',
-      account_manager_id: a.customer?.account_manager_id ?? a.customer?.account_manager?.id ?? '',
-      user_id: a.customer?.user_id ?? '',
-      status: a.customer?.status ?? 'ACTIVE',
+      ...EMPTY_FORM,
+      customer_id: cust.id ?? '',
+      legal_name: cust.legal_name ?? '',
+      agent_code: agt.agent_code ?? '',
+      territory: agt.territory ?? '',
+      commission_rate: agt.commission_rate ?? '',
+      commission_type: agt.commission_type ?? 'PERCENTAGE',
+      contact_person: agt.contact_person ?? '',
+      sales_person_id: cust.sales_person_id ?? cust.sales_person?.id ?? '',
+      account_manager_id: cust.account_manager_id ?? cust.account_manager?.id ?? '',
+      user_id: cust.user_id ?? '',
+      status: cust.status ?? 'ACTIVE',
     });
     setErrors({});
     setModal({ type: 'edit', id: editId, agent: a });
@@ -203,12 +206,17 @@ const AgentsDashboard = () => {
     const selectedCustomer = eligibleCustomers.find(
       c => c.legal_name?.toLowerCase() === form.legal_name?.toLowerCase()
     ) || {};
-    const payload = { ...selectedCustomer, ...form };
-
     // Clean up to avoid 400 errors from nested objects
-    delete payload.customer;
-    delete payload.customer_code;
-    delete payload.id; // Always delete to avoid primary key mismatch
+    const { 
+      id: _id, 
+      customer: _customer, 
+      customer_code: _customer_code, 
+      created_at: _created_at, 
+      updated_at: _updated_at,
+      ...cleanPayload 
+    } = { ...selectedCustomer, ...form };
+
+    const payload = cleanPayload;
     
     if (createPortalUser && modal.type === 'create') {
       // user is handled via create mutation usually
@@ -545,125 +553,29 @@ const AgentsDashboard = () => {
               <Input value={form.contact_person} onChange={e => setField('contact_person', e.target.value)} placeholder="e.g. Rahul Sharma" />
             </Field>
 
-            {/* Relationship Management Section */}
-            <Section title="Relationship Management" className="col-span-2" />
-            <Field label="Sales Person">
-              <Sel
-                value={form.sales_person_id || ''}
-                onChange={e => setField('sales_person_id', e.target.value)}
-                disabled={modal.type === 'view'}
-              >
-                <option value="">-- No Assignment --</option>
-                {allUsers.filter(u => u.account_type === 'EMPLOYEE' || u.account_type === 'MANAGER').map(u => (
-                  <option key={u.id} value={u.id}>{u.full_name || u.username}</option>
-                ))}
-              </Sel>
-            </Field>
-            <Field label="Account Manager">
-              <Sel
-                value={form.account_manager_id || ''}
-                onChange={e => setField('account_manager_id', e.target.value)}
-                disabled={modal.type === 'view'}
-              >
-                <option value="">-- No Assignment --</option>
-                {allUsers.filter(u => u.account_type === 'EMPLOYEE' || u.account_type === 'MANAGER').map(u => (
-                  <option key={u.id} value={u.id}>{u.full_name || u.username}</option>
-                ))}
-              </Sel>
-            </Field>
-            {!createPortalUser && (
-              <Field label="Portal User (Linked User)" className="col-span-2" error={errors.user_id}>
-                <Sel
-                  value={form.user_id || ''}
-                  onChange={e => setField('user_id', e.target.value)}
-                  disabled={modal.type === 'view'}
-                >
-                  <option value="">-- No Linked User --</option>
-                  {portalUsers.map(u => {
-                    const linkedTo = userToCustomerMap[String(u.id)];
-                    const currentUserId = modal?.agent?.customer?.user_id || modal?.agent?.customer?.user?.id;
-                    const isLinkedToOther = linkedTo && String(u.id) !== String(currentUserId);
-                    const displayName = u.full_name || u.username;
+            {/* Shared Relationship Management Section */}
+            <RelationshipManagementFields
+              form={form}
+              setField={setField}
+              allUsers={allUsers}
+              errors={errors}
+              portalUsers={portalUsers}
+              userToCustomerMap={userToCustomerMap}
+              initial={modal.agent}
+              createPortalUser={createPortalUser}
+              disabled={modal.type === 'view'}
+            />
 
-                    return (
-                      <option key={u.id} value={u.id} disabled={isLinkedToOther}>
-                        {displayName} ({u.email}){linkedTo ? ` — [Linked to ${linkedTo}]` : ''}
-                      </option>
-                    );
-                  })}
-                </Sel>
-              </Field>
-            )}
-
+            {/* Shared Portal User Creation Section */}
             {modal.type === 'create' && (
-              <div className="col-span-2 bg-blue-50/50 p-4 rounded-xl border border-blue-100 mt-2">
-                <label className="flex items-center gap-2 cursor-pointer mb-4">
-                  <input
-                    type="checkbox"
-                    checked={createPortalUser}
-                    onChange={e => setCreatePortalUser(e.target.checked)}
-                    className="w-4 h-4 text-[#0052CC] border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <span className="text-sm font-bold text-[#172B4D]">Create New Portal User for this Agent</span>
-                </label>
-
-                {createPortalUser && (
-                  <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <Field label="Username" required error={errors['user.username']}>
-                      <Input
-                        value={form.user.username}
-                        onChange={e => setField('user.username', e.target.value)}
-                        placeholder="john_doe"
-                      />
-                    </Field>
-                    <Field label="Email Address" required error={errors['user.email']}>
-                      <Input
-                        type="email"
-                        value={form.user.email}
-                        onChange={e => setField('user.email', e.target.value)}
-                        placeholder="john@example.com"
-                      />
-                    </Field>
-                    <Field label="Password" required error={errors['user.password']}>
-                      <Input
-                        type="password"
-                        value={form.user.password}
-                        onChange={e => setField('user.password', e.target.value)}
-                        placeholder="••••••••"
-                      />
-                    </Field>
-                    <Field label="Confirm Password" required error={errors['user.password_confirm']}>
-                      <Input
-                        type="password"
-                        value={form.user.password_confirm}
-                        onChange={e => setField('user.password_confirm', e.target.value)}
-                        placeholder="••••••••"
-                      />
-                    </Field>
-                    <Field label="First Name" required error={errors['user.first_name']}>
-                      <Input
-                        value={form.user.first_name}
-                        onChange={e => setField('user.first_name', e.target.value)}
-                        placeholder="John"
-                      />
-                    </Field>
-                    <Field label="Last Name" error={errors['user.last_name']}>
-                      <Input
-                        value={form.user.last_name}
-                        onChange={e => setField('user.last_name', e.target.value)}
-                        placeholder="Doe"
-                      />
-                    </Field>
-                    <Field label="Phone Number" error={errors['user.phone']}>
-                      <Input
-                        value={form.user.phone}
-                        onChange={e => setField('user.phone', e.target.value)}
-                        placeholder="+91 ..."
-                      />
-                    </Field>
-                  </div>
-                )}
-              </div>
+              <CreatePortalUserSection
+                createPortalUser={createPortalUser}
+                setCreatePortalUser={setCreatePortalUser}
+                form={form}
+                setField={setField}
+                errors={errors}
+                moduleName="Agent"
+              />
             )}
           </div>
         </Modal>
@@ -728,12 +640,8 @@ const AgentOverview = ({ agent: a, onEdit }) => (
       <InfoCard label="Territory" value={a.territory || 'Not Set'} />
     </div>
 
-    <Section title="Relationship Management" />
-    <div className="grid grid-cols-2 gap-3">
-      <InfoCard label="Sales Person" value={a.customer?.sales_person?.full_name || a.customer?.sales_person?.name || 'Not Assigned'} />
-      <InfoCard label="Account Manager" value={a.customer?.account_manager?.full_name || a.customer?.account_manager?.name || 'Not Assigned'} />
-      <InfoCard label="Portal User" value={a.customer?.portal_user?.username || a.customer?.user?.username || 'None'} />
-    </div>
+    {/* Shared Relationship Info */}
+    <RelationshipOverviewSection item={a} />
 
     <div className="pt-3 border-t border-gray-100 flex justify-end">
       <button onClick={onEdit}

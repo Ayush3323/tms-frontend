@@ -6,8 +6,9 @@ import {
 } from 'lucide-react';
 import {
   Modal, Field, Input, Sel, Section, DeleteConfirm, Badge,
-  InfoCard, SectionHeader, EmptyState
-} from '../Vehicles/Common/VehicleCommon';
+  InfoCard, SectionHeader, EmptyState,
+  RelationshipManagementFields, CreatePortalUserSection, RelationshipOverviewSection
+} from './Common/CustomerCommon';
 import {
   useCustomerAddresses, useCustomerContacts, useCustomerDocuments,
   useCustomerContracts, useCustomerNotes, useCustomerCreditHistory,
@@ -15,7 +16,7 @@ import {
 } from '../../queries/customers/customersQuery';
 import { useUsers } from '../../queries/users/userQuery';
 import { TableShimmer, ErrorState } from '../Vehicles/Common/StateFeedback';
-import CustomerListFilterBar from './CustomerListFilterBar';
+import CustomerListFilterBar from './Common/CustomerListFilterBar';
 
 const EMPTY_FORM = {
   customer_id: '',
@@ -116,21 +117,23 @@ const BrokersDashboard = () => {
   };
 
   const openEdit = (b) => {
-    const editId = b.customer?.id || b.id;
-    console.log('Opening Broker Edit:', { profile_id: b.id, customer_id: b.customer?.id, target_id: editId });
+    const { customer: cust = {}, ...brok } = b;
+    const editId = cust.id || brok.id;
+    console.log('Opening Broker Edit:', { profile_id: brok.id, customer_id: cust.id, target_id: editId });
     setForm({
-      customer_id: b.customer?.id ?? '',
-      legal_name: b.customer?.legal_name ?? '',
-      broker_code: b.broker_code ?? '',
-      commission_rate: b.commission_rate ?? '',
-      commission_type: b.commission_type ?? 'PERCENTAGE',
-      payment_terms: b.payment_terms ?? '',
-      license_number: b.license_number ?? '',
-      license_expiry: b.license_expiry ?? '',
-      sales_person_id: b.customer?.sales_person_id ?? b.customer?.sales_person?.id ?? '',
-      account_manager_id: b.customer?.account_manager_id ?? b.customer?.account_manager?.id ?? '',
-      user_id: b.customer?.user_id ?? '',
-      status: b.customer?.status ?? 'ACTIVE',
+      ...EMPTY_FORM,
+      customer_id: cust.id ?? '',
+      legal_name: cust.legal_name ?? '',
+      broker_code: brok.broker_code ?? '',
+      commission_rate: brok.commission_rate ?? '',
+      commission_type: brok.commission_type ?? 'PERCENTAGE',
+      payment_terms: brok.payment_terms ?? '',
+      license_number: brok.license_number ?? '',
+      license_expiry: brok.license_expiry ?? '',
+      sales_person_id: cust.sales_person_id ?? cust.sales_person?.id ?? '',
+      account_manager_id: cust.account_manager_id ?? cust.account_manager?.id ?? '',
+      user_id: cust.user_id ?? '',
+      status: cust.status ?? 'ACTIVE',
     });
     setErrors({});
     setModal({ type: 'edit', id: editId, broker: b });
@@ -197,15 +200,17 @@ const BrokersDashboard = () => {
       c => c.legal_name?.toLowerCase() === form.legal_name?.toLowerCase()
     ) || {};
 
-    const payload = {
-      ...selectedCustomer,
-      ...form,
-    };
-
     // Clean up to avoid 400 errors from nested objects
-    delete payload.customer;
-    delete payload.customer_code;
-    delete payload.id; // Always delete to avoid primary key mismatch
+    const { 
+      id: _id, 
+      customer: _customer, 
+      customer_code: _customer_code, 
+      created_at: _created_at, 
+      updated_at: _updated_at,
+      ...cleanPayload 
+    } = { ...selectedCustomer, ...form };
+
+    const payload = cleanPayload;
 
     if (createPortalUser && modal.type === 'create') {
       // user is handled via create mutation usually
@@ -539,125 +544,29 @@ const BrokersDashboard = () => {
               <Input type="date" value={form.license_expiry} onChange={e => setField('license_expiry', e.target.value)} />
             </Field>
 
-            {/* Relationship Management Section */}
-            <Section title="Relationship Management" className="col-span-2" />
-            <Field label="Sales Person">
-              <Sel
-                value={form.sales_person_id || ''}
-                onChange={e => setField('sales_person_id', e.target.value)}
-                disabled={modal.type === 'view'}
-              >
-                <option value="">-- No Assignment --</option>
-                {allUsers.filter(u => u.account_type === 'EMPLOYEE' || u.account_type === 'MANAGER').map(u => (
-                  <option key={u.id} value={u.id}>{u.full_name || u.username}</option>
-                ))}
-              </Sel>
-            </Field>
-            <Field label="Account Manager">
-              <Sel
-                value={form.account_manager_id || ''}
-                onChange={e => setField('account_manager_id', e.target.value)}
-                disabled={modal.type === 'view'}
-              >
-                <option value="">-- No Assignment --</option>
-                {allUsers.filter(u => u.account_type === 'EMPLOYEE' || u.account_type === 'MANAGER').map(u => (
-                  <option key={u.id} value={u.id}>{u.full_name || u.username}</option>
-                ))}
-              </Sel>
-            </Field>
-            {!createPortalUser && (
-              <Field label="Portal User (Linked User)" className="col-span-2" error={errors.user_id}>
-                <Sel
-                  value={form.user_id || ''}
-                  onChange={e => setField('user_id', e.target.value)}
-                  disabled={modal.type === 'view'}
-                >
-                  <option value="">-- No Linked User --</option>
-                  {portalUsers.map(u => {
-                    const linkedTo = userToCustomerMap[String(u.id)];
-                    const currentUserId = modal?.broker?.customer?.user_id || modal?.broker?.customer?.user?.id;
-                    const isLinkedToOther = linkedTo && String(u.id) !== String(currentUserId);
-                    const displayName = u.full_name || u.username;
+            {/* Shared Relationship Management Section */}
+            <RelationshipManagementFields
+              form={form}
+              setField={setField}
+              allUsers={allUsers}
+              errors={errors}
+              portalUsers={portalUsers}
+              userToCustomerMap={userToCustomerMap}
+              initial={modal.broker}
+              createPortalUser={createPortalUser}
+              disabled={modal.type === 'view'}
+            />
 
-                    return (
-                      <option key={u.id} value={u.id} disabled={isLinkedToOther}>
-                        {displayName} ({u.email}){linkedTo ? ` — [Linked to ${linkedTo}]` : ''}
-                      </option>
-                    );
-                  })}
-                </Sel>
-              </Field>
-            )}
-
+            {/* Shared Portal User Creation Section */}
             {modal.type === 'create' && (
-              <div className="col-span-2 bg-blue-50/50 p-4 rounded-xl border border-blue-100 mt-2">
-                <label className="flex items-center gap-2 cursor-pointer mb-4">
-                  <input
-                    type="checkbox"
-                    checked={createPortalUser}
-                    onChange={e => setCreatePortalUser(e.target.checked)}
-                    className="w-4 h-4 text-[#0052CC] border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <span className="text-sm font-bold text-[#172B4D]">Create New Portal User for this Broker</span>
-                </label>
-
-                {createPortalUser && (
-                  <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <Field label="Username" required error={errors['user.username']}>
-                      <Input
-                        value={form.user.username}
-                        onChange={e => setField('user.username', e.target.value)}
-                        placeholder="john_doe"
-                      />
-                    </Field>
-                    <Field label="Email Address" required error={errors['user.email']}>
-                      <Input
-                        type="email"
-                        value={form.user.email}
-                        onChange={e => setField('user.email', e.target.value)}
-                        placeholder="john@example.com"
-                      />
-                    </Field>
-                    <Field label="Password" required error={errors['user.password']}>
-                      <Input
-                        type="password"
-                        value={form.user.password}
-                        onChange={e => setField('user.password', e.target.value)}
-                        placeholder="••••••••"
-                      />
-                    </Field>
-                    <Field label="Confirm Password" required error={errors['user.password_confirm']}>
-                      <Input
-                        type="password"
-                        value={form.user.password_confirm}
-                        onChange={e => setField('user.password_confirm', e.target.value)}
-                        placeholder="••••••••"
-                      />
-                    </Field>
-                    <Field label="First Name" required error={errors['user.first_name']}>
-                      <Input
-                        value={form.user.first_name}
-                        onChange={e => setField('user.first_name', e.target.value)}
-                        placeholder="John"
-                      />
-                    </Field>
-                    <Field label="Last Name" error={errors['user.last_name']}>
-                      <Input
-                        value={form.user.last_name}
-                        onChange={e => setField('user.last_name', e.target.value)}
-                        placeholder="Doe"
-                      />
-                    </Field>
-                    <Field label="Phone Number" error={errors['user.phone']}>
-                      <Input
-                        value={form.user.phone}
-                        onChange={e => setField('user.phone', e.target.value)}
-                        placeholder="+91 ..."
-                      />
-                    </Field>
-                  </div>
-                )}
-              </div>
+              <CreatePortalUserSection
+                createPortalUser={createPortalUser}
+                setCreatePortalUser={setCreatePortalUser}
+                form={form}
+                setField={setField}
+                errors={errors}
+                moduleName="Broker"
+              />
             )}
           </div>
         </Modal>
@@ -726,12 +635,8 @@ const BrokerOverview = ({ broker: b, onEdit }) => (
       <InfoCard label="License Expiry" value={b.license_expiry || 'Not Set'} />
     </div>
 
-    <Section title="Relationship Management" />
-    <div className="grid grid-cols-2 gap-3">
-      <InfoCard label="Sales Person" value={b.customer?.sales_person?.full_name || b.customer?.sales_person?.name || 'Not Assigned'} />
-      <InfoCard label="Account Manager" value={b.customer?.account_manager?.full_name || b.customer?.account_manager?.name || 'Not Assigned'} />
-      <InfoCard label="Portal User" value={b.customer?.portal_user?.username || b.customer?.user?.username || 'None'} />
-    </div>
+    {/* Shared Relationship Info */}
+    <RelationshipOverviewSection item={b} />
 
     <div className="pt-3 border-t border-gray-100">
       <p className="text-[10px] text-gray-400 font-mono italic">Use the Edit button on the table row to modify this profile.</p>
