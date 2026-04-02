@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   ChevronDown, Loader2, AlertTriangle, UserMinus, Pencil, RotateCcw,
   MapPin, Phone, FileText, ClipboardList, Wallet, History, Building2, Info as LucideInfo,
@@ -304,13 +304,13 @@ const ConsigneesDashboard = () => {
             <input
               type="text"
               placeholder="Search consignee name, code..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-12 pr-12 py-3 bg-white border border-gray-200 rounded-2xl text-[15px] font-medium placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-50  transition-all shadow-sm hover:shadow-md hover:border-gray-300"
             />
-            {searchTerm && (
+            {search && (
               <button
-                onClick={() => setSearchTerm('')}
+                onClick={() => setSearch('')}
                 className="absolute right-4 top-2 text-gray-400 hover:text-red-500 transition-all duration-500 hover:rotate-180 p-1.5 rounded-full hover:bg-red-50 flex items-center justify-center group/reset"
                 title="Clear search"
               >
@@ -558,7 +558,7 @@ const ConsigneesDashboard = () => {
           maxWidth="max-w-4xl"
           isView={true}
         >
-          <ViewConsigneeContent
+          <ConsigneeOverview
             consignee={modal.consignee}
             onEdit={() => {
               const c = modal.consignee;
@@ -572,11 +572,9 @@ const ConsigneesDashboard = () => {
   );
 };
 
-const ViewConsigneeContent = ({ consignee: c, onEdit }) => (
-  <div className="animate-in fade-in slide-in-from-bottom-3 duration-300">
-    <ConsigneeOverview consignee={c} onEdit={onEdit} />
-  </div>
-);
+
+
+
 
 const ConsigneeOverview = ({ consignee: c }) => (
   <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
