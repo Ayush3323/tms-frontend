@@ -60,6 +60,17 @@ import Session from '../components/user/Session'
 import AccessoriesDashboard from '../components/Vehicles/Features/Accessories';
 import VehicleTollTagsDashboard from '../components/Vehicles/Features/TollTags';
 import VehicleOwnershipDashboard from '../components/Vehicles/Features/Ownership';
+import InvoicesDashboard from '../components/Finance/InvoicesDashboard';
+import CustomerPaymentsDashboard from '../components/Finance/CustomerPaymentsDashboard';
+import OwnerPaymentsDashboard from '../components/Finance/OwnerPaymentsDashboard';
+import PayrollDashboard from '../components/Finance/PayrollDashboard';
+import TDSSummaryDashboard from '../components/Finance/TDSSummaryDashboard';
+import GeographyDashboard from '../components/MasterData/GeographyDashboard';
+import RateCardsDashboard from '../components/MasterData/RateCardsDashboard';
+import VehicleTypesMasterDashboard from '../components/MasterData/VehicleTypesMasterDashboard';
+import SystemConfigDashboard from '../components/MasterData/SystemConfigDashboard';
+import DeviceInventoryDashboard from '../components/Tracking/DeviceInventoryDashboard';
+import DeviceAssignmentsDashboard from '../components/Tracking/DeviceAssignmentsDashboard';
 
 const Routing = () => {
   return (
@@ -136,6 +147,23 @@ const Routing = () => {
         <Route path="orders/:id" element={<OrderDetail />} />
         <Route path="orders/:id/trips" element={<TripNestedSubResource />} />
         <Route path="orders/trip-manager" element={<TripNestedSubResource />} />
+
+        {/* Finance */}
+        <Route path="finance/invoices" element={<InvoicesDashboard />} />
+        <Route path="finance/customer-payments" element={<CustomerPaymentsDashboard />} />
+        <Route path="finance/owner-payments" element={<OwnerPaymentsDashboard />} />
+        <Route path="finance/payroll" element={<PayrollDashboard />} />
+        <Route path="finance/tds" element={<TDSSummaryDashboard />} />
+
+        {/* Master Data */}
+        <Route path="master-data/geography" element={<GeographyDashboard />} />
+        <Route path="master-data/rate-cards" element={<RateCardsDashboard />} />
+        <Route path="master-data/vehicle-types" element={<VehicleTypesMasterDashboard />} />
+        <Route path="master-data/system-config" element={<SystemConfigDashboard />} />
+
+        {/* Tracking */}
+        <Route path="tracking/devices" element={<DeviceInventoryDashboard />} />
+        <Route path="tracking/device-assignments" element={<DeviceAssignmentsDashboard />} />
 
 
 

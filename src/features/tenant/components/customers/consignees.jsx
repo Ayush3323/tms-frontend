@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ChevronDown, Loader2, AlertTriangle, UserMinus, Pencil, RotateCcw,
   MapPin, Phone, FileText, ClipboardList, Wallet, History, Building2, Info as LucideInfo,
@@ -14,17 +14,23 @@ import {
   useConsignees, useCustomers, useCreateConsignee, useUpdateConsignee, useDeleteConsignee
 } from '../../queries/customers/customersQuery';
 import { TableShimmer, ErrorState } from '../Vehicles/Common/StateFeedback';
+import CustomerListFilterBar from './CustomerListFilterBar';
 
 const EMPTY_FORM = {
   customer_id: '',
   consignee_code: '',
-  hazardous_material_handling: false,
-  temperature_controlled: false,
-  business_volume_tons_per_month: '',
-  business_volume_value_per_month: '',
-  loading_bay_count: '',
-  avg_loading_time_minutes: '',
-  preferred_vehicle_types: '',
+  delivery_time_slot_start: '',
+  delivery_time_slot_end: '',
+  receiving_hours_start: '',
+  receiving_hours_end: '',
+  dock_available: false,
+  dock_count: '',
+  forklift_available: false,
+  storage_capacity_sqft: '',
+  unloading_instructions: '',
+  security_instructions: '',
+  documentation_requirements: '',
+  avg_unloading_time_minutes: '',
   status: 'ACTIVE',
 };
 
@@ -41,12 +47,23 @@ const getStatusStyle = (status) => STATUS_STYLES[status] || { bg: 'bg-gray-50', 
 
 const ConsigneesDashboard = () => {
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatus] = useState('');
+  const [ordering, setOrdering] = useState('customer__legal_name');
   const [currentPage, setCurrentPage] = useState(1);
 
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [search]);
+
   const { data, isLoading, isError, error, refetch } = useConsignees({
-    ...(statusFilter && { status: statusFilter }),
-    ...(search && { search }),
+    ...(statusFilter && { customer__status: statusFilter }),
+    ...(ordering && { ordering }),
+    ...(debouncedSearch && { search: debouncedSearch }),
     page: currentPage,
   });
 
@@ -78,13 +95,18 @@ const ConsigneesDashboard = () => {
     setForm({
       customer_id: c.customer_id ?? '',
       consignee_code: c.consignee_code ?? '',
-      business_volume_tons_per_month: c.business_volume_tons_per_month ?? '',
-      business_volume_value_per_month: c.business_volume_value_per_month ?? '',
-      hazardous_material_handling: c.hazardous_material_handling ?? false,
-      temperature_controlled: c.temperature_controlled ?? false,
-      loading_bay_count: c.loading_bay_count ?? '',
-      avg_loading_time_minutes: c.avg_loading_time_minutes ?? '',
-      preferred_vehicle_types: c.preferred_vehicle_types?.join(', ') || '',
+      delivery_time_slot_start: c.delivery_time_slot_start ?? '',
+      delivery_time_slot_end: c.delivery_time_slot_end ?? '',
+      receiving_hours_start: c.receiving_hours_start ?? '',
+      receiving_hours_end: c.receiving_hours_end ?? '',
+      dock_available: c.dock_available ?? false,
+      dock_count: c.dock_count ?? '',
+      forklift_available: c.forklift_available ?? false,
+      storage_capacity_sqft: c.storage_capacity_sqft ?? '',
+      unloading_instructions: c.unloading_instructions ?? '',
+      security_instructions: c.security_instructions ?? '',
+      documentation_requirements: c.documentation_requirements?.join(', ') || '',
+      avg_unloading_time_minutes: c.avg_unloading_time_minutes ?? '',
       status: c.customer?.status ?? 'ACTIVE',
     });
     setErrors({});
@@ -123,18 +145,12 @@ const ConsigneesDashboard = () => {
     delete payload.customer_code;
     if (modal.type === 'create') delete payload.id;
 
-    // Nullify empty number fields
-    if (!payload.business_volume_tons_per_month) payload.business_volume_tons_per_month = null;
-    if (!payload.business_volume_value_per_month) payload.business_volume_value_per_month = null;
-    if (!payload.loading_bay_count) payload.loading_bay_count = null;
-    if (!payload.avg_loading_time_minutes) payload.avg_loading_time_minutes = null;
-
-    // Process preferred vehicle types as array
-    if (payload.preferred_vehicle_types) {
-      payload.preferred_vehicle_types = payload.preferred_vehicle_types.split(',').map(s => s.trim()).filter(Boolean);
-    } else {
-      payload.preferred_vehicle_types = [];
-    }
+    if (!payload.dock_count) payload.dock_count = null;
+    if (!payload.storage_capacity_sqft) payload.storage_capacity_sqft = null;
+    if (!payload.avg_unloading_time_minutes) payload.avg_unloading_time_minutes = null;
+    payload.documentation_requirements = payload.documentation_requirements
+      ? payload.documentation_requirements.split(',').map(s => s.trim()).filter(Boolean)
+      : [];
 
     if (modal.type === 'create') {
       createMutation.mutate(payload, { onSuccess: () => closeModal() });
@@ -151,7 +167,7 @@ const ConsigneesDashboard = () => {
   const inactive = consignees.filter(c => c.customer?.status === 'INACTIVE' || c.customer?.status === 'Inactive').length;
   const suspended = consignees.filter(c => c.customer?.status === 'SUSPENDED' || c.customer?.status === 'Suspended').length;
 
-  const resetFilters = () => { setSearch(''); setStatus(''); };
+  const resetFilters = () => { setSearch(''); setDebouncedSearch(''); setStatus(''); setOrdering('customer__legal_name'); setCurrentPage(1); };
 
   const COLUMNS = [
     {
@@ -170,17 +186,17 @@ const ConsigneesDashboard = () => {
       header: 'Operations',
       render: c => (
         <div className="flex flex-col gap-1 text-[11px]">
-          <span className="font-semibold text-gray-600">Hazardous: <span className={c.hazardous_material_handling ? "text-red-500" : "text-green-600"}>{c.hazardous_material_handling ? 'Yes' : 'No'}</span></span>
-          <span className="font-semibold text-gray-600">Temp Ctrl: <span className={c.temperature_controlled ? "text-blue-500" : "text-gray-500"}>{c.temperature_controlled ? 'Yes' : 'No'}</span></span>
+          <span className="font-semibold text-gray-600">Dock: <span className={c.dock_available ? "text-green-600" : "text-gray-500"}>{c.dock_available ? 'Available' : 'Not Available'}</span></span>
+          <span className="font-semibold text-gray-600">Forklift: <span className={c.forklift_available ? "text-green-600" : "text-gray-500"}>{c.forklift_available ? 'Available' : 'Not Available'}</span></span>
         </div>
       ),
     },
     {
-      header: 'Business Volume',
+      header: 'Capacity',
       render: c => (
         <div className="flex flex-col gap-1 text-[11px]">
-          <span className="font-semibold text-gray-600">Tons/Mo: {c.business_volume_tons_per_month || '—'}</span>
-          <span className="font-semibold text-gray-600">Value/Mo: {c.business_volume_value_per_month ? `₹${Number(c.business_volume_value_per_month).toLocaleString('en-IN')}` : '—'}</span>
+          <span className="font-semibold text-gray-600">Dock Count: {c.dock_count || '—'}</span>
+          <span className="font-semibold text-gray-600">Storage: {c.storage_capacity_sqft ? `${c.storage_capacity_sqft} sqft` : '—'}</span>
         </div>
       ),
     },
@@ -305,50 +321,31 @@ const ConsigneesDashboard = () => {
           </div>
         </div>
 
-        {/* Filters & Pagination Row */}
-        <div className="flex items-center justify-between px-5 py-3 bg-white border-b border-gray-50 h-[60px]">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <select
-                value={statusFilter}
-                onChange={(e) => { setStatus(e.target.value); setCurrentPage(1); }}
-                className="px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-[12px] font-bold text-[#172B4D] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all hover:border-gray-200 cursor-pointer shadow-sm"
-              >
-                <option value="">All Statuses</option>
-                <option value="ACTIVE">Active</option>
-                <option value="INACTIVE">Inactive</option>
-                <option value="SUSPENDED">Suspended</option>
-              </select>
-            </div>
-            {statusFilter && (
-              <button onClick={() => { setStatus(''); setCurrentPage(1); }} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Clear Filter">
-                <RotateCcw size={14} />
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1 || isLoading}
-              className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-            >
-              Previous
-            </button>
-
-            <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
-              {currentPage}
-            </div>
-
-            <button
-              onClick={() => setCurrentPage(prev => prev + 1)}
-              disabled={!data?.next || isLoading}
-              className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-            >
-              Next
-            </button>
-          </div>
-        </div>
+        <CustomerListFilterBar
+          statusFilter={statusFilter}
+          onStatusChange={(value) => { setStatus(value); setCurrentPage(1); }}
+          statusOptions={[
+            { value: 'ACTIVE', label: 'Active' },
+            { value: 'INACTIVE', label: 'Inactive' },
+            { value: 'SUSPENDED', label: 'Suspended' },
+            { value: 'BLACKLISTED', label: 'Blacklisted' },
+          ]}
+          ordering={ordering}
+          onOrderingChange={(value) => { setOrdering(value); setCurrentPage(1); }}
+          orderingOptions={[
+            { value: 'customer__legal_name', label: 'Name A-Z' },
+            { value: '-customer__legal_name', label: 'Name Z-A' },
+            { value: '-created_at', label: 'Newest' },
+            { value: 'created_at', label: 'Oldest' },
+          ]}
+          clearVisible={statusFilter || ordering !== 'customer__legal_name'}
+          onClearFilters={resetFilters}
+          currentPage={currentPage}
+          onPrevPage={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+          onNextPage={() => setCurrentPage(prev => prev + 1)}
+          hasNextPage={!!data?.next}
+          isLoading={isLoading}
+        />
 
         {isLoading && <TableShimmer rows={8} cols={5} />}
 
@@ -440,34 +437,47 @@ const ConsigneesDashboard = () => {
             <div className="col-span-2 grid grid-cols-2 gap-4">
               <label className="flex items-center gap-2 text-sm font-medium text-[#172B4D] bg-gray-50 border border-gray-200 p-3 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
                 <input type="checkbox" className="w-4 h-4 text-[#0052CC] border-gray-300 rounded focus:ring-[#0052CC]" disabled={modal.type === 'view'}
-                  checked={form.hazardous_material_handling} onChange={e => setField('hazardous_material_handling', e.target.checked)} />
-                <span className="flex-1">Hazardous Material Handling</span>
+                  checked={form.dock_available} onChange={e => setField('dock_available', e.target.checked)} />
+                <span className="flex-1">Dock Available</span>
               </label>
               <label className="flex items-center gap-2 text-sm font-medium text-[#172B4D] bg-gray-50 border border-gray-200 p-3 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
                 <input type="checkbox" className="w-4 h-4 text-[#0052CC] border-gray-300 rounded focus:ring-[#0052CC]" disabled={modal.type === 'view'}
-                  checked={form.temperature_controlled} onChange={e => setField('temperature_controlled', e.target.checked)} />
-                <span className="flex-1">Temperature Controlled</span>
+                  checked={form.forklift_available} onChange={e => setField('forklift_available', e.target.checked)} />
+                <span className="flex-1">Forklift Available</span>
               </label>
             </div>
 
-            <Section title="Business Volume & Logistics" className="col-span-2" />
-            <Field label="Business Volume (Tons/Mo)">
-              <Input type="number" value={form.business_volume_tons_per_month || ''} disabled={modal.type === 'view'} onChange={e => setField('business_volume_tons_per_month', e.target.value)} />
+            <Section title="Delivery & Receiving Schedule" className="col-span-2" />
+            <Field label="Delivery Slot Start">
+              <Input type="time" value={form.delivery_time_slot_start || ''} disabled={modal.type === 'view'} onChange={e => setField('delivery_time_slot_start', e.target.value)} />
             </Field>
-            <Field label="Business Volume (Value/Mo)">
-              <Input type="number" value={form.business_volume_value_per_month || ''} disabled={modal.type === 'view'} onChange={e => setField('business_volume_value_per_month', e.target.value)} />
+            <Field label="Delivery Slot End">
+              <Input type="time" value={form.delivery_time_slot_end || ''} disabled={modal.type === 'view'} onChange={e => setField('delivery_time_slot_end', e.target.value)} />
             </Field>
-
-            <Field label="Loading Bay Count">
-              <Input type="number" value={form.loading_bay_count || ''} disabled={modal.type === 'view'} onChange={e => setField('loading_bay_count', e.target.value)} />
+            <Field label="Receiving Hours Start">
+              <Input type="time" value={form.receiving_hours_start || ''} disabled={modal.type === 'view'} onChange={e => setField('receiving_hours_start', e.target.value)} />
             </Field>
-            <Field label="Avg Loading Time (mins)">
-              <Input type="number" value={form.avg_loading_time_minutes || ''} disabled={modal.type === 'view'} onChange={e => setField('avg_loading_time_minutes', e.target.value)} />
+            <Field label="Receiving Hours End">
+              <Input type="time" value={form.receiving_hours_end || ''} disabled={modal.type === 'view'} onChange={e => setField('receiving_hours_end', e.target.value)} />
             </Field>
-
-            <Field label="Preferred Vehicle Types" className="col-span-2">
-              <Input value={form.preferred_vehicle_types} onChange={e => setField('preferred_vehicle_types', e.target.value)} disabled={modal.type === 'view'}
-                placeholder="TRUCK, VAN, TRAILER (comma separated)" />
+            <Field label="Dock Count">
+              <Input type="number" value={form.dock_count || ''} disabled={modal.type === 'view'} onChange={e => setField('dock_count', e.target.value)} />
+            </Field>
+            <Field label="Storage Capacity (sqft)">
+              <Input type="number" value={form.storage_capacity_sqft || ''} disabled={modal.type === 'view'} onChange={e => setField('storage_capacity_sqft', e.target.value)} />
+            </Field>
+            <Field label="Avg Unloading Time (mins)">
+              <Input type="number" value={form.avg_unloading_time_minutes || ''} disabled={modal.type === 'view'} onChange={e => setField('avg_unloading_time_minutes', e.target.value)} />
+            </Field>
+            <Field label="Documentation Requirements" className="col-span-2">
+              <Input value={form.documentation_requirements} onChange={e => setField('documentation_requirements', e.target.value)} disabled={modal.type === 'view'}
+                placeholder="Invoice, E-Way Bill, Gate Pass" />
+            </Field>
+            <Field label="Unloading Instructions" className="col-span-2">
+              <Input value={form.unloading_instructions} onChange={e => setField('unloading_instructions', e.target.value)} disabled={modal.type === 'view'} />
+            </Field>
+            <Field label="Security Instructions" className="col-span-2">
+              <Input value={form.security_instructions} onChange={e => setField('security_instructions', e.target.value)} disabled={modal.type === 'view'} />
             </Field>
           </div>
         </Modal>
@@ -543,21 +553,23 @@ const ConsigneeOverview = ({ consignee: c, onEdit }) => (
     <div className="grid grid-cols-2 gap-4">
       <InfoCard label="Legal Name" value={c.customer?.legal_name} accent />
       <InfoCard label="Consignee Code" value={c.consignee_code} />
-      <InfoCard label="Hazardous Handling" value={c.hazardous_material_handling ? 'Yes' : 'No'} />
-      <InfoCard label="Temp Controlled" value={c.temperature_controlled ? 'Yes' : 'No'} />
+      <InfoCard label="Dock Available" value={c.dock_available ? 'Yes' : 'No'} />
+      <InfoCard label="Forklift Available" value={c.forklift_available ? 'Yes' : 'No'} />
     </div>
 
-    <Section title="Logistics Details" />
+    <Section title="Receiving Capacity" />
     <div className="grid grid-cols-2 gap-3">
-      <InfoCard label="Unloading Bays" value={c.loading_bay_count} />
-      <InfoCard label="Avg Unloading Time" value={c.avg_loading_time_minutes ? `${c.avg_loading_time_minutes} mins` : null} />
-      <InfoCard label="Preferred Vehicles" value={c.preferred_vehicle_types?.join(', ')} />
+      <InfoCard label="Dock Count" value={c.dock_count} />
+      <InfoCard label="Storage Capacity" value={c.storage_capacity_sqft ? `${c.storage_capacity_sqft} sqft` : null} />
+      <InfoCard label="Avg Unloading Time" value={c.avg_unloading_time_minutes ? `${c.avg_unloading_time_minutes} mins` : null} />
     </div>
 
-    <Section title="Business Volume" />
+    <Section title="Schedule & Instructions" />
     <div className="grid grid-cols-2 gap-3">
-      <InfoCard label="Monthly Tons" value={c.business_volume_tons_per_month} />
-      <InfoCard label="Monthly Value" value={c.business_volume_value_per_month ? `₹${Number(c.business_volume_value_per_month).toLocaleString('en-IN')}` : null} />
+      <InfoCard label="Delivery Slot" value={c.delivery_time_slot_start && c.delivery_time_slot_end ? `${c.delivery_time_slot_start} - ${c.delivery_time_slot_end}` : null} />
+      <InfoCard label="Receiving Hours" value={c.receiving_hours_start && c.receiving_hours_end ? `${c.receiving_hours_start} - ${c.receiving_hours_end}` : null} />
+      <InfoCard label="Docs Required" value={c.documentation_requirements?.join(', ')} />
+      <InfoCard label="Unloading Instructions" value={c.unloading_instructions} />
     </div>
 
     <div className="pt-3 border-t border-gray-100 flex justify-end">
