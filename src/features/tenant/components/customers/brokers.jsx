@@ -14,15 +14,16 @@ import {
   useBrokers, useCustomers, useCreateBroker, useUpdateBroker, useDeleteBroker
 } from '../../queries/customers/customersQuery';
 import { TableShimmer, ErrorState } from '../Vehicles/Common/StateFeedback';
+import CustomerListFilterBar from './CustomerListFilterBar';
 
 const EMPTY_FORM = {
   customer_id: '',
   broker_code: '',
   commission_rate: '',
-  brokerage_type: 'PERCENTAGE',
-  is_internal_broker: false,
-  specialization: '',
-  regions_covered: '',
+  commission_type: 'PERCENTAGE',
+  payment_terms: '',
+  license_number: '',
+  license_expiry: '',
   status: 'ACTIVE',
 };
 
@@ -38,6 +39,7 @@ const BrokersDashboard = () => {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatus] = useState('');
+  const [ordering, setOrdering] = useState('customer__legal_name');
   const [currentPage, setCurrentPage] = useState(1);
 
   // Search Debouncing
@@ -51,7 +53,8 @@ const BrokersDashboard = () => {
 
   const { data, isLoading, isError, error, refetch } = useBrokers({
     page: currentPage,
-    ...(statusFilter && { status: statusFilter }),
+    ...(statusFilter && { customer__status: statusFilter }),
+    ...(ordering && { ordering }),
     ...(debouncedSearch && { search: debouncedSearch }),
   });
 
@@ -84,9 +87,10 @@ const BrokersDashboard = () => {
       customer_id: b.customer?.id ?? '',
       broker_code: b.broker_code ?? '',
       commission_rate: b.commission_rate ?? '',
-      brokerage_type: b.brokerage_type ?? 'PERCENTAGE',
-      is_internal_broker: b.is_internal_broker ?? false,
-      regions_covered: b.regions_covered?.join(', ') || '',
+      commission_type: b.commission_type ?? 'PERCENTAGE',
+      payment_terms: b.payment_terms ?? '',
+      license_number: b.license_number ?? '',
+      license_expiry: b.license_expiry ?? '',
       status: b.customer?.status ?? 'ACTIVE',
     });
     setErrors({});
@@ -120,7 +124,6 @@ const BrokersDashboard = () => {
     const payload = {
       ...selectedCustomer,
       ...form,
-      regions_covered: form.regions_covered ? form.regions_covered.split(',').map(s => s.trim()).filter(Boolean) : []
     };
 
     // Clean up to avoid collisions
@@ -143,6 +146,7 @@ const BrokersDashboard = () => {
   const active = brokers.filter(b => b.customer?.status === 'ACTIVE' || b.customer?.status === 'Active').length;
   const inactive = brokers.filter(b => b.customer?.status === 'INACTIVE' || b.customer?.status === 'Inactive').length;
   const suspended = brokers.filter(b => b.customer?.status === 'SUSPENDED' || b.customer?.status === 'Suspended').length;
+  const resetFilters = () => { setSearch(''); setDebouncedSearch(''); setStatus(''); setOrdering('customer__legal_name'); setCurrentPage(1); };
 
   const COLUMNS = [
     {
@@ -161,8 +165,8 @@ const BrokersDashboard = () => {
       header: 'Type & Specialization',
       render: b => (
         <div className="flex flex-col">
-          <span className="text-xs font-bold text-gray-700">{b.brokerage_type}</span>
-          <span className="text-[10px] text-gray-400 font-medium uppercase">{b.specialization || 'General'}</span>
+          <span className="text-xs font-bold text-gray-700">{b.commission_type || 'PERCENTAGE'}</span>
+          <span className="text-[10px] text-gray-400 font-medium uppercase">{b.license_number || 'No License'}</span>
         </div>
       ),
     },
@@ -170,7 +174,7 @@ const BrokersDashboard = () => {
       header: 'Commission',
       render: b => (
         <span className="font-bold text-gray-700 text-[13px]">
-          {b.commission_rate ? `${b.commission_rate}${b.brokerage_type === 'PERCENTAGE' ? '%' : ' Flat'}` : '—'}
+          {b.commission_rate ? `${b.commission_rate}${b.commission_type === 'PERCENTAGE' ? '%' : ' Flat'}` : '—'}
         </span>
       ),
     },
@@ -293,50 +297,31 @@ const BrokersDashboard = () => {
           </div>
         </div>
 
-        {/* Filters & Pagination Row */}
-        <div className="flex items-center justify-between px-5 py-3 bg-white border-b border-gray-50 h-[60px]">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <select
-                value={statusFilter}
-                onChange={(e) => { setStatus(e.target.value); setCurrentPage(1); }}
-                className="px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-[12px] font-bold text-[#172B4D] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all hover:border-gray-200 cursor-pointer shadow-sm"
-              >
-                <option value="">All Statuses</option>
-                <option value="ACTIVE">Active</option>
-                <option value="INACTIVE">Inactive</option>
-                <option value="SUSPENDED">Suspended</option>
-              </select>
-            </div>
-            {statusFilter && (
-              <button onClick={() => { setStatus(''); setCurrentPage(1); }} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Clear Filter">
-                <RotateCcw size={14} />
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1 || isLoading}
-              className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-            >
-              Previous
-            </button>
-
-            <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
-              {currentPage}
-            </div>
-
-            <button
-              onClick={() => setCurrentPage(prev => prev + 1)}
-              disabled={!data?.next || isLoading}
-              className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-            >
-              Next
-            </button>
-          </div>
-        </div>
+        <CustomerListFilterBar
+          statusFilter={statusFilter}
+          onStatusChange={(value) => { setStatus(value); setCurrentPage(1); }}
+          statusOptions={[
+            { value: 'ACTIVE', label: 'Active' },
+            { value: 'INACTIVE', label: 'Inactive' },
+            { value: 'SUSPENDED', label: 'Suspended' },
+            { value: 'BLACKLISTED', label: 'Blacklisted' },
+          ]}
+          ordering={ordering}
+          onOrderingChange={(value) => { setOrdering(value); setCurrentPage(1); }}
+          orderingOptions={[
+            { value: 'customer__legal_name', label: 'Name A-Z' },
+            { value: '-customer__legal_name', label: 'Name Z-A' },
+            { value: '-created_at', label: 'Newest' },
+            { value: 'created_at', label: 'Oldest' },
+          ]}
+          clearVisible={statusFilter || ordering !== 'customer__legal_name'}
+          onClearFilters={resetFilters}
+          currentPage={currentPage}
+          onPrevPage={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+          onNextPage={() => setCurrentPage(prev => prev + 1)}
+          hasNextPage={!!data?.next}
+          isLoading={isLoading}
+        />
 
         {isLoading ? <TableShimmer rows={8} /> :
           isError ? <ErrorState message="Failed to load brokers" onRetry={refetch} /> : (
@@ -410,24 +395,23 @@ const BrokersDashboard = () => {
               </Sel>
             </Field>
             <Field label="Brokerage Type">
-              <Sel value={form.brokerage_type} onChange={e => setField('brokerage_type', e.target.value)}>
+              <Sel value={form.commission_type} onChange={e => setField('commission_type', e.target.value)}>
                 <option value="PERCENTAGE">Percentage</option>
-                <option value="FLAT">Flat Fee</option>
+                <option value="FIXED">Fixed Fee</option>
               </Sel>
             </Field>
             <Field label="Commission Rate">
-              <Input type="number" value={form.commission_rate} onChange={e => setField('commission_rate', e.target.value)} placeholder={form.brokerage_type === 'PERCENTAGE' ? '%' : 'Amount'} />
+              <Input type="number" value={form.commission_rate} onChange={e => setField('commission_rate', e.target.value)} placeholder={form.commission_type === 'PERCENTAGE' ? '%' : 'Amount'} />
             </Field>
-            <Field label="Specialization" className="col-span-2">
-              <Input value={form.specialization} onChange={e => setField('specialization', e.target.value)} placeholder="e.g. Cold Chain, Oversized Cargo" />
+            <Field label="Payment Terms" className="col-span-2">
+              <Input value={form.payment_terms} onChange={e => setField('payment_terms', e.target.value)} placeholder="e.g. Net 30 days" />
             </Field>
-            <Field label="Regions Covered" className="col-span-2">
-              <Input value={form.regions_covered} onChange={e => setField('regions_covered', e.target.value)} placeholder="e.g. North India, Maharashtra (comma separated)" />
+            <Field label="License Number">
+              <Input value={form.license_number} onChange={e => setField('license_number', e.target.value)} placeholder="e.g. BR-LIC-9988" />
             </Field>
-            <label className="flex items-center gap-2 text-sm font-medium text-[#172B4D] col-span-2 bg-gray-50 p-3 rounded-lg border border-gray-100">
-              <input type="checkbox" checked={form.is_internal_broker} onChange={e => setField('is_internal_broker', e.target.checked)} className="w-4 h-4 text-[#0052CC] border-gray-300 rounded focus:ring-[#0052CC]" />
-              <span>Is Internal Broker</span>
-            </label>
+            <Field label="License Expiry">
+              <Input type="date" value={form.license_expiry} onChange={e => setField('license_expiry', e.target.value)} />
+            </Field>
           </div>
         </Modal>
       )}
@@ -511,19 +495,19 @@ const BrokerOverview = ({ broker: b, onEdit }) => (
     <div className="grid grid-cols-2 gap-4">
       <InfoCard label="Legal Name" value={b.customer?.legal_name} accent />
       <InfoCard label="Broker Code" value={b.broker_code} />
-      <InfoCard label="Internal Broker" value={b.is_internal_broker ? 'Yes' : 'No'} />
-      <InfoCard label="Specialization" value={b.specialization || 'General'} />
+      <InfoCard label="Payment Terms" value={b.payment_terms || 'Not Set'} />
+      <InfoCard label="License Number" value={b.license_number || 'Not Set'} />
     </div>
 
     <Section title="Commission Details" />
     <div className="grid grid-cols-2 gap-3">
-      <InfoCard label="Commission Rate" value={b.commission_rate ? `${b.commission_rate}${b.brokerage_type === 'PERCENTAGE' ? '%' : ' Flat'}` : 'N/A'} />
-      <InfoCard label="Brokerage Type" value={b.brokerage_type} />
+      <InfoCard label="Commission Rate" value={b.commission_rate ? `${b.commission_rate}${b.commission_type === 'PERCENTAGE' ? '%' : ' Flat'}` : 'N/A'} />
+      <InfoCard label="Commission Type" value={b.commission_type || 'PERCENTAGE'} />
     </div>
 
-    <Section title="Coverage" />
+    <Section title="Compliance" />
     <div className="grid grid-cols-1 gap-3">
-      <InfoCard label="Regions Covered" value={b.regions_covered?.join(', ') || 'No specific regions'} />
+      <InfoCard label="License Expiry" value={b.license_expiry || 'Not Set'} />
     </div>
 
     <div className="pt-3 border-t border-gray-100 flex justify-end">

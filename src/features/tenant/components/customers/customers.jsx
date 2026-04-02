@@ -11,6 +11,7 @@ import {
 import { TableShimmer, ErrorState } from '../Vehicles/Common/StateFeedback';
 import { Badge, DeleteConfirm } from '../Vehicles/Common/VehicleCommon';
 import { CustomerFormModal } from './CustomerFormModal';
+import CustomerListFilterBar from './CustomerListFilterBar';
 
 // ── Status Styles ────────────────────────────────────────────────────
 const STATUS_STYLES = {
@@ -38,6 +39,8 @@ const CustomersDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatus] = useState('');
+  const [customerTypeFilter, setCustomerTypeFilter] = useState('');
+  const [ordering, setOrdering] = useState('legal_name');
   const [currentPage, setCurrentPage] = useState(1);
   const [modal, setModal] = useState(null);   // { type: 'view'|'create'|'edit', id?: string }
   const [deleteTarget, setDelete] = useState(null);
@@ -54,6 +57,8 @@ const CustomersDashboard = () => {
   const { data, isLoading, isError, error, refetch } = useCustomers({
     page: currentPage,
     ...(statusFilter && { status: statusFilter }),
+    ...(customerTypeFilter && { customer_type: customerTypeFilter }),
+    ...(ordering && { ordering }),
     ...(debouncedSearch && { search: debouncedSearch }),
   });
 
@@ -63,7 +68,7 @@ const CustomersDashboard = () => {
   const inactive = customers.filter(c => c.status === 'INACTIVE').length;
   const suspended = customers.filter(c => c.status === 'SUSPENDED').length;
 
-  const resetFilters = () => { setSearchTerm(''); setStatus(''); setCurrentPage(1); };
+  const resetFilters = () => { setSearchTerm(''); setStatus(''); setCustomerTypeFilter(''); setOrdering('legal_name'); setCurrentPage(1); };
 
   // ── Modal Handlers ──────────────────────────────────────────────────
   const openCreate = () => setModal({ type: 'create' });
@@ -237,66 +242,55 @@ const CustomersDashboard = () => {
             </button>
           </div>
         </div>
-        <div>
-          <div className="flex items-center gap-6 ml-auto justify-between h-15">
-            {/* Quick Filters in Pagination Row */}
-            <div className="flex items-center gap-3 px-5">
-              <div className="flex items-center gap-2">
-                <select
-                  value={statusFilter}
-                  onChange={(e) => {
-                    setStatus(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="px-3 py-1 bg-gray-50 border border-gray-100 rounded-lg text-s font text-[#172B4D] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all hover:border-gray-200 cursor-pointer shadow-sm"
-                >
-                  <option value="">All Status</option>
-                  <option value="ACTIVE">ACTIVE</option>
-                  <option value="INACTIVE">INACTIVE</option>
-                  <option value="SUSPENDED">SUSPENDED</option>
-                  <option value="BLACKLISTED">BLACKLISTED</option>
-                </select>
-              </div>
-
-              {statusFilter && (
-                <button
-                  onClick={() => {
-                    setStatus('');
-                    setCurrentPage(1);
-                  }}
-                  className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                  title="Clear Filters"
-                >
-                  <RotateCcw size={14} />
-                </button>
-              )}
-            </div>
-
-            <div className="justify-between h-10 w-px bg-gray-100 hidden sm:block" />
-
-            <div className="flex items-center justify-between gap-3 px-5">
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1 || isLoading}
-                className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-              >
-                Previous
-              </button>
-
-              <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
-                {currentPage}
-              </div>
-
-              <button
-                onClick={() => setCurrentPage(prev => prev + 1)}
-                disabled={!data?.next || isLoading}
-                className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        </div>
+        <CustomerListFilterBar
+          statusFilter={statusFilter}
+          onStatusChange={(value) => {
+            setStatus(value);
+            setCurrentPage(1);
+          }}
+          statusOptions={[
+            { value: 'ACTIVE', label: 'Active' },
+            { value: 'INACTIVE', label: 'Inactive' },
+            { value: 'SUSPENDED', label: 'Suspended' },
+            { value: 'BLACKLISTED', label: 'Blacklisted' },
+          ]}
+          ordering={ordering}
+          onOrderingChange={(value) => {
+            setOrdering(value);
+            setCurrentPage(1);
+          }}
+          orderingOptions={[
+            { value: 'legal_name', label: 'Name A-Z' },
+            { value: '-legal_name', label: 'Name Z-A' },
+            { value: '-created_at', label: 'Newest' },
+            { value: 'created_at', label: 'Oldest' },
+          ]}
+          extraFilters={(
+            <select
+              value={customerTypeFilter}
+              onChange={(e) => {
+                setCustomerTypeFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-[12px] font-bold text-[#172B4D] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all hover:border-gray-200 cursor-pointer shadow-sm"
+            >
+              <option value="">All Types</option>
+              <option value="CONSIGNOR">Consignor</option>
+              <option value="CONSIGNEE">Consignee</option>
+              <option value="BOTH">Both</option>
+              <option value="BROKER">Broker</option>
+              <option value="AGENT">Agent</option>
+              <option value="OTHER">Other</option>
+            </select>
+          )}
+          clearVisible={statusFilter || customerTypeFilter || ordering !== 'legal_name'}
+          onClearFilters={resetFilters}
+          currentPage={currentPage}
+          onPrevPage={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+          onNextPage={() => setCurrentPage(prev => prev + 1)}
+          hasNextPage={!!data?.next}
+          isLoading={isLoading}
+        />
 
         {/* Loading State */}
         {isLoading && <TableShimmer rows={8} cols={6} />}

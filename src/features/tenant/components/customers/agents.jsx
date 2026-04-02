@@ -14,14 +14,15 @@ import {
   useAgents, useCustomers, useCreateAgent, useUpdateAgent, useDeleteAgent
 } from '../../queries/customers/customersQuery';
 import { TableShimmer, ErrorState } from '../Vehicles/Common/StateFeedback';
+import CustomerListFilterBar from './CustomerListFilterBar';
 
 const EMPTY_FORM = {
   customer_id: '',
   agent_code: '',
-  agency_name: '',
-  agent_type: 'CLEARING',
-  license_number: '',
-  operating_ports: '',
+  territory: '',
+  commission_rate: '',
+  commission_type: 'PERCENTAGE',
+  contact_person: '',
   status: 'ACTIVE',
 };
 
@@ -37,6 +38,7 @@ const AgentsDashboard = () => {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatus] = useState('');
+  const [ordering, setOrdering] = useState('customer__legal_name');
   const [currentPage, setCurrentPage] = useState(1);
 
   // Search Debouncing
@@ -50,7 +52,8 @@ const AgentsDashboard = () => {
 
   const { data, isLoading, isError, error, refetch } = useAgents({
     page: currentPage,
-    ...(statusFilter && { status: statusFilter }),
+    ...(statusFilter && { customer__status: statusFilter }),
+    ...(ordering && { ordering }),
     ...(debouncedSearch && { search: debouncedSearch }),
   });
 
@@ -82,10 +85,10 @@ const AgentsDashboard = () => {
     setForm({
       customer_id: a.customer?.id ?? '',
       agent_code: a.agent_code ?? '',
-      agency_name: a.agency_name ?? '',
-      agent_type: a.agent_type ?? 'CLEARING',
-      license_number: a.license_number ?? '',
-      operating_ports: a.operating_ports?.join(', ') || '',
+      territory: a.territory ?? '',
+      commission_rate: a.commission_rate ?? '',
+      commission_type: a.commission_type ?? 'PERCENTAGE',
+      contact_person: a.contact_person ?? '',
       status: a.customer?.status ?? 'ACTIVE',
     });
     setErrors({});
@@ -101,7 +104,6 @@ const AgentsDashboard = () => {
     const e = {};
     if (!form.customer_id) e.customer_id = 'Customer is required';
     if (!form.agent_code?.trim()) e.agent_code = 'Agent code is required';
-    if (!form.agency_name?.trim()) e.agency_name = 'Agency name is required';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -119,7 +121,6 @@ const AgentsDashboard = () => {
     const payload = {
       ...selectedCustomer,
       ...form,
-      operating_ports: form.operating_ports ? form.operating_ports.split(',').map(s => s.trim()).filter(Boolean) : []
     };
 
     // Clean up to avoid collisions
@@ -139,6 +140,7 @@ const AgentsDashboard = () => {
   const active = agents.filter(a => a.customer?.status === 'ACTIVE' || a.customer?.status === 'Active').length;
   const inactive = agents.filter(a => a.customer?.status === 'INACTIVE' || a.customer?.status === 'Inactive').length;
   const suspended = agents.filter(a => a.customer?.status === 'SUSPENDED' || a.customer?.status === 'Suspended').length;
+  const resetFilters = () => { setSearch(''); setDebouncedSearch(''); setStatus(''); setOrdering('customer__legal_name'); setCurrentPage(1); };
 
   const COLUMNS = [
     {
@@ -147,7 +149,7 @@ const AgentsDashboard = () => {
         <div className="text-left">
           <button onClick={() => openView(a)}
             className="font-bold text-[#172B4D] text-[13px] hover:text-[#0052CC] transition-all hover:scale-105 active:scale-95 text-left block">
-            {a.agency_name || a.customer?.legal_name || '—'}
+            {a.customer?.legal_name || '—'}
           </button>
           <div className="text-[11px] font-mono text-gray-400">{a.agent_code ?? ''}</div>
         </div>
@@ -157,22 +159,15 @@ const AgentsDashboard = () => {
       header: 'License & Type',
       render: a => (
         <div className="flex flex-col">
-          <span className="text-xs font-bold text-gray-700">{a.agent_type?.replace('_', ' ') || 'N/A'}</span>
-          <span className="text-[10px] text-gray-400 font-medium uppercase">License: {a.license_number || 'N/A'}</span>
+          <span className="text-xs font-bold text-gray-700">{a.commission_type || 'PERCENTAGE'}</span>
+          <span className="text-[10px] text-gray-400 font-medium uppercase">Contact: {a.contact_person || 'N/A'}</span>
         </div>
       ),
     },
     {
-      header: 'Operating Ports',
+      header: 'Territory',
       render: a => (
-        <div className="flex flex-wrap gap-1 max-w-[200px]">
-          {a.operating_ports?.map((port, idx) => (
-            <Badge key={idx} className="bg-blue-50 text-blue-700 border-none text-[9px] px-1.5 py-0">
-              {port}
-            </Badge>
-          ))}
-          {(!a.operating_ports || a.operating_ports.length === 0) && <span className="text-gray-300 text-xs italic">No ports</span>}
-        </div>
+        <span className="text-xs text-gray-600">{a.territory || 'Not Set'}</span>
       ),
     },
     {
@@ -294,50 +289,31 @@ const AgentsDashboard = () => {
           </div>
         </div>
 
-        {/* Filters & Pagination Row */}
-        <div className="flex items-center justify-between px-5 py-3 bg-white border-b border-gray-50 h-[60px]">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <select
-                value={statusFilter}
-                onChange={(e) => { setStatus(e.target.value); setCurrentPage(1); }}
-                className="px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-[12px] font-bold text-[#172B4D] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all hover:border-gray-200 cursor-pointer shadow-sm"
-              >
-                <option value="">All Statuses</option>
-                <option value="ACTIVE">Active</option>
-                <option value="INACTIVE">Inactive</option>
-                <option value="SUSPENDED">Suspended</option>
-              </select>
-            </div>
-            {statusFilter && (
-              <button onClick={() => { setStatus(''); setCurrentPage(1); }} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Clear Filter">
-                <RotateCcw size={14} />
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1 || isLoading}
-              className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-            >
-              Previous
-            </button>
-
-            <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
-              {currentPage}
-            </div>
-
-            <button
-              onClick={() => setCurrentPage(prev => prev + 1)}
-              disabled={!data?.next || isLoading}
-              className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-            >
-              Next
-            </button>
-          </div>
-        </div>
+        <CustomerListFilterBar
+          statusFilter={statusFilter}
+          onStatusChange={(value) => { setStatus(value); setCurrentPage(1); }}
+          statusOptions={[
+            { value: 'ACTIVE', label: 'Active' },
+            { value: 'INACTIVE', label: 'Inactive' },
+            { value: 'SUSPENDED', label: 'Suspended' },
+            { value: 'BLACKLISTED', label: 'Blacklisted' },
+          ]}
+          ordering={ordering}
+          onOrderingChange={(value) => { setOrdering(value); setCurrentPage(1); }}
+          orderingOptions={[
+            { value: 'customer__legal_name', label: 'Name A-Z' },
+            { value: '-customer__legal_name', label: 'Name Z-A' },
+            { value: '-created_at', label: 'Newest' },
+            { value: 'created_at', label: 'Oldest' },
+          ]}
+          clearVisible={statusFilter || ordering !== 'customer__legal_name'}
+          onClearFilters={resetFilters}
+          currentPage={currentPage}
+          onPrevPage={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+          onNextPage={() => setCurrentPage(prev => prev + 1)}
+          hasNextPage={!!data?.next}
+          isLoading={isLoading}
+        />
 
         {isLoading ? <TableShimmer rows={8} /> :
           isError ? <ErrorState message="Failed to load agents" onRetry={refetch} /> : (
@@ -410,21 +386,20 @@ const AgentsDashboard = () => {
                 <option value="BLACKLISTED">Blacklisted</option>
               </Sel>
             </Field>
-            <Field label="Agency Name" required error={errors.agency_name} className="col-span-2">
-              <Input value={form.agency_name} onChange={e => setField('agency_name', e.target.value)} placeholder="e.g. Blue Water Shipping" />
+            <Field label="Territory" className="col-span-2">
+              <Input value={form.territory} onChange={e => setField('territory', e.target.value)} placeholder="e.g. Mumbai region" />
             </Field>
-            <Field label="Agent Type">
-              <Sel value={form.agent_type} onChange={e => setField('agent_type', e.target.value)}>
-                <option value="CLEARING">Clearing Agent</option>
-                <option value="FORWARDING">Forwarding Agent</option>
-                <option value="BOTH">Both</option>
+            <Field label="Commission Type">
+              <Sel value={form.commission_type} onChange={e => setField('commission_type', e.target.value)}>
+                <option value="PERCENTAGE">Percentage</option>
+                <option value="FIXED">Fixed</option>
               </Sel>
             </Field>
-            <Field label="License Number">
-              <Input value={form.license_number} onChange={e => setField('license_number', e.target.value)} placeholder="e.g. LIC-9988-22" />
+            <Field label="Commission Rate">
+              <Input type="number" value={form.commission_rate} onChange={e => setField('commission_rate', e.target.value)} placeholder={form.commission_type === 'PERCENTAGE' ? '%' : 'Amount'} />
             </Field>
-            <Field label="Operating Ports" className="col-span-2">
-              <Input value={form.operating_ports} onChange={e => setField('operating_ports', e.target.value)} placeholder="e.g. Mumbai, Chennai, Dubai (comma separated)" />
+            <Field label="Contact Person" className="col-span-2">
+              <Input value={form.contact_person} onChange={e => setField('contact_person', e.target.value)} placeholder="e.g. Rahul Sharma" />
             </Field>
           </div>
         </Modal>
@@ -490,24 +465,16 @@ const ViewAgentContent = ({ agent: a, onEdit }) => {
 const AgentOverview = ({ agent: a, onEdit }) => (
   <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
     <div className="grid grid-cols-2 gap-4">
-      <InfoCard label="Agency Name" value={a.agency_name} accent />
-      <InfoCard label="Legal Name" value={a.customer?.legal_name} />
+      <InfoCard label="Legal Name" value={a.customer?.legal_name} accent />
       <InfoCard label="Agent Code" value={a.agent_code} />
-      <InfoCard label="Agent Type" value={a.agent_type?.replace('_', ' ')} />
+      <InfoCard label="Contact Person" value={a.contact_person || 'Not Set'} />
     </div>
 
-    <Section title="License & Compliance" />
+    <Section title="Commission & Coverage" />
     <div className="grid grid-cols-2 gap-3">
-      <InfoCard label="License Number" value={a.license_number || 'N/A'} />
-      <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 flex flex-col gap-1">
-        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Operating Ports</span>
-        <div className="flex flex-wrap gap-1">
-          {a.operating_ports?.map((port, idx) => (
-            <Badge key={idx} className="bg-white border-gray-200 text-gray-600 text-[10px]">{port}</Badge>
-          ))}
-          {(!a.operating_ports || a.operating_ports.length === 0) && <span className="text-xs text-gray-400 italic">None</span>}
-        </div>
-      </div>
+      <InfoCard label="Commission Type" value={a.commission_type || 'PERCENTAGE'} />
+      <InfoCard label="Commission Rate" value={a.commission_rate ? `${a.commission_rate}${a.commission_type === 'PERCENTAGE' ? '%' : ''}` : 'Not Set'} />
+      <InfoCard label="Territory" value={a.territory || 'Not Set'} />
     </div>
 
     <div className="pt-3 border-t border-gray-100 flex justify-end">
