@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import {
   Plus, Edit2, Loader2, Save, Trash2, X
 } from 'lucide-react';
-import { useCustomers, useCreateCustomer, useUpdateCustomer } from '../../queries/customers/customersQuery';
-import { useUsers } from '../../queries/users/userQuery';
-import { Modal, Field, Input, Sel, Section } from '../Vehicles/Common/VehicleCommon';
+import { useCustomers, useCreateCustomer, useUpdateCustomer } from '../../../queries/customers/customersQuery';
+import { useUsers } from '../../../queries/users/userQuery';
+import { Modal, Field, Input, Sel, Section } from '../../Vehicles/Common/VehicleCommon';
 
 export const EMPTY_FORM = {
   legal_name: '',

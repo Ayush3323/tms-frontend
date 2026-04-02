@@ -7,12 +7,12 @@ import {
 } from 'lucide-react';
 import { useCustomer, useDeleteCustomer } from '../../../queries/customers/customersQuery';
 import { Badge, SectionHeader } from '../../Vehicles/Common/VehicleCommon';
-import { CustomerFormModal } from '../CustomerFormModal';
+import { CustomerFormModal } from '../Common/CustomerFormModal';
 import {
   CustomerOverview, CustomerAddresses, CustomerContacts,
   CustomerDocuments, CustomerContracts, CustomerNotes,
   CustomerCreditHistoryView
-} from '../CustomerSubComponents';
+} from '../Common/CustomerSubComponents';
 
 const TABS = [
   { id: 'OVERVIEW', label: 'Overview', icon: Building2 },
