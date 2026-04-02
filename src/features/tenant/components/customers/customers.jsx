@@ -56,7 +56,8 @@ const CustomersDashboard = () => {
 
   const { data, isLoading, isError, error, refetch } = useCustomers({
     page: currentPage,
-    ...(statusFilter && { status: statusFilter }),
+    ...(statusFilter === 'DELETED' && { deleted_only: 'true' }),
+    ...(statusFilter && statusFilter !== 'DELETED' && { status: statusFilter }),
     ...(customerTypeFilter && { customer_type: customerTypeFilter }),
     ...(ordering && { ordering }),
     ...(debouncedSearch && { search: debouncedSearch }),
@@ -65,24 +66,28 @@ const CustomersDashboard = () => {
   // Stats must be pagination-independent; fetch per-status counts from backend.
   const { data: allCountData } = useCustomers({
     page: 1,
+    ...(statusFilter === 'DELETED' && { deleted_only: 'true' }),
     ...(customerTypeFilter && { customer_type: customerTypeFilter }),
     ...(debouncedSearch && { search: debouncedSearch }),
   });
   const { data: activeCountData } = useCustomers({
     page: 1,
     status: 'ACTIVE',
+    ...(statusFilter === 'DELETED' && { deleted_only: 'true' }),
     ...(customerTypeFilter && { customer_type: customerTypeFilter }),
     ...(debouncedSearch && { search: debouncedSearch }),
   });
   const { data: inactiveCountData } = useCustomers({
     page: 1,
     status: 'INACTIVE',
+    ...(statusFilter === 'DELETED' && { deleted_only: 'true' }),
     ...(customerTypeFilter && { customer_type: customerTypeFilter }),
     ...(debouncedSearch && { search: debouncedSearch }),
   });
   const { data: suspendedCountData } = useCustomers({
     page: 1,
     status: 'SUSPENDED',
+    ...(statusFilter === 'DELETED' && { deleted_only: 'true' }),
     ...(customerTypeFilter && { customer_type: customerTypeFilter }),
     ...(debouncedSearch && { search: debouncedSearch }),
   });
@@ -158,11 +163,15 @@ const CustomersDashboard = () => {
     {
       header: 'Status',
       render: c => {
-        const st = getStatusStyle(c.status);
+        const isDeletedView = statusFilter === 'DELETED';
+        const statusLabel = (c.is_deleted || isDeletedView) ? 'DELETED' : c.status;
+        const st = (c.is_deleted || isDeletedView)
+          ? { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' }
+          : getStatusStyle(c.status);
         return (
           <Badge className={`${st.bg} ${st.text} border-transparent`}>
             <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
-            {c.status}
+            {statusLabel}
           </Badge>
         );
       },
@@ -291,6 +300,7 @@ const CustomersDashboard = () => {
             { value: 'INACTIVE', label: 'Inactive' },
             { value: 'SUSPENDED', label: 'Suspended' },
             { value: 'BLACKLISTED', label: 'Blacklisted' },
+            { value: 'DELETED', label: 'Deleted' },
           ]}
           ordering={ordering}
           onOrderingChange={(value) => {

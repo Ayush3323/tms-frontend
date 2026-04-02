@@ -45,6 +45,7 @@ const STATUS_STYLES = {
   'ACTIVE': { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500' },
   'INACTIVE': { bg: 'bg-orange-50', text: 'text-orange-700', dot: 'bg-orange-500' },
   'SUSPENDED': { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' },
+  'DELETED': { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' },
 };
 
 const getStatusStyle = (status) => STATUS_STYLES[status] || { bg: 'bg-gray-50', text: 'text-gray-600', dot: 'bg-gray-400' };
@@ -67,7 +68,8 @@ const AgentsDashboard = () => {
 
   const { data, isLoading, isError, error, refetch } = useAgents({
     page: currentPage,
-    ...(statusFilter && { customer__status: statusFilter }),
+    ...(statusFilter === 'DELETED' && { deleted_only: true }),
+    ...(statusFilter && statusFilter !== 'DELETED' && { customer__status: statusFilter }),
     ...(ordering && { ordering }),
     ...(debouncedSearch && { search: debouncedSearch }),
   });
@@ -316,7 +318,7 @@ const AgentsDashboard = () => {
     {
       header: 'Status',
       render: a => {
-        const status = a.customer?.status || 'ACTIVE';
+        const status = a.customer?.is_deleted ? 'DELETED' : (a.customer?.status || 'ACTIVE');
         const st = getStatusStyle(status);
         return (
           <Badge className={`${st.bg} ${st.text} border-transparent`}>
@@ -445,6 +447,7 @@ const AgentsDashboard = () => {
             { value: 'INACTIVE', label: 'Inactive' },
             { value: 'SUSPENDED', label: 'Suspended' },
             { value: 'BLACKLISTED', label: 'Blacklisted' },
+            { value: 'DELETED', label: 'Deleted' },
           ]}
           ordering={ordering}
           onOrderingChange={(value) => { setOrdering(value); setCurrentPage(1); }}
