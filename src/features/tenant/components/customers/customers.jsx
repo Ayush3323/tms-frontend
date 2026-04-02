@@ -103,8 +103,20 @@ const CustomersDashboard = () => {
   const closeModal = () => setModal(null);
   const deleteMutation = useDeleteCustomer();
 
-  // ── Column Definitions ──────────────────────────────────────────────
   const COLUMNS = [
+    {
+      header: 'Customer Code',
+      render: c => (
+        <div className="flex flex-col items-start gap-0.5 leading-none">
+          <span className="font-mono text-[13px] font-black text-[#172B4D] block">
+            {c.customer_code ?? '—'}
+          </span>
+          <span className="text-[9px] font-mono text-blue-500/60 tracking-tighter uppercase font-bold block">
+            {c.customer_type ?? ''}
+          </span>
+        </div>
+      ),
+    },
     {
       header: 'Legal Name',
       render: c => (
@@ -113,7 +125,6 @@ const CustomersDashboard = () => {
             className="font-bold text-[#172B4D] text-[13px] hover:text-[#0052CC] transition-all hover:scale-105 active:scale-95 text-left block">
             {c.legal_name ?? '—'}
           </button>
-          <div className="text-[11px] font-mono text-gray-400">{c.customer_code ?? ''}</div>
         </div>
       ),
     },
@@ -169,6 +180,7 @@ const CustomersDashboard = () => {
       ),
     },
   ];
+
 
   // ═══════════════════════════════════════════════════════════════════
   // ── RENDER ─────────────────────────────────────────────────────────

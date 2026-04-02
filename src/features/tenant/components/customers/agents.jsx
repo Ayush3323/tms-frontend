@@ -18,6 +18,7 @@ import CustomerListFilterBar from './CustomerListFilterBar';
 
 const EMPTY_FORM = {
   customer_id: '',
+  legal_name: '',
   agent_code: '',
   territory: '',
   commission_rate: '',
@@ -84,6 +85,7 @@ const AgentsDashboard = () => {
   const openEdit = (a) => {
     setForm({
       customer_id: a.customer?.id ?? '',
+      legal_name: a.customer?.legal_name ?? '',
       agent_code: a.agent_code ?? '',
       territory: a.territory ?? '',
       commission_rate: a.commission_rate ?? '',
@@ -100,10 +102,27 @@ const AgentsDashboard = () => {
   };
   const closeModal = () => { setModal(null); setErrors({}); };
 
+  // Auto-generate agent code from legal name in create mode
+  useEffect(() => {
+    if (modal?.type === 'create' && form.legal_name && !form.agent_code) {
+      const initials = (form.legal_name || 'AGT')
+        .split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3);
+      const suffix = Math.floor(100 + Math.random() * 900);
+      setField('agent_code', `AGT-${initials}-${suffix}`);
+    }
+  }, [form.legal_name, modal?.type]);
+
   const validate = () => {
     const e = {};
-    if (!form.customer_id) e.customer_id = 'Customer is required';
-    if (!form.agent_code?.trim()) e.agent_code = 'Agent code is required';
+    if (form.legal_name) {
+      const match = eligibleCustomers.find(c => c.legal_name?.toLowerCase() === form.legal_name.toLowerCase());
+      if (match) form.customer_id = match.id;
+    }
+    if (!form.legal_name?.trim()) e.customer_id = 'Legal Name is required';
+    if (!form.agent_code?.trim()) {
+      const initials = (form.legal_name || 'AGT').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3);
+      form.agent_code = `AGT-${initials}-${Math.floor(1000 + Math.random() * 9000)}`;
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -116,14 +135,11 @@ const AgentsDashboard = () => {
   const handleSubmit = () => {
     if (!validate()) return;
 
-    // Merge the selected customer's data into the payload (required by the API)
-    const selectedCustomer = eligibleCustomers.find(c => c.id === form.customer_id) || {};
-    const payload = {
-      ...selectedCustomer,
-      ...form,
-    };
+    const selectedCustomer = eligibleCustomers.find(
+      c => c.legal_name?.toLowerCase() === form.legal_name?.toLowerCase()
+    ) || {};
+    const payload = { ...selectedCustomer, ...form };
 
-    // Clean up to avoid collisions
     delete payload.customer;
     delete payload.customer_code;
     if (modal.type === 'create') delete payload.id;
@@ -145,30 +161,44 @@ const AgentsDashboard = () => {
 
   const COLUMNS = [
     {
-      header: 'Agency / Customer',
+      header: 'Customer Code',
       render: a => (
-        <div className="text-left">
-          <button onClick={() => openView(a)}
-            className="font-bold text-[#172B4D] text-[13px] hover:text-[#0052CC] transition-all hover:scale-105 active:scale-95 text-left block">
-            {a.customer?.legal_name || '—'}
-          </button>
-          <div className="text-[11px] font-mono text-gray-400">{a.agent_code ?? ''}</div>
+        <div className="flex flex-col items-start gap-0.5 leading-none">
+          <span className="font-mono text-[13px] font-black text-[#172B4D] block">
+            {a.customer?.customer_code ?? '—'}
+          </span>
+          <span className="text-[9px] font-mono text-blue-500/60 tracking-tighter uppercase font-bold block">
+            Agnt: {a.agent_code ?? '—'}
+          </span>
         </div>
       ),
     },
     {
-      header: 'License & Type',
+      header: 'Legal Name',
       render: a => (
-        <div className="flex flex-col">
-          <span className="text-xs font-bold text-gray-700">{a.commission_type || 'PERCENTAGE'}</span>
-          <span className="text-[10px] text-gray-400 font-medium uppercase">Contact: {a.contact_person || 'N/A'}</span>
+        <div className="text-left py-1">
+          <span className="font-bold text-[#172B4D] text-[13px] block leading-tight">
+            {a.customer?.legal_name || a.legal_name || '—'}
+          </span>
+        </div>
+      ),
+    },
+    {
+      header: 'Commission',
+      render: a => (
+        <div className="flex flex-col gap-1 text-[11px]">
+          <span className="font-semibold text-gray-600">Type: <span className="text-gray-700 font-bold">{a.commission_type || 'PERCENTAGE'}</span></span>
+          <span className="font-semibold text-gray-600">Rate: <span className="text-gray-700 font-bold">{a.commission_rate ? `${a.commission_rate}${a.commission_type === 'PERCENTAGE' ? '%' : ''}` : '—'}</span></span>
         </div>
       ),
     },
     {
       header: 'Territory',
       render: a => (
-        <span className="text-xs text-gray-600">{a.territory || 'Not Set'}</span>
+        <div className="flex flex-col gap-1 text-[11px]">
+          <span className="font-semibold text-gray-600">{a.territory || 'Not Set'}</span>
+          <span className="font-semibold text-gray-600">Contact: <span className="font-bold text-gray-700">{a.contact_person || '—'}</span></span>
+        </div>
       ),
     },
     {
@@ -178,7 +208,7 @@ const AgentsDashboard = () => {
         const st = getStatusStyle(status);
         return (
           <Badge className={`${st.bg} ${st.text} border-transparent`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${st.dot} mr-1.5`} />
+            <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
             {status}
           </Badge>
         );
@@ -187,9 +217,14 @@ const AgentsDashboard = () => {
     {
       header: 'Actions',
       render: a => (
-        <button onClick={() => openEdit(a)} className="p-2 text-gray-400 hover:text-[#0052CC] transition-all">
-          <Pencil size={14} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={(e) => { e.stopPropagation(); openEdit(a); }}
+            className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-all active:scale-95 shadow-sm"
+          >
+            <Pencil size={12} /> Edit
+          </button>
+        </div>
       ),
     },
   ];
@@ -329,14 +364,14 @@ const AgentsDashboard = () => {
               </thead>
                 <tbody className="divide-y divide-gray-50">
                   {agents.map(a => (
-                    <tr key={a.id} className="hover:bg-blue-50/30 transition-colors">
+                    <tr key={a.id} onClick={() => openView(a)} className="hover:bg-blue-50/40 transition-all cursor-pointer border-l-2 border-l-transparent hover:border-l-[#0052CC] group/row">
                       {COLUMNS.map(col => (
                         <td key={col.header} className="px-4 py-3 whitespace-nowrap align-middle">{col.render(a)}</td>
                       ))}
                     </tr>
                   ))}
                   {agents.length === 0 && (
-                    <tr>
+                    <tr key="empty">
                       <td colSpan={COLUMNS.length} className="px-4 py-16 text-center text-gray-400">
                         <Anchor size={32} className="mx-auto mb-2 opacity-30" />
                         <p className="text-sm">No agents found</p>
@@ -368,16 +403,19 @@ const AgentsDashboard = () => {
           maxWidth="max-w-xl"
         >
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Customer" required error={errors.customer_id}>
-              <Sel value={form.customer_id} onChange={e => setField('customer_id', e.target.value)} disabled={modal.type === 'edit'}>
-                <option value="">-- Select Customer --</option>
-                {eligibleCustomers.map(c => (
-                  <option key={c.id} value={c.id}>{c.legal_name}</option>
-                ))}
-              </Sel>
-            </Field>
-            <Field label="Agent Code" required error={errors.agent_code}>
-              <Input value={form.agent_code} onChange={e => setField('agent_code', e.target.value)} placeholder="e.g. AG-001" />
+            <Field label="Legal Name" required error={errors.customer_id}>
+              <Input
+                value={form.legal_name || ''}
+                onChange={e => {
+                  const val = e.target.value;
+                  setField('legal_name', val);
+                  const match = eligibleCustomers.find(c => c.legal_name?.toLowerCase() === val.toLowerCase());
+                  if (match) setField('customer_id', match.id);
+                  else setField('customer_id', '');
+                }}
+                disabled={modal.type === 'edit'}
+                placeholder="Enter customer legal name..."
+              />
             </Field>
             <Field label="Status">
               <Sel value={form.status} onChange={e => setField('status', e.target.value)} disabled={modal.type === 'view'}>
@@ -414,59 +452,37 @@ const AgentsDashboard = () => {
           deleting={deleteMutation.isPending}
         />
       )}
-    </div>
+    
+      {modal?.type === 'view' && (
+        <Modal
+          title={`View — ${modal.agent?.customer?.legal_name || modal.agent?.agent_code}`}
+          onClose={closeModal}
+          maxWidth="max-w-4xl"
+          isView={true}
+        >
+          <AgentOverview
+            agent={modal.agent}
+            onEdit={() => {
+              const a = modal.agent;
+              closeModal();
+              setTimeout(() => openEdit(a), 100);
+            }}
+          />
+        </Modal>
+      )}
+</div>
   );
 };
 
-const TABS = [
-  { id: 'OVERVIEW', label: 'Overview', icon: LucideInfo },
-  { id: 'ADDRESSES', label: 'Addresses', icon: MapPin },
-  { id: 'CONTACTS', label: 'Contacts', icon: Phone },
-  { id: 'DOCUMENTS', label: 'Documents', icon: FileText },
-  { id: 'CONTRACTS', label: 'Contracts', icon: ClipboardList },
-  { id: 'NOTES', label: 'Notes', icon: LucideInfo },
-  { id: 'CREDIT', label: 'Credit', icon: History },
-];
 
-const ViewAgentContent = ({ agent: a, onEdit }) => {
-  const [activeTab, setActiveTab] = useState('OVERVIEW');
-  const customerId = a?.customer?.id;
 
-  return (
-    <div className="flex flex-col h-full max-h-[85vh]">
-      <div className="flex items-center gap-1 border-b border-gray-100 mb-4 overflow-x-auto no-scrollbar pb-1">
-        {TABS.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-bold whitespace-nowrap transition-all rounded-t-xl
-              ${activeTab === tab.id
-                ? 'text-[#0052CC] bg-[#EBF3FF] border-b-2 border-[#0052CC]'
-                : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'}`}
-          >
-            <tab.icon size={14} />
-            {tab.label}
-          </button>
-        ))}
-      </div>
 
-      <div className="flex-1 overflow-y-auto pr-1">
-        {activeTab === 'OVERVIEW' && <AgentOverview agent={a} onEdit={onEdit} />}
-        {activeTab === 'ADDRESSES' && <CustomerAddresses customerId={customerId} />}
-        {activeTab === 'CONTACTS' && <CustomerContacts customerId={customerId} />}
-        {activeTab === 'DOCUMENTS' && <CustomerDocuments customerId={customerId} />}
-        {activeTab === 'CONTRACTS' && <CustomerContracts customerId={customerId} />}
-        {activeTab === 'NOTES' && <CustomerNotes customerId={customerId} />}
-        {activeTab === 'CREDIT' && <CustomerCreditHistoryView customerId={customerId} currentLimit={a?.customer?.credit_limit} />}
-      </div>
-    </div>
-  );
-};
 
 const AgentOverview = ({ agent: a, onEdit }) => (
   <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
     <div className="grid grid-cols-2 gap-4">
       <InfoCard label="Legal Name" value={a.customer?.legal_name} accent />
+      <InfoCard label="Customer Code" value={a.customer?.customer_code} />
       <InfoCard label="Agent Code" value={a.agent_code} />
       <InfoCard label="Contact Person" value={a.contact_person || 'Not Set'} />
     </div>
@@ -487,203 +503,10 @@ const AgentOverview = ({ agent: a, onEdit }) => (
   </div>
 );
 
-const CustomerAddresses = ({ customerId }) => {
-  const { data: addresses, isLoading } = useCustomerAddresses(customerId);
-  if (isLoading) return <Loader2 size={24} className="animate-spin text-[#0052CC] mx-auto my-12" />;
 
-  return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-      <SectionHeader title="Stored Addresses" count={addresses?.length} icon={MapPin} />
-      {addresses?.length === 0 ? (
-        <EmptyState text="No addresses found" icon={MapPin} />
-      ) : (
-        <div className="grid gap-3">
-          {addresses?.map(addr => (
-            <div key={addr.id} className="p-4 rounded-xl border border-gray-100 bg-white hover:border-blue-200 transition-all flex justify-between items-start group">
-              <div className="flex gap-3">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500 shrink-0">
-                  <MapPin size={14} />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-[#0052CC]">{addr.address_type}</span>
-                    {addr.is_default && <Badge className="bg-green-50 text-green-700 border-green-200">Default</Badge>}
-                  </div>
-                  <p className="text-sm font-bold text-[#172B4D] leading-tight">{addr.address_line1}</p>
-                  {addr.address_line2 && <p className="text-xs text-gray-500 mt-0.5">{addr.address_line2}</p>}
-                  <p className="text-xs text-gray-400 font-medium mt-1 uppercase tracking-tight">{addr.city}, {addr.state} — {addr.postal_code}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
 
-const CustomerContacts = ({ customerId }) => {
-  const { data: contacts, isLoading } = useCustomerContacts(customerId);
-  if (isLoading) return <Loader2 size={24} className="animate-spin text-[#0052CC] mx-auto my-12" />;
 
-  return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-      <SectionHeader title="Contact Directory" count={contacts?.length} icon={Phone} />
-      {contacts?.length === 0 ? (
-        <EmptyState text="No contacts found" icon={Phone} />
-      ) : (
-        <div className="grid gap-3">
-          {contacts?.map(contact => (
-            <div key={contact.id} className="p-4 rounded-xl border border-gray-100 bg-white hover:border-blue-200 transition-all flex gap-3">
-              <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-[#172B4D] font-black text-sm border border-gray-100 shrink-0">
-                {contact.first_name?.[0]}{contact.last_name?.[0]}
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-black text-[#172B4D]">{contact.first_name} {contact.last_name}</p>
-                  {contact.is_primary && <Badge className="bg-blue-50 text-blue-700 border-blue-200">Primary</Badge>}
-                </div>
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-none mt-1">{contact.designation || 'Staff'}</p>
-                <div className="flex items-center gap-4 mt-2">
-                  {contact.email && <span className="text-[11px] text-[#0052CC] font-mono flex items-center gap-1"><FileText size={10} /> {contact.email}</span>}
-                  {contact.mobile && <span className="text-[11px] text-gray-500 font-bold flex items-center gap-1"><Phone size={10} /> {contact.mobile}</span>}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
 
-const CustomerDocuments = ({ customerId }) => {
-  const { data: docs, isLoading } = useCustomerDocuments(customerId);
-  if (isLoading) return <Loader2 size={24} className="animate-spin text-[#0052CC] mx-auto my-12" />;
 
-  return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-      <SectionHeader title="Compliance Documents" count={docs?.length} icon={FileText} />
-      {docs?.length === 0 ? (
-        <EmptyState text="No documents uploaded" icon={FileText} />
-      ) : (
-        <div className="grid gap-3">
-          {docs?.map(doc => (
-            <div key={doc.id} className="p-3 pr-4 rounded-xl border border-gray-100 bg-white hover:border-blue-200 transition-all flex items-center justify-between group">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400"><FileText size={20} /></div>
-                <div>
-                  <p className="text-sm font-bold text-[#172B4D]">{doc.document_type}</p>
-                  <p className="text-[10px] font-mono text-gray-400 uppercase tracking-tight">{doc.document_number}</p>
-                  <div className="flex items-center gap-3 mt-1.5">
-                    <Badge className={doc.verified_status === 'VERIFIED' ? 'bg-green-50 text-green-700' : 'bg-orange-50 text-orange-700'}>{doc.verified_status}</Badge>
-                    {doc.expiry_date && <span className="text-[10px] font-bold text-gray-400">Expires: {new Date(doc.expiry_date).toLocaleDateString()}</span>}
-                  </div>
-                </div>
-              </div>
-              <a href={doc.file_url} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-lg bg-gray-50 text-gray-400 flex items-center justify-center hover:bg-[#0052CC] hover:text-white transition-all"><Eye size={14} /></a>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const CustomerContracts = ({ customerId }) => {
-  const { data: contracts, isLoading } = useCustomerContracts(customerId);
-  if (isLoading) return <Loader2 size={24} className="animate-spin text-[#0052CC] mx-auto my-12" />;
-
-  return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-      <SectionHeader title="Legal Contracts" count={contracts?.length} icon={ClipboardList} />
-      {contracts?.length === 0 ? (
-        <EmptyState text="No contracts active" icon={ClipboardList} />
-      ) : (
-        <div className="grid gap-3">
-          {contracts?.map(contract => (
-            <div key={contract.id} className="p-4 rounded-xl border border-gray-100 bg-white hover:border-blue-200 transition-all">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <p className="text-sm font-black text-[#172B4D]">{contract.contract_number}</p>
-                  <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">{contract.contract_type}</p>
-                </div>
-                <Badge className={contract.status === 'ACTIVE' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}>{contract.status}</Badge>
-              </div>
-              <div className="grid grid-cols-2 gap-4 mt-3 pt-3 border-t border-gray-50">
-                <div>
-                  <span className="text-[10px] font-black text-gray-300 uppercase block mb-0.5">Start Date</span>
-                  <span className="text-xs font-bold text-[#172B4D]">{new Date(contract.start_date).toLocaleDateString()}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] font-black text-gray-300 uppercase block mb-0.5">End Date</span>
-                  <span className="text-xs font-bold text-[#172B4D]">{contract.end_date ? new Date(contract.end_date).toLocaleDateString() : 'Indefinite'}</span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const CustomerNotes = ({ customerId }) => {
-  const { data: notes, isLoading } = useCustomerNotes(customerId);
-  if (isLoading) return <Loader2 size={24} className="animate-spin text-[#0052CC] mx-auto my-12" />;
-
-  return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-      <SectionHeader title="Agent Notes" count={notes?.length} icon={LucideInfo} />
-      {notes?.length === 0 ? (
-        <EmptyState text="No notes available" icon={LucideInfo} />
-      ) : (
-        <div className="space-y-3">
-          {notes?.map(note => (
-            <div key={note.id} className="p-4 rounded-xl bg-gray-50 border border-gray-100">
-              <div className="flex justify-between items-center mb-2">
-                <Badge className="bg-white border-gray-200 text-gray-600 tracking-widest uppercase">{note.note_type}</Badge>
-                <span className="text-[10px] text-gray-400 font-bold">{new Date(note.created_at).toLocaleString()}</span>
-              </div>
-              <p className="text-sm text-gray-700 leading-relaxed italic">"{note.note}"</p>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const CustomerCreditHistoryView = ({ customerId, currentLimit }) => {
-  const { data: history, isLoading } = useCustomerCreditHistory(customerId);
-  if (isLoading) return <Loader2 size={24} className="animate-spin text-[#0052CC] mx-auto my-12" />;
-
-  return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-      <SectionHeader title="Credit Limit History" count={history?.length} icon={History} />
-      <div className="p-4 bg-[#EBF3FF] rounded-xl border border-[#0052CC]/10 mb-6">
-        <p className="text-[10px] font-black text-[#0052CC] uppercase tracking-widest mb-1 text-center">Current Active Limit</p>
-        <p className="text-3xl font-black text-[#172B4D] text-center">₹{Number(currentLimit || 0).toLocaleString('en-IN')}</p>
-      </div>
-
-      {history?.length === 0 ? (
-        <EmptyState text="No history entries" icon={History} />
-      ) : (
-        <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-px before:bg-gray-100">
-          {history?.map(entry => (
-            <div key={entry.id} className="relative">
-              <div className="absolute -left-[2.15rem] top-1.5 w-3 h-3 rounded-full bg-white border-2 border-[#0052CC]" />
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-sm font-black text-[#172B4D]">₹{Number(entry.credit_limit).toLocaleString('en-IN')}</p>
-                <span className="text-[10px] text-gray-400 font-bold uppercase">{new Date(entry.effective_date).toLocaleDateString()}</span>
-              </div>
-              {entry.reason && <p className="text-xs text-gray-400 leading-tight italic">Reason: {entry.reason}</p>}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
 
 export default AgentsDashboard;
