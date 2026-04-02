@@ -59,6 +59,7 @@ const STATUS_STYLES = {
   'Inactive': { bg: 'bg-orange-50', text: 'text-orange-700', dot: 'bg-orange-500' },
   'SUSPENDED': { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' },
   'Suspended': { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' },
+  'DELETED': { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' },
 };
 
 const getStatusStyle = (status) => STATUS_STYLES[status] || { bg: 'bg-gray-50', text: 'text-gray-600', dot: 'bg-gray-400' };
@@ -70,7 +71,8 @@ const ConsigneesDashboard = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   const { data, isLoading, isError, error, refetch } = useConsignees({
-    ...(statusFilter && { status: statusFilter }),
+    ...(statusFilter === 'DELETED' && { deleted_only: true }),
+    ...(statusFilter && statusFilter !== 'DELETED' && { customer__status: statusFilter }),
     ...(search && { search }),
     page: currentPage,
   });
@@ -330,7 +332,7 @@ const ConsigneesDashboard = () => {
     {
       header: 'Status',
       render: c => {
-        const status = c.customer?.status || 'ACTIVE';
+        const status = c.customer?.is_deleted ? 'DELETED' : (c.customer?.status || 'ACTIVE');
         const st = getStatusStyle(status);
         return (
           <Badge className={`${st.bg} ${st.text} border-transparent`}>
@@ -459,6 +461,7 @@ const ConsigneesDashboard = () => {
             { value: 'INACTIVE', label: 'Inactive' },
             { value: 'SUSPENDED', label: 'Suspended' },
             { value: 'BLACKLISTED', label: 'Blacklisted' },
+            { value: 'DELETED', label: 'Deleted' },
           ]}
           ordering={ordering}
           onOrderingChange={(value) => { setOrdering(value); setCurrentPage(1); }}
