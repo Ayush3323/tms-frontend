@@ -2,6 +2,8 @@ import React from 'react';
 import { RotateCcw } from 'lucide-react';
 
 const CustomerListFilterBar = ({
+  visibilityFilter = 'active',
+  onVisibilityChange,
   statusFilter,
   onStatusChange,
   statusOptions = [],
@@ -18,7 +20,30 @@ const CustomerListFilterBar = ({
   isLoading,
 }) => {
   return (
-    <div className="flex items-center justify-between px-5 py-3 bg-white border-b border-gray-50 min-h-[60px]">
+    <div className="flex flex-col gap-2 px-5 py-3 bg-white border-b border-gray-50 min-h-[60px]">
+      {onVisibilityChange && (
+        <div className="inline-flex w-fit items-center rounded-lg bg-gray-100 p-1">
+          {[
+            { id: 'active', label: 'Active' },
+            { id: 'deleted', label: 'Deleted' },
+            { id: 'all', label: 'All' },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => onVisibilityChange(tab.id)}
+              className={`px-3 py-1 text-[11px] font-bold rounded-md transition-all ${
+                visibilityFilter === tab.id
+                  ? 'bg-[#0052CC] text-white shadow-sm'
+                  : 'text-gray-600 hover:text-[#0052CC]'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between">
       <div className="flex items-center gap-3">
         <select
           value={statusFilter}
@@ -74,6 +99,7 @@ const CustomerListFilterBar = ({
         >
           Next
         </button>
+      </div>
       </div>
     </div>
   );
