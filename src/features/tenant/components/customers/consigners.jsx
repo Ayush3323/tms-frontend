@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   ChevronDown, Loader2, AlertTriangle, UserPlus, Pencil, RotateCcw,
   MapPin, Phone, FileText, ClipboardList, Wallet, History, Building2, Info as LucideInfo,
@@ -13,6 +13,8 @@ import {
   useCustomerContracts, useCustomerNotes, useCustomerCreditHistory,
   useConsignors, useCustomers, useCreateConsignor, useUpdateConsignor, useDeleteConsignor
 } from '../../queries/customers/customersQuery';
+import { useUsers } from '../../queries/users/userQuery';
+import { useVehicleTypes } from '../../queries/vehicles/vehicletypeQuery';
 import { TableShimmer, ErrorState } from '../Vehicles/Common/StateFeedback';
 import CustomerListFilterBar from './CustomerListFilterBar';
 
@@ -26,7 +28,21 @@ const EMPTY_FORM = {
   loading_bay_count: '',
   avg_loading_time_minutes: '',
   preferred_vehicle_types: '',
+  warehouse_address: '',
+  sales_person_id: '',
+  account_manager_id: '',
+  user_id: '',
   status: 'ACTIVE',
+  user: {
+    username: '',
+    email: '',
+    password: '',
+    password_confirm: '',
+    first_name: '',
+    last_name: '',
+    phone: '',
+    account_type: 'CUSTOMER'
+  }
 };
 
 const STATUS_STYLES = {
@@ -66,10 +82,31 @@ const Consignors = () => {
 
   const { data: customerData } = useCustomers({ limit: 1000 });
   const allCustomers = customerData?.results ?? customerData ?? [];
+
   const [modal, setModal] = useState(null);
   const [deleteTarget, setDelete] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
+  const [createPortalUser, setCreatePortalUser] = useState(false);
+
+  const { data: userData } = useUsers({ limit: 1000 });
+  const allUsers = userData?.results ?? userData ?? [];
+
+  const userToCustomerMap = useMemo(() => {
+    const map = {};
+    allCustomers?.forEach(c => {
+      const uid = c.user?.id || c.user_id || c.portal_user_id;
+      if (uid) {
+        map[String(uid)] = c.legal_name || c.name || c.trading_name || 'Another Customer';
+      }
+    });
+    console.log('UserToCustomerMap Built:', map);
+    return map;
+  }, [allCustomers]);
+
+  const portalUsers = useMemo(() => {
+    return (allUsers || []).filter(u => u.account_type === 'CUSTOMER');
+  }, [allUsers]);
 
   const eligibleCustomers = allCustomers.filter(c =>
     c.customer_type === 'CONSIGNOR' ||
@@ -77,6 +114,23 @@ const Consignors = () => {
     c.customer_type === 'OTHER' ||
     c.id === form.customer_id
   );
+
+  // Auto-generate Consignor Code when Customer is selected in Create mode
+  useEffect(() => {
+    if (modal?.type === 'create' && form.customer_id && !form.consignor_code) {
+      const customer = eligibleCustomers.find(c => c.id === form.customer_id);
+      if (customer) {
+        const initials = (customer.legal_name || 'CONS')
+          .split(' ')
+          .map(word => word[0])
+          .join('')
+          .toUpperCase()
+          .slice(0, 3);
+        const randomSuffix = Math.floor(100 + Math.random() * 900);
+        setField('consignor_code', `CONS-${initials}-${randomSuffix}`);
+      }
+    }
+  }, [form.customer_id, modal?.type]);
 
   const createMutation = useCreateConsignor();
   const updateMutation = useUpdateConsignor();
@@ -91,6 +145,7 @@ const Consignors = () => {
   const openEdit = (c) => {
     setForm({
       customer_id: c.customer_id ?? '',
+      legal_name: c.customer?.legal_name ?? '',
       consignor_code: c.consignor_code ?? '',
       business_volume_tons_per_month: c.business_volume_tons_per_month ?? '',
       business_volume_value_per_month: c.business_volume_value_per_month ?? '',
@@ -99,6 +154,10 @@ const Consignors = () => {
       loading_bay_count: c.loading_bay_count ?? '',
       avg_loading_time_minutes: c.avg_loading_time_minutes ?? '',
       preferred_vehicle_types: c.preferred_vehicle_types?.join(', ') || '',
+      warehouse_address: c.warehouse_address ?? '',
+      sales_person_id: c.customer?.sales_person_id ?? c.customer?.sales_person?.id ?? '',
+      account_manager_id: c.customer?.account_manager_id ?? c.customer?.account_manager?.id ?? '',
+      user_id: c.customer?.user_id ?? '',
       status: c.customer?.status ?? 'ACTIVE',
     });
     setErrors({});
@@ -114,15 +173,32 @@ const Consignors = () => {
 
   const validate = () => {
     const e = {};
-    if (!form.customer_id) e.customer_id = 'Customer ID is required';
+    if (!form.customer_id) e.customer_id = 'Select a customer';
     if (!form.consignor_code?.trim()) e.consignor_code = 'Consignor code is required';
+
+    if (createPortalUser && modal?.type === 'create') {
+      if (!form.user.email) e['user.email'] = 'Email is required';
+      if (!form.user.username) e['user.username'] = 'Username is required';
+      if (!form.user.password) e['user.password'] = 'Password is required';
+      if (form.user.password !== form.user.password_confirm) e['user.password_confirm'] = 'Passwords must match';
+      if (!form.user.first_name) e['user.first_name'] = 'First name is required';
+    }
+
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
-  const setField = (k, v) => {
-    setForm(prev => ({ ...prev, [k]: v }));
-    if (errors[k]) setErrors(prev => { const n = { ...prev }; delete n[k]; return n; });
+  const setField = (key, value) => {
+    if (key.includes('.')) {
+      const [parent, child] = key.split('.');
+      setForm(prev => ({
+        ...prev,
+        [parent]: { ...prev[parent], [child]: value }
+      }));
+    } else {
+      setForm(prev => ({ ...prev, [key]: value }));
+    }
+    if (errors[key]) setErrors(prev => { const n = { ...prev }; delete n[key]; return n; });
   };
 
   const handleSubmit = () => {
@@ -133,9 +209,20 @@ const Consignors = () => {
     const payload = { ...selectedCustomer, ...form };
 
     // Clean up to prevent sending the customer's nested object or original ID collision
+    if (createPortalUser && modal.type === 'create') {
+      // user is already in payload because form.user is in payload
+    } else {
+      delete payload.user;
+    }
+
     delete payload.customer;
     delete payload.customer_code;
     if (modal.type === 'create') delete payload.id;
+
+    // Nullify empty ID and address fields
+    ['sales_person_id', 'account_manager_id', 'user_id', 'warehouse_address'].forEach(key => {
+      if (typeof payload[key] === 'string' && !payload[key].trim()) payload[key] = null;
+    });
 
     // Nullify empty number fields
     if (!payload.business_volume_tons_per_month) payload.business_volume_tons_per_month = null;
@@ -151,9 +238,23 @@ const Consignors = () => {
     }
 
     if (modal.type === 'create') {
-      createMutation.mutate(payload, { onSuccess: () => closeModal() });
+      createMutation.mutate(payload, {
+        onSuccess: () => closeModal(),
+        onError: (err) => {
+          if (err.response?.status === 400 && err.response.data?.details) {
+            setErrors(err.response.data.details);
+          }
+        }
+      });
     } else {
-      updateMutation.mutate({ id: modal.id, data: payload }, { onSuccess: () => closeModal() });
+      updateMutation.mutate({ id: modal.id, data: payload }, {
+        onSuccess: () => closeModal(),
+        onError: (err) => {
+          if (err.response?.status === 400 && err.response.data?.details) {
+            setErrors(err.response.data.details);
+          }
+        }
+      });
     }
   };
 
@@ -169,14 +270,25 @@ const Consignors = () => {
 
   const COLUMNS = [
     {
+      header: 'Customer Code',
+      render: c => (
+        <div className="flex flex-col items-start gap-0.5 leading-none">
+          <span className="font-mono text-[13px] font-black text-[#172B4D] block">
+            {c.customer?.customer_code ?? '—'}
+          </span>
+          <span className="text-[9px] font-mono text-blue-500/60 tracking-tighter uppercase font-bold block">
+            Cons: {c.consignor_code ?? '—'}
+          </span>
+        </div>
+      ),
+    },
+    {
       header: 'Legal Name',
       render: c => (
-        <div className="text-left">
-          <button onClick={() => openView(c)}
-            className="font-bold text-[#172B4D] text-[13px] hover:text-[#0052CC] transition-all hover:scale-105 active:scale-95 text-left block">
-            {c.customer?.legal_name ?? '—'}
-          </button>
-          <div className="text-[11px] font-mono text-gray-400">{c.consignor_code ?? ''}</div>
+        <div className="text-left py-1">
+          <span className="font-bold text-[#172B4D] text-[13px] block leading-tight">
+            {c.customer?.legal_name || c.legal_name || '—'}
+          </span>
         </div>
       ),
     },
@@ -193,8 +305,8 @@ const Consignors = () => {
       header: 'Business Volume',
       render: c => (
         <div className="flex flex-col gap-1 text-[11px]">
-          <span className="font-semibold text-gray-600">Tons/Mo: {c.business_volume_tons_per_month || '—'}</span>
-          <span className="font-semibold text-gray-600">Value/Mo: {c.business_volume_value_per_month ? `₹${Number(c.business_volume_value_per_month).toLocaleString('en-IN')}` : '—'}</span>
+          <span className="font-semibold text-gray-600">Tons/M: {c.business_volume_tons_per_month || '—'}</span>
+          <span className="font-semibold text-gray-600">Value/M: {c.business_volume_value_per_month ? `₹${Number(c.business_volume_value_per_month).toLocaleString('en-IN')}` : '—'}</span>
         </div>
       ),
     },
@@ -215,7 +327,10 @@ const Consignors = () => {
       header: 'Actions',
       render: c => (
         <div className="flex items-center gap-2">
-          <button onClick={() => openEdit(c)} className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-all">
+          <button
+            onClick={(e) => { e.stopPropagation(); openEdit(c); }}
+            className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-all active:scale-95 shadow-sm"
+          >
             <Pencil size={12} /> Edit
           </button>
         </div>
@@ -368,7 +483,11 @@ const Consignors = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {consignors.map(c => (
-                    <tr key={c.id || c.code} className="hover:bg-blue-50/30 transition-colors">
+                    <tr
+                      key={c.id || (c.customer?.customer_code + '-' + c.consignor_code)}
+                      onClick={() => openView(c)}
+                      className="hover:bg-blue-50/40 transition-all cursor-pointer border-l-2 border-l-transparent hover:border-l-[#0052CC] group/row"
+                    >
                       {COLUMNS.map(col => (
                         <td key={col.header} className="px-4 py-3 whitespace-nowrap align-middle">{col.render(c)}</td>
                       ))}
@@ -398,7 +517,7 @@ const Consignors = () => {
 
       {deleteTarget && (
         <DeleteConfirm label="Consignor" onClose={() => setDelete(null)}
-          onConfirm={() => deleteMutation.mutate(deleteTarget.id, { onSuccess: () => setDelete(null) })}
+          onConfirm={() => deleteMutation.mutate(deleteTarget.customer_id || deleteTarget.id, { onSuccess: () => setDelete(null) })}
           deleting={deleteMutation.isPending} />
       )}
 
@@ -413,19 +532,20 @@ const Consignors = () => {
         >
           <div className="grid grid-cols-2 gap-4">
             <Section title="Consignor Details" className="col-span-2" />
-            <Field label="Customer ID" required error={errors.customer_id}>
-              <Sel value={form.customer_id} onChange={e => setField('customer_id', e.target.value)} disabled={modal.type === 'edit' || modal.type === 'view'}>
-                <option value="">-- Select Customer --</option>
-                {eligibleCustomers.map(c => (
-                  <option key={c.id} value={c.id}>
-                    {c.legal_name || c.trading_name || 'Unnamed'}
-                  </option>
-                ))}
-              </Sel>
-            </Field>
-            <Field label="Consignor Code" required error={errors.consignor_code}>
-              <Input value={form.consignor_code} onChange={e => setField('consignor_code', e.target.value)} disabled={modal.type === 'view'}
-                placeholder="e.g. CONS-001" />
+            <Field label="Legal Name" required error={errors.customer_id}>
+              <Input
+                value={form.legal_name || ''}
+                onChange={e => {
+                  const val = e.target.value;
+                  setField('legal_name', val);
+                  const match = eligibleCustomers.find(c => c.legal_name?.toLowerCase() === val.toLowerCase());
+                  if (match) setField('customer_id', match.id);
+                  else setField('customer_id', '');
+                }}
+                disabled={modal.type === 'edit' || modal.type === 'view'}
+                placeholder="Enter customer legal name..."
+                className="bg-white"
+              />
             </Field>
             <Field label="Status">
               <Sel value={form.status} onChange={e => setField('status', e.target.value)} disabled={modal.type === 'view'}>
@@ -466,9 +586,142 @@ const Consignors = () => {
             </Field>
 
             <Field label="Preferred Vehicle Types" className="col-span-2">
-              <Input value={form.preferred_vehicle_types} onChange={e => setField('preferred_vehicle_types', e.target.value)} disabled={modal.type === 'view'}
-                placeholder="TRUCK, VAN, TRAILER (comma separated)" />
+              <VehicleTypeMultiSelect
+                value={form.preferred_vehicle_types}
+                onChange={val => setField('preferred_vehicle_types', val)}
+                disabled={modal.type === 'view'}
+              />
             </Field>
+
+            <Field label="Warehouse Address" className="col-span-2">
+              <Input
+                value={form.warehouse_address || ''}
+                onChange={e => setField('warehouse_address', e.target.value)}
+                disabled={modal.type === 'view'}
+                placeholder="Enter full warehouse address..."
+              />
+            </Field>
+
+            <Section title="Relationship Management" className="col-span-2" />
+            <Field label="Sales Person">
+              <Sel
+                value={form.sales_person_id || ''}
+                onChange={e => setField('sales_person_id', e.target.value)}
+                disabled={modal.type === 'view'}
+              >
+                <option value="">-- No Assignment --</option>
+                {allUsers.filter(u => u.account_type === 'EMPLOYEE' || u.account_type === 'MANAGER').map(u => (
+                  <option key={u.id} value={u.id}>{u.full_name || u.username}</option>
+                ))}
+              </Sel>
+            </Field>
+            <Field label="Account Manager">
+              <Sel
+                value={form.account_manager_id || ''}
+                onChange={e => setField('account_manager_id', e.target.value)}
+                disabled={modal.type === 'view'}
+              >
+                <option value="">-- No Assignment --</option>
+                {allUsers.filter(u => u.account_type === 'EMPLOYEE' || u.account_type === 'MANAGER').map(u => (
+                  <option key={u.id} value={u.id}>{u.full_name || u.username}</option>
+                ))}
+              </Sel>
+            </Field>
+            {!createPortalUser && (
+              <Field label="Portal User (Linked User)" className="col-span-2" error={errors.user_id}>
+                <Sel
+                  value={form.user_id || ''}
+                  onChange={e => setField('user_id', e.target.value)}
+                  disabled={modal.type === 'view'}
+                >
+                  <option value="">-- No Linked User --</option>
+                  {portalUsers.map(u => {
+                    const linkedTo = userToCustomerMap[String(u.id)];
+                    // If it's already linked to THIS customer, we should allow it (though it might already be selected)
+                    const currentUserId = modal?.consignor?.customer?.user_id || modal?.consignor?.customer?.user?.id;
+                    const isLinkedToOther = linkedTo && String(u.id) !== String(currentUserId);
+                    const displayName = u.full_name || u.username;
+                    
+                    return (
+                      <option key={u.id} value={u.id} disabled={isLinkedToOther}>
+                        {displayName} ({u.email}){linkedTo ? ` — [Linked to ${linkedTo}]` : ''}
+                      </option>
+                    );
+                  })}
+                </Sel>
+              </Field>
+            )}
+
+            {modal.type === 'create' && (
+              <div className="col-span-2 bg-blue-50/50 p-4 rounded-xl border border-blue-100 mt-2">
+                <label className="flex items-center gap-2 cursor-pointer mb-4">
+                  <input
+                    type="checkbox"
+                    checked={createPortalUser}
+                    onChange={e => setCreatePortalUser(e.target.checked)}
+                    className="w-4 h-4 text-[#0052CC] border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm font-bold text-[#172B4D]">Create New Portal User for this Consignor</span>
+                </label>
+
+                {createPortalUser && (
+                  <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <Field label="Username" required error={errors['user.username']}>
+                      <Input
+                        value={form.user.username}
+                        onChange={e => setField('user.username', e.target.value)}
+                        placeholder="john_doe"
+                      />
+                    </Field>
+                    <Field label="Email Address" required error={errors['user.email']}>
+                      <Input
+                        type="email"
+                        value={form.user.email}
+                        onChange={e => setField('user.email', e.target.value)}
+                        placeholder="john@example.com"
+                      />
+                    </Field>
+                    <Field label="Password" required error={errors['user.password']}>
+                      <Input
+                        type="password"
+                        value={form.user.password}
+                        onChange={e => setField('user.password', e.target.value)}
+                        placeholder="••••••••"
+                      />
+                    </Field>
+                    <Field label="Confirm Password" required error={errors['user.password_confirm']}>
+                      <Input
+                        type="password"
+                        value={form.user.password_confirm}
+                        onChange={e => setField('user.password_confirm', e.target.value)}
+                        placeholder="••••••••"
+                      />
+                    </Field>
+                    <Field label="First Name" required error={errors['user.first_name']}>
+                      <Input
+                        value={form.user.first_name}
+                        onChange={e => setField('user.first_name', e.target.value)}
+                        placeholder="John"
+                      />
+                    </Field>
+                    <Field label="Last Name" error={errors['user.last_name']}>
+                      <Input
+                        value={form.user.last_name}
+                        onChange={e => setField('user.last_name', e.target.value)}
+                        placeholder="Doe"
+                      />
+                    </Field>
+                    <Field label="Phone Number" error={errors['user.phone']}>
+                      <Input
+                        value={form.user.phone}
+                        onChange={e => setField('user.phone', e.target.value)}
+                        placeholder="+91 ..."
+                      />
+                    </Field>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </Modal>
       )}
@@ -478,6 +731,7 @@ const Consignors = () => {
           title={`View — ${modal.consignor?.customer?.legal_name || modal.consignor?.consignor_code}`}
           onClose={closeModal}
           maxWidth="max-w-4xl"
+          isView={true}
         >
           <ViewConsignorContent
             consignor={modal.consignor}
@@ -493,47 +747,12 @@ const Consignors = () => {
   );
 };
 
-const TABS = [
-  { id: 'OVERVIEW', label: 'Overview', icon: LucideInfo },
-  { id: 'ADDRESSES', label: 'Addresses', icon: MapPin },
-  { id: 'CONTACTS', label: 'Contacts', icon: Phone },
-  { id: 'DOCUMENTS', label: 'Documents', icon: FileText },
-  { id: 'CONTRACTS', label: 'Contracts', icon: ClipboardList },
-  { id: 'NOTES', label: 'Notes', icon: LucideInfo },
-  { id: 'CREDIT', label: 'Credit', icon: History },
-];
+// TABS removed as per user request to simplify the view
 
 const ViewConsignorContent = ({ consignor: c, onEdit }) => {
-  const [activeTab, setActiveTab] = useState('OVERVIEW');
-  const customerId = c?.customer?.id;
-
   return (
-    <div className="flex flex-col h-full max-h-[85vh]">
-      <div className="flex items-center gap-1 border-b border-gray-100 mb-4 overflow-x-auto no-scrollbar pb-1">
-        {TABS.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-bold whitespace-nowrap transition-all rounded-t-xl
-              ${activeTab === tab.id
-                ? 'text-[#0052CC] bg-[#EBF3FF] border-b-2 border-[#0052CC]'
-                : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'}`}
-          >
-            <tab.icon size={14} />
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="flex-1 overflow-y-auto pr-1">
-        {activeTab === 'OVERVIEW' && <ConsignorOverview consignor={c} onEdit={onEdit} />}
-        {activeTab === 'ADDRESSES' && <CustomerAddresses customerId={customerId} />}
-        {activeTab === 'CONTACTS' && <CustomerContacts customerId={customerId} />}
-        {activeTab === 'DOCUMENTS' && <CustomerDocuments customerId={customerId} />}
-        {activeTab === 'CONTRACTS' && <CustomerContracts customerId={customerId} />}
-        {activeTab === 'NOTES' && <CustomerNotes customerId={customerId} />}
-        {activeTab === 'CREDIT' && <CustomerCreditHistoryView customerId={customerId} currentLimit={c?.customer?.credit_limit} />}
-      </div>
+    <div className="animate-in fade-in slide-in-from-bottom-3 duration-300">
+      <ConsignorOverview consignor={c} onEdit={onEdit} />
     </div>
   );
 };
@@ -542,7 +761,19 @@ const ConsignorOverview = ({ consignor: c, onEdit }) => (
   <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
     <div className="grid grid-cols-2 gap-4">
       <InfoCard label="Legal Name" value={c.customer?.legal_name} accent />
+      <InfoCard label="Customer Code" value={c.customer?.customer_code} />
       <InfoCard label="Consignor Code" value={c.consignor_code} />
+      <InfoCard label="Status" value={c.customer?.status} />
+    </div>
+
+    <Section title="Tax & Identification" />
+    <div className="grid grid-cols-2 gap-3">
+      <InfoCard label="Tax ID (GSTIN)" value={c.customer?.tax_id} />
+      <InfoCard label="PAN Number" value={c.customer?.pan_number} />
+    </div>
+
+    <Section title="Operations" />
+    <div className="grid grid-cols-2 gap-4">
       <InfoCard label="Hazardous Handling" value={c.hazardous_material_handling ? 'Yes' : 'No'} />
       <InfoCard label="Temp Controlled" value={c.temperature_controlled ? 'Yes' : 'No'} />
     </div>
@@ -560,11 +791,16 @@ const ConsignorOverview = ({ consignor: c, onEdit }) => (
       <InfoCard label="Monthly Value" value={c.business_volume_value_per_month ? `₹${Number(c.business_volume_value_per_month).toLocaleString('en-IN')}` : null} />
     </div>
 
-    <div className="pt-3 border-t border-gray-100 flex justify-end">
-      <button onClick={onEdit}
-        className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-xl hover:bg-[#0043A8] transition-all shadow-sm">
-        <Pencil size={14} /> Edit Profile
-      </button>
+    <Section title="Relationship Management" />
+    <div className="grid grid-cols-2 gap-3">
+      <InfoCard label="Sales Person" value={c.customer?.sales_person?.full_name || c.customer?.sales_person?.name || 'Not Assigned'} />
+      <InfoCard label="Account Manager" value={c.customer?.account_manager?.full_name || c.customer?.account_manager?.name || 'Not Assigned'} />
+      <InfoCard label="Portal User" value={c.customer?.portal_user?.username || c.customer?.user?.username || 'None'} />
+      <InfoCard label="Warehouse Address" value={c.warehouse_address || 'Not Provided'} />
+    </div>
+
+    <div className="pt-3 border-t border-gray-100 flex justify-end items-center gap-4">
+      <p className="text-[10px] text-gray-400 font-mono italic mr-auto">Created: {c.created_at ? new Date(c.created_at).toLocaleString() : '—'}</p>
     </div>
   </div>
 );
@@ -762,6 +998,112 @@ const CustomerCreditHistoryView = ({ customerId, currentLimit }) => {
               {entry.reason && <p className="text-xs text-gray-400 leading-tight italic">Reason: {entry.reason}</p>}
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+
+// CustomerAutocomplete removed as per user request for a plain text field
+
+const VehicleTypeMultiSelect = ({ value, onChange, disabled }) => {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const ref = useRef(null);
+
+  const { data: vtData, isLoading } = useVehicleTypes({ all: true }, { enabled: open || !!value });
+  const allTypes = vtData?.results ?? vtData ?? [];
+
+  const selectedIds = value ? value.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+  const filtered = query
+    ? allTypes.filter(t => (t.type_name || t.name || '').toLowerCase().includes(query.toLowerCase()))
+    : allTypes;
+
+  useEffect(() => {
+    const fn = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', fn);
+    return () => document.removeEventListener('mousedown', fn);
+  }, []);
+
+  const toggle = (typeName) => {
+    let next;
+    if (selectedIds.includes(typeName)) {
+      next = selectedIds.filter(id => id !== typeName);
+    } else {
+      next = [...selectedIds, typeName];
+    }
+    onChange(next.join(', '));
+  };
+
+  return (
+    <div className="relative" ref={ref}>
+      <div
+        onClick={() => !disabled && setOpen(!open)}
+        className={`w-full min-h-[42px] px-3 py-2 border border-gray-200 rounded-xl bg-white flex flex-wrap gap-1.5 items-center transition-all
+          ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:border-[#0052CC]/40 focus-within:ring-2 focus-within:ring-[#0052CC]/10'}`}
+      >
+        {selectedIds.length === 0 ? (
+          <span className="text-sm text-gray-400">Select vehicle types...</span>
+        ) : (
+          selectedIds.map(id => (
+            <span key={id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-[#0052CC] text-[11px] font-bold rounded-md border border-blue-100 uppercase tracking-tighter">
+              {id}
+              {!disabled && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); toggle(id); }}
+                  className="hover:text-red-500 transition-colors"
+                >
+                  ×
+                </button>
+              )}
+            </span>
+          ))
+        )}
+        <ChevronDown size={14} className={`ml-auto text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </div>
+
+      {open && !disabled && (
+        <div className="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="p-3 border-b border-gray-100 bg-gray-50/50">
+            <div className="relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                autoFocus
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                placeholder="Search vehicle types..."
+                className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20"
+              />
+            </div>
+          </div>
+          <ul className="max-h-64 overflow-y-auto p-1 py-2">
+            {isLoading ? (
+              <li className="px-4 py-6 text-center"><Loader2 size={24} className="animate-spin text-[#0052CC] mx-auto" /></li>
+            ) : filtered.length === 0 ? (
+              <li className="px-4 py-8 text-sm text-gray-400 text-center italic">No vehicle types found</li>
+            ) : (
+              filtered.map(t => {
+                const name = t.type_name || t.name;
+                const isSelected = selectedIds.includes(name);
+                return (
+                  <li
+                    key={t.id}
+                    onClick={() => toggle(name)}
+                    className={`px-4 py-2.5 rounded-xl cursor-pointer transition-all flex items-center justify-between group
+                      ${isSelected ? 'bg-blue-50 text-[#0052CC]' : 'hover:bg-gray-50 text-gray-700'}`}
+                  >
+                    <div className="flex flex-col">
+                      <span className={`text-sm ${isSelected ? 'font-bold' : 'font-medium'}`}>{name}</span>
+                      {t.capacity_tons && <span className="text-[10px] text-gray-400 uppercase font-black">Capacity: {t.capacity_tons} tons</span>}
+                    </div>
+                    {isSelected && <div className="w-2 h-2 rounded-full bg-[#0052CC]" />}
+                  </li>
+                );
+              })
+            )}
+          </ul>
         </div>
       )}
     </div>
