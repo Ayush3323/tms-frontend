@@ -62,11 +62,37 @@ const CustomersDashboard = () => {
     ...(debouncedSearch && { search: debouncedSearch }),
   });
 
+  // Stats must be pagination-independent; fetch per-status counts from backend.
+  const { data: allCountData } = useCustomers({
+    page: 1,
+    ...(customerTypeFilter && { customer_type: customerTypeFilter }),
+    ...(debouncedSearch && { search: debouncedSearch }),
+  });
+  const { data: activeCountData } = useCustomers({
+    page: 1,
+    status: 'ACTIVE',
+    ...(customerTypeFilter && { customer_type: customerTypeFilter }),
+    ...(debouncedSearch && { search: debouncedSearch }),
+  });
+  const { data: inactiveCountData } = useCustomers({
+    page: 1,
+    status: 'INACTIVE',
+    ...(customerTypeFilter && { customer_type: customerTypeFilter }),
+    ...(debouncedSearch && { search: debouncedSearch }),
+  });
+  const { data: suspendedCountData } = useCustomers({
+    page: 1,
+    status: 'SUSPENDED',
+    ...(customerTypeFilter && { customer_type: customerTypeFilter }),
+    ...(debouncedSearch && { search: debouncedSearch }),
+  });
+
   const customers = data?.results ?? data ?? [];
-  const total = data?.count ?? customers.length;
-  const active = customers.filter(c => c.status === 'ACTIVE').length;
-  const inactive = customers.filter(c => c.status === 'INACTIVE').length;
-  const suspended = customers.filter(c => c.status === 'SUSPENDED').length;
+  const total = allCountData?.count ?? data?.count ?? customers.length;
+  const active = activeCountData?.count ?? customers.filter(c => c.status === 'ACTIVE').length;
+  const inactive = inactiveCountData?.count ?? customers.filter(c => c.status === 'INACTIVE').length;
+  const suspended = suspendedCountData?.count ?? customers.filter(c => c.status === 'SUSPENDED').length;
+  const statsLoading = !allCountData || !activeCountData || !inactiveCountData || !suspendedCountData;
 
   const resetFilters = () => { setSearchTerm(''); setStatus(''); setCustomerTypeFilter(''); setOrdering('legal_name'); setCurrentPage(1); };
 
@@ -151,7 +177,7 @@ const CustomersDashboard = () => {
     <div className="p-6 flex flex-col gap-6 bg-[#F8FAFC] flex-1 min-h-0 overflow-hidden relative">
 
       {/* Page Title & Search Section */}
-      <div className="flex items-center mb-8">
+      <div className="flex items-center">
         {/* Title Block */}
         <div className="w-1/4">
           <h2 className="text-2xl font-bold text-[#172B4D]">Customers</h2>
@@ -208,7 +234,7 @@ const CustomersDashboard = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden mt-2">
         {/* Stats Row */}
         <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
-          {isLoading ? (
+          {statsLoading ? (
             <div className="flex gap-6 animate-pulse">
               <div className="h-5 bg-gray-200 rounded w-32"></div>
               <div className="h-5 bg-gray-200 rounded w-24"></div>

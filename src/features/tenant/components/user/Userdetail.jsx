@@ -86,6 +86,7 @@ const UserDetail = () => {
   const inactiveUsersCount = statsData?.inactive ?? users.filter(u => !u.is_deleted && u.status === 'INACTIVE').length;
   const suspendedUsersCount = statsData?.suspended ?? users.filter(u => !u.is_deleted && u.status === 'SUSPENDED').length;
   const deletedUsersCount = statsData?.deleted ?? users.filter(u => u.is_deleted).length;
+  const statsLoading = !statsData;
 
   const stats = [
     { label: "TOTAL USERS", value: totalUsers, sub: "All registered users", border: "border-gray-100" },
@@ -362,7 +363,7 @@ const UserDetail = () => {
   return (
     <main className="p-6 bg-[#F4F5F7] flex-1 min-h-0 flex flex-col relative overflow-hidden">
       {/* Page Title & Search Section */}
-      <div className="flex items-center mb-8">
+      <div className="flex items-center">
         {/* Title Block */}
         <div className="w-1/4">
           <h2 className="text-2xl font-bold text-[#172B4D]">Tenant Users</h2>
@@ -429,7 +430,7 @@ const UserDetail = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden mt-2">
         {/* Stats Row */}
         <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
-          {isLoading ? (
+          {statsLoading ? (
             <div className="flex gap-6 animate-pulse">
               <div className="h-5 bg-gray-200 rounded w-32"></div>
               <div className="h-5 bg-gray-200 rounded w-24"></div>

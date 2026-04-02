@@ -177,6 +177,10 @@ const ConsigneesDashboard = () => {
     if (!payload.dock_count) payload.dock_count = null;
     if (!payload.storage_capacity_sqft) payload.storage_capacity_sqft = null;
     if (!payload.avg_unloading_time_minutes) payload.avg_unloading_time_minutes = null;
+    if (!payload.delivery_time_slot_start) payload.delivery_time_slot_start = null;
+    if (!payload.delivery_time_slot_end) payload.delivery_time_slot_end = null;
+    if (!payload.receiving_hours_start) payload.receiving_hours_start = null;
+    if (!payload.receiving_hours_end) payload.receiving_hours_end = null;
     payload.documentation_requirements = payload.documentation_requirements
       ? payload.documentation_requirements.split(',').map(s => s.trim()).filter(Boolean)
       : [];
