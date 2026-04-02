@@ -6,8 +6,9 @@ import {
 } from 'lucide-react';
 import {
   Modal, Field, Input, Sel, Section, DeleteConfirm, Badge,
-  InfoCard, SectionHeader, EmptyState, VehicleTypeMultiSelect
-} from '../Vehicles/Common/VehicleCommon';
+  InfoCard, SectionHeader, EmptyState, VehicleTypeMultiSelect,
+  RelationshipManagementFields, CreatePortalUserSection, RelationshipOverviewSection
+} from './Common/CustomerCommon';
 import {
   useCustomerAddresses, useCustomerContacts, useCustomerDocuments,
   useCustomerContracts, useCustomerNotes, useCustomerCreditHistory,
@@ -15,7 +16,7 @@ import {
 } from '../../queries/customers/customersQuery';
 import { useUsers } from '../../queries/users/userQuery';
 import { TableShimmer, ErrorState } from '../Vehicles/Common/StateFeedback';
-import CustomerListFilterBar from './CustomerListFilterBar';
+import CustomerListFilterBar from './Common/CustomerListFilterBar';
 
 const EMPTY_FORM = {
   customer_id: '',
@@ -148,26 +149,27 @@ const Consignors = () => {
     setModal({ type: 'create' });
   };
 
-  const openEdit = (c) => {
+  const openEdit = (cl) => {
+    const { customer: cust = {}, ...consi } = cl;
     setForm({
-      customer_id: c.customer_id ?? '',
-      legal_name: c.customer?.legal_name ?? '',
-      consignor_code: c.consignor_code ?? '',
-      business_volume_tons_per_month: c.business_volume_tons_per_month ?? '',
-      business_volume_value_per_month: c.business_volume_value_per_month ?? '',
-      hazardous_material_handling: c.hazardous_material_handling ?? false,
-      temperature_controlled: c.temperature_controlled ?? false,
-      loading_bay_count: c.loading_bay_count ?? '',
-      avg_loading_time_minutes: c.avg_loading_time_minutes ?? '',
-      preferred_vehicle_types: c.preferred_vehicle_types?.join(', ') || '',
-      warehouse_address: c.warehouse_address ?? '',
-      sales_person_id: c.customer?.sales_person_id ?? c.customer?.sales_person?.id ?? '',
-      account_manager_id: c.customer?.account_manager_id ?? c.customer?.account_manager?.id ?? '',
-      user_id: c.customer?.user_id ?? '',
-      status: c.customer?.status ?? 'ACTIVE',
+      customer_id: consi.customer_id ?? '',
+      legal_name: cust.legal_name ?? '',
+      consignor_code: consi.consignor_code ?? '',
+      business_volume_tons_per_month: consi.business_volume_tons_per_month ?? '',
+      business_volume_value_per_month: consi.business_volume_value_per_month ?? '',
+      hazardous_material_handling: consi.hazardous_material_handling ?? false,
+      temperature_controlled: consi.temperature_controlled ?? false,
+      loading_bay_count: consi.loading_bay_count ?? '',
+      avg_loading_time_minutes: consi.avg_loading_time_minutes ?? '',
+      preferred_vehicle_types: consi.preferred_vehicle_types?.join(', ') || '',
+      warehouse_address: consi.warehouse_address ?? '',
+      sales_person_id: cust.sales_person_id ?? cust.sales_person?.id ?? '',
+      account_manager_id: cust.account_manager_id ?? cust.account_manager?.id ?? '',
+      user_id: cust.user_id ?? '',
+      status: cust.status ?? 'ACTIVE',
     });
     setErrors({});
-    setModal({ type: 'edit', id: c.id || c.customer_id, consignor: c });
+    setModal({ type: 'edit', id: consi.id || consi.customer_id, consignor: cl });
   };
 
   const openView = (c) => {
@@ -211,13 +213,17 @@ const Consignors = () => {
     if (!validate()) return;
 
     // Merge the selected customer's data into the payload
-    const selectedCustomer = eligibleCustomers.find(c => c.id === form.customer_id) || {};
-    const payload = { ...selectedCustomer, ...form };
+    // Clean up to avoid 400 errors from nested objects
+    const { 
+      id: _id, 
+      customer: _customer, 
+      customer_code: _customer_code, 
+      created_at: _created_at, 
+      updated_at: _updated_at,
+      ...cleanPayload 
+    } = { ...selectedCustomer, ...form };
 
-    // Clean up
-    delete payload.customer;
-    delete payload.customer_code;
-    delete payload.id; // Always delete to avoid PK clashing
+    const payload = cleanPayload;
 
     if (createPortalUser && modal.type === 'create') {
       // user is handled via create mutation usually
@@ -615,124 +621,29 @@ const Consignors = () => {
               </Sel>
             </Field>
 
-            <Section title="Relationship Management" className="col-span-2" />
-            <Field label="Sales Person">
-              <Sel
-                value={form.sales_person_id || ''}
-                onChange={e => setField('sales_person_id', e.target.value)}
-                disabled={modal.type === 'view'}
-              >
-                <option value="">-- No Assignment --</option>
-                {allUsers.filter(u => u.account_type === 'EMPLOYEE' || u.account_type === 'MANAGER').map(u => (
-                  <option key={u.id} value={u.id}>{u.full_name || u.username}</option>
-                ))}
-              </Sel>
-            </Field>
-            <Field label="Account Manager">
-              <Sel
-                value={form.account_manager_id || ''}
-                onChange={e => setField('account_manager_id', e.target.value)}
-                disabled={modal.type === 'view'}
-              >
-                <option value="">-- No Assignment --</option>
-                {allUsers.filter(u => u.account_type === 'EMPLOYEE' || u.account_type === 'MANAGER').map(u => (
-                  <option key={u.id} value={u.id}>{u.full_name || u.username}</option>
-                ))}
-              </Sel>
-            </Field>
-            {!createPortalUser && (
-              <Field label="Portal User (Linked User)" className="col-span-2" error={errors.user_id}>
-                <Sel
-                  value={form.user_id || ''}
-                  onChange={e => setField('user_id', e.target.value)}
-                  disabled={modal.type === 'view'}
-                >
-                  <option value="">-- No Linked User --</option>
-                  {portalUsers.map(u => {
-                    const linkedTo = userToCustomerMap[String(u.id)];
-                    const currentUserId = modal?.consignor?.customer?.user_id || modal?.consignor?.customer?.user?.id;
-                    const isLinkedToOther = linkedTo && String(u.id) !== String(currentUserId);
-                    const displayName = u.full_name || u.username;
+            {/* Shared Relationship Management Section */}
+            <RelationshipManagementFields
+              form={form}
+              setField={setField}
+              allUsers={allUsers}
+              errors={errors}
+              portalUsers={portalUsers}
+              userToCustomerMap={userToCustomerMap}
+              initial={modal.consignor}
+              createPortalUser={createPortalUser}
+              disabled={modal.type === 'view'}
+            />
 
-                    return (
-                      <option key={u.id} value={u.id} disabled={isLinkedToOther}>
-                        {displayName} ({u.email}){linkedTo ? ` — [Linked to ${linkedTo}]` : ''}
-                      </option>
-                    );
-                  })}
-                </Sel>
-              </Field>
-            )}
-
+            {/* Shared Portal User Creation Section */}
             {modal.type === 'create' && (
-              <div className="col-span-2 bg-blue-50/50 p-4 rounded-xl border border-blue-100 mt-2">
-                <label className="flex items-center gap-2 cursor-pointer mb-4">
-                  <input
-                    type="checkbox"
-                    checked={createPortalUser}
-                    onChange={e => setCreatePortalUser(e.target.checked)}
-                    className="w-4 h-4 text-[#0052CC] border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <span className="text-sm font-bold text-[#172B4D]">Create New Portal User for this Consignor</span>
-                </label>
-
-                {createPortalUser && (
-                  <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <Field label="Username" required error={errors['user.username']}>
-                      <Input
-                        value={form.user.username}
-                        onChange={e => setField('user.username', e.target.value)}
-                        placeholder="john_doe"
-                      />
-                    </Field>
-                    <Field label="Email Address" required error={errors['user.email']}>
-                      <Input
-                        type="email"
-                        value={form.user.email}
-                        onChange={e => setField('user.email', e.target.value)}
-                        placeholder="john@example.com"
-                      />
-                    </Field>
-                    <Field label="Password" required error={errors['user.password']}>
-                      <Input
-                        type="password"
-                        value={form.user.password}
-                        onChange={e => setField('user.password', e.target.value)}
-                        placeholder="••••••••"
-                      />
-                    </Field>
-                    <Field label="Confirm Password" required error={errors['user.password_confirm']}>
-                      <Input
-                        type="password"
-                        value={form.user.password_confirm}
-                        onChange={e => setField('user.password_confirm', e.target.value)}
-                        placeholder="••••••••"
-                      />
-                    </Field>
-                    <Field label="First Name" required error={errors['user.first_name']}>
-                      <Input
-                        value={form.user.first_name}
-                        onChange={e => setField('user.first_name', e.target.value)}
-                        placeholder="John"
-                      />
-                    </Field>
-                    <Field label="Last Name" error={errors['user.last_name']}>
-                      <Input
-                        value={form.user.last_name}
-                        onChange={e => setField('user.last_name', e.target.value)}
-                        placeholder="Doe"
-                      />
-                    </Field>
-                    <Field label="Phone Number" error={errors['user.phone']}>
-                      <Input
-                        value={form.user.phone}
-                        onChange={e => setField('user.phone', e.target.value)}
-                        placeholder="+91 ..."
-                      />
-                    </Field>
-                  </div>
-                )}
-              </div>
+              <CreatePortalUserSection
+                createPortalUser={createPortalUser}
+                setCreatePortalUser={setCreatePortalUser}
+                form={form}
+                setField={setField}
+                errors={errors}
+                moduleName="Consignor"
+              />
             )}
           </div>
         </Modal>
@@ -797,13 +708,8 @@ const ConsignorOverview = ({ consignor: c, onEdit }) => (
       <InfoCard label="Monthly Value" value={c.business_volume_value_per_month ? `₹${Number(c.business_volume_value_per_month).toLocaleString('en-IN')}` : null} />
     </div>
 
-    <Section title="Relationship Management" />
-    <div className="grid grid-cols-2 gap-3">
-      <InfoCard label="Sales Person" value={c.customer?.sales_person?.full_name || c.customer?.sales_person?.name || 'Not Assigned'} />
-      <InfoCard label="Account Manager" value={c.customer?.account_manager?.full_name || c.customer?.account_manager?.name || 'Not Assigned'} />
-      <InfoCard label="Portal User" value={c.customer?.portal_user?.username || c.customer?.user?.username || 'None'} />
-      <InfoCard label="Warehouse Address" value={c.warehouse_address || 'Not Provided'} />
-    </div>
+    {/* Shared Relationship Info */}
+    <RelationshipOverviewSection item={c} />
 
     <div className="pt-3 border-t border-gray-100 flex justify-end items-center gap-4">
       <p className="text-[10px] text-gray-400 font-mono italic mr-auto">Created: {c.created_at ? new Date(c.created_at).toLocaleString() : '—'}</p>

@@ -10,8 +10,8 @@ import {
 } from '../../queries/customers/customersQuery';
 import { TableShimmer, ErrorState } from '../Vehicles/Common/StateFeedback';
 import { Badge, DeleteConfirm, EmptyState } from '../Vehicles/Common/VehicleCommon';
-import { CustomerFormModal } from './CustomerFormModal';
-import CustomerListFilterBar from './CustomerListFilterBar';
+import { CustomerFormModal } from './Common/CustomerFormModal';
+import CustomerListFilterBar from './Common/CustomerListFilterBar';
 
 // ── Status Styles ────────────────────────────────────────────────────
 const STATUS_STYLES = {
