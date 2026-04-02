@@ -14,6 +14,7 @@ import {
   useConsignors, useCustomers, useCreateConsignor, useUpdateConsignor, useDeleteConsignor
 } from '../../queries/customers/customersQuery';
 import { TableShimmer, ErrorState } from '../Vehicles/Common/StateFeedback';
+import CustomerListFilterBar from './CustomerListFilterBar';
 
 const EMPTY_FORM = {
   customer_id: '',
@@ -43,6 +44,7 @@ const Consignors = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatus] = useState('');
+  const [ordering, setOrdering] = useState('customer__legal_name');
   const [currentPage, setCurrentPage] = useState(1);
 
   // Search Debouncing
@@ -57,7 +59,8 @@ const Consignors = () => {
 
   const { data, isLoading, isError, error, refetch } = useConsignors({
     page: currentPage,
-    ...(statusFilter && { status: statusFilter }),
+    ...(statusFilter && { customer__status: statusFilter }),
+    ...(ordering && { ordering }),
     ...(debouncedSearch && { search: debouncedSearch }),
   });
 
@@ -162,7 +165,7 @@ const Consignors = () => {
   const inactive = consignors.filter(c => c.customer?.status === 'INACTIVE' || c.customer?.status === 'Inactive').length;
   const suspended = consignors.filter(c => c.customer?.status === 'SUSPENDED' || c.customer?.status === 'Suspended').length;
 
-  const resetFilters = () => { setSearchTerm(''); setStatus(''); setCurrentPage(1); };
+  const resetFilters = () => { setSearchTerm(''); setStatus(''); setOrdering('customer__legal_name'); setCurrentPage(1); };
 
   const COLUMNS = [
     {
@@ -315,50 +318,31 @@ const Consignors = () => {
             </button>
           </div>
         </div>
-        {/* Filters & Pagination Row */}
-        <div className="flex items-center justify-between px-5 py-3 bg-white border-b border-gray-50 h-[60px]">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <select
-                value={statusFilter}
-                onChange={(e) => { setStatus(e.target.value); setCurrentPage(1); }}
-                className="px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-[12px] font-bold text-[#172B4D] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all hover:border-gray-200 cursor-pointer shadow-sm"
-              >
-                <option value="">All Statuses</option>
-                <option value="ACTIVE">Active</option>
-                <option value="INACTIVE">Inactive</option>
-                <option value="SUSPENDED">Suspended</option>
-              </select>
-            </div>
-            {statusFilter && (
-              <button onClick={() => { setStatus(''); setCurrentPage(1); }} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Clear Filter">
-                <RotateCcw size={14} />
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1 || isLoading}
-              className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-            >
-              Previous
-            </button>
-
-            <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
-              {currentPage}
-            </div>
-
-            <button
-              onClick={() => setCurrentPage(prev => prev + 1)}
-              disabled={!data?.next || isLoading}
-              className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-            >
-              Next
-            </button>
-          </div>
-        </div>
+        <CustomerListFilterBar
+          statusFilter={statusFilter}
+          onStatusChange={(value) => { setStatus(value); setCurrentPage(1); }}
+          statusOptions={[
+            { value: 'ACTIVE', label: 'Active' },
+            { value: 'INACTIVE', label: 'Inactive' },
+            { value: 'SUSPENDED', label: 'Suspended' },
+            { value: 'BLACKLISTED', label: 'Blacklisted' },
+          ]}
+          ordering={ordering}
+          onOrderingChange={(value) => { setOrdering(value); setCurrentPage(1); }}
+          orderingOptions={[
+            { value: 'customer__legal_name', label: 'Name A-Z' },
+            { value: '-customer__legal_name', label: 'Name Z-A' },
+            { value: '-created_at', label: 'Newest' },
+            { value: 'created_at', label: 'Oldest' },
+          ]}
+          clearVisible={statusFilter || ordering !== 'customer__legal_name'}
+          onClearFilters={resetFilters}
+          currentPage={currentPage}
+          onPrevPage={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+          onNextPage={() => setCurrentPage(prev => prev + 1)}
+          hasNextPage={!!data?.next}
+          isLoading={isLoading}
+        />
 
         {isLoading && <TableShimmer rows={8} cols={5} />}
 
