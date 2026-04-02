@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import {
   Modal, Field, Input, Sel, Section, DeleteConfirm, Badge,
-  InfoCard, SectionHeader, EmptyState
+  InfoCard, SectionHeader, EmptyState, VehicleTypeMultiSelect
 } from '../Vehicles/Common/VehicleCommon';
 import {
   useCustomerAddresses, useCustomerContacts, useCustomerDocuments,
@@ -14,7 +14,6 @@ import {
   useConsignees, useCustomers, useCreateConsignee, useUpdateConsignee, useDeleteConsignee
 } from '../../queries/customers/customersQuery';
 import { useUsers } from '../../queries/users/userQuery';
-import { useVehicleTypes } from '../../queries/vehicles/vehicletypeQuery';
 import { TableShimmer, ErrorState } from '../Vehicles/Common/StateFeedback';
 import CustomerListFilterBar from './CustomerListFilterBar';
 
@@ -26,10 +25,30 @@ const EMPTY_FORM = {
   temperature_controlled: false,
   business_volume_tons_per_month: '',
   business_volume_value_per_month: '',
-  loading_bay_count: '',
-  avg_loading_time_minutes: '',
+  dock_count: '',
+  storage_capacity_sqft: '',
+  avg_unloading_time_minutes: '',
   preferred_vehicle_types: '',
+  unloading_instructions: '',
+  documentation_requirements: '',
+  delivery_time_slot_start: '',
+  delivery_time_slot_end: '',
+  receiving_hours_start: '',
+  receiving_hours_end: '',
+  warehouse_address: '',
+  sales_person_id: '',
+  account_manager_id: '',
+  user_id: '',
   status: 'ACTIVE',
+  user: {
+    username: '',
+    email: '',
+    password: '',
+    password_confirm: '',
+    first_name: '',
+    last_name: '',
+    phone: ''
+  }
 };
 
 const STATUS_STYLES = {
@@ -61,6 +80,7 @@ const ConsigneesDashboard = () => {
   const [deleteTarget, setDelete] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
+  const [createPortalUser, setCreatePortalUser] = useState(false);
 
   const { data: userData } = useUsers({ limit: 1000 });
   const allUsers = userData?.results ?? userData ?? [];
@@ -78,7 +98,7 @@ const ConsigneesDashboard = () => {
   }, [allCustomers]);
 
   const portalUsers = useMemo(() => {
-    return (allUsers || []).filter(u => u.account_type === 'CUSTOMER');
+    return (allUsers || []).filter(u => u.account_type === 'PORTAL' || u.account_type === 'PORTAL_USER' || u.account_type === 'PORTAL_CLIENT' || u.account_type === 'CUSTOMER');
   }, [allUsers]);
 
   const eligibleCustomers = allCustomers.filter(c =>
@@ -100,6 +120,7 @@ const ConsigneesDashboard = () => {
 
   const openEdit = (c) => {
     setForm({
+      ...EMPTY_FORM,
       customer_id: c.customer_id ?? '',
       legal_name: c.customer?.legal_name ?? '',
       consignee_code: c.consignee_code ?? '',
@@ -107,18 +128,29 @@ const ConsigneesDashboard = () => {
       business_volume_value_per_month: c.business_volume_value_per_month ?? '',
       hazardous_material_handling: c.hazardous_material_handling ?? false,
       temperature_controlled: c.temperature_controlled ?? false,
-      loading_bay_count: c.loading_bay_count ?? '',
-      avg_loading_time_minutes: c.avg_loading_time_minutes ?? '',
+      dock_count: c.dock_count ?? '',
+      storage_capacity_sqft: c.storage_capacity_sqft ?? '',
+      avg_unloading_time_minutes: c.avg_unloading_time_minutes ?? '',
       preferred_vehicle_types: c.preferred_vehicle_types?.join(', ') || '',
+      unloading_instructions: c.unloading_instructions ?? '',
+      documentation_requirements: c.documentation_requirements?.join(', ') || '',
+      delivery_time_slot_start: c.delivery_time_slot_start ?? '',
+      delivery_time_slot_end: c.delivery_time_slot_end ?? '',
+      receiving_hours_start: c.receiving_hours_start ?? '',
+      receiving_hours_end: c.receiving_hours_end ?? '',
+      warehouse_address: c.warehouse_address ?? '',
+      sales_person_id: c.customer?.sales_person_id ?? c.customer?.sales_person?.id ?? '',
+      account_manager_id: c.customer?.account_manager_id ?? c.customer?.account_manager?.id ?? '',
+      user_id: c.customer?.user_id ?? '',
       status: c.customer?.status ?? 'ACTIVE',
     });
     setErrors({});
-    setModal({ type: 'edit', id: c.id, consignee: c });
+    setModal({ type: 'edit', id: c.customer_id || c.id, consignee: c });
   };
 
   const openView = (c) => {
     openEdit(c);
-    setModal({ type: 'view', id: c.id, consignee: c });
+    setModal({ type: 'view', id: c.customer_id || c.id, consignee: c });
   };
 
   const closeModal = () => { setModal(null); setErrors({}); };
@@ -143,18 +175,34 @@ const ConsigneesDashboard = () => {
       const match = eligibleCustomers.find(c => c.legal_name?.toLowerCase() === form.legal_name.toLowerCase());
       if (match) form.customer_id = match.id;
     }
-    if (!form.legal_name?.trim()) e.customer_id = 'Legal Name is required';
     if (!form.consignee_code?.trim()) {
       const initials = (form.legal_name || 'CONE').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3);
       form.consignee_code = `CONE-${initials}-${Math.floor(1000 + Math.random() * 9000)}`;
     }
+
+    if (createPortalUser && modal?.type === 'create') {
+      if (!form.user.email) e['user.email'] = 'Email is required';
+      if (!form.user.username) e['user.username'] = 'Username is required';
+      if (!form.user.password) e['user.password'] = 'Password is required';
+      if (form.user.password !== form.user.password_confirm) e['user.password_confirm'] = 'Passwords must match';
+      if (!form.user.first_name) e['user.first_name'] = 'First name is required';
+    }
+
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
-  const setField = (k, v) => {
-    setForm(prev => ({ ...prev, [k]: v }));
-    if (errors[k]) setErrors(prev => { const n = { ...prev }; delete n[k]; return n; });
+  const setField = (key, value) => {
+    if (key.includes('.')) {
+      const [parent, child] = key.split('.');
+      setForm(prev => ({
+        ...prev,
+        [parent]: { ...prev[parent], [child]: value }
+      }));
+    } else {
+      setForm(prev => ({ ...prev, [key]: value }));
+    }
+    if (errors[key]) setErrors(prev => { const n = { ...prev }; delete n[key]; return n; });
   };
 
   const handleSubmit = () => {
@@ -164,26 +212,36 @@ const ConsigneesDashboard = () => {
     const selectedCustomer = eligibleCustomers.find(c => c.id === form.customer_id) || {};
     const payload = { ...selectedCustomer, ...form };
 
-    // Clean up to prevent sending the customer's nested object or original ID collision
+    // Clean up
     delete payload.customer;
     delete payload.customer_code;
-    if (modal.type === 'create') delete payload.id;
+    delete payload.id; // Always delete to avoid PK clashing
 
-    // Nullify empty ID and address fields
-    ['sales_person_id', 'account_manager_id', 'user_id', 'warehouse_address'].forEach(key => {
-      if (typeof payload[key] === 'string' && !payload[key].trim()) payload[key] = null;
+    if (createPortalUser && modal.type === 'create') {
+      // user is handled via create mutation usually
+    } else {
+      delete payload.user;
+    }
+
+    // Process documentation requirements
+    if (typeof payload.documentation_requirements === 'string') {
+      payload.documentation_requirements = payload.documentation_requirements.split(',').map(s => s.trim()).filter(Boolean);
+    } else if (!Array.isArray(payload.documentation_requirements)) {
+      payload.documentation_requirements = [];
+    }
+
+    // Explicitly set null for empty fields
+    const nullFields = [
+      'sales_person_id', 'account_manager_id', 'user_id', 'warehouse_address',
+      'dock_count', 'storage_capacity_sqft', 'avg_unloading_time_minutes',
+      'delivery_time_slot_start', 'delivery_time_slot_end',
+      'receiving_hours_start', 'receiving_hours_end'
+    ];
+    nullFields.forEach(key => {
+      if (payload[key] === '' || (typeof payload[key] === 'string' && !payload[key].trim())) {
+        payload[key] = null;
+      }
     });
-
-    if (!payload.dock_count) payload.dock_count = null;
-    if (!payload.storage_capacity_sqft) payload.storage_capacity_sqft = null;
-    if (!payload.avg_unloading_time_minutes) payload.avg_unloading_time_minutes = null;
-    if (!payload.delivery_time_slot_start) payload.delivery_time_slot_start = null;
-    if (!payload.delivery_time_slot_end) payload.delivery_time_slot_end = null;
-    if (!payload.receiving_hours_start) payload.receiving_hours_start = null;
-    if (!payload.receiving_hours_end) payload.receiving_hours_end = null;
-    payload.documentation_requirements = payload.documentation_requirements
-      ? payload.documentation_requirements.split(',').map(s => s.trim()).filter(Boolean)
-      : [];
 
     if (modal.type === 'create') {
       createMutation.mutate(payload, {
@@ -191,6 +249,8 @@ const ConsigneesDashboard = () => {
         onError: (err) => {
           if (err.response?.status === 400 && err.response.data?.details) {
             setErrors(err.response.data.details);
+          } else {
+            alert(`Create Failed: ${err.response?.data?.detail || err.message}`);
           }
         }
       });
@@ -200,6 +260,8 @@ const ConsigneesDashboard = () => {
         onError: (err) => {
           if (err.response?.status === 400 && err.response.data?.details) {
             setErrors(err.response.data.details);
+          } else {
+            alert(`Update Failed: ${err.response?.data?.detail || err.message}`);
           }
         }
       });
@@ -544,9 +606,134 @@ const ConsigneesDashboard = () => {
             </Field>
 
             <Field label="Preferred Vehicle Types" className="col-span-2">
-              <Input value={form.preferred_vehicle_types} onChange={e => setField('preferred_vehicle_types', e.target.value)} disabled={modal.type === 'view'}
-                placeholder="TRUCK, VAN, TRAILER (comma separated)" />
+              <VehicleTypeMultiSelect
+                value={form.preferred_vehicle_types}
+                onChange={val => setField('preferred_vehicle_types', val)}
+                disabled={modal.type === 'view'}
+              />
             </Field>
+
+            {/* Relationship Management Section */}
+            <Section title="Relationship Management" className="col-span-2" />
+            <Field label="Sales Person">
+              <Sel
+                value={form.sales_person_id || ''}
+                onChange={e => setField('sales_person_id', e.target.value)}
+                disabled={modal.type === 'view'}
+              >
+                <option value="">-- No Assignment --</option>
+                {allUsers.filter(u => u.account_type === 'EMPLOYEE' || u.account_type === 'MANAGER').map(u => (
+                  <option key={u.id} value={u.id}>{u.full_name || u.username}</option>
+                ))}
+              </Sel>
+            </Field>
+            <Field label="Account Manager">
+              <Sel
+                value={form.account_manager_id || ''}
+                onChange={e => setField('account_manager_id', e.target.value)}
+                disabled={modal.type === 'view'}
+              >
+                <option value="">-- No Assignment --</option>
+                {allUsers.filter(u => u.account_type === 'EMPLOYEE' || u.account_type === 'MANAGER').map(u => (
+                  <option key={u.id} value={u.id}>{u.full_name || u.username}</option>
+                ))}
+              </Sel>
+            </Field>
+            {!createPortalUser && (
+              <Field label="Portal User (Linked User)" className="col-span-2" error={errors.user_id}>
+                <Sel
+                  value={form.user_id || ''}
+                  onChange={e => setField('user_id', e.target.value)}
+                  disabled={modal.type === 'view'}
+                >
+                  <option value="">-- No Linked User --</option>
+                  {portalUsers.map(u => {
+                    const linkedTo = userToCustomerMap[String(u.id)];
+                    const currentUserId = modal?.consignee?.customer?.user_id || modal?.consignee?.customer?.user?.id;
+                    const isLinkedToOther = linkedTo && String(u.id) !== String(currentUserId);
+                    const displayName = u.full_name || u.username;
+
+                    return (
+                      <option key={u.id} value={u.id} disabled={isLinkedToOther}>
+                        {displayName} ({u.email}){linkedTo ? ` — [Linked to ${linkedTo}]` : ''}
+                      </option>
+                    );
+                  })}
+                </Sel>
+              </Field>
+            )}
+
+            {modal.type === 'create' && (
+              <div className="col-span-2 bg-blue-50/50 p-4 rounded-xl border border-blue-100 mt-2">
+                <label className="flex items-center gap-2 cursor-pointer mb-4">
+                  <input
+                    type="checkbox"
+                    checked={createPortalUser}
+                    onChange={e => setCreatePortalUser(e.target.checked)}
+                    className="w-4 h-4 text-[#0052CC] border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm font-bold text-[#172B4D]">Create New Portal User for this Consignee</span>
+                </label>
+
+                {createPortalUser && (
+                  <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <Field label="Username" required error={errors['user.username']}>
+                      <Input
+                        value={form.user.username}
+                        onChange={e => setField('user.username', e.target.value)}
+                        placeholder="john_doe"
+                      />
+                    </Field>
+                    <Field label="Email Address" required error={errors['user.email']}>
+                      <Input
+                        type="email"
+                        value={form.user.email}
+                        onChange={e => setField('user.email', e.target.value)}
+                        placeholder="john@example.com"
+                      />
+                    </Field>
+                    <Field label="Password" required error={errors['user.password']}>
+                      <Input
+                        type="password"
+                        value={form.user.password}
+                        onChange={e => setField('user.password', e.target.value)}
+                        placeholder="••••••••"
+                      />
+                    </Field>
+                    <Field label="Confirm Password" required error={errors['user.password_confirm']}>
+                      <Input
+                        type="password"
+                        value={form.user.password_confirm}
+                        onChange={e => setField('user.password_confirm', e.target.value)}
+                        placeholder="••••••••"
+                      />
+                    </Field>
+                    <Field label="First Name" required error={errors['user.first_name']}>
+                      <Input
+                        value={form.user.first_name}
+                        onChange={e => setField('user.first_name', e.target.value)}
+                        placeholder="John"
+                      />
+                    </Field>
+                    <Field label="Last Name" error={errors['user.last_name']}>
+                      <Input
+                        value={form.user.last_name}
+                        onChange={e => setField('user.last_name', e.target.value)}
+                        placeholder="Doe"
+                      />
+                    </Field>
+                    <Field label="Phone Number" error={errors['user.phone']}>
+                      <Input
+                        value={form.user.phone}
+                        onChange={e => setField('user.phone', e.target.value)}
+                        placeholder="+91 ..."
+                      />
+                    </Field>
+                  </div>
+                )}
+              </div>
+            )}
+
           </div>
         </Modal>
       )}
@@ -598,6 +785,7 @@ const ConsigneeOverview = ({ consignee: c }) => (
       <InfoCard label="Delivery Slot" value={c.delivery_time_slot_start && c.delivery_time_slot_end ? `${c.delivery_time_slot_start} - ${c.delivery_time_slot_end}` : null} />
       <InfoCard label="Receiving Hours" value={c.receiving_hours_start && c.receiving_hours_end ? `${c.receiving_hours_start} - ${c.receiving_hours_end}` : null} />
       <InfoCard label="Docs Required" value={c.documentation_requirements?.join(', ')} />
+      <InfoCard label="Preferred Vehicles" value={c.preferred_vehicle_types?.join(', ')} />
       <InfoCard label="Unloading Instructions" value={c.unloading_instructions} />
     </div>
 
@@ -609,112 +797,12 @@ const ConsigneeOverview = ({ consignee: c }) => (
       <InfoCard label="Warehouse Address" value={c.warehouse_address || 'Not Provided'} />
     </div>
 
+
     <div className="pt-3 border-t border-gray-100 flex justify-end items-center gap-4">
       <p className="text-[10px] text-gray-400 font-mono italic mr-auto">Created: {c.created_at ? new Date(c.created_at).toLocaleString() : '—'}</p>
     </div>
   </div>
 );
 
-
-const VehicleTypeMultiSelect = ({ value, onChange, disabled }) => {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState('');
-  const ref = useRef(null);
-
-  const { data: vtData, isLoading } = useVehicleTypes({ all: true }, { enabled: open || !!value });
-  const allTypes = vtData?.results ?? vtData ?? [];
-
-  const selectedIds = value ? value.split(',').map(s => s.trim()).filter(Boolean) : [];
-
-  const filtered = query
-    ? allTypes.filter(t => (t.type_name || t.name || '').toLowerCase().includes(query.toLowerCase()))
-    : allTypes;
-
-  useEffect(() => {
-    const fn = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', fn);
-    return () => document.removeEventListener('mousedown', fn);
-  }, []);
-
-  const toggle = (typeName) => {
-    let next;
-    if (selectedIds.includes(typeName)) {
-      next = selectedIds.filter(id => id !== typeName);
-    } else {
-      next = [...selectedIds, typeName];
-    }
-    onChange(next.join(', '));
-  };
-
-  return (
-    <div className="relative" ref={ref}>
-      <div
-        onClick={() => !disabled && setOpen(!open)}
-        className={`w-full min-h-[42px] px-3 py-2 border border-gray-200 rounded-xl bg-white flex flex-wrap gap-1.5 items-center transition-all
-          ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:border-[#0052CC]/40 focus-within:ring-2 focus-within:ring-[#0052CC]/10'}`}
-      >
-        {selectedIds.length === 0 ? (
-          <span className="text-sm text-gray-400">Select vehicle types...</span>
-        ) : (
-          selectedIds.map(id => (
-            <span key={id} className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 text-[#0052CC] text-[11px] font-black rounded-lg border border-blue-100 animate-in zoom-in-95">
-              {id}
-              {!disabled && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); toggle(id); }}
-                  className="px-1 hover:text-blue-700 transition-colors"
-                >
-                  <RotateCcw size={12} />
-                </button>
-              )}
-            </span>
-          ))
-        )}
-        <div className="ml-auto text-gray-300">
-          <ChevronDown size={16} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
-        </div>
-      </div>
-
-      {open && !disabled && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-100 rounded-2xl shadow-2xl z-[100] p-3 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden">
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 text-gray-400" size={14} />
-            <input
-              autoFocus
-              className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-transparent rounded-xl text-xs focus:bg-white focus:border-blue-100 transition-all outline-none"
-              placeholder="Search types..."
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-            />
-          </div>
-
-          <div className="max-h-[220px] overflow-y-auto pr-1 space-y-1 custom-scrollbar">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-8"><Loader2 size={16} className="animate-spin text-blue-500" /></div>
-            ) : filtered.length === 0 ? (
-              <p className="text-center py-8 text-xs text-gray-400">No results found</p>
-            ) : (
-              filtered.map(t => {
-                const name = t.type_name || t.name;
-                const isSelected = selectedIds.includes(name);
-                return (
-                  <button
-                    key={t.id}
-                    onClick={() => toggle(name)}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all
-                      ${isSelected ? 'bg-blue-50 text-[#0052CC]' : 'hover:bg-gray-50 text-gray-600'}`}
-                  >
-                    {name}
-                    {isSelected && <CheckCircle size={14} />}
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
 
 export default ConsigneesDashboard;

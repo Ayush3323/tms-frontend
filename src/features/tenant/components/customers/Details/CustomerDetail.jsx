@@ -71,7 +71,7 @@ const CustomerDetail = () => {
     switch (activeTab) {
       case 'OVERVIEW': return <CustomerOverview customer={customer} />;
       case 'ADDRESSES': return <CustomerAddresses customerId={id} />;
-      case 'CONTACTS': return <CustomerContacts customerId={id} />;
+      case 'CONTACTS': return <CustomerContacts customerId={id} portalUser={customer.portal_user} />;
       case 'DOCUMENTS': return <CustomerDocuments customerId={id} />;
       case 'CONTRACTS': return <CustomerContracts customerId={id} />;
       case 'NOTES': return <CustomerNotes customerId={id} />;
