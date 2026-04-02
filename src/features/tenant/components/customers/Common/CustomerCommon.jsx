@@ -1,31 +1,31 @@
 import React from 'react';
-import { 
-  Plus, Edit2, Loader2, Save, Trash2, X, 
-  AlertCircle, ChevronDown, Info as LucideInfo 
+import {
+  Plus, Edit2, Loader2, Save, Trash2, X,
+  AlertCircle, ChevronDown, Info as LucideInfo
 } from 'lucide-react';
 
 // Re-exporting basic building blocks from VehicleCommon (central entry point for consistency)
-export { 
-  Badge, InfoCard, SectionHeader, EmptyState, Label, 
+export {
+  Badge, InfoCard, SectionHeader, EmptyState, Label,
   Input, Sel, Section, Textarea, Field, Modal, DeleteConfirm,
   VehicleTypeMultiSelect
 } from '../../Vehicles/Common/VehicleCommon';
 
-import { 
-  Section, Field, Sel, Input 
+import {
+  Section, Field, Sel, Input
 } from '../../Vehicles/Common/VehicleCommon';
 
 /**
  * Shared section for Sales Person and Account Manager assignment
  */
-export const RelationshipManagementFields = ({ 
-  form, 
-  setField, 
-  allUsers, 
-  errors = {}, 
-  portalUsers = [], 
-  userToCustomerMap = {}, 
-  initial = null, 
+export const RelationshipManagementFields = ({
+  form,
+  setField,
+  allUsers,
+  errors = {},
+  portalUsers = [],
+  userToCustomerMap = {},
+  initial = null,
   createPortalUser = false,
   disabled = false
 }) => {
@@ -56,7 +56,7 @@ export const RelationshipManagementFields = ({
           ))}
         </Sel>
       </Field>
-      
+
       {!createPortalUser && (
         <Field label="Portal User (Linked User)" className="col-span-2" error={errors.user_id}>
           <Sel
@@ -88,13 +88,13 @@ export const RelationshipManagementFields = ({
 /**
  * Shared section for creating a new portal user directly from the customer form
  */
-export const CreatePortalUserSection = ({ 
-  createPortalUser, 
-  setCreatePortalUser, 
-  form, 
-  setField, 
-  errors = {}, 
-  moduleName = "Customer" 
+export const CreatePortalUserSection = ({
+  createPortalUser,
+  setCreatePortalUser,
+  form,
+  setField,
+  errors = {},
+  moduleName = "Customer"
 }) => {
   return (
     <div className="col-span-2 bg-blue-50/50 p-4 rounded-xl border border-blue-100 mt-2">

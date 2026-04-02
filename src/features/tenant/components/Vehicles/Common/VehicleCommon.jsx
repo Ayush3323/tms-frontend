@@ -420,12 +420,12 @@ export const DriverSelect = ({ value, onChange }) => {
 
   const drivers = query
     ? allDrivers.filter(d => {
-        const name = getDriverName(d);
-        return (
-          name.toLowerCase().includes(query.toLowerCase()) ||
-          d.employee_id?.toLowerCase().includes(query.toLowerCase())
-        );
-      })
+      const name = getDriverName(d);
+      return (
+        name.toLowerCase().includes(query.toLowerCase()) ||
+        d.employee_id?.toLowerCase().includes(query.toLowerCase())
+      );
+    })
     : allDrivers;
 
   useEffect(() => {
