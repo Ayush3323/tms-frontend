@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import {
   Modal, Field, Input, Sel, Section, DeleteConfirm, Badge,
-  InfoCard, SectionHeader, EmptyState
+  InfoCard, SectionHeader, EmptyState, VehicleTypeMultiSelect
 } from '../Vehicles/Common/VehicleCommon';
 import {
   useCustomerAddresses, useCustomerContacts, useCustomerDocuments,
@@ -14,7 +14,6 @@ import {
   useConsignors, useCustomers, useCreateConsignor, useUpdateConsignor, useDeleteConsignor
 } from '../../queries/customers/customersQuery';
 import { useUsers } from '../../queries/users/userQuery';
-import { useVehicleTypes } from '../../queries/vehicles/vehicletypeQuery';
 import { TableShimmer, ErrorState } from '../Vehicles/Common/StateFeedback';
 import CustomerListFilterBar from './CustomerListFilterBar';
 
@@ -168,7 +167,7 @@ const Consignors = () => {
       status: c.customer?.status ?? 'ACTIVE',
     });
     setErrors({});
-    setModal({ type: 'edit', id: c.id, consignor: c });
+    setModal({ type: 'edit', id: c.id || c.customer_id, consignor: c });
   };
 
   const openView = (c) => {
@@ -215,35 +214,28 @@ const Consignors = () => {
     const selectedCustomer = eligibleCustomers.find(c => c.id === form.customer_id) || {};
     const payload = { ...selectedCustomer, ...form };
 
-    // Clean up to prevent sending the customer's nested object or original ID collision
+    // Clean up
+    delete payload.customer;
+    delete payload.customer_code;
+    delete payload.id; // Always delete to avoid PK clashing
+
     if (createPortalUser && modal.type === 'create') {
-      // user is already in payload because form.user is in payload
+      // user is handled via create mutation usually
     } else {
       delete payload.user;
     }
 
-    delete payload.customer;
-    delete payload.customer_code;
-    if (modal.type === 'create') delete payload.id;
+    // Process preferred vehicle types
+    if (typeof payload.preferred_vehicle_types === 'string') {
+      payload.preferred_vehicle_types = payload.preferred_vehicle_types.split(',').map(s => s.trim()).filter(Boolean);
+    } else if (!Array.isArray(payload.preferred_vehicle_types)) {
+      payload.preferred_vehicle_types = [];
+    }
 
-    // Nullify empty ID and address fields
+    // Explicitly set null for empty fields to avoid backend validation errors
     ['sales_person_id', 'account_manager_id', 'user_id', 'warehouse_address'].forEach(key => {
       if (typeof payload[key] === 'string' && !payload[key].trim()) payload[key] = null;
     });
-
-    // Nullify empty number fields
-    if (!payload.business_volume_tons_per_month) payload.business_volume_tons_per_month = null;
-    if (!payload.business_volume_value_per_month) payload.business_volume_value_per_month = null;
-    if (!payload.loading_bay_count) payload.loading_bay_count = null;
-    if (!payload.avg_loading_time_minutes) payload.avg_loading_time_minutes = null;
-    if (!payload.warehouse_address) payload.warehouse_address = null;
-
-    // Process preferred vehicle types as array
-    if (payload.preferred_vehicle_types) {
-      payload.preferred_vehicle_types = payload.preferred_vehicle_types.split(',').map(s => s.trim()).filter(Boolean);
-    } else {
-      payload.preferred_vehicle_types = [];
-    }
 
     if (modal.type === 'create') {
       createMutation.mutate(payload, {
@@ -251,6 +243,8 @@ const Consignors = () => {
         onError: (err) => {
           if (err.response?.status === 400 && err.response.data?.details) {
             setErrors(err.response.data.details);
+          } else {
+            alert(`Create Failed: ${err.response?.data?.detail || err.message}`);
           }
         }
       });
@@ -260,6 +254,8 @@ const Consignors = () => {
         onError: (err) => {
           if (err.response?.status === 400 && err.response.data?.details) {
             setErrors(err.response.data.details);
+          } else {
+            alert(`Update Failed: ${err.response?.data?.detail || err.message}`);
           }
         }
       });
@@ -823,108 +819,5 @@ const ConsignorOverview = ({ consignor: c, onEdit }) => (
 
 
 // CustomerAutocomplete removed as per user request for a plain text field
-
-const VehicleTypeMultiSelect = ({ value, onChange, disabled }) => {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState('');
-  const ref = useRef(null);
-
-  const { data: vtData, isLoading } = useVehicleTypes({ all: true }, { enabled: open || !!value });
-  const allTypes = vtData?.results ?? vtData ?? [];
-
-  const selectedIds = value ? value.split(',').map(s => s.trim()).filter(Boolean) : [];
-
-  const filtered = query
-    ? allTypes.filter(t => (t.type_name || t.name || '').toLowerCase().includes(query.toLowerCase()))
-    : allTypes;
-
-  useEffect(() => {
-    const fn = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', fn);
-    return () => document.removeEventListener('mousedown', fn);
-  }, []);
-
-  const toggle = (typeName) => {
-    let next;
-    if (selectedIds.includes(typeName)) {
-      next = selectedIds.filter(id => id !== typeName);
-    } else {
-      next = [...selectedIds, typeName];
-    }
-    onChange(next.join(', '));
-  };
-
-  return (
-    <div className="relative" ref={ref}>
-      <div
-        onClick={() => !disabled && setOpen(!open)}
-        className={`w-full min-h-[42px] px-3 py-2 border border-gray-200 rounded-xl bg-white flex flex-wrap gap-1.5 items-center transition-all
-          ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:border-[#0052CC]/40 focus-within:ring-2 focus-within:ring-[#0052CC]/10'}`}
-      >
-        {selectedIds.length === 0 ? (
-          <span className="text-sm text-gray-400">Select vehicle types...</span>
-        ) : (
-          selectedIds.map(id => (
-            <span key={id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-[#0052CC] text-[11px] font-bold rounded-md border border-blue-100 uppercase tracking-tighter">
-              {id}
-              {!disabled && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); toggle(id); }}
-                  className="hover:text-red-500 transition-colors"
-                >
-                  ×
-                </button>
-              )}
-            </span>
-          ))
-        )}
-        <ChevronDown size={14} className={`ml-auto text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
-      </div>
-
-      {open && !disabled && (
-        <div className="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-          <div className="p-3 border-b border-gray-100 bg-gray-50/50">
-            <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                autoFocus
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                placeholder="Search vehicle types..."
-                className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20"
-              />
-            </div>
-          </div>
-          <ul className="max-h-64 overflow-y-auto p-1 py-2">
-            {isLoading ? (
-              <li className="px-4 py-6 text-center"><Loader2 size={24} className="animate-spin text-[#0052CC] mx-auto" /></li>
-            ) : filtered.length === 0 ? (
-              <li className="px-4 py-8 text-sm text-gray-400 text-center italic">No vehicle types found</li>
-            ) : (
-              filtered.map(t => {
-                const name = t.type_name || t.name;
-                const isSelected = selectedIds.includes(name);
-                return (
-                  <li
-                    key={t.id}
-                    onClick={() => toggle(name)}
-                    className={`px-4 py-2.5 rounded-xl cursor-pointer transition-all flex items-center justify-between group
-                      ${isSelected ? 'bg-blue-50 text-[#0052CC]' : 'hover:bg-gray-50 text-gray-700'}`}
-                  >
-                    <div className="flex flex-col">
-                      <span className={`text-sm ${isSelected ? 'font-bold' : 'font-medium'}`}>{name}</span>
-                      {t.capacity_tons && <span className="text-[10px] text-gray-400 uppercase font-black">Capacity: {t.capacity_tons} tons</span>}
-                    </div>
-                    {isSelected && <div className="w-2 h-2 rounded-full bg-[#0052CC]" />}
-                  </li>
-                );
-              })
-            )}
-          </ul>
-        </div>
-      )}
-    </div>
-  );
-};
 
 export default Consignors;

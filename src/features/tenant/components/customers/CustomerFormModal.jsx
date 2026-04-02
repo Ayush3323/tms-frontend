@@ -214,6 +214,15 @@ export const CustomerFormModal = ({ initial, onClose, onSuccess }) => {
           </Sel>
         </Field>
 
+        <Field label="Status">
+          <Sel value={form.status} onChange={e => setField('status', e.target.value)}>
+            <option value="ACTIVE">ACTIVE</option>
+            <option value="INACTIVE">INACTIVE</option>
+            <option value="SUSPENDED">SUSPENDED</option>
+            <option value="BLACKLISTED">BLACKLISTED</option>
+          </Sel>
+        </Field>
+
         <Section title="Tax & Registration" className="col-span-2" />
 
         <Field label="Tax ID (GSTIN)">
@@ -257,14 +266,6 @@ export const CustomerFormModal = ({ initial, onClose, onSuccess }) => {
         <Field label="Credit Score">
           <Input type="number" value={form.credit_score} onChange={e => setField('credit_score', e.target.value)}
             placeholder="e.g. 780" />
-        </Field>
-        <Field label="Status">
-          <Sel value={form.status} onChange={e => setField('status', e.target.value)}>
-            <option value="ACTIVE">ACTIVE</option>
-            <option value="INACTIVE">INACTIVE</option>
-            <option value="SUSPENDED">SUSPENDED</option>
-            <option value="BLACKLISTED">BLACKLISTED</option>
-          </Sel>
         </Field>
 
         <Section title="Additional Info" className="col-span-2" />

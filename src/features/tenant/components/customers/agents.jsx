@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   ChevronDown, Loader2, AlertTriangle, Briefcase, Pencil, Anchor, RotateCcw,
   MapPin, Phone, FileText, ClipboardList, History, Building2, Info as LucideInfo,
@@ -13,6 +13,7 @@ import {
   useCustomerContracts, useCustomerNotes, useCustomerCreditHistory,
   useAgents, useCustomers, useCreateAgent, useUpdateAgent, useDeleteAgent
 } from '../../queries/customers/customersQuery';
+import { useUsers } from '../../queries/users/userQuery';
 import { TableShimmer, ErrorState } from '../Vehicles/Common/StateFeedback';
 import CustomerListFilterBar from './CustomerListFilterBar';
 
@@ -24,7 +25,19 @@ const EMPTY_FORM = {
   commission_rate: '',
   commission_type: 'PERCENTAGE',
   contact_person: '',
+  sales_person_id: '',
+  account_manager_id: '',
+  user_id: '',
   status: 'ACTIVE',
+  user: {
+    username: '',
+    email: '',
+    password: '',
+    password_confirm: '',
+    first_name: '',
+    last_name: '',
+    phone: ''
+  }
 };
 
 const STATUS_STYLES = {
@@ -58,19 +71,49 @@ const AgentsDashboard = () => {
     ...(debouncedSearch && { search: debouncedSearch }),
   });
 
+  const agents = data?.results ?? data ?? [];
+
   const { data: customerData } = useCustomers({ limit: 1000 });
   const allCustomers = customerData?.results ?? customerData ?? [];
   const [modal, setModal] = useState(null);
   const [deleteTarget, setDelete] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
+  const [createPortalUser, setCreatePortalUser] = useState(false);
 
-  const eligibleCustomers = allCustomers.filter(c =>
-    c.customer_type === 'AGENT' ||
-    c.customer_type === 'BOTH' ||
-    c.customer_type === 'OTHER' ||
-    c.id === form.customer_id
-  );
+  const { data: userData } = useUsers({ limit: 1000 });
+  const allUsers = userData?.results ?? userData ?? [];
+
+  const userToCustomerMap = useMemo(() => {
+    const map = {};
+    allCustomers?.forEach(c => {
+      const uid = c.user?.id || c.user_id || c.portal_user_id;
+      if (uid) {
+        map[String(uid)] = c.legal_name || c.name || c.trading_name || 'Another Customer';
+      }
+    });
+    return map;
+  }, [allCustomers]);
+
+  const portalUsers = useMemo(() => {
+    return (allUsers || []).filter(u => u.account_type === 'PORTAL' || u.account_type === 'PORTAL_USER' || u.account_type === 'PORTAL_CLIENT' || u.account_type === 'CUSTOMER');
+  }, [allUsers]);
+
+  const assignedCustomerIds = new Set(agents.map(a => a.customer?.id).filter(Boolean));
+
+  const eligibleCustomers = allCustomers.filter(c => {
+    // Basic type check
+    const isEligibleType = ['AGENT', 'BOTH', 'OTHER'].includes(c.customer_type);
+    if (!isEligibleType) return false;
+
+    // In create mode, hide customers that already have an agent profile (within the loaded set)
+    if (modal?.type === 'create') {
+      return !assignedCustomerIds.has(c.id);
+    }
+
+    // In edit mode, allow the current customer plus others that are type-eligible
+    return true;
+  });
 
   const createMutation = useCreateAgent();
   const updateMutation = useUpdateAgent();
@@ -83,6 +126,8 @@ const AgentsDashboard = () => {
   };
 
   const openEdit = (a) => {
+    const editId = a.customer?.id || a.id;
+    console.log('Opening Agent Edit:', { profile_id: a.id, customer_id: a.customer?.id, target_id: editId });
     setForm({
       customer_id: a.customer?.id ?? '',
       legal_name: a.customer?.legal_name ?? '',
@@ -91,14 +136,17 @@ const AgentsDashboard = () => {
       commission_rate: a.commission_rate ?? '',
       commission_type: a.commission_type ?? 'PERCENTAGE',
       contact_person: a.contact_person ?? '',
+      sales_person_id: a.customer?.sales_person_id ?? a.customer?.sales_person?.id ?? '',
+      account_manager_id: a.customer?.account_manager_id ?? a.customer?.account_manager?.id ?? '',
+      user_id: a.customer?.user_id ?? '',
       status: a.customer?.status ?? 'ACTIVE',
     });
     setErrors({});
-    setModal({ type: 'edit', id: a.id, agent: a });
+    setModal({ type: 'edit', id: editId, agent: a });
   };
 
   const openView = (a) => {
-    setModal({ type: 'view', id: a.id, agent: a });
+    setModal({ type: 'view', id: a.customer?.id || a.id, agent: a });
   };
   const closeModal = () => { setModal(null); setErrors({}); };
 
@@ -123,13 +171,30 @@ const AgentsDashboard = () => {
       const initials = (form.legal_name || 'AGT').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3);
       form.agent_code = `AGT-${initials}-${Math.floor(1000 + Math.random() * 9000)}`;
     }
+
+    if (createPortalUser && modal?.type === 'create') {
+      if (!form.user.email) e['user.email'] = 'Email is required';
+      if (!form.user.username) e['user.username'] = 'Username is required';
+      if (!form.user.password) e['user.password'] = 'Password is required';
+      if (form.user.password !== form.user.password_confirm) e['user.password_confirm'] = 'Passwords must match';
+      if (!form.user.first_name) e['user.first_name'] = 'First name is required';
+    }
+
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
-  const setField = (k, v) => {
-    setForm(prev => ({ ...prev, [k]: v }));
-    if (errors[k]) setErrors(prev => { const n = { ...prev }; delete n[k]; return n; });
+  const setField = (key, value) => {
+    if (key.includes('.')) {
+      const [parent, child] = key.split('.');
+      setForm(prev => ({
+        ...prev,
+        [parent]: { ...prev[parent], [child]: value }
+      }));
+    } else {
+      setForm(prev => ({ ...prev, [key]: value }));
+    }
+    if (errors[key]) setErrors(prev => { const n = { ...prev }; delete n[key]; return n; });
   };
 
   const handleSubmit = () => {
@@ -140,19 +205,58 @@ const AgentsDashboard = () => {
     ) || {};
     const payload = { ...selectedCustomer, ...form };
 
+    // Clean up to avoid 400 errors from nested objects
     delete payload.customer;
     delete payload.customer_code;
-    if (modal.type === 'create') delete payload.id;
-    if (!payload.commission_rate) payload.commission_rate = null;
+    delete payload.id; // Always delete to avoid primary key mismatch
+    
+    if (createPortalUser && modal.type === 'create') {
+      // user is handled via create mutation usually
+    } else {
+      delete payload.user;
+    }
+
+    // Explicitly set null for empty fields to avoid backend validation errors
+    ['sales_person_id', 'account_manager_id', 'user_id', 'commission_rate'].forEach(key => {
+      if (payload[key] === '' || (typeof payload[key] === 'string' && !payload[key].trim())) {
+        payload[key] = null;
+      }
+    });
+
+    console.log('Submitting Agent Update/Create:', { type: modal.type, id: modal.id, payload });
 
     if (modal.type === 'create') {
-      createMutation.mutate(payload, { onSuccess: () => closeModal() });
+      createMutation.mutate(payload, {
+        onSuccess: () => closeModal(),
+        onError: (err) => {
+          const errorMsg = err.response?.data?.error?.message || err.response?.data?.detail || err.message;
+          const isDuplicate = errorMsg?.toLowerCase().includes('duplicate') || 
+                             JSON.stringify(err.response?.data).toLowerCase().includes('unique constraint');
+
+          if (isDuplicate) {
+            alert('Duplicate Error: This Customer already has an Agent Profile. Please choose a different legal name.');
+          } else if (err.response?.status === 400 && err.response.data?.details) {
+            setErrors(err.response.data.details);
+          } else {
+            alert(`Create Failed: ${errorMsg}`);
+          }
+        }
+      });
     } else {
-      updateMutation.mutate({ id: modal.id, data: payload }, { onSuccess: () => closeModal() });
+      updateMutation.mutate({ id: modal.id, data: payload }, {
+        onSuccess: () => closeModal(),
+        onError: (err) => {
+          const errorMsg = err.response?.data?.error?.message || err.response?.data?.detail || err.message;
+          if (err.response?.status === 400 && err.response.data?.details) {
+            setErrors(err.response.data.details);
+          } else {
+            alert(`Update Failed: ${errorMsg}`);
+          }
+        }
+      });
     }
   };
 
-  const agents = data?.results ?? data ?? [];
   const total = data?.count ?? agents.length;
   const active = agents.filter(a => a.customer?.status === 'ACTIVE' || a.customer?.status === 'Active').length;
   const inactive = agents.filter(a => a.customer?.status === 'INACTIVE' || a.customer?.status === 'Inactive').length;
@@ -440,6 +544,127 @@ const AgentsDashboard = () => {
             <Field label="Contact Person" className="col-span-2">
               <Input value={form.contact_person} onChange={e => setField('contact_person', e.target.value)} placeholder="e.g. Rahul Sharma" />
             </Field>
+
+            {/* Relationship Management Section */}
+            <Section title="Relationship Management" className="col-span-2" />
+            <Field label="Sales Person">
+              <Sel
+                value={form.sales_person_id || ''}
+                onChange={e => setField('sales_person_id', e.target.value)}
+                disabled={modal.type === 'view'}
+              >
+                <option value="">-- No Assignment --</option>
+                {allUsers.filter(u => u.account_type === 'EMPLOYEE' || u.account_type === 'MANAGER').map(u => (
+                  <option key={u.id} value={u.id}>{u.full_name || u.username}</option>
+                ))}
+              </Sel>
+            </Field>
+            <Field label="Account Manager">
+              <Sel
+                value={form.account_manager_id || ''}
+                onChange={e => setField('account_manager_id', e.target.value)}
+                disabled={modal.type === 'view'}
+              >
+                <option value="">-- No Assignment --</option>
+                {allUsers.filter(u => u.account_type === 'EMPLOYEE' || u.account_type === 'MANAGER').map(u => (
+                  <option key={u.id} value={u.id}>{u.full_name || u.username}</option>
+                ))}
+              </Sel>
+            </Field>
+            {!createPortalUser && (
+              <Field label="Portal User (Linked User)" className="col-span-2" error={errors.user_id}>
+                <Sel
+                  value={form.user_id || ''}
+                  onChange={e => setField('user_id', e.target.value)}
+                  disabled={modal.type === 'view'}
+                >
+                  <option value="">-- No Linked User --</option>
+                  {portalUsers.map(u => {
+                    const linkedTo = userToCustomerMap[String(u.id)];
+                    const currentUserId = modal?.agent?.customer?.user_id || modal?.agent?.customer?.user?.id;
+                    const isLinkedToOther = linkedTo && String(u.id) !== String(currentUserId);
+                    const displayName = u.full_name || u.username;
+
+                    return (
+                      <option key={u.id} value={u.id} disabled={isLinkedToOther}>
+                        {displayName} ({u.email}){linkedTo ? ` — [Linked to ${linkedTo}]` : ''}
+                      </option>
+                    );
+                  })}
+                </Sel>
+              </Field>
+            )}
+
+            {modal.type === 'create' && (
+              <div className="col-span-2 bg-blue-50/50 p-4 rounded-xl border border-blue-100 mt-2">
+                <label className="flex items-center gap-2 cursor-pointer mb-4">
+                  <input
+                    type="checkbox"
+                    checked={createPortalUser}
+                    onChange={e => setCreatePortalUser(e.target.checked)}
+                    className="w-4 h-4 text-[#0052CC] border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm font-bold text-[#172B4D]">Create New Portal User for this Agent</span>
+                </label>
+
+                {createPortalUser && (
+                  <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <Field label="Username" required error={errors['user.username']}>
+                      <Input
+                        value={form.user.username}
+                        onChange={e => setField('user.username', e.target.value)}
+                        placeholder="john_doe"
+                      />
+                    </Field>
+                    <Field label="Email Address" required error={errors['user.email']}>
+                      <Input
+                        type="email"
+                        value={form.user.email}
+                        onChange={e => setField('user.email', e.target.value)}
+                        placeholder="john@example.com"
+                      />
+                    </Field>
+                    <Field label="Password" required error={errors['user.password']}>
+                      <Input
+                        type="password"
+                        value={form.user.password}
+                        onChange={e => setField('user.password', e.target.value)}
+                        placeholder="••••••••"
+                      />
+                    </Field>
+                    <Field label="Confirm Password" required error={errors['user.password_confirm']}>
+                      <Input
+                        type="password"
+                        value={form.user.password_confirm}
+                        onChange={e => setField('user.password_confirm', e.target.value)}
+                        placeholder="••••••••"
+                      />
+                    </Field>
+                    <Field label="First Name" required error={errors['user.first_name']}>
+                      <Input
+                        value={form.user.first_name}
+                        onChange={e => setField('user.first_name', e.target.value)}
+                        placeholder="John"
+                      />
+                    </Field>
+                    <Field label="Last Name" error={errors['user.last_name']}>
+                      <Input
+                        value={form.user.last_name}
+                        onChange={e => setField('user.last_name', e.target.value)}
+                        placeholder="Doe"
+                      />
+                    </Field>
+                    <Field label="Phone Number" error={errors['user.phone']}>
+                      <Input
+                        value={form.user.phone}
+                        onChange={e => setField('user.phone', e.target.value)}
+                        placeholder="+91 ..."
+                      />
+                    </Field>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </Modal>
       )}
@@ -448,7 +673,16 @@ const AgentsDashboard = () => {
         <DeleteConfirm
           label="Agent Profile"
           onClose={() => setDelete(null)}
-          onConfirm={() => deleteMutation.mutate(deleteTarget.id, { onSuccess: () => setDelete(null) })}
+          onConfirm={() => {
+            const delId = deleteTarget.customer?.id || deleteTarget.id;
+            console.log('Deleting Agent Profile:', { id: deleteTarget.id, customer_id: deleteTarget.customer?.id, target: delId });
+            deleteMutation.mutate(delId, {
+              onSuccess: () => setDelete(null),
+              onError: (err) => {
+                alert(`Delete Failed: ${err.response?.data?.detail || err.message}`);
+              }
+            });
+          }}
           deleting={deleteMutation.isPending}
         />
       )}
@@ -492,6 +726,13 @@ const AgentOverview = ({ agent: a, onEdit }) => (
       <InfoCard label="Commission Type" value={a.commission_type || 'PERCENTAGE'} />
       <InfoCard label="Commission Rate" value={a.commission_rate ? `${a.commission_rate}${a.commission_type === 'PERCENTAGE' ? '%' : ''}` : 'Not Set'} />
       <InfoCard label="Territory" value={a.territory || 'Not Set'} />
+    </div>
+
+    <Section title="Relationship Management" />
+    <div className="grid grid-cols-2 gap-3">
+      <InfoCard label="Sales Person" value={a.customer?.sales_person?.full_name || a.customer?.sales_person?.name || 'Not Assigned'} />
+      <InfoCard label="Account Manager" value={a.customer?.account_manager?.full_name || a.customer?.account_manager?.name || 'Not Assigned'} />
+      <InfoCard label="Portal User" value={a.customer?.portal_user?.username || a.customer?.user?.username || 'None'} />
     </div>
 
     <div className="pt-3 border-t border-gray-100 flex justify-end">

@@ -328,7 +328,7 @@ export const useDeleteCustomerNote = (customerId) => {
 
 export const useConsignors = (params) => {
   return useQuery({
-    queryKey: [customerKeys.consignors(), params],
+    queryKey: [...customerKeys.consignors(), params],
     queryFn: () => consignorsApi.list(params),
   })
 }
@@ -373,7 +373,7 @@ export const useDeleteConsignor = () => {
 
 export const useConsignees = (params) => {
   return useQuery({
-    queryKey: [customerKeys.consignees(), params],
+    queryKey: [...customerKeys.consignees(), params],
     queryFn: () => consigneesApi.list(params),
   })
 }
@@ -418,14 +418,14 @@ export const useDeleteConsignee = () => {
 
 export const useBrokers = (params) => {
   return useQuery({
-    queryKey: [customerKeys.brokers(), params],
+    queryKey: [...customerKeys.brokers(), params],
     queryFn: () => brokersApi.list(params),
   })
 }
 
 export const useBroker = (customerId) => {
   return useQuery({
-    queryKey: [customerKeys.brokers(), customerId],
+    queryKey: [...customerKeys.brokers(), customerId],
     queryFn: () => brokersApi.get(customerId),
     enabled: !!customerId,
   })
@@ -471,14 +471,14 @@ export const useDeleteBroker = () => {
 
 export const useAgents = (params) => {
   return useQuery({
-    queryKey: [customerKeys.agents(), params],
+    queryKey: [...customerKeys.agents(), params],
     queryFn: () => agentsApi.list(params),
   })
 }
 
 export const useAgent = (customerId) => {
   return useQuery({
-    queryKey: [customerKeys.agents(), customerId],
+    queryKey: [...customerKeys.agents(), customerId],
     queryFn: () => agentsApi.get(customerId),
     enabled: !!customerId,
   })
@@ -489,7 +489,7 @@ export const useCreateAgent = () => {
   return useMutation({
     mutationFn: (data) => agentsApi.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [customerKeys.agents()] })
+      queryClient.invalidateQueries({ queryKey: customerKeys.agents() })
       toast.success('Agent profile created')
     },
     onError: (err) => handleApiError(err, 'Failed to create agent'),
@@ -501,7 +501,7 @@ export const useUpdateAgent = () => {
   return useMutation({
     mutationFn: ({ id, data }) => agentsApi.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [customerKeys.agents()] })
+      queryClient.invalidateQueries({ queryKey: customerKeys.agents() })
       toast.success('Agent profile updated')
     },
     onError: (err) => handleApiError(err, 'Failed to update agent'),
@@ -513,7 +513,7 @@ export const useDeleteAgent = () => {
   return useMutation({
     mutationFn: (id) => agentsApi.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [customerKeys.agents()] })
+      queryClient.invalidateQueries({ queryKey: customerKeys.agents() })
       toast.success('Agent profile deleted')
     },
     onError: (err) => handleApiError(err, 'Failed to delete agent'),

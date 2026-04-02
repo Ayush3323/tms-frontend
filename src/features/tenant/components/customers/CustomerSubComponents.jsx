@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Building2, MapPin, Phone, FileText, ClipboardList, Info as LucideInfo, 
   History, Wallet, Pencil, Eye, Loader2, MessageSquare, Briefcase, User
@@ -213,7 +213,7 @@ const AddressFormModal = ({ initial, onClose, onSubmit, submitting }) => {
 };
 
 // ── Tab: Contacts ───────────────────────────────────────────────────
-export const CustomerContacts = ({ customerId }) => {
+export const CustomerContacts = ({ customerId, portalUser }) => {
   const [modal, setModal] = useState(null);
   const [selected, setSelected] = useState(null);
 
@@ -249,7 +249,14 @@ export const CustomerContacts = ({ customerId }) => {
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-black text-[#172B4D]">{contact.first_name} {contact.last_name}</p>
-                    {contact.is_primary && <Badge className="bg-blue-50 text-blue-700 border-blue-200">Primary</Badge>}
+                    <div className="flex gap-1">
+                      {contact.is_primary && <Badge className="bg-blue-50 text-blue-700 border-blue-200">Primary</Badge>}
+                      {contact.status && (
+                        <Badge className={`${contact.status === 'ACTIVE' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                          {contact.status}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-none mt-1">{contact.designation || contact.contact_type || 'Staff'}</p>
                   <div className="flex items-center gap-4 mt-2">
@@ -272,6 +279,7 @@ export const CustomerContacts = ({ customerId }) => {
       {(modal === 'ADD' || modal === 'EDIT') && (
         <ContactFormModal 
           initial={modal === 'EDIT' ? selected : null}
+          portalUser={portalUser}
           onClose={() => { setModal(null); setSelected(null); }}
           onSubmit={(data) => {
             if (modal === 'ADD') createMutation.mutate(data, { onSuccess: () => setModal(null) });
@@ -293,12 +301,25 @@ export const CustomerContacts = ({ customerId }) => {
   );
 };
 
-const ContactFormModal = ({ initial, onClose, onSubmit, submitting }) => {
+const ContactFormModal = ({ initial, onClose, onSubmit, submitting, portalUser }) => {
   const [form, setForm] = useState(initial || {
     salutation: '', first_name: '', last_name: '', email: '', 
     mobile: '', phone: '', fax: '', designation: '', 
-    department: '', contact_type: 'PRIMARY', is_primary: false
+    department: '', contact_type: 'PRIMARY', is_primary: false,
+    status: 'ACTIVE'
   });
+
+  // Auto-fill from portal user on create
+  useEffect(() => {
+    if (!initial && portalUser) {
+      setForm(prev => ({
+        ...prev,
+        first_name: portalUser.first_name || portalUser.full_name?.split(' ')[0] || '',
+        last_name: portalUser.last_name || portalUser.full_name?.split(' ').slice(1).join(' ') || '',
+        email: portalUser.email || '',
+      }));
+    }
+  }, [portalUser]);
 
   return (
     <Modal title={initial ? 'Edit Contact' : 'Add New Contact'} onClose={onClose} onSubmit={() => onSubmit(form)} submitting={submitting}>
@@ -337,6 +358,12 @@ const ContactFormModal = ({ initial, onClose, onSubmit, submitting }) => {
             <option value="OPERATIONS">OPERATIONS</option>
             <option value="SALES">SALES</option>
             <option value="OTHER">OTHER</option>
+          </Sel>
+        </Field>
+        <Field label="Status">
+          <Sel value={form.status} onChange={e => setForm({...form, status: e.target.value})}>
+            <option value="ACTIVE">ACTIVE</option>
+            <option value="INACTIVE">INACTIVE</option>
           </Sel>
         </Field>
         <label className="flex items-center gap-2 col-span-2 cursor-pointer mt-2">
