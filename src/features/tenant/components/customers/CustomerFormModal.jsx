@@ -51,18 +51,17 @@ export const CustomerFormModal = ({ initial, onClose, onSuccess }) => {
   const { data: filterCustomers } = useCustomers({ limit: 1000 });
   const allCustomers = filterCustomers?.results ?? filterCustomers ?? [];
   
-  const assignedUserIds = new Set(
-    allCustomers
-      .filter(c => c.user?.id || c.user_id)
-      .map(c => c.user?.id || c.user_id)
-  );
-
-  const initialUserId = initial?.user?.id || initial?.user_id;
-  if (initialUserId) {
-    assignedUserIds.delete(initialUserId);
-  }
-
-  const availableUsers = allUsers.filter(u => !assignedUserIds.has(u.id));
+  const userToCustomerMap = React.useMemo(() => {
+    const map = {};
+    allCustomers?.forEach(c => {
+      const uid = c.user?.id || c.user_id || c.portal_user_id;
+      if (uid) {
+        map[String(uid)] = c.legal_name || c.name || c.trading_name || 'Another Customer';
+      }
+    });
+    console.log('UserToCustomerMap Built (Modal):', map);
+    return map;
+  }, [allCustomers]);
 
   const [createPortalUser, setCreatePortalUser] = useState(false);
 
@@ -161,6 +160,11 @@ export const CustomerFormModal = ({ initial, onClose, onSuccess }) => {
         onSuccess: () => {
           onClose();
           if (onSuccess) onSuccess();
+        },
+        onError: (err) => {
+          if (err.response?.status === 400 && err.response.data?.details) {
+            setErrors(prev => ({ ...prev, ...err.response.data.details }));
+          }
         }
       });
     } else {
@@ -168,6 +172,11 @@ export const CustomerFormModal = ({ initial, onClose, onSuccess }) => {
         onSuccess: () => {
           onClose();
           if (onSuccess) onSuccess();
+        },
+        onError: (err) => {
+          if (err.response?.status === 400 && err.response.data?.details) {
+            setErrors(prev => ({ ...prev, ...err.response.data.details }));
+          }
         }
       });
     }
@@ -291,9 +300,18 @@ export const CustomerFormModal = ({ initial, onClose, onSuccess }) => {
           <Field label="Existing User ID" error={errors.user_id}>
             <Sel value={form.user_id} onChange={e => setField('user_id', e.target.value)}>
               <option value="">-- No Linked User --</option>
-              {availableUsers.map(u => (
-                <option key={u.id} value={u.id}>{u.full_name || u.username} ({u.email})</option>
-              ))}
+              {allUsers.filter(u => u.account_type === 'CUSTOMER').map(u => {
+                const linkedTo = userToCustomerMap[String(u.id)];
+                const currentUserId = initial?.user?.id || initial?.user_id;
+                const isLinkedToOther = linkedTo && String(u.id) !== String(currentUserId);
+                const displayName = u.full_name || u.username;
+                
+                return (
+                  <option key={u.id} value={u.id} disabled={isLinkedToOther}>
+                    {displayName} ({u.email}){linkedTo ? ` — [Linked to ${linkedTo}]` : ''}
+                  </option>
+                );
+              })}
             </Sel>
           </Field>
         )}
