@@ -108,6 +108,12 @@ const Consignors = () => {
     return (allUsers || []).filter(u => u.account_type === 'CUSTOMER');
   }, [allUsers]);
 
+  // For Consignor-specific `warehouse_address` FK selection.
+  const { data: customerAddresses, isLoading: isCustomerAddressesLoading } = useCustomerAddresses(form.customer_id);
+
+  const warehouseAddressCandidates = (customerAddresses ?? []).filter(a => a.address_type === 'WAREHOUSE');
+  const warehouseAddressOptions = warehouseAddressCandidates.length > 0 ? warehouseAddressCandidates : (customerAddresses ?? []);
+
   const eligibleCustomers = allCustomers.filter(c =>
     c.customer_type === 'CONSIGNOR' ||
     c.customer_type === 'BOTH' ||
@@ -229,6 +235,7 @@ const Consignors = () => {
     if (!payload.business_volume_value_per_month) payload.business_volume_value_per_month = null;
     if (!payload.loading_bay_count) payload.loading_bay_count = null;
     if (!payload.avg_loading_time_minutes) payload.avg_loading_time_minutes = null;
+    if (!payload.warehouse_address) payload.warehouse_address = null;
 
     // Process preferred vehicle types as array
     if (payload.preferred_vehicle_types) {
@@ -592,14 +599,23 @@ const Consignors = () => {
                 disabled={modal.type === 'view'}
               />
             </Field>
-
             <Field label="Warehouse Address" className="col-span-2">
-              <Input
+              <Sel
                 value={form.warehouse_address || ''}
-                onChange={e => setField('warehouse_address', e.target.value)}
+                onChange={(e) => setField('warehouse_address', e.target.value)}
                 disabled={modal.type === 'view'}
-                placeholder="Enter full warehouse address..."
-              />
+              >
+                <option value="">-- Select Warehouse Address --</option>
+                {isCustomerAddressesLoading ? (
+                  <option value="" disabled>Loading...</option>
+                ) : (
+                  warehouseAddressOptions.map(addr => (
+                    <option key={addr.id} value={addr.id}>
+                      {addr.address_type}: {addr.address_line1} ({addr.city})
+                    </option>
+                  ))
+                )}
+              </Sel>
             </Field>
 
             <Section title="Relationship Management" className="col-span-2" />
@@ -637,11 +653,10 @@ const Consignors = () => {
                   <option value="">-- No Linked User --</option>
                   {portalUsers.map(u => {
                     const linkedTo = userToCustomerMap[String(u.id)];
-                    // If it's already linked to THIS customer, we should allow it (though it might already be selected)
                     const currentUserId = modal?.consignor?.customer?.user_id || modal?.consignor?.customer?.user?.id;
                     const isLinkedToOther = linkedTo && String(u.id) !== String(currentUserId);
                     const displayName = u.full_name || u.username;
-                    
+
                     return (
                       <option key={u.id} value={u.id} disabled={isLinkedToOther}>
                         {displayName} ({u.email}){linkedTo ? ` — [Linked to ${linkedTo}]` : ''}

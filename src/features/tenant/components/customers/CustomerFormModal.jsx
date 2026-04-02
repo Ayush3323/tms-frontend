@@ -250,6 +250,14 @@ export const CustomerFormModal = ({ initial, onClose, onSuccess }) => {
           <Input value={form.payment_terms} onChange={e => setField('payment_terms', e.target.value)}
             placeholder="e.g. Net 30" />
         </Field>
+        <Field label="Credit Rating">
+          <Input value={form.credit_rating} onChange={e => setField('credit_rating', e.target.value)}
+            placeholder="e.g. A+, BBB" />
+        </Field>
+        <Field label="Credit Score">
+          <Input type="number" value={form.credit_score} onChange={e => setField('credit_score', e.target.value)}
+            placeholder="e.g. 780" />
+        </Field>
         <Field label="Status">
           <Sel value={form.status} onChange={e => setField('status', e.target.value)}>
             <option value="ACTIVE">ACTIVE</option>
