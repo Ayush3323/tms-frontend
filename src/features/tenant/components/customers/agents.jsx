@@ -82,6 +82,7 @@ const AgentsDashboard = () => {
   const [deleteTarget, setDelete] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
+  const [deleteError, setDeleteError] = useState(null);
   const [createPortalUser, setCreatePortalUser] = useState(false);
 
   const { data: userData } = useUsers({ limit: 1000 });
@@ -209,17 +210,17 @@ const AgentsDashboard = () => {
       c => c.legal_name?.toLowerCase() === form.legal_name?.toLowerCase()
     ) || {};
     // Clean up to avoid 400 errors from nested objects
-    const { 
-      id: _id, 
-      customer: _customer, 
-      customer_code: _customer_code, 
-      created_at: _created_at, 
+    const {
+      id: _id,
+      customer: _customer,
+      customer_code: _customer_code,
+      created_at: _created_at,
       updated_at: _updated_at,
-      ...cleanPayload 
+      ...cleanPayload
     } = { ...selectedCustomer, ...form };
 
     const payload = cleanPayload;
-    
+
     if (createPortalUser && modal.type === 'create') {
       // user is handled via create mutation usually
     } else {
@@ -240,15 +241,15 @@ const AgentsDashboard = () => {
         onSuccess: () => closeModal(),
         onError: (err) => {
           const errorMsg = err.response?.data?.error?.message || err.response?.data?.detail || err.message;
-          const isDuplicate = errorMsg?.toLowerCase().includes('duplicate') || 
-                             JSON.stringify(err.response?.data).toLowerCase().includes('unique constraint');
+          const isDuplicate = errorMsg?.toLowerCase().includes('duplicate') ||
+            JSON.stringify(err.response?.data).toLowerCase().includes('unique constraint');
 
           if (isDuplicate) {
-            alert('Duplicate Error: This Customer already has an Agent Profile. Please choose a different legal name.');
+            setErrors(prev => ({ ...prev, customer_id: 'Duplicate Error: This Customer already has an Agent Profile. Please choose a different legal name.' }));
           } else if (err.response?.status === 400 && err.response.data?.details) {
             setErrors(err.response.data.details);
           } else {
-            alert(`Create Failed: ${errorMsg}`);
+            setErrors(prev => ({ ...prev, _generic: `Create Failed: ${errorMsg}` }));
           }
         }
       });
@@ -260,7 +261,7 @@ const AgentsDashboard = () => {
           if (err.response?.status === 400 && err.response.data?.details) {
             setErrors(err.response.data.details);
           } else {
-            alert(`Update Failed: ${errorMsg}`);
+            setErrors(prev => ({ ...prev, _generic: `Update Failed: ${errorMsg}` }));
           }
         }
       });
@@ -469,14 +470,14 @@ const AgentsDashboard = () => {
         {isLoading ? <TableShimmer rows={8} /> :
           isError ? <ErrorState message="Failed to load agents" onRetry={refetch} /> : (
             <div className="flex-1 overflow-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-[#F8FAFC] border-b border-gray-100 sticky top-0 z-10">
-                <tr className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-                  {COLUMNS.map(c => (
-                    <th key={c.header} className="px-4 py-4">{c.header}</th>
-                  ))}
-                </tr>
-              </thead>
+              <table className="w-full text-sm text-left">
+                <thead className="bg-[#F8FAFC] border-b border-gray-100 sticky top-0 z-10">
+                  <tr className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                    {COLUMNS.map(c => (
+                      <th key={c.header} className="px-4 py-4">{c.header}</th>
+                    ))}
+                  </tr>
+                </thead>
                 <tbody className="divide-y divide-gray-50">
                   {agents.map(a => (
                     <tr key={a.id} onClick={() => openView(a)} className="hover:bg-blue-50/40 transition-all cursor-pointer border-l-2 border-l-transparent hover:border-l-[#0052CC] group/row">
@@ -494,9 +495,9 @@ const AgentsDashboard = () => {
                     </tr>
                   )}
                 </tbody>
-            </table>
-          </div>
-        )}
+              </table>
+            </div>
+          )}
 
         {/* Bottom Info Row */}
         {!isLoading && !isError && (
@@ -518,6 +519,11 @@ const AgentsDashboard = () => {
           maxWidth="max-w-xl"
         >
           <div className="grid grid-cols-2 gap-4">
+            {errors._generic && (
+              <div className="col-span-2 bg-red-50 p-3 rounded-lg border border-red-100 flex items-center gap-2 text-red-600 text-sm font-bold animate-in fade-in slide-in-from-top-2">
+                <AlertCircle size={16} /> {errors._generic}
+              </div>
+            )}
             <Field label="Legal Name" required error={errors.customer_id}>
               <Input
                 value={form.legal_name || ''}
@@ -587,21 +593,23 @@ const AgentsDashboard = () => {
       {deleteTarget && (
         <DeleteConfirm
           label="Agent Profile"
-          onClose={() => setDelete(null)}
+          message={deleteError}
+          onClose={() => { setDelete(null); setDeleteError(null); }}
           onConfirm={() => {
             const delId = deleteTarget.customer?.id || deleteTarget.id;
+            setDeleteError(null);
             console.log('Deleting Agent Profile:', { id: deleteTarget.id, customer_id: deleteTarget.customer?.id, target: delId });
             deleteMutation.mutate(delId, {
-              onSuccess: () => setDelete(null),
+              onSuccess: () => { setDelete(null); setDeleteError(null); },
               onError: (err) => {
-                alert(`Delete Failed: ${err.response?.data?.detail || err.message}`);
+                setDeleteError(`Delete Failed: ${err.response?.data?.detail || err.message}`);
               }
             });
           }}
           deleting={deleteMutation.isPending}
         />
       )}
-    
+
       {modal?.type === 'view' && (
         <Modal
           title={`View — ${modal.agent?.customer?.legal_name || modal.agent?.agent_code}`}
@@ -619,7 +627,7 @@ const AgentsDashboard = () => {
           />
         </Modal>
       )}
-</div>
+    </div>
   );
 };
 
@@ -644,7 +652,7 @@ const AgentOverview = ({ agent: a, onEdit }) => (
     </div>
 
     {/* Shared Relationship Info */}
-    <RelationshipOverviewSection item={a} />
+    <RelationshipOverviewSection item={a} showWarehouse={false} />
 
     <div className="pt-3 border-t border-gray-100 flex justify-end">
       <button onClick={onEdit}

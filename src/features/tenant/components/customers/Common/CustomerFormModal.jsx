@@ -114,7 +114,15 @@ export const CustomerFormModal = ({ initial, onClose, onSuccess }) => {
 
   const validate = () => {
     const e = {};
-    if (!form.legal_name.trim()) e.legal_name = 'Legal name is required';
+    if (!form.legal_name.trim()) {
+      e.legal_name = 'Legal name is required';
+    } else {
+      const isDuplicate = allCustomers.some(c => 
+        c.legal_name?.toLowerCase() === form.legal_name.trim().toLowerCase() && 
+        c.id !== initial?.id
+      );
+      if (isDuplicate) e.legal_name = 'This legal name is already taken';
+    }
     if (!form.customer_type) e.customer_type = 'Select a type';
 
     if (createPortalUser && !isEdit) {
@@ -195,7 +203,7 @@ export const CustomerFormModal = ({ initial, onClose, onSuccess }) => {
       <div className="grid grid-cols-2 gap-4">
         <Section title="Basic Information" className="col-span-2" />
 
-        <Field label="Legal Name" required error={errors.legal_name}>
+        <Field label="Legal Name" required error={errors.legal_name} info="Must be unique across all customers">
           <Input value={form.legal_name} onChange={e => setField('legal_name', e.target.value)}
             placeholder="Full legal name" />
         </Field>
