@@ -83,6 +83,7 @@ const ConsigneesDashboard = () => {
   const [deleteTarget, setDelete] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
+  const [deleteError, setDeleteError] = useState(null);
   const [createPortalUser, setCreatePortalUser] = useState(false);
 
   const { data: userData } = useUsers({ limit: 1000 });
@@ -215,13 +216,13 @@ const ConsigneesDashboard = () => {
     // Merge the selected customer's data into the payload
     // Clean up: Destructure to remove system fields and nested customer object
     const selectedCustomer = eligibleCustomers.find(c => c.id === form.customer_id) || {};
-    const { 
-      id: _id, 
-      customer: _customer, 
-      customer_code: _customer_code, 
-      created_at: _created_at, 
+    const {
+      id: _id,
+      customer: _customer,
+      customer_code: _customer_code,
+      created_at: _created_at,
       updated_at: _updated_at,
-      ...cleanPayload 
+      ...cleanPayload
     } = { ...selectedCustomer, ...form };
 
     const payload = cleanPayload;
@@ -254,12 +255,11 @@ const ConsigneesDashboard = () => {
 
     if (modal.type === 'create') {
       createMutation.mutate(payload, {
-        onSuccess: () => closeModal(),
         onError: (err) => {
           if (err.response?.status === 400 && err.response.data?.details) {
             setErrors(err.response.data.details);
           } else {
-            alert(`Create Failed: ${err.response?.data?.detail || err.message}`);
+            setErrors(prev => ({ ...prev, _generic: `Create Failed: ${err.response?.data?.detail || err.message}` }));
           }
         }
       });
@@ -270,7 +270,7 @@ const ConsigneesDashboard = () => {
           if (err.response?.status === 400 && err.response.data?.details) {
             setErrors(err.response.data.details);
           } else {
-            alert(`Update Failed: ${err.response?.data?.detail || err.message}`);
+            setErrors(prev => ({ ...prev, _generic: `Update Failed: ${err.response?.data?.detail || err.message}` }));
           }
         }
       });
@@ -531,8 +531,18 @@ const ConsigneesDashboard = () => {
       </div>
 
       {deleteTarget && (
-        <DeleteConfirm label="Consignee" onClose={() => setDelete(null)}
-          onConfirm={() => deleteMutation.mutate(deleteTarget.customer_id || deleteTarget.id, { onSuccess: () => setDelete(null) })}
+        <DeleteConfirm label="Consignee"
+          message={deleteError}
+          onClose={() => { setDelete(null); setDeleteError(null); }}
+          onConfirm={() => {
+            setDeleteError(null);
+            deleteMutation.mutate(deleteTarget.customer_id || deleteTarget.id, {
+              onSuccess: () => { setDelete(null); setDeleteError(null); },
+              onError: (err) => {
+                setDeleteError(`Delete Failed: ${err.response?.data?.detail || err.message}`);
+              }
+            });
+          }}
           deleting={deleteMutation.isPending} />
       )}
 
@@ -546,6 +556,11 @@ const ConsigneesDashboard = () => {
           maxWidth="max-w-2xl"
         >
           <div className="grid grid-cols-2 gap-4">
+            {errors._generic && (
+              <div className="col-span-2 bg-red-50 p-3 rounded-lg border border-red-100 flex items-center gap-2 text-red-600 text-sm font-bold animate-in fade-in slide-in-from-top-2">
+                <AlertCircle size={16} /> {errors._generic}
+              </div>
+            )}
             <Section title="Consignee Details" className="col-span-2" />
             <Field label="Legal Name" required error={errors.customer_id}>
               <Input
@@ -615,13 +630,7 @@ const ConsigneesDashboard = () => {
               <Input value={form.unloading_instructions} onChange={e => setField('unloading_instructions', e.target.value)} disabled={modal.type === 'view'} />
             </Field>
 
-            <Field label="Preferred Vehicle Types" className="col-span-2">
-              <VehicleTypeMultiSelect
-                value={form.preferred_vehicle_types}
-                onChange={val => setField('preferred_vehicle_types', val)}
-                disabled={modal.type === 'view'}
-              />
-            </Field>
+
 
             {/* Shared Relationship Management Section */}
             <RelationshipManagementFields
@@ -699,12 +708,12 @@ const ConsigneeOverview = ({ consignee: c }) => (
       <InfoCard label="Delivery Slot" value={c.delivery_time_slot_start && c.delivery_time_slot_end ? `${c.delivery_time_slot_start} - ${c.delivery_time_slot_end}` : null} />
       <InfoCard label="Receiving Hours" value={c.receiving_hours_start && c.receiving_hours_end ? `${c.receiving_hours_start} - ${c.receiving_hours_end}` : null} />
       <InfoCard label="Docs Required" value={c.documentation_requirements?.join(', ')} />
-      <InfoCard label="Preferred Vehicles" value={c.preferred_vehicle_types?.join(', ')} />
+
       <InfoCard label="Unloading Instructions" value={c.unloading_instructions} />
     </div>
 
     {/* Shared Relationship Info */}
-    <RelationshipOverviewSection item={c} />
+    <RelationshipOverviewSection item={c} showWarehouse={false} />
 
 
     <div className="pt-3 border-t border-gray-100 flex justify-end items-center gap-4">
