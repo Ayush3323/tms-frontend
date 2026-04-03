@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { 
-  useCreateOrder, 
+import {
+  useCreateOrder,
   useUpdateOrder,
   useAssignTrip
 } from '../../queries/orders/ordersQuery';
-import { useCustomers } from '../../queries/customers/customersQuery';
+import { 
+  useCustomers, 
+  useConsignors, 
+  useConsignees, 
+  useBrokers 
+} from '../../queries/customers/customersQuery';
 import { useDrivers } from '../../queries/drivers/driverCoreQuery';
 import { useVehicles } from '../../queries/vehicles/vehicleQuery';
 
@@ -31,32 +36,54 @@ export const Modal = ({ isOpen, onClose, title, children }) => {
 
 export function CreateOrderModal({ isOpen, onClose }) {
   const createOrderMutation = useCreateOrder();
-  
+
+  // Separate APIs for different roles
   const { data: customersData } = useCustomers({ page_size: 100 });
   const customers = customersData?.results || (Array.isArray(customersData) ? customersData : []);
 
+  const { data: consignorsData } = useConsignors({ page_size: 100 });
+  const consignors = consignorsData?.results || [];
+
+  const { data: consigneesData } = useConsignees({ page_size: 100 });
+  const consignees = consigneesData?.results || [];
+
+  const { data: brokersData } = useBrokers({ page_size: 100 });
+  const brokers = brokersData?.results || [];
+
   const [formData, setFormData] = useState({
     billing_customer_id: "",
-    consigner_id: "",
+    consignor_id: "",
     consignee_id: "",
+    broker_id: "",
     order_type: "FTL",
+    status: "DRAFT",
     reference_number: "",
     pickup_date: "",
     delivery_date: "",
-    notes: ""
+    notes: "",
+    created_at: new Date().toISOString(),
+    lr_receiving_date: "",
+    billing_company_name: ""
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const payload = { ...formData };
-    if (!payload.consigner_id) payload.consigner_id = null;
-    if (!payload.consignee_id) payload.consignee_id = null;
+    
+    // Normalize empty strings to null for ID and Date fields
+    const optionalFields = ['consignor_id', 'consignee_id', 'broker_id', 'pickup_date', 'delivery_date', 'lr_receiving_date'];
+    optionalFields.forEach(field => {
+      if (!payload[field]) payload[field] = null;
+    });
 
     createOrderMutation.mutate(payload, {
       onSuccess: () => {
         setFormData({
-          billing_customer_id: "", consigner_id: "", consignee_id: "",
-          order_type: "FTL", reference_number: "", pickup_date: "", delivery_date: "", notes: ""
+          billing_customer_id: "", consignor_id: "", consignee_id: "", broker_id: "",
+          order_type: "FTL", status: "DRAFT", reference_number: "", pickup_date: "", delivery_date: "", notes: "",
+          created_at: new Date().toISOString(),
+          lr_receiving_date: "",
+          billing_company_name: ""
         });
         onClose();
       }
@@ -68,7 +95,9 @@ export function CreateOrderModal({ isOpen, onClose }) {
       <form onSubmit={handleSubmit} className="space-y-4 text-sm">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-gray-700 font-medium mb-1">Billing Customer *</label>
+            <label className="block text-gray-700 font-medium mb-1">
+              Billing Customer <span className="text-red-500">*</span>
+            </label>
             <select
               required
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
@@ -76,8 +105,10 @@ export function CreateOrderModal({ isOpen, onClose }) {
               onChange={e => setFormData({ ...formData, billing_customer_id: e.target.value })}
             >
               <option value="">Select Customer</option>
-              {customers.map(c => (
-                <option key={c.id} value={c.id}>{c.legal_name || c.trading_name || c.customer_code || c.id}</option>
+              {customers.map((c, idx) => (
+                <option key={`${c.id}-${idx}`} value={c.id}>
+                  {c.legal_name || c.trading_name} {c.customer_code ? `(${c.customer_code})` : ''} - {c.customer_type || 'N/A'}
+                </option>
               ))}
             </select>
           </div>
@@ -96,18 +127,33 @@ export function CreateOrderModal({ isOpen, onClose }) {
             </select>
           </div>
         </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Billing Company Name</label>
+            <input
+              type="text"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              placeholder="e.g. KCM PVT LTD"
+              value={formData.billing_company_name}
+              onChange={e => setFormData({ ...formData, billing_company_name: e.target.value })}
+            />
+          </div>
+        </div>
 
         <div className="grid grid-cols-2 gap-4">
-           <div>
-            <label className="block text-gray-700 font-medium mb-1">Consigner (Optional)</label>
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Consignor (Optional)</label>
             <select
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
-              value={formData.consigner_id}
-              onChange={e => setFormData({ ...formData, consigner_id: e.target.value })}
+              value={formData.consignor_id}
+              onChange={e => setFormData({ ...formData, consignor_id: e.target.value })}
             >
-              <option value="">Select Consigner</option>
-              {customers.map(c => (
-                 <option key={c.id} value={c.id}>{c.legal_name || c.trading_name || c.customer_code || c.id}</option>
+              <option value="">Select Consignor</option>
+              {consignors.map((c, idx) => (
+                <option key={`${c.id}-${idx}`} value={c.customer?.id || c.id}>
+                  {c.customer?.legal_name || c.customer?.trading_name || c.legal_name || c.trading_name || (c.id ? c.id.slice(-6) : 'N/A')}
+                </option>
               ))}
             </select>
           </div>
@@ -119,8 +165,10 @@ export function CreateOrderModal({ isOpen, onClose }) {
               onChange={e => setFormData({ ...formData, consignee_id: e.target.value })}
             >
               <option value="">Select Consignee</option>
-              {customers.map(c => (
-                 <option key={c.id} value={c.id}>{c.legal_name || c.trading_name || c.customer_code || c.id}</option>
+              {consignees.map((c, idx) => (
+                <option key={`${c.id}-${idx}`} value={c.customer?.id || c.id}>
+                  {c.customer?.legal_name || c.customer?.trading_name || c.legal_name || c.trading_name || (c.id ? c.id.slice(-6) : 'N/A')}
+                </option>
               ))}
             </select>
           </div>
@@ -128,9 +176,42 @@ export function CreateOrderModal({ isOpen, onClose }) {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
+            <label className="block text-gray-700 font-medium mb-1">Broker (Optional)</label>
+            <select
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              value={formData.broker_id}
+              onChange={e => setFormData({ ...formData, broker_id: e.target.value })}
+            >
+              <option value="">Select Broker</option>
+              {brokers.map((b, idx) => (
+                <option key={`${b.id}-${idx}`} value={b.customer?.id || b.id}>
+                  {b.customer?.legal_name || b.customer?.trading_name || b.legal_name || b.trading_name || (b.id ? b.id.slice(-6) : 'N/A')}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Status</label>
+            <select
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              value={formData.status}
+              onChange={e => setFormData({ ...formData, status: e.target.value })}
+            >
+              <option value="DRAFT">DRAFT</option>
+              <option value="CONFIRMED">CONFIRMED</option>
+              <option value="ASSIGNED">ASSIGNED</option>
+              <option value="IN_TRANSIT">IN_TRANSIT</option>
+              <option value="DELIVERED">DELIVERED</option>
+              <option value="CANCELLED">CANCELLED</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
             <label className="block text-gray-700 font-medium mb-1">Reference Number</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
               placeholder="PO-001..."
               value={formData.reference_number}
@@ -140,8 +221,8 @@ export function CreateOrderModal({ isOpen, onClose }) {
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="block text-gray-700 font-medium mb-1">Pickup Date</label>
-              <input 
-                type="date" 
+              <input
+                type="date"
                 className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
                 value={formData.pickup_date}
                 onChange={e => setFormData({ ...formData, pickup_date: e.target.value })}
@@ -149,8 +230,8 @@ export function CreateOrderModal({ isOpen, onClose }) {
             </div>
             <div>
               <label className="block text-gray-700 font-medium mb-1">Delivery Date</label>
-              <input 
-                type="date" 
+              <input
+                type="date"
                 className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
                 value={formData.delivery_date}
                 onChange={e => setFormData({ ...formData, delivery_date: e.target.value })}
@@ -159,9 +240,30 @@ export function CreateOrderModal({ isOpen, onClose }) {
           </div>
         </div>
 
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Created At</label>
+            <input
+              type="text"
+              readOnly
+              className="w-full p-2 border border-gray-200 bg-gray-50 rounded text-gray-500 cursor-not-allowed outline-none"
+              value={new Date(formData.created_at).toLocaleString()}
+            />
+          </div>
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">LR Receiving Date</label>
+            <input
+              type="date"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              value={formData.lr_receiving_date}
+              onChange={e => setFormData({ ...formData, lr_receiving_date: e.target.value })}
+            />
+          </div>
+        </div>
+
         <div>
           <label className="block text-gray-700 font-medium mb-1">Notes</label>
-          <textarea 
+          <textarea
             className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
             rows="3"
             placeholder="Additional instructions..."
@@ -172,8 +274,8 @@ export function CreateOrderModal({ isOpen, onClose }) {
 
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
           <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={createOrderMutation.isPending}
             className="px-4 py-2 text-white bg-[#4a6cf7] rounded-lg hover:bg-[#3b59d9] disabled:opacity-50"
           >
@@ -187,19 +289,33 @@ export function CreateOrderModal({ isOpen, onClose }) {
 
 export function EditOrderModal({ isOpen, onClose, order }) {
   const updateOrderMutation = useUpdateOrder();
+  
   const { data: customersData } = useCustomers({ page_size: 100 });
   const customers = customersData?.results || (Array.isArray(customersData) ? customersData : []);
+
+  const { data: consignorsData } = useConsignors({ page_size: 100 });
+  const consignors = consignorsData?.results || [];
+
+  const { data: consigneesData } = useConsignees({ page_size: 100 });
+  const consignees = consigneesData?.results || [];
+
+  const { data: brokersData } = useBrokers({ page_size: 100 });
+  const brokers = brokersData?.results || [];
 
   const [formData, setFormData] = useState({
     billing_customer_id: order?.billing_customer_id || "",
     order_type: order?.order_type || "FTL",
     status: order?.status || 'DRAFT',
-    consigner_id: order?.consigner_id || "",
+    consignor_id: order?.consignor_id || "",
     consignee_id: order?.consignee_id || "",
+    broker_id: order?.broker_id || "",
     reference_number: order?.reference_number || "",
     pickup_date: order?.pickup_date || "",
     delivery_date: order?.delivery_date || "",
-    notes: order?.notes || ""
+    notes: order?.notes || "",
+    created_at: order?.created_at || "",
+    lr_receiving_date: order?.lr_receiving_date || "",
+    billing_company_name: order?.billing_company_name || ""
   });
 
   useEffect(() => {
@@ -208,12 +324,16 @@ export function EditOrderModal({ isOpen, onClose, order }) {
         billing_customer_id: order.billing_customer_id || "",
         order_type: order.order_type || "FTL",
         status: order.status,
-        consigner_id: order.consigner_id || "",
+        consignor_id: order.consignor_id || "",
         consignee_id: order.consignee_id || "",
+        broker_id: order.broker_id || "",
         reference_number: order.reference_number || "",
         pickup_date: order.pickup_date || "",
         delivery_date: order.delivery_date || "",
-        notes: order.notes || ""
+        notes: order.notes || "",
+        created_at: order.created_at || "",
+        lr_receiving_date: order.lr_receiving_date || "",
+        billing_company_name: order.billing_company_name || ""
       });
     }
   }, [order, isOpen]);
@@ -221,8 +341,12 @@ export function EditOrderModal({ isOpen, onClose, order }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     const payload = { ...formData };
-    if (!payload.consigner_id) payload.consigner_id = null;
-    if (!payload.consignee_id) payload.consignee_id = null;
+    
+    // Normalize empty strings to null for ID and Date fields
+    const optionalFields = ['consignor_id', 'consignee_id', 'broker_id', 'pickup_date', 'delivery_date', 'lr_receiving_date'];
+    optionalFields.forEach(field => {
+      if (!payload[field]) payload[field] = null;
+    });
 
     updateOrderMutation.mutate({ id: order.id, data: payload, fullReplace: true }, {
       onSuccess: () => onClose()
@@ -234,16 +358,17 @@ export function EditOrderModal({ isOpen, onClose, order }) {
       <form onSubmit={handleSubmit} className="space-y-4 text-sm">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-gray-700 font-medium mb-1">Billing Customer *</label>
+            <label className="block text-gray-700 font-medium mb-1">Billing Customer</label>
             <select
-              required
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              disabled
+              className="w-full p-2 border border-gray-200 bg-gray-50 rounded text-gray-500 cursor-not-allowed outline-none appearance-none"
               value={formData.billing_customer_id}
-              onChange={e => setFormData({ ...formData, billing_customer_id: e.target.value })}
             >
               <option value="">Select Customer</option>
-              {customers.map(c => (
-                <option key={c.id} value={c.id}>{c.legal_name || c.trading_name || c.customer_code || c.id}</option>
+              {customers.map((c, idx) => (
+                <option key={`${c.id}-${idx}`} value={c.id}>
+                  {c.legal_name || c.trading_name} {c.customer_code ? `(${c.customer_code})` : ''} - {c.customer_type || 'N/A'}
+                </option>
               ))}
             </select>
           </div>
@@ -260,6 +385,19 @@ export function EditOrderModal({ isOpen, onClose, order }) {
               <option value="COURIER">COURIER</option>
               <option value="MULTI_DROP">MULTI_DROP</option>
             </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Billing Company Name</label>
+            <input
+              type="text"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              placeholder="e.g. KCM PVT LTD"
+              value={formData.billing_company_name}
+              onChange={e => setFormData({ ...formData, billing_company_name: e.target.value })}
+            />
           </div>
         </div>
 
@@ -276,30 +414,33 @@ export function EditOrderModal({ isOpen, onClose, order }) {
               <option value="ASSIGNED">ASSIGNED</option>
               <option value="IN_TRANSIT">IN_TRANSIT</option>
               <option value="DELIVERED">DELIVERED</option>
+              <option value="CANCELLED">CANCELLED</option>
             </select>
           </div>
           <div>
-             <label className="block text-gray-700 font-medium mb-1">Reference Number</label>
-             <input 
-               type="text" 
-               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
-               value={formData.reference_number}
-               onChange={e => setFormData({ ...formData, reference_number: e.target.value })}
-             />
+            <label className="block text-gray-700 font-medium mb-1">Reference Number</label>
+            <input
+              type="text"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              value={formData.reference_number}
+              onChange={e => setFormData({ ...formData, reference_number: e.target.value })}
+            />
           </div>
         </div>
-        
+
         <div className="grid grid-cols-2 gap-4">
-           <div>
-            <label className="block text-gray-700 font-medium mb-1">Consigner (Optional)</label>
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Consignor (Optional)</label>
             <select
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
-              value={formData.consigner_id}
-              onChange={e => setFormData({ ...formData, conssigner_id: e.target.value })}
+              value={formData.consignor_id}
+              onChange={e => setFormData({ ...formData, consignor_id: e.target.value })}
             >
-              <option value="">Select Consigner</option>
-              {customers.map(c => (
-                 <option key={c.id} value={c.id}>{c.legal_name || c.trading_name || c.customer_code || c.id}</option>
+              <option value="">Select Consignor</option>
+              {consignors.map((c, idx) => (
+                <option key={`${c.id}-${idx}`} value={c.customer?.id || c.id}>
+                  {c.customer?.legal_name || c.customer?.trading_name || c.legal_name || c.trading_name || (c.id ? c.id.slice(-6) : 'N/A')}
+                </option>
               ))}
             </select>
           </div>
@@ -311,37 +452,78 @@ export function EditOrderModal({ isOpen, onClose, order }) {
               onChange={e => setFormData({ ...formData, consignee_id: e.target.value })}
             >
               <option value="">Select Consignee</option>
-              {customers.map(c => (
-                 <option key={c.id} value={c.id}>{c.legal_name || c.trading_name || c.customer_code || c.id}</option>
+              {consignees.map((c, idx) => (
+                <option key={`${c.id}-${idx}`} value={c.customer?.id || c.id}>
+                  {c.customer?.legal_name || c.customer?.trading_name || c.legal_name || c.trading_name || (c.id ? c.id.slice(-6) : 'N/A')}
+                </option>
               ))}
             </select>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-           <div>
-             <label className="block text-gray-700 font-medium mb-1">Pickup Date</label>
-             <input 
-               type="date" 
-               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
-               value={formData.pickup_date}
-               onChange={e => setFormData({ ...formData, pickup_date: e.target.value })}
-             />
-           </div>
-           <div>
-             <label className="block text-gray-700 font-medium mb-1">Delivery Date</label>
-             <input 
-               type="date" 
-               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
-               value={formData.delivery_date}
-               onChange={e => setFormData({ ...formData, delivery_date: e.target.value })}
-             />
-           </div>
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Broker (Optional)</label>
+            <select
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              value={formData.broker_id}
+              onChange={e => setFormData({ ...formData, broker_id: e.target.value })}
+            >
+              <option value="">Select Broker</option>
+              {brokers.map((b, idx) => (
+                <option key={`${b.id}-${idx}`} value={b.customer?.id || b.id}>
+                  {b.customer?.legal_name || b.customer?.trading_name || b.legal_name || b.trading_name || (b.id ? b.id.slice(-6) : 'N/A')}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Created At</label>
+            <input
+              type="text"
+              readOnly
+              className="w-full p-2 border border-gray-200 bg-gray-50 rounded text-gray-500 cursor-not-allowed outline-none"
+              value={formData.created_at ? new Date(formData.created_at).toLocaleString() : 'N/A'}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">LR Receiving Date</label>
+            <input
+              type="date"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              value={formData.lr_receiving_date}
+              onChange={e => setFormData({ ...formData, lr_receiving_date: e.target.value })}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Pickup Date</label>
+            <input
+              type="date"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              value={formData.pickup_date}
+              onChange={e => setFormData({ ...formData, pickup_date: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Delivery Date</label>
+            <input
+              type="date"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              value={formData.delivery_date}
+              onChange={e => setFormData({ ...formData, delivery_date: e.target.value })}
+            />
+          </div>
         </div>
 
         <div>
           <label className="block text-gray-700 font-medium mb-1">Notes</label>
-          <textarea 
+          <textarea
             className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
             rows="3"
             value={formData.notes}
@@ -351,8 +533,8 @@ export function EditOrderModal({ isOpen, onClose, order }) {
 
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
           <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={updateOrderMutation.isPending}
             className="px-4 py-2 text-white bg-[#4a6cf7] rounded-lg hover:bg-[#3b59d9] disabled:opacity-50"
           >
@@ -364,9 +546,9 @@ export function EditOrderModal({ isOpen, onClose, order }) {
   );
 }
 
-export function AssignTripModal({ isOpen, onClose, order }) {
+export function AssignTripModal({ isOpen, onClose, order, consignor, consignee }) {
   const assignTripMutation = useAssignTrip();
-  
+
   const { data: driversData } = useDrivers({ page_size: 100 });
   const drivers = driversData?.results || [];
 
@@ -376,8 +558,35 @@ export function AssignTripModal({ isOpen, onClose, order }) {
   const [formData, setFormData] = useState({
     driver_id: "",
     vehicle_id: "",
-    trip_number: ""
+    trip_number: "",
+    trip_type: "FTL",
+    origin_address: "",
+    destination_address: "",
+    scheduled_pickup_date: "",
+    scheduled_delivery_date: "",
+    remarks: ""
   });
+
+  useEffect(() => {
+    if (isOpen && order) {
+      const getAddress = (customer) => {
+        if (!customer) return ""; // Still loading
+        return customer.legal_name || customer.trading_name || "No address available";
+      };
+
+      setFormData({
+        driver_id: "",
+        vehicle_id: "",
+        trip_number: "",
+        trip_type: order.order_type || "FTL",
+        origin_address: getAddress(consignor),
+        destination_address: getAddress(consignee),
+        scheduled_pickup_date: order.pickup_date || "",
+        scheduled_delivery_date: order.delivery_date || "",
+        remarks: order.notes || ""
+      });
+    }
+  }, [isOpen, order, consignor, consignee]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -388,63 +597,138 @@ export function AssignTripModal({ isOpen, onClose, order }) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Assign Trip for: ${order?.lr_number}`}>
-      <div className="mb-4 p-3 bg-amber-50 text-amber-800 rounded-lg border border-amber-200 text-sm">
-        Assigning a trip will change order status to <strong>ASSIGNED</strong> and create a Trip record.
+      <div className="mb-4 p-3 bg-indigo-50 text-indigo-800 rounded-lg border border-indigo-200 text-[11px] font-bold uppercase tracking-wider">
+        Defining operational leg for this shipment
       </div>
       <form onSubmit={handleSubmit} className="space-y-4 text-sm">
-        <div>
-          <label className="block text-gray-700 font-medium mb-1">Driver *</label>
-          <select
-            required
-            className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
-            value={formData.driver_id}
-            onChange={e => setFormData({ ...formData, driver_id: e.target.value })}
-          >
-            <option value="">Select Driver</option>
-            {drivers.map(d => (
-              <option key={d.id} value={d.id}>
-                {d.user?.first_name || 'Driver'} {d.user?.last_name || ''} ({d.employee_id || d.id})
-              </option>
-            ))}
-          </select>
-        </div>
-        
-        <div>
-          <label className="block text-gray-700 font-medium mb-1">Vehicle *</label>
-          <select
-            required
-            className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
-            value={formData.vehicle_id}
-            onChange={e => setFormData({ ...formData, vehicle_id: e.target.value })}
-          >
-            <option value="">Select Vehicle</option>
-            {vehicles.map(v => (
-              <option key={v.id} value={v.id}>
-                {v.registration_number || v.registration || v.id}
-              </option>
-            ))}
-          </select>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-gray-700 font-bold mb-1 uppercase text-[10px] tracking-widest">Driver *</label>
+            <select
+              required
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
+              value={formData.driver_id}
+              onChange={e => setFormData({ ...formData, driver_id: e.target.value })}
+            >
+              <option value="">Select Driver</option>
+              {drivers.map((d, idx) => (
+                <option key={`${d.id}-${idx}`} value={d.id}>
+                  {d.user?.first_name || 'Driver'} {d.user?.last_name || ''} ({d.employee_id || (d.id ? d.id.slice(-6) : 'N/A')})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-gray-700 font-bold mb-1 uppercase text-[10px] tracking-widest">Vehicle *</label>
+            <select
+              required
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
+              value={formData.vehicle_id}
+              onChange={e => setFormData({ ...formData, vehicle_id: e.target.value })}
+            >
+              <option value="">Select Vehicle</option>
+              {vehicles.map((v, idx) => (
+                <option key={`${v.id}-${idx}`} value={v.id}>
+                  {v.registration_number || v.registration || (v.id ? v.id.slice(-6) : 'N/A')}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        <div>
-          <label className="block text-gray-700 font-medium mb-1">Trip Number (Optional)</label>
-          <input 
-            type="text" 
-            className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
-            placeholder="Auto-generated if left blank"
-            value={formData.trip_number}
-            onChange={e => setFormData({ ...formData, trip_number: e.target.value })}
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-gray-700 font-bold mb-1 uppercase text-[10px] tracking-widest">Origin Point</label>
+            <input
+              type="text"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
+              placeholder="e.g. Warehouse A"
+              value={formData.origin_address}
+              onChange={e => setFormData({ ...formData, origin_address: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-gray-700 font-bold mb-1 uppercase text-[10px] tracking-widest">Destination Point</label>
+            <input
+              type="text"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
+              placeholder="e.g. Hub Center"
+              value={formData.destination_address}
+              onChange={e => setFormData({ ...formData, destination_address: e.target.value })}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-gray-700 font-bold mb-1 uppercase text-[10px] tracking-widest">Scheduled Pickup</label>
+            <input
+              type="date"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
+              value={formData.scheduled_pickup_date}
+              onChange={e => setFormData({ ...formData, scheduled_pickup_date: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-gray-700 font-bold mb-1 uppercase text-[10px] tracking-widest">Scheduled Delivery</label>
+            <input
+              type="date"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
+              value={formData.scheduled_delivery_date}
+              onChange={e => setFormData({ ...formData, scheduled_delivery_date: e.target.value })}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-gray-700 font-bold mb-1 uppercase text-[10px] tracking-widest">Trip Type</label>
+            <select
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
+              value={formData.trip_type}
+              onChange={e => setFormData({ ...formData, trip_type: e.target.value })}
+            >
+              <option value="FTL">FTL (Full Truck Load)</option>
+              <option value="LTL">LTL (Less than Truck Load)</option>
+              <option value="CONTAINER">CONTAINER</option>
+              <option value="COURIER">COURIER</option>
+              <option value="MULTI_DROP">MULTI DROP</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-gray-700 font-bold mb-1 uppercase text-[10px] tracking-widest">Trip Number (Optional)</label>
+            <input
+              type="text"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
+              placeholder="Auto-generated if left blank"
+              value={formData.trip_number}
+              onChange={e => setFormData({ ...formData, trip_number: e.target.value })}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-gray-700 font-bold mb-1 uppercase text-[10px] tracking-widest">Trip Remarks / Notes</label>
+            <textarea
+              rows="2"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
+              placeholder="Special instructions for this trip leg..."
+              value={formData.remarks}
+              onChange={e => setFormData({ ...formData, remarks: e.target.value })}
+            />
+          </div>
         </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
-          <button 
-            type="submit" 
+          <button type="button" onClick={onClose} className="px-4 py-2 font-bold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all">Cancel</button>
+          <button
+            type="submit"
             disabled={assignTripMutation.isPending}
-            className="px-4 py-2 text-white bg-amber-600 rounded-lg hover:bg-amber-700 disabled:opacity-50"
+            className="px-6 py-2 font-black text-white bg-[#0052CC] rounded-xl hover:bg-[#0747A6] shadow-md shadow-blue-100 transition-all disabled:opacity-50"
           >
-            {assignTripMutation.isPending ? 'Assigning...' : 'Assign Trip'}
+            {assignTripMutation.isPending ? 'Processing...' : 'Confirm Assignment'}
           </button>
         </div>
       </form>

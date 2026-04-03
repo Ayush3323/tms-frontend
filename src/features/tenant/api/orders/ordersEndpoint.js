@@ -31,6 +31,9 @@ export const ordersApi = {
   cancel: (id) =>
     axiosInstance.post(`${BASE_ORDERS}/${id}/cancel/`).then(r => r.data),
 
+  delete: (id) =>
+    axiosInstance.delete(`${BASE_ORDERS}/${id}/`).then(r => r.data),
+
   assignTrip: (id, data) =>
     axiosInstance.post(`${BASE_ORDERS}/${id}/assign_trip/`, data).then(r => r.data),
 }
@@ -77,6 +80,9 @@ export const tripsApi = {
     axiosInstance.patch(`${BASE_TRIPS}/${id}/`, data).then(r => r.data),
   replace: (id, data) =>
     axiosInstance.put(`${BASE_TRIPS}/${id}/`, data).then(r => r.data),
+
+  delete: (id) =>
+    axiosInstance.delete(`${BASE_TRIPS}/${id}/`).then(r => r.data),
 }
 // ─── 4. CARGO ──────────────────────────────────────────────────────────────
 

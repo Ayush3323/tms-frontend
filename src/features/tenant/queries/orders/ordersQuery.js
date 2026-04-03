@@ -5,7 +5,6 @@ import {
   tripsApi, 
   cargoApi, 
   deliveriesApi,
-  orderServiceHealthApi 
 } from '../../api/orders/ordersEndpoint'
 
 // ─── QUERY KEYS ──────────────────────────────────────────────────────────────
@@ -35,26 +34,58 @@ export const orderKeys = {
 }
 
 // ─── ERROR HANDLER ───────────────────────────────────────────────────────────
-const handleApiError = (error, customMessage) => {
-  let message = customMessage;
-  if (error.response?.data) {
-    if (error.response.data.detail) {
-      message = error.response.data.detail;
-    } else if (error.response.data.message) {
-      message = error.response.data.message;
-    } else if (typeof error.response.data === 'object') {
-      const ObjectStrings = [];
-      for (const [key, value] of Object.entries(error.response.data)) {
-        const valStr = typeof value === 'object' ? JSON.stringify(value) : value;
-        ObjectStrings.push(`${key}: ${valStr}`);
-      }
-      if (ObjectStrings.length > 0) message = ObjectStrings.join(' | ');
-    }
-  } else if (error.message) {
-    message = error.message;
-  }
+const formatError = (error) => {
+  if (!error) return 'An unexpected error occurred.';
+  const data = error.response?.data;
+  if (!data) return error.message || 'An unexpected error occurred.';
+  const errObj = data.error || data;
   
-  toast.error(message, { duration: 5000 })
+  // Mapping technical phrases to human-friendly ones
+  const friendlyMap = {
+    "Must be a valid UUID.": "Please select a valid option from the list.",
+    "This field may not be blank.": "This field is required.",
+    "This field is required.": "This field is required.",
+  };
+
+  if (errObj.message && typeof errObj.message === 'string' && !errObj.details) {
+    let msg = errObj.message;
+    Object.entries(friendlyMap).forEach(([tech, friendly]) => {
+      msg = msg.replace(tech, friendly);
+    });
+    return msg;
+  }
+
+  if (errObj.details && typeof errObj.details === 'object') {
+    const messages = [];
+    const extract = (obj, prefix = '') => {
+      Object.entries(obj).forEach(([key, value]) => {
+        let fieldName = key.replace(/_/g, ' ');
+        if (key === 'order_id') fieldName = 'order';
+        const label = prefix ? `${prefix} ${fieldName}` : fieldName;
+        if (Array.isArray(value)) {
+          const valStr = value.map(v => {
+            const s = typeof v === 'object' ? JSON.stringify(v) : String(v);
+            return friendlyMap[s] || s;
+          }).join(' ');
+          messages.push(`${label.charAt(0).toUpperCase() + label.slice(1)}: ${valStr}`);
+        } else if (typeof value === 'object' && value !== null) {
+          extract(value, fieldName === 'driver' || fieldName === 'user' ? '' : label);
+        } else {
+          const s = String(value);
+          const valStr = friendlyMap[s] || s;
+          messages.push(`${label.charAt(0).toUpperCase() + label.slice(1)}: ${valStr}`);
+        }
+      });
+    };
+    extract(errObj.details);
+    if (messages.length > 0) return messages.join(' | ');
+  }
+  return errObj.message || data.message || error.message || 'An unexpected error occurred.';
+};
+
+const handleApiError = (error, customMessage) => {
+  const message = formatError(error);
+  toast.error(`${customMessage}: ${message}`, { duration: 5000 })
   console.error(`Order Service Error [${customMessage}]:`, JSON.stringify(error.response?.data || error, null, 2))
 }
 
@@ -116,6 +147,18 @@ export const useCancelOrder = () => {
   })
 }
 
+export const useDeleteOrder = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id) => ordersApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.all })
+      toast.success('Order deleted successfully')
+    },
+    onError: (err) => handleApiError(err, 'Failed to delete order'),
+  })
+}
+
 export const useAssignTrip = () => {
   const queryClient = useQueryClient()
   return useMutation({
@@ -171,6 +214,18 @@ export const useUpdateTrip = () => {
       toast.success('Trip updated successfully')
     },
     onError: (err) => handleApiError(err, 'Update failed'),
+  })
+}
+
+export const useDeleteTrip = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id) => tripsApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.trips() })
+      toast.success('Trip deleted successfully')
+    },
+    onError: (err) => handleApiError(err, 'Failed to delete trip'),
   })
 }
 
