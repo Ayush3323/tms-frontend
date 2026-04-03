@@ -27,7 +27,10 @@ export default function CreateTripPage() {
 
   // Queries for lookups
   const { data: ordersData } = useOrders({ page_size: 100 });
-  const orders = ordersData?.results || [];
+  const ordersDataResults = ordersData?.results || [];
+  const orders = useMemo(() => ordersDataResults.filter(o => 
+    ['DRAFT', 'CONFIRMED'].includes(o.status)
+  ), [ordersDataResults]);
   const { data: driversData } = useDrivers({ page_size: 100 });
   const drivers = driversData?.results || [];
   const { data: vehiclesData } = useVehicles({ page_size: 100 });
@@ -179,7 +182,6 @@ export default function CreateTripPage() {
                     <select name="status" className={inputClass} value={formData.status} onChange={handleInputChange}>
                       <option value="CREATED">CREATED</option>
                       <option value="ASSIGNED">ASSIGNED</option>
-                      <option value="STARTED">STARTED</option>
                       <option value="IN_TRANSIT">IN_TRANSIT</option>
                       <option value="DELIVERED">DELIVERED</option>
                       <option value="COMPLETED">COMPLETED</option>

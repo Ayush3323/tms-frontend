@@ -608,7 +608,6 @@ export function EditTripModal({ isOpen, onClose, trip }) {
                     <select name="status" className={inputClass} value={formData.status || ""} onChange={handleInputChange}>
                       <option value="CREATED">CREATED</option>
                       <option value="ASSIGNED">ASSIGNED</option>
-                      <option value="STARTED">STARTED</option>
                       <option value="IN_TRANSIT">IN_TRANSIT</option>
                       <option value="DELIVERED">DELIVERED</option>
                       <option value="COMPLETED">COMPLETED</option>

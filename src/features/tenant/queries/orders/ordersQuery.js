@@ -194,23 +194,48 @@ export const useTripDetail = (id) => {
 export const useCreateTrip = () => {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (data) => tripsApi.create(data),
+    mutationFn: async (data) => {
+      const trip = await tripsApi.create(data);
+      if (data.order_id) {
+        try {
+          await ordersApi.update(data.order_id, { status: 'ASSIGNED' });
+        } catch (err) {
+          console.error("Order status update failed:", err);
+          // We don't fail the whole trip creation if order update fails, 
+          // but we log it.
+        }
+      }
+      return trip;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: orderKeys.trips() })
+      queryClient.invalidateQueries({ queryKey: orderKeys.all })
       toast.success('Trip created successfully')
     },
-    onError: (err) => handleApiError(err, 'Could not create trip'),
+    onError: (err) => handleApiError(err, 'Trip creation failed'),
   })
 }
 
 export const useUpdateTrip = () => {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, data, fullReplace = false }) => 
-      fullReplace ? tripsApi.replace(id, data) : tripsApi.update(id, data),
+    mutationFn: async ({ id, data, fullReplace = false }) => {
+      const response = fullReplace ? await tripsApi.replace(id, data) : await tripsApi.update(id, data);
+      
+      // If trip's order is updated, we also ensure the order is marked as ASSIGNED
+      if (data.order_id) {
+        try {
+          await ordersApi.update(data.order_id, { status: 'ASSIGNED' });
+        } catch (err) {
+          console.error("Order status update failed (on trip update):", err);
+        }
+      }
+      return response;
+    },
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: orderKeys.trips() })
       queryClient.invalidateQueries({ queryKey: orderKeys.tripDetail(id) })
+      queryClient.invalidateQueries({ queryKey: orderKeys.all })
       toast.success('Trip updated successfully')
     },
     onError: (err) => handleApiError(err, 'Update failed'),
