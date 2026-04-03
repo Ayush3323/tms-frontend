@@ -6,7 +6,8 @@ import {
   DollarSign, Hash, CheckCircle2, Clock, 
   AlertCircle, ArrowLeft, Search, Loader2,
   ChevronRight, Map as MapIcon, Globe, FileText,
-  RotateCcw, SlidersHorizontal, User, Edit3
+  RotateCcw, SlidersHorizontal, User, Edit3,
+  ChevronLeft, Save, Gauge, Truck
 } from 'lucide-react';
 import {
   useCreateTripStop,
@@ -19,8 +20,11 @@ import {
   useTripDocuments, 
   useTripExpenses, 
   useTripCharges,
-  useUpdateTrip
+  useUpdateTrip,
+  useOrders
 } from '../../queries/orders/ordersQuery';
+import { useDrivers } from '../../queries/drivers/driverCoreQuery';
+import { useVehicles } from '../../queries/vehicles/vehicleQuery';
 
 // --- Dashboard Component ---
 
@@ -35,12 +39,21 @@ export default function TripNestedSubResource() {
   const [activeModal, setActiveModal] = useState(null);
 
   // API Hooks
-  const { data: trip, isLoading: loadingTrip, refetch: refetchTrip } = useTripDetail(tripId);
-  const { data: stops, isLoading: loadingStops, refetch: refetchStops } = useTripStops(tripId);
-  const { data: history, refetch: refetchHistory } = useTripStatusHistory(tripId);
-  const { data: documents, refetch: refetchDocs } = useTripDocuments(tripId);
-  const { data: expenses, refetch: refetchExpenses } = useTripExpenses(tripId);
-  const { data: charges, refetch: refetchCharges } = useTripCharges(tripId);
+  // API Hooks
+  const { data: tripData, isLoading: loadingTrip, refetch: refetchTrip } = useTripDetail(tripId);
+  const { data: stopsData, isLoading: loadingStops, refetch: refetchStops } = useTripStops(tripId);
+  const { data: historyData, refetch: refetchHistory } = useTripStatusHistory(tripId);
+  const { data: documentsData, refetch: refetchDocs } = useTripDocuments(tripId);
+  const { data: expensesData, refetch: refetchExpenses } = useTripExpenses(tripId);
+  const { data: chargesData, refetch: refetchCharges } = useTripCharges(tripId);
+
+  // Safe data extraction
+  const trip = tripData;
+  const stops = stopsData?.results || (Array.isArray(stopsData) ? stopsData : []);
+  const history = historyData?.results || (Array.isArray(historyData) ? historyData : []);
+  const documents = documentsData?.results || (Array.isArray(documentsData) ? documentsData : []);
+  const expenses = expensesData?.results || (Array.isArray(expensesData) ? expensesData : []);
+  const charges = chargesData?.results || (Array.isArray(chargesData) ? chargesData : []);
 
   const handleRefresh = () => {
     if (!tripId) return;
@@ -75,7 +88,7 @@ export default function TripNestedSubResource() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-[13px] font-bold text-[#64748b] uppercase tracking-wider">
-               Platform <ChevronRight size={12} /> Dashboard <ChevronRight size={12} /> <span className="text-[#3b82f6]">Orders</span>
+               {/* Platform <ChevronRight size={12} /> Dashboard <ChevronRight size={12} /> <span className="text-[#3b82f6]">Orders</span> */}
             </div>
             <h1 className="text-3xl font-black text-[#0f172a] tracking-tight flex items-center gap-4">
               Trip Management Console
@@ -106,10 +119,10 @@ export default function TripNestedSubResource() {
 
         {/* Stats Summary Bar (Matches Screenshot Style) */}
         <div className="bg-white border border-[#e2e8f0] rounded-2xl p-6 shadow-sm flex flex-wrap items-center justify-between gap-8">
-           <StatItem label="TOTAL STOPS" value={stops?.length || 0} color="text-[#3b82f6]" />
-           <StatItem label="DOCUMENTS" value={documents?.length || 0} color="text-emerald-500" />
-           <StatItem label="PENDING EXPENSES" value={expenses?.filter(e => e.status !== 'APPROVED').length || 0} color="text-amber-500" />
-           <StatItem label="TOTAL CHARGES" value={charges?.length || 0} color="text-rose-500" />
+           <StatItem label="TOTAL STOPS" value={stops.length} color="text-[#3b82f6]" />
+           <StatItem label="DOCUMENTS" value={documents.length} color="text-emerald-500" />
+           <StatItem label="PENDING EXPENSES" value={expenses.filter(e => e.status !== 'APPROVED').length} color="text-amber-500" />
+           <StatItem label="TOTAL CHARGES" value={charges.length} color="text-rose-500" />
         </div>
 
         {/* Search & Filter Workbench */}
@@ -153,6 +166,16 @@ export default function TripNestedSubResource() {
               <div className="divide-y divide-[#e2e8f0] bg-white">
                  {loadingStops || loadingTrip ? (
                    <div className="p-20 flex justify-center"><Loader2 className="animate-spin text-[#3b82f6]" size={32} /></div>
+                 ) : !trip ? (
+                   <div className="p-24 text-center space-y-4">
+                      <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <AlertCircle size={32} />
+                      </div>
+                      <h3 className="text-lg font-black text-[#0f172a]">UNRESOLVED TRIP IDENTITY</h3>
+                      <p className="text-sm text-[#64748b] max-w-sm mx-auto">
+                        The ID provided is not associated with a valid trip record. Please search for a valid Trip ID using the bar above.
+                      </p>
+                   </div>
                  ) : (
                    <div className="animate-in fade-in duration-500">
                       {activeTab === 'stops' && <StopsList stops={stops} />}
@@ -166,7 +189,7 @@ export default function TripNestedSubResource() {
 
            {/* Pagination Mock (Matches Screenshot) */}
            <div className="flex items-center justify-between pt-4 px-2">
-              <div className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-[0.1em]">Dashboard Results Summary</div>
+              <div className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-[0.15em]"></div>
               <div className="flex items-center gap-2">
                  <button className="px-4 py-2 border border-[#e2e8f0] rounded-lg text-[12px] font-bold text-[#cbd5e1] cursor-not-allowed">Previous Page</button>
                  <button className="w-9 h-9 bg-[#3b82f6] text-white rounded-lg flex items-center justify-center font-bold text-[13px] shadow-md shadow-blue-500/20">1</button>
@@ -380,67 +403,410 @@ const Modal = ({ isOpen, onClose, title, children }) => {
   );
 };
 
+const FieldGroup = ({ label, children, required }) => (
+  <div className="flex flex-col">
+    <label className="block text-gray-700 font-medium mb-1 text-[11px] font-black text-[#64748b] uppercase tracking-wider">
+      {label}{required && <span className="text-red-500 ml-0.5">*</span>}
+    </label>
+    {children}
+  </div>
+);
+
+const inputClass = "w-full px-5 py-3.5 bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl text-[14px] font-bold outline-none focus:border-[#3b82f6] transition-all";
+
 export function EditTripModal({ isOpen, onClose, trip }) {
-  const [formData, setFormData] = useState({ 
-    trip_number: '', 
-    status: '', 
-    vehicle_number: '', 
-    origin_city: '', 
-    destination_city: '' 
-  });
+  const [currentStep, setCurrentStep] = useState(1);
+  const [isDirty, setIsDirty] = useState(false);
   const mutation = useUpdateTrip();
 
-  useEffect(() => {
-    if (trip) setFormData({
-      trip_number: trip.trip_number || '',
-      status: trip.status || '',
-      vehicle_number: trip.vehicle_number || '',
-      origin_city: trip.origin_city || '',
-      destination_city: trip.destination_city || ''
-    });
-  }, [trip]);
+  // Queries for lookups
+  const { data: ordersData } = useOrders({ page_size: 100 });
+  const orders = ordersData?.results || [];
+  const { data: driversData } = useDrivers({ page_size: 100 });
+  const drivers = driversData?.results || [];
+  const { data: vehiclesData } = useVehicles({ page_size: 100 });
+  const vehicles = vehiclesData?.results || [];
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    mutation.mutate({ id: trip.id, data: formData }, { onSuccess: onClose });
+  const [formData, setFormData] = useState({
+    order_id: "", trip_number: "", lr_number: "", reference_number: "", trip_type: "FTL", status: "CREATED",
+    primary_vehicle_id: null, vehicle_number: "", vehicle_type_code: "", vehicle_owner_name: "",
+    primary_driver_id: null, alternate_vehicle_id: null, alternate_driver_id: null,
+    origin_address: "", destination_address: "",
+    created_date: new Date().toISOString().split('T')[0],
+    scheduled_pickup_date: null, scheduled_delivery_date: null,
+    actual_pickup_date: null, actual_delivery_date: null,
+    start_time: null, end_time: null,
+    total_distance_km: null, start_odometer_km: null, end_odometer_km: null,
+    estimated_fuel_liters: null, actual_fuel_liters: null, fuel_rate_per_liter: null,
+    damage_count: 0, damage_amount: "0.00", pod_turnaround_days: null,
+    booked_price: null, total_freight_charge: "0.00", total_accessorial_charge: "0.00", total_tax: "0.00",
+    tds_percentage: "0.00", tds_amount: "0.00", incentive_amount: "0.00", late_fee: "0.00",
+    part_load_charge: "0.00", broker_commission: "0.00",
+    total_bill_amount: "0.00", payment_received_amount: "0.00", payment_received_date: null,
+    pod_received_date: null, is_billed: false, is_paid: false,
+    remarks: "", version: 1
+  });
+
+  const [initialFormData, setInitialFormData] = useState(null);
+
+  const steps = [
+    { id: 1, name: 'General', icon: FileText },
+    { id: 2, name: 'Fleet', icon: Truck },
+    { id: 3, name: 'Route', icon: MapPin },
+    { id: 4, name: 'Metrics', icon: Gauge },
+    { id: 5, name: 'Finance', icon: DollarSign },
+    { id: 6, name: 'Review', icon: CheckCircle2 }
+  ];
+
+  useEffect(() => {
+    if (trip && isOpen) {
+      const data = {
+        ...formData,
+        ...trip,
+        // Ensure dates are formatted for input[type="date"]
+        created_date: trip.created_date || new Date().toISOString().split('T')[0],
+        scheduled_pickup_date: trip.scheduled_pickup_date || null,
+        scheduled_delivery_date: trip.scheduled_delivery_date || null,
+        actual_pickup_date: trip.actual_pickup_date || null,
+        actual_delivery_date: trip.actual_delivery_date || null,
+        payment_received_date: trip.payment_received_date || null,
+        pod_received_date: trip.pod_received_date || null,
+      };
+      setFormData(data);
+      setInitialFormData(data);
+      setCurrentStep(1);
+      setIsDirty(false);
+    }
+  }, [trip, isOpen, orders]);
+
+  useEffect(() => {
+    if (!initialFormData) return;
+    const keys = Object.keys(formData);
+    const changed = keys.some(key => {
+      const initialValue = initialFormData[key];
+      const currentValue = formData[key];
+      if (initialValue === currentValue) return false;
+      // Handle null vs empty string
+      if ((initialValue === null || initialValue === "") && (currentValue === null || currentValue === "")) return false;
+      // Handle numeric string comparison
+      if (!isNaN(initialValue) && !isNaN(currentValue) && String(initialValue) !== "" && String(currentValue) !== "") {
+        if (Number(initialValue) === Number(currentValue)) return false;
+      }
+      return true;
+    });
+    setIsDirty(changed);
+  }, [formData, initialFormData]);
+
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
   };
 
+  const handleOrderChange = (id) => {
+    const order = orders.find(o => String(o.id) === String(id));
+    setFormData(prev => ({
+      ...prev,
+      order_id: id,
+      lr_number: order ? order.lr_number : ""
+    }));
+  };
+
+  const handleNext = () => setCurrentStep(prev => Math.min(prev + 1, steps.length));
+  const handlePrev = () => setCurrentStep(prev => Math.max(prev - 1, 1));
+
+  const handleUpdate = (e) => {
+    if (e) e.preventDefault();
+    mutation.mutate({ id: trip.id, data: formData }, {
+      onSuccess: onClose
+    });
+  };
+
+  if (!isOpen) return null;
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Core Trip Integration">
-       <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-1.5">
-             <label className="text-[11px] font-black text-[#64748b] uppercase tracking-wider">Trip Identifier</label>
-             <input disabled className="w-full px-5 py-3.5 bg-gray-100 border border-[#e2e8f0] rounded-2xl text-[14px] font-bold text-[#94a3b8] cursor-not-allowed uppercase" value={formData.trip_number} />
+    <div className="fixed inset-0 z-[500] flex items-center justify-center bg-[#0f172a]/80 backdrop-blur-md p-4 animate-in fade-in duration-300">
+      <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[95vh] animate-in zoom-in-95 duration-200 border border-white/20">
+        
+        {/* Header */}
+        <div className="px-10 py-8 border-b border-[#f1f5f9] flex justify-between items-center bg-gray-50/20">
+          <div>
+            <h2 className="text-xl font-black text-[#1e293b]">Edit Trip</h2>
+            <p className="text-[11px] font-bold text-[#64748b] mt-1 uppercase tracking-wider">#{formData.trip_number}</p>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-             <div className="space-y-1.5">
-                <label className="text-[11px] font-black text-[#64748b] uppercase tracking-wider">Fleet Assignment</label>
-                <input className="w-full px-5 py-3.5 bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl text-[14px] font-bold outline-none focus:border-[#3b82f6] uppercase" value={formData.vehicle_number} onChange={e => setFormData({...formData, vehicle_number: e.target.value})} />
-             </div>
-             <div className="space-y-1.5">
-                <label className="text-[11px] font-black text-[#64748b] uppercase tracking-wider">Operational Status</label>
-                <select className="w-full px-5 py-3.5 bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl text-[14px] font-bold outline-none focus:border-[#3b82f6]" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
-                   <option value="PLANNED">PLANNED</option>
-                   <option value="IN_TRANSIT">IN TRANSIT</option>
-                   <option value="COMPLETED">COMPLETED</option>
-                </select>
-             </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-             <div className="space-y-1.5">
-                <label className="text-[11px] font-black text-[#64748b] uppercase tracking-wider">Node A (Origin)</label>
-                <input className="w-full px-5 py-3.5 bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl text-[14px] font-bold outline-none focus:border-[#3b82f6]" value={formData.origin_city} onChange={e => setFormData({...formData, origin_city: e.target.value})} />
-             </div>
-             <div className="space-y-1.5">
-                <label className="text-[11px] font-black text-[#64748b] uppercase tracking-wider">Node B (Dest)</label>
-                <input className="w-full px-5 py-3.5 bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl text-[14px] font-bold outline-none focus:border-[#3b82f6]" value={formData.destination_city} onChange={e => setFormData({...formData, destination_city: e.target.value})} />
-             </div>
-          </div>
-          <button type="submit" disabled={mutation.isLoading} className="w-full py-4 bg-[#3b82f6] text-white rounded-2xl font-black uppercase tracking-[0.12em] hover:bg-blue-600 transition-all shadow-xl shadow-blue-500/30 disabled:opacity-50 mt-4">
-             {mutation.isLoading ? 'Processing Pipeline...' : 'Commit Trip Integration'}
+          <button onClick={onClose} className="p-3.5 text-[#94a3b8] hover:text-[#1e293b] hover:bg-white border border-transparent hover:border-[#e2e8f0] rounded-[1.2rem] transition-all shadow-sm">
+            <X size={20} />
           </button>
-       </form>
-    </Modal>
+        </div>
+
+        {/* Horizontal Stepper */}
+        <div className="px-10 py-6 bg-white border-b border-[#f1f5f9]">
+          <div className="flex items-center justify-between relative">
+            <div className="absolute top-1/2 left-0 w-full h-[2px] bg-[#f1f5f9] -translate-y-1/2 -z-0"></div>
+            {steps.map((step) => {
+              const Icon = step.icon;
+              const isActive = currentStep === step.id;
+              const isCompleted = currentStep > step.id;
+
+              return (
+                <div key={step.id} className="relative z-10 flex flex-col items-center gap-2.5 cursor-pointer" onClick={() => setCurrentStep(step.id)}>
+                  <div 
+                    className={`w-11 h-11 rounded-[1.2rem] flex items-center justify-center transition-all border-2 ${
+                      isActive ? 'bg-[#3b82f6] border-[#3b82f6] text-white shadow-xl shadow-blue-500/20 scale-110' : 
+                      isCompleted ? 'bg-emerald-500 border-emerald-500 text-white' : 
+                      'bg-white border-[#f1f5f9] text-[#94a3b8]'
+                    }`}
+                  >
+                    {isCompleted ? <CheckCircle2 size={18} /> : <Icon size={18} />}
+                  </div>
+                  <span className={`text-[10px] font-black uppercase tracking-[0.15em] ${isActive ? 'text-[#3b82f6]' : 'text-[#94a3b8]'}`}>
+                    {step.name}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Scrollable Form Body */}
+        <div className="flex-1 overflow-y-auto p-10 custom-scrollbar bg-white/50">
+          <form id="edit-trip-form" onSubmit={handleUpdate} className="space-y-8">
+            
+            {currentStep === 1 && (
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="grid grid-cols-2 gap-8">
+                  <FieldGroup label="Active Order" required>
+                    <select name="order_id" className={inputClass} value={formData.order_id || ""} onChange={e => handleOrderChange(e.target.value)}>
+                      <option value="">Standalone Trip (No Order)</option>
+                      {orders.map(o => <option key={o.id} value={o.id}>{o.lr_number} — {o.status}</option>)}
+                    </select>
+                  </FieldGroup>
+                  <FieldGroup label="Trip Number" required>
+                    <input type="text" name="trip_number" required className={inputClass} value={formData.trip_number || ""} onChange={handleInputChange} />
+                  </FieldGroup>
+                </div>
+                <div className="grid grid-cols-3 gap-8">
+                  <FieldGroup label="LR Number">
+                    <input type="text" name="lr_number" className={inputClass} value={formData.lr_number || ""} onChange={handleInputChange} />
+                  </FieldGroup>
+                  <FieldGroup label="Reference Number">
+                    <input type="text" name="reference_number" className={inputClass} value={formData.reference_number || ""} onChange={handleInputChange} />
+                  </FieldGroup>
+                  <FieldGroup label="Trip Type">
+                    <select name="trip_type" className={inputClass} value={formData.trip_type || ""} onChange={handleInputChange}>
+                      <option value="FTL">FTL</option>
+                      <option value="LTL">LTL</option>
+                      <option value="CONTAINER">CONTAINER</option>
+                      <option value="COURIER">COURIER</option>
+                    </select>
+                  </FieldGroup>
+                </div>
+                <div className="grid grid-cols-2 gap-8">
+                  <FieldGroup label="Status">
+                    <select name="status" className={inputClass} value={formData.status || ""} onChange={handleInputChange}>
+                      <option value="CREATED">CREATED</option>
+                      <option value="ASSIGNED">ASSIGNED</option>
+                      <option value="STARTED">STARTED</option>
+                      <option value="IN_TRANSIT">IN_TRANSIT</option>
+                      <option value="DELIVERED">DELIVERED</option>
+                      <option value="COMPLETED">COMPLETED</option>
+                    </select>
+                  </FieldGroup>
+                  <FieldGroup label="Created Date">
+                    <input type="date" name="created_date" className={inputClass} value={formData.created_date || ""} onChange={handleInputChange} />
+                  </FieldGroup>
+                </div>
+              </div>
+            )}
+
+            {currentStep === 2 && (
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="grid grid-cols-2 gap-8">
+                  <FieldGroup label="Primary Vehicle">
+                    <select name="primary_vehicle_id" className={inputClass} value={formData.primary_vehicle_id || ""} onChange={handleInputChange}>
+                      <option value="">Select Primary Vehicle</option>
+                      {vehicles.map(v => <option key={v.id} value={v.id}>{v.registration_number}</option>)}
+                    </select>
+                  </FieldGroup>
+                  <FieldGroup label="Primary Driver">
+                    <select name="primary_driver_id" className={inputClass} value={formData.primary_driver_id || ""} onChange={handleInputChange}>
+                      <option value="">Select Primary Driver</option>
+                      {drivers.map(d => <option key={d.id} value={d.id}>{d.user?.first_name} {d.user?.last_name}</option>)}
+                    </select>
+                  </FieldGroup>
+                </div>
+                <div className="grid grid-cols-2 gap-8 pt-8 border-t border-[#f1f5f9]">
+                  <FieldGroup label="Alternate Vehicle">
+                    <select name="alternate_vehicle_id" className={inputClass} value={formData.alternate_vehicle_id || ""} onChange={handleInputChange}>
+                      <option value="">None</option>
+                      {vehicles.map(v => <option key={v.id} value={v.id}>{v.registration_number}</option>)}
+                    </select>
+                  </FieldGroup>
+                  <FieldGroup label="Alternate Driver">
+                    <select name="alternate_driver_id" className={inputClass} value={formData.alternate_driver_id || ""} onChange={handleInputChange}>
+                      <option value="">None</option>
+                      {drivers.map(d => <option key={d.id} value={d.id}>{d.user?.first_name} {d.user?.last_name}</option>)}
+                    </select>
+                  </FieldGroup>
+                </div>
+                <div className="grid grid-cols-3 gap-8">
+                   <FieldGroup label="Vehicle Number"><input type="text" name="vehicle_number" className={inputClass} value={formData.vehicle_number || ""} onChange={handleInputChange} /></FieldGroup>
+                   <FieldGroup label="Vehicle Type Code"><input type="text" name="vehicle_type_code" className={inputClass} value={formData.vehicle_type_code || ""} onChange={handleInputChange} /></FieldGroup>
+                   <FieldGroup label="Vehicle Owner Name"><input type="text" name="vehicle_owner_name" className={inputClass} value={formData.vehicle_owner_name || ""} onChange={handleInputChange} /></FieldGroup>
+                </div>
+              </div>
+            )}
+
+            {currentStep === 3 && (
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="grid grid-cols-2 gap-8">
+                  <FieldGroup label="Origin Address">
+                    <textarea name="origin_address" rows="3" className={inputClass} value={formData.origin_address || ""} onChange={handleInputChange} />
+                  </FieldGroup>
+                  <FieldGroup label="Destination Address">
+                    <textarea name="destination_address" rows="3" className={inputClass} value={formData.destination_address || ""} onChange={handleInputChange} />
+                  </FieldGroup>
+                </div>
+                <div className="grid grid-cols-2 gap-8 pt-8 border-t border-[#f1f5f9]">
+                  <div className="grid grid-cols-2 gap-4">
+                    <FieldGroup label="Scheduled Pickup Date"><input type="date" name="scheduled_pickup_date" className={inputClass} value={formData.scheduled_pickup_date || ""} onChange={handleInputChange} /></FieldGroup>
+                    <FieldGroup label="Scheduled Delivery Date"><input type="date" name="scheduled_delivery_date" className={inputClass} value={formData.scheduled_delivery_date || ""} onChange={handleInputChange} /></FieldGroup>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FieldGroup label="Actual Pickup Date"><input type="date" name="actual_pickup_date" className={inputClass} value={formData.actual_pickup_date || ""} onChange={handleInputChange} /></FieldGroup>
+                    <FieldGroup label="Actual Delivery Date"><input type="date" name="actual_delivery_date" className={inputClass} value={formData.actual_delivery_date || ""} onChange={handleInputChange} /></FieldGroup>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-8">
+                    <FieldGroup label="Start Time"><input type="time" name="start_time" className={inputClass} value={formData.start_time || ""} onChange={handleInputChange} /></FieldGroup>
+                    <FieldGroup label="End Time"><input type="time" name="end_time" className={inputClass} value={formData.end_time || ""} onChange={handleInputChange} /></FieldGroup>
+                </div>
+              </div>
+            )}
+
+            {currentStep === 4 && (
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="grid grid-cols-3 gap-8">
+                  <FieldGroup label="Total Distance (KM)"><input type="number" name="total_distance_km" className={inputClass} value={formData.total_distance_km || ""} onChange={handleInputChange} /></FieldGroup>
+                  <FieldGroup label="Start ODO"><input type="number" name="start_odometer_km" className={inputClass} value={formData.start_odometer_km || ""} onChange={handleInputChange} /></FieldGroup>
+                  <FieldGroup label="End ODO"><input type="number" name="end_odometer_km" className={inputClass} value={formData.end_odometer_km || ""} onChange={handleInputChange} /></FieldGroup>
+                </div>
+                <div className="grid grid-cols-3 gap-8 pt-8 border-t border-[#f1f5f9]">
+                  <FieldGroup label="Estimated Fuel (L)"><input type="number" name="estimated_fuel_liters" className={inputClass} value={formData.estimated_fuel_liters || ""} onChange={handleInputChange} /></FieldGroup>
+                  <FieldGroup label="Actual Fuel (L)"><input type="number" name="actual_fuel_liters" className={inputClass} value={formData.actual_fuel_liters || ""} onChange={handleInputChange} /></FieldGroup>
+                  <FieldGroup label="Fuel Rate"><input type="number" name="fuel_rate_per_liter" className={inputClass} value={formData.fuel_rate_per_liter || ""} onChange={handleInputChange} /></FieldGroup>
+                </div>
+                <div className="grid grid-cols-2 gap-8">
+                  <FieldGroup label="Damage Count"><input type="number" name="damage_count" className={inputClass} value={formData.damage_count || 0} onChange={handleInputChange} /></FieldGroup>
+                  <FieldGroup label="POD Turnaround"><input type="number" name="pod_turnaround_days" className={inputClass} value={formData.pod_turnaround_days || ""} onChange={handleInputChange} /></FieldGroup>
+                </div>
+              </div>
+            )}
+
+            {currentStep === 5 && (
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="grid grid-cols-4 gap-4">
+                  <FieldGroup label="Booked Price"><input type="number" name="booked_price" className={inputClass} value={formData.booked_price || ""} onChange={handleInputChange} /></FieldGroup>
+                  <FieldGroup label="Total Freight Charge"><input type="number" name="total_freight_charge" className={inputClass} value={formData.total_freight_charge || "0.00"} onChange={handleInputChange} /></FieldGroup>
+                  <FieldGroup label="Total Accessorial Charge"><input type="number" name="total_accessorial_charge" className={inputClass} value={formData.total_accessorial_charge || "0.00"} onChange={handleInputChange} /></FieldGroup>
+                  <FieldGroup label="Total Tax"><input type="number" name="total_tax" className={inputClass} value={formData.total_tax || "0.00"} onChange={handleInputChange} /></FieldGroup>
+                </div>
+                <div className="grid grid-cols-3 gap-6">
+                   <FieldGroup label="TDS %"><input type="number" name="tds_percentage" className={inputClass} value={formData.tds_percentage || "0.00"} onChange={handleInputChange} /></FieldGroup>
+                   <FieldGroup label="TDS Amount"><input type="number" name="tds_amount" className={inputClass} value={formData.tds_amount || "0.00"} onChange={handleInputChange} /></FieldGroup>
+                   <FieldGroup label="Incentive Amount"><input type="number" name="incentive_amount" className={inputClass} value={formData.incentive_amount || "0.00"} onChange={handleInputChange} /></FieldGroup>
+                </div>
+                <div className="grid grid-cols-3 gap-6">
+                   <FieldGroup label="Late Fee"><input type="number" name="late_fee" className={inputClass} value={formData.late_fee || "0.00"} onChange={handleInputChange} /></FieldGroup>
+                   <FieldGroup label="Part Load Charge"><input type="number" name="part_load_charge" className={inputClass} value={formData.part_load_charge || "0.00"} onChange={handleInputChange} /></FieldGroup>
+                   <FieldGroup label="Damage Amount"><input type="number" name="damage_amount" className={inputClass} value={formData.damage_amount || "0.00"} onChange={handleInputChange} /></FieldGroup>
+                </div>
+                <div className="grid grid-cols-2 gap-8 border-t border-[#f1f5f9] pt-8">
+                  <FieldGroup label="Broker Commission"><input type="number" name="broker_commission" className={inputClass} value={formData.broker_commission || "0.00"} onChange={handleInputChange} /></FieldGroup>
+                  <FieldGroup label="Total Bill Amount"><input type="number" name="total_bill_amount" className={inputClass} value={formData.total_bill_amount || "0.00"} onChange={handleInputChange} /></FieldGroup>
+                </div>
+                <div className="grid grid-cols-2 gap-8 border-t border-[#f1f5f9] pt-8">
+                  <FieldGroup label="Payment Received Amount"><input type="number" name="payment_received_amount" className={inputClass} value={formData.payment_received_amount || "0.00"} onChange={handleInputChange} /></FieldGroup>
+                  <FieldGroup label="Payment Received Date"><input type="date" name="payment_received_date" className={inputClass} value={formData.payment_received_date || ""} onChange={handleInputChange} /></FieldGroup>
+                </div>
+                <div className="flex gap-10 items-center p-6 bg-gray-50 rounded-[1.5rem]">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" name="is_billed" checked={formData.is_billed || false} onChange={handleInputChange} className="w-6 h-6 rounded-lg text-[#3b82f6] border-[#e2e8f0]" />
+                    <span className="text-[11px] font-black uppercase tracking-widest text-[#64748b]">Is Billed</span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" name="is_paid" checked={formData.is_paid || false} onChange={handleInputChange} className="w-6 h-6 rounded-lg text-[#3b82f6] border-[#e2e8f0]" />
+                    <span className="text-[11px] font-black uppercase tracking-widest text-[#64748b]">Is Paid</span>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {currentStep === 6 && (
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="grid grid-cols-2 gap-8">
+                   <FieldGroup label="POD Received Date"><input type="date" name="pod_received_date" className={inputClass} value={formData.pod_received_date || ""} onChange={handleInputChange} /></FieldGroup>
+                   <FieldGroup label="Remarks">
+                     <textarea name="remarks" rows="3" className={inputClass} value={formData.remarks || ""} onChange={handleInputChange} />
+                   </FieldGroup>
+                </div>
+                <FieldGroup label="Version">
+                   <input type="number" name="version" className={inputClass} value={formData.version || 1} readOnly disabled />
+                </FieldGroup>
+              </div>
+            )}
+          </form>
+        </div>
+
+        {/* Footer Navigation */}
+        <div className="px-10 py-8 bg-gray-50 border-t border-[#f1f5f9] flex justify-between items-center">
+          <div className="flex gap-4">
+            <button 
+              type="button"
+              onClick={handlePrev}
+              disabled={currentStep === 1}
+              className="flex items-center gap-2 px-6 py-2.5 text-[#64748b] font-black text-[11px] uppercase tracking-widest hover:bg-white rounded-xl transition-all disabled:opacity-0 active:scale-95 border border-transparent hover:border-[#e2e8f0]"
+            >
+              <ChevronLeft size={16} /> Previous
+            </button>
+            
+            {isDirty && (
+              <button 
+                type="button"
+                onClick={handleUpdate}
+                disabled={mutation.isPending}
+                className="flex items-center gap-2 px-8 py-2.5 bg-emerald-500 text-white font-black text-[11px] uppercase tracking-widest rounded-2xl hover:bg-emerald-600 shadow-xl shadow-emerald-500/20 transition-all active:scale-95"
+              >
+                {mutation.isPending ? 'Syncing...' : 'Update'} <Save size={16} />
+              </button>
+            )}
+          </div>
+          
+          <div className="flex gap-4">
+            {currentStep < steps.length ? (
+              <button 
+                type="button"
+                onClick={handleNext}
+                className="flex items-center gap-2 px-10 py-3 bg-[#3b82f6] text-white font-black text-[11px] uppercase tracking-widest rounded-2xl hover:bg-blue-600 shadow-xl shadow-blue-500/20 transition-all active:scale-95"
+              >
+                Next <ChevronRight size={16} />
+              </button>
+            ) : (
+              <button 
+                form="edit-trip-form"
+                type="submit"
+                disabled={mutation.isPending || !isDirty}
+                className="flex items-center gap-2 px-12 py-3 bg-[#0f172a] text-white font-black text-[11px] uppercase tracking-widest rounded-2xl hover:bg-[#1e293b] shadow-xl shadow-slate-500/20 transition-all active:scale-95 disabled:opacity-50"
+              >
+                {mutation.isPending ? 'Syncing...' : 'Submit'} <CheckCircle2 size={16} />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 

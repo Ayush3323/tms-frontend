@@ -30,11 +30,13 @@ import OrderDetail from '../components/orders/OrderDetail';
 import TripsDashboard from '../components/orders/Trips';
 import TripDetail from '../components/orders/TripDetail';
 import TripNestedSubResource from '../components/orders/TripNestedSub-Resource';
+import CreateTripPage from '../components/orders/CreateTripPage';
 
 import CargoDashboard from '../components/orders/Cargo';
 import CargoDetail from '../components/orders/CargoDetail';
 import DeliveriesDashboard from '../components/orders/Deliveries';
 import DeliveryDetail from '../components/orders/DeliveryDetail';
+import ErrorBoundary from '../components/orders/ErrorBoundary';
 
 
 
@@ -133,20 +135,21 @@ const Routing = () => {
 
 
         {/* Dynamic Detail Routes */}
-        <Route path="orders" element={<OrdersDashboard />} />
+        <Route path="orders" element={<ErrorBoundary><OrdersDashboard /></ErrorBoundary>} />
 
-        <Route path="orders/trips" element={<TripsDashboard />} />
-        <Route path="orders/trips/:id" element={<TripDetail />} />
+        <Route path="orders/trips" element={<ErrorBoundary><TripsDashboard /></ErrorBoundary>} />
+        <Route path="orders/trips/:id" element={<ErrorBoundary><TripDetail /></ErrorBoundary>} />
+        <Route path="orders/trips/new" element={<ErrorBoundary><CreateTripPage /></ErrorBoundary>} />
 
-        <Route path="orders/cargo" element={<CargoDashboard />} />
-        <Route path="orders/cargo/:id" element={<CargoDetail />} />
+        <Route path="orders/cargo" element={<ErrorBoundary><CargoDashboard /></ErrorBoundary>} />
+        <Route path="orders/cargo/:id" element={<ErrorBoundary><CargoDetail /></ErrorBoundary>} />
 
-        <Route path="orders/deliveries" element={<DeliveriesDashboard />} />
-        <Route path="orders/deliveries/:id" element={<DeliveryDetail />} />
+        <Route path="orders/deliveries" element={<ErrorBoundary><DeliveriesDashboard /></ErrorBoundary>} />
+        <Route path="orders/deliveries/:id" element={<ErrorBoundary><DeliveryDetail /></ErrorBoundary>} />
 
-        <Route path="orders/:id" element={<OrderDetail />} />
-        <Route path="orders/:id/trips" element={<TripNestedSubResource />} />
-        <Route path="orders/trip-manager" element={<TripNestedSubResource />} />
+        <Route path="orders/:id" element={<ErrorBoundary><OrderDetail /></ErrorBoundary>} />
+        <Route path="orders/:id/trips" element={<ErrorBoundary><TripNestedSubResource /></ErrorBoundary>} />
+        <Route path="orders/trip-manager" element={<ErrorBoundary><TripNestedSubResource /></ErrorBoundary>} />
 
         {/* Finance */}
         <Route path="finance/invoices" element={<InvoicesDashboard />} />
