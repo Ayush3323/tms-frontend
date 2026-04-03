@@ -76,7 +76,10 @@ export function CreateTripModal({ isOpen, onClose, orderId, orderNumber }) {
   const { data: vehiclesData } = useVehicles({ page_size: 100 });
   const vehicles = vehiclesData?.results || [];
   const { data: ordersData } = useOrders({ page_size: 100 });
-  const orders = ordersData?.results || [];
+  const ordersDataResults = ordersData?.results || [];
+  const orders = useMemo(() => ordersDataResults.filter(o => 
+    ['DRAFT', 'CONFIRMED'].includes(o.status)
+  ), [ordersDataResults]);
 
   const [formData, setFormData] = useState({
     order_id: orderId || "", primary_driver_id: null, primary_vehicle_id: null, 
@@ -301,7 +304,10 @@ export function EditTripModal({ isOpen, onClose, trip }) {
 
   // Queries for lookups
   const { data: ordersData } = useOrders({ page_size: 100 });
-  const orders = ordersData?.results || [];
+  const ordersDataResults = ordersData?.results || [];
+  const orders = useMemo(() => ordersDataResults.filter(o => 
+    ['DRAFT', 'CONFIRMED'].includes(o.status) || String(o.id) === String(trip?.order_id)
+  ), [ordersDataResults, trip?.order_id]);
   const { data: driversData } = useDrivers({ page_size: 100 });
   const drivers = driversData?.results || [];
   const { data: vehiclesData } = useVehicles({ page_size: 100 });
@@ -326,7 +332,7 @@ export function EditTripModal({ isOpen, onClose, trip }) {
       setCurrentStep(1);
       setIsDirty(false);
     }
-  }, [trip, isOpen, orders]); // Added orders to deps just in case
+  }, [trip, isOpen]); // REMOVED 'orders' from deps to prevent infinite reset
 
   useEffect(() => {
     if (!initialFormData) return;
@@ -459,7 +465,6 @@ export function EditTripModal({ isOpen, onClose, trip }) {
                     <select name="status" className={inputClass} value={formData.status || ""} onChange={handleInputChange}>
                       <option value="CREATED">CREATED</option>
                       <option value="ASSIGNED">ASSIGNED</option>
-                      <option value="STARTED">STARTED</option>
                       <option value="IN_TRANSIT">IN_TRANSIT</option>
                       <option value="DELIVERED">DELIVERED</option>
                       <option value="COMPLETED">COMPLETED</option>
