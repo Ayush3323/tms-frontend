@@ -168,10 +168,7 @@ export const CreatePortalUserSection = ({
   );
 };
 
-/**
- * Shared Relationship Info for Overview/View modes
- */
-export const RelationshipOverviewSection = ({ item }) => {
+export const RelationshipOverviewSection = ({ item, showWarehouse = true }) => {
   const cust = item?.customer || item;
   return (
     <>
@@ -180,7 +177,7 @@ export const RelationshipOverviewSection = ({ item }) => {
         <InfoCard label="Sales Person" value={cust.sales_person?.full_name || cust.sales_person?.name || cust.sales_person_name || 'Not Assigned'} />
         <InfoCard label="Account Manager" value={cust.account_manager?.full_name || cust.account_manager?.name || cust.account_manager_name || 'Not Assigned'} />
         <InfoCard label="Portal User" value={cust.portal_user?.username || cust.user?.username || 'None'} />
-        <InfoCard label="Warehouse Address" value={item.warehouse_address || 'Not Provided'} />
+        {showWarehouse && <InfoCard label="Warehouse Address" value={item.warehouse_address || 'Not Provided'} />}
       </div>
     </>
   );

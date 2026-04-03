@@ -89,6 +89,7 @@ const Consignors = () => {
   const [deleteTarget, setDelete] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
+  const [deleteError, setDeleteError] = useState(null);
   const [createPortalUser, setCreatePortalUser] = useState(false);
 
   const { data: userData } = useUsers({ limit: 1000 });
@@ -140,6 +141,14 @@ const Consignors = () => {
       }
     }
   }, [form.customer_id, modal?.type]);
+
+  const selectedWarehouseAddress = useMemo(() => {
+    const targetId = modal?.consignor?.warehouse_address;
+    if (!targetId) return null;
+    if (isCustomerAddressesLoading) return "Loading Address...";
+    const addr = customerAddresses.find(a => String(a.id) === String(targetId) || String(a.uuid) === String(targetId));
+    return addr ? `${addr.address_line_1}${addr.city ? `, ${addr.city}` : ''}` : targetId;
+  }, [customerAddresses, modal?.consignor?.warehouse_address, isCustomerAddressesLoading]);
 
   const createMutation = useCreateConsignor();
   const updateMutation = useUpdateConsignor();
@@ -214,15 +223,17 @@ const Consignors = () => {
   const handleSubmit = () => {
     if (!validate()) return;
 
+    const selectedCustomer = eligibleCustomers.find(c => c.id === form.customer_id) || {};
+
     // Merge the selected customer's data into the payload
     // Clean up to avoid 400 errors from nested objects
-    const { 
-      id: _id, 
-      customer: _customer, 
-      customer_code: _customer_code, 
-      created_at: _created_at, 
+    const {
+      id: _id,
+      customer: _customer,
+      customer_code: _customer_code,
+      created_at: _created_at,
       updated_at: _updated_at,
-      ...cleanPayload 
+      ...cleanPayload
     } = { ...selectedCustomer, ...form };
 
     const payload = cleanPayload;
@@ -252,7 +263,7 @@ const Consignors = () => {
           if (err.response?.status === 400 && err.response.data?.details) {
             setErrors(err.response.data.details);
           } else {
-            alert(`Create Failed: ${err.response?.data?.detail || err.message}`);
+            setErrors(prev => ({ ...prev, _generic: `Create Failed: ${err.response?.data?.detail || err.message}` }));
           }
         }
       });
@@ -263,7 +274,7 @@ const Consignors = () => {
           if (err.response?.status === 400 && err.response.data?.details) {
             setErrors(err.response.data.details);
           } else {
-            alert(`Update Failed: ${err.response?.data?.detail || err.message}`);
+            setErrors(prev => ({ ...prev, _generic: `Update Failed: ${err.response?.data?.detail || err.message}` }));
           }
         }
       });
@@ -529,9 +540,22 @@ const Consignors = () => {
       </div>
 
       {deleteTarget && (
-        <DeleteConfirm label="Consignor" onClose={() => setDelete(null)}
-          onConfirm={() => deleteMutation.mutate(deleteTarget.customer_id || deleteTarget.id, { onSuccess: () => setDelete(null) })}
-          deleting={deleteMutation.isPending} />
+        <DeleteConfirm
+          label="Consignor Profile"
+          message={deleteError}
+          onClose={() => { setDelete(null); setDeleteError(null); }}
+          onConfirm={() => {
+            const delId = deleteTarget.customer_id || deleteTarget.id;
+            setDeleteError(null);
+            deleteMutation.mutate(delId, {
+              onSuccess: () => { setDelete(null); setDeleteError(null); },
+              onError: (err) => {
+                setDeleteError(`Delete Failed: ${err.response?.data?.detail || err.message}`);
+              }
+            });
+          }}
+          deleting={deleteMutation.isPending}
+        />
       )}
 
       {(modal?.type === 'create' || modal?.type === 'edit') && (
@@ -544,6 +568,11 @@ const Consignors = () => {
           maxWidth="max-w-2xl"
         >
           <div className="grid grid-cols-2 gap-4">
+            {errors._generic && (
+              <div className="col-span-2 bg-red-50 p-3 rounded-lg border border-red-100 flex items-center gap-2 text-red-600 text-sm font-bold animate-in fade-in slide-in-from-top-2">
+                <AlertCircle size={16} /> {errors._generic}
+              </div>
+            )}
             <Section title="Consignor Details" className="col-span-2" />
             <Field label="Legal Name" required error={errors.customer_id}>
               <Input
