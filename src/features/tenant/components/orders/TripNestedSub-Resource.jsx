@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import {
   useCreateTripStop,
+  useUpdateTripStop,
+  useDeleteTripStop,
   useCreateTripDocument,
   useCreateTripExpense,
   useCreateTripCharge,
@@ -46,6 +48,8 @@ export default function TripNestedSubResource() {
   const { data: documentsData, refetch: refetchDocs } = useTripDocuments(tripId);
   const { data: expensesData, refetch: refetchExpenses } = useTripExpenses(tripId);
   const { data: chargesData, refetch: refetchCharges } = useTripCharges(tripId);
+  const updateStopMutation = useUpdateTripStop(tripId);
+  const deleteStopMutation = useDeleteTripStop(tripId);
 
   // Safe data extraction
   const trip = tripData;
@@ -69,8 +73,17 @@ export default function TripNestedSubResource() {
     e.preventDefault();
     if (searchInput) {
       setTripId(searchInput);
-      if (urlId) navigate(`/tenant/dashboard/orders/trips/${searchInput}/manage`);
+      navigate(`/tenant/dashboard/orders/trips/${searchInput}`);
     }
+  };
+
+  const handleStopStatusChange = (stopId, stopStatus) => {
+    updateStopMutation.mutate({ stopId, data: { stop_status: stopStatus } });
+  };
+
+  const handleDeleteStop = (stopId) => {
+    if (!window.confirm('Delete this stop?')) return;
+    deleteStopMutation.mutate(stopId);
   };
 
   useEffect(() => {
@@ -112,7 +125,7 @@ export default function TripNestedSubResource() {
                onClick={() => setActiveModal(activeTab.replace(/s$/, ''))}
                className="px-6 py-2.5 bg-[#3b82f6] text-white rounded-xl text-[13px] font-bold hover:bg-blue-600 flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all"
              >
-                <Plus size={18} /> New {activeTab.replace(/s$/, '')} Entry
+               <Plus size={18} /> Add {activeTab.replace(/s$/, '')}
              </button>
           </div>
         </div>
@@ -133,7 +146,7 @@ export default function TripNestedSubResource() {
                 <input 
                   value={searchInput}
                   onChange={e => setSearchInput(e.target.value)}
-                  placeholder="Analyze Trip ID or Order Reference..." 
+                  placeholder="Enter Trip ID..." 
                   className="w-full pl-12 pr-4 py-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-[#3b82f6]/20 focus:border-[#3b82f6] transition-all"
                 />
               </form>
@@ -171,14 +184,14 @@ export default function TripNestedSubResource() {
                       <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
                         <AlertCircle size={32} />
                       </div>
-                      <h3 className="text-lg font-black text-[#0f172a]">UNRESOLVED TRIP IDENTITY</h3>
+                      <h3 className="text-lg font-black text-[#0f172a]">Trip Not Found</h3>
                       <p className="text-sm text-[#64748b] max-w-sm mx-auto">
-                        The ID provided is not associated with a valid trip record. Please search for a valid Trip ID using the bar above.
+                        No trip record matches this ID. Please search for a valid Trip ID.
                       </p>
                    </div>
                  ) : (
                    <div className="animate-in fade-in duration-500">
-                      {activeTab === 'stops' && <StopsList stops={stops} />}
+                      {activeTab === 'stops' && <StopsList stops={stops} onUpdateStopStatus={handleStopStatusChange} onDeleteStop={handleDeleteStop} />}
                       {activeTab === 'history' && <HistoryList history={history} />}
                       {activeTab === 'documents' && <DocsList documents={documents} />}
                       {activeTab === 'finances' && <FinanceList expenses={expenses} charges={charges} />}
@@ -216,24 +229,24 @@ export default function TripNestedSubResource() {
 
 // --- Data Row Components ---
 
-const StopsList = ({ stops }) => (
+const StopsList = ({ stops, onUpdateStopStatus, onDeleteStop }) => (
   <>
-    {stops?.length > 0 ? stops.sort((a,b) => a.sequence_order - b.sequence_order).map((stop, i) => (
+    {stops?.length > 0 ? [...stops].sort((a,b) => (a.stop_sequence || 0) - (b.stop_sequence || 0)).map((stop, i) => (
       <div key={i} className="px-6 py-5 grid grid-cols-12 gap-4 items-center hover:bg-[#f1f5f9]/50 transition-all group">
          <div className="col-span-4 flex items-center gap-4">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-[18px] shadow-sm ${stop.stop_type === 'PICKUP' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-amber-50 text-amber-600 border border-amber-100'}`}>
                {stop.stop_type === 'PICKUP' ? '📦' : '🏗️'}
             </div>
             <div>
-               <h4 className="text-[14px] font-extrabold text-[#0f172a] tracking-tight">#{stop.sequence_order} - {stop.stop_type}</h4>
+               <h4 className="text-[14px] font-extrabold text-[#0f172a] tracking-tight">#{stop.stop_sequence} - {stop.stop_type}</h4>
                <p className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-wider font-mono">STOP_ID: {stop.id?.slice(0, 16).toUpperCase()}</p>
             </div>
          </div>
          <div className="col-span-3 flex items-center gap-3">
             <div className="p-2.5 bg-[#f8fafc] rounded-lg text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-500 transition-all"><MapIcon size={16} /></div>
             <div>
-               <p className="text-[14px] font-bold text-[#334155]">{stop.location_name}</p>
-               <p className="text-[12px] text-[#64748b] font-medium">{stop.city}, {stop.state}</p>
+               <p className="text-[14px] font-bold text-[#334155]">{stop.location_address || '-'}</p>
+               <p className="text-[12px] text-[#64748b] font-medium">{stop.instructions || 'No instructions'}</p>
             </div>
          </div>
          <div className="col-span-3 flex items-center gap-3">
@@ -241,11 +254,11 @@ const StopsList = ({ stops }) => (
             <p className="text-[13px] font-bold text-[#475569] truncate">Scheduled Arrival Pending</p>
          </div>
          <div className="col-span-1 flex justify-center">
-            <StatusIcon status={stop.status || 'PENDING'} />
+            <StatusIcon status={stop.stop_status || 'PENDING'} />
          </div>
          <div className="col-span-1 flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
-            <button className="p-2 text-gray-400 hover:text-blue-500 hover:bg-white rounded-lg shadow-sm border border-transparent hover:border-blue-100"><Edit3 size={16} /></button>
-            <button className="p-2 text-gray-400 hover:text-rose-500 hover:bg-white rounded-lg shadow-sm border border-transparent hover:border-rose-100"><Trash2 size={16} /></button>
+            <button onClick={() => onUpdateStopStatus(stop.id, 'IN_PROGRESS')} className="p-2 text-gray-400 hover:text-blue-500 hover:bg-white rounded-lg shadow-sm border border-transparent hover:border-blue-100" title="Mark In Progress"><Edit3 size={16} /></button>
+            <button onClick={() => onDeleteStop(stop.id)} className="p-2 text-gray-400 hover:text-rose-500 hover:bg-white rounded-lg shadow-sm border border-transparent hover:border-rose-100" title="Delete stop"><Trash2 size={16} /></button>
          </div>
       </div>
     )) : <EmptyState message="No Stops mapped for this trip route." />}
@@ -259,12 +272,12 @@ const HistoryList = ({ history }) => (
          <div className="col-span-4 flex items-center gap-4">
             <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center text-[18px]">🕐</div>
             <div>
-               <h4 className="text-[14px] font-extrabold text-[#0f172a] tracking-tight truncate max-w-[200px]">{h.old_status} ⇢ {h.new_status}</h4>
+               <h4 className="text-[14px] font-extrabold text-[#0f172a] tracking-tight truncate max-w-[200px]">Status: {h.status}</h4>
                <p className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-wider font-mono">EVENT_LOG: {h.id?.slice(0, 16).toUpperCase()}</p>
             </div>
          </div>
          <div className="col-span-3 flex items-center gap-3 px-2">
-            <p className="text-[13px] text-[#64748b] italic">"{h.notes || 'System automated status transition.'}"</p>
+            <p className="text-[13px] text-[#64748b] italic">"{h.remarks || 'System automated status transition.'}"</p>
          </div>
          <div className="col-span-3 flex items-center gap-3">
             <div className="p-2.5 bg-[#f8fafc] rounded-lg text-gray-400"><Clock size={16} /></div>
@@ -333,7 +346,7 @@ const FinanceList = ({ expenses, charges }) => {
              <p className="text-[13px] text-[#64748b] font-medium truncate max-w-[200px]">{item.remarks || 'No supplementary notes.'}</p>
           </div>
           <div className="col-span-1 flex justify-center">
-             <StatusIcon status={item.approval_status || 'PENDING'} />
+             <StatusIcon status={item.status || 'PENDING'} />
           </div>
           <div className="col-span-1 flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
              <button className="p-2 text-gray-400 hover:text-blue-500 rounded-lg"><Edit3 size={16} /></button>
@@ -810,7 +823,7 @@ export function EditTripModal({ isOpen, onClose, trip }) {
 }
 
 export function AddStopModal({ isOpen, onClose, tripId }) {
-  const [formData, setFormData] = useState({ stop_type: 'PICKUP', sequence_order: 1, location_name: '', city: '', state: '' });
+  const [formData, setFormData] = useState({ stop_type: 'PICKUP', stop_sequence: 1, location_address: '', stop_status: 'PENDING', instructions: '' });
   const mutation = useCreateTripStop(tripId);
   const handleSubmit = (e) => { e.preventDefault(); mutation.mutate(formData, { onSuccess: onClose }); };
   return (
@@ -818,17 +831,21 @@ export function AddStopModal({ isOpen, onClose, tripId }) {
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5"><label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Stop Type</label>
-            <select className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-sm font-bold outline-none focus:border-[#3b82f6]" value={formData.stop_type} onChange={e => setFormData({...formData, stop_type: e.target.value})}><option value="PICKUP">PICKUP</option><option value="DELIVERY">DELIVERY</option><option value="STOP">INTERMEDIATE</option></select></div>
+            <select className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-sm font-bold outline-none focus:border-[#3b82f6]" value={formData.stop_type} onChange={e => setFormData({...formData, stop_type: e.target.value})}><option value="PICKUP">PICKUP</option><option value="DELIVERY">DELIVERY</option><option value="TRANSIT">TRANSIT</option></select></div>
           <div className="space-y-1.5"><label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Sequence Code</label>
-            <input type="number" className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-sm font-bold outline-none focus:border-[#3b82f6]" value={formData.sequence_order} onChange={e => setFormData({...formData, sequence_order: parseInt(e.target.value)})} /></div>
+            <input type="number" className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-sm font-bold outline-none focus:border-[#3b82f6]" value={formData.stop_sequence} onChange={e => setFormData({...formData, stop_sequence: parseInt(e.target.value)})} /></div>
         </div>
         <div className="space-y-1.5"><label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Facility / Location Name</label>
-          <input className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-sm font-bold outline-none focus:border-[#3b82f6]" placeholder="E.g. Logistics Park A..." value={formData.location_name} onChange={e => setFormData({...formData, location_name: e.target.value})} /></div>
+          <input className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-sm font-bold outline-none focus:border-[#3b82f6]" placeholder="E.g. Logistics Park A..." value={formData.location_address} onChange={e => setFormData({...formData, location_address: e.target.value})} /></div>
         <div className="grid grid-cols-2 gap-4">
-          <input className="px-4 py-2.5 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-sm font-bold outline-none" placeholder="City" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} />
-          <input className="px-4 py-2.5 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-sm font-bold outline-none" placeholder="State" value={formData.state} onChange={e => setFormData({...formData, state: e.target.value})} />
+          <select className="px-4 py-2.5 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-sm font-bold outline-none" value={formData.stop_status} onChange={e => setFormData({...formData, stop_status: e.target.value})}>
+            <option value="PENDING">PENDING</option>
+            <option value="IN_PROGRESS">IN_PROGRESS</option>
+            <option value="COMPLETED">COMPLETED</option>
+          </select>
+          <input className="px-4 py-2.5 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-sm font-bold outline-none" placeholder="Instructions" value={formData.instructions} onChange={e => setFormData({...formData, instructions: e.target.value})} />
         </div>
-        <button type="submit" disabled={mutation.isLoading} className="w-full py-4 bg-[#3b82f6] text-white rounded-[1.5rem] font-bold uppercase tracking-wider hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50">{mutation.isLoading ? 'Registering...' : 'Register Logistical Stop'}</button>
+        <button type="submit" disabled={mutation.isLoading} className="w-full py-4 bg-[#3b82f6] text-white rounded-[1.5rem] font-bold uppercase tracking-wider hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50">{mutation.isLoading ? 'Adding...' : 'Add Stop'}</button>
       </form>
     </Modal>
   );
@@ -839,7 +856,7 @@ export function AddDocumentModal({ isOpen, onClose, tripId }) {
   const mutation = useCreateTripDocument(tripId);
   const handleSubmit = (e) => { e.preventDefault(); mutation.mutate(formData, { onSuccess: onClose }); };
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Upload Verification Entry">
+    <Modal isOpen={isOpen} onClose={onClose} title="Upload Document">
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-1.5"><label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Document Profile</label>
           <select className="w-full px-4 py-2.5 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-sm font-bold outline-none focus:border-[#3b82f6]" value={formData.document_type} onChange={e => setFormData({...formData, document_type: e.target.value})}><option value="POD">PROOF OF DELIVERY</option><option value="EWAY_BILL">E-WAY BILL</option><option value="INVOICE">TAX INVOICE</option><option value="OTHER">OTHERS</option></select></div>
@@ -848,7 +865,7 @@ export function AddDocumentModal({ isOpen, onClose, tripId }) {
           <Upload size={40} className="text-[#cbd5e1] mb-4 animate-bounce duration-1000" />
           <p className="text-[11px] font-black text-[#94a3b8] uppercase tracking-[0.15em]">Attach Digitized Verification</p>
         </div>
-        <button type="submit" disabled={mutation.isLoading} className="w-full py-4 bg-emerald-500 text-white rounded-[1.5rem] font-bold uppercase tracking-wider hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50">{mutation.isLoading ? 'Processing...' : 'Securely Commit Entry'}</button>
+        <button type="submit" disabled={mutation.isLoading} className="w-full py-4 bg-emerald-500 text-white rounded-[1.5rem] font-bold uppercase tracking-wider hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50">{mutation.isLoading ? 'Processing...' : 'Upload Document'}</button>
       </form>
     </Modal>
   );
@@ -859,7 +876,7 @@ export function AddExpenseModal({ isOpen, onClose, tripId }) {
   const mutation = useCreateTripExpense(tripId);
   const handleSubmit = (e) => { e.preventDefault(); mutation.mutate({...formData, amount: parseFloat(formData.amount)}, { onSuccess: onClose }); };
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Accrue Operational Expenditure">
+    <Modal isOpen={isOpen} onClose={onClose} title="Record Expense">
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5"><label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Expenditure Category</label>
@@ -879,7 +896,7 @@ export function AddChargeModal({ isOpen, onClose, tripId }) {
   const mutation = useCreateTripCharge(tripId);
   const handleSubmit = (e) => { e.preventDefault(); mutation.mutate({...formData, amount: parseFloat(formData.amount)}, { onSuccess: onClose }); };
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Register Service Accrual">
+    <Modal isOpen={isOpen} onClose={onClose} title="Add Charge">
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5"><label className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider">Service Type</label>

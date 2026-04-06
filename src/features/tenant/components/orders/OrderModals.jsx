@@ -93,6 +93,9 @@ export function CreateOrderModal({ isOpen, onClose }) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Create New Order (LR)">
       <form onSubmit={handleSubmit} className="space-y-4 text-sm">
+        <div className="pt-1 pb-1">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-[#4a6cf7]">Billing</p>
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-gray-700 font-medium mb-1">
@@ -141,9 +144,12 @@ export function CreateOrderModal({ isOpen, onClose }) {
           </div>
         </div>
 
+        <div className="pt-1 pb-1">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-[#4a6cf7]">Parties</p>
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-gray-700 font-medium mb-1">Consignor (Optional)</label>
+            <label className="block text-gray-700 font-medium mb-1">Consignor (Shipper)</label>
             <select
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
               value={formData.consignor_id}
@@ -158,7 +164,7 @@ export function CreateOrderModal({ isOpen, onClose }) {
             </select>
           </div>
           <div>
-            <label className="block text-gray-700 font-medium mb-1">Consignee (Optional)</label>
+            <label className="block text-gray-700 font-medium mb-1">Consignee (Receiver)</label>
             <select
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
               value={formData.consignee_id}
@@ -174,6 +180,9 @@ export function CreateOrderModal({ isOpen, onClose }) {
           </div>
         </div>
 
+        <div className="pt-1 pb-1">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-[#4a6cf7]">Schedule</p>
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-gray-700 font-medium mb-1">Broker (Optional)</label>
@@ -261,6 +270,9 @@ export function CreateOrderModal({ isOpen, onClose }) {
           </div>
         </div>
 
+        <div className="pt-1 pb-1">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-[#4a6cf7]">Notes</p>
+        </div>
         <div>
           <label className="block text-gray-700 font-medium mb-1">Notes</label>
           <textarea
@@ -356,6 +368,9 @@ export function EditOrderModal({ isOpen, onClose, order }) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Edit Order: ${order?.lr_number}`}>
       <form onSubmit={handleSubmit} className="space-y-4 text-sm">
+        <div className="pt-1 pb-1">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-[#4a6cf7]">Billing</p>
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-gray-700 font-medium mb-1">Billing Customer</label>
@@ -428,9 +443,12 @@ export function EditOrderModal({ isOpen, onClose, order }) {
           </div>
         </div>
 
+        <div className="pt-1 pb-1">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-[#4a6cf7]">Parties</p>
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-gray-700 font-medium mb-1">Consignor (Optional)</label>
+            <label className="block text-gray-700 font-medium mb-1">Consignor (Shipper)</label>
             <select
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
               value={formData.consignor_id}
@@ -445,7 +463,7 @@ export function EditOrderModal({ isOpen, onClose, order }) {
             </select>
           </div>
           <div>
-            <label className="block text-gray-700 font-medium mb-1">Consignee (Optional)</label>
+            <label className="block text-gray-700 font-medium mb-1">Consignee (Receiver)</label>
             <select
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
               value={formData.consignee_id}
@@ -461,6 +479,9 @@ export function EditOrderModal({ isOpen, onClose, order }) {
           </div>
         </div>
 
+        <div className="pt-1 pb-1">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-[#4a6cf7]">Schedule</p>
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-gray-700 font-medium mb-1">Broker (Optional)</label>
@@ -521,6 +542,9 @@ export function EditOrderModal({ isOpen, onClose, order }) {
           </div>
         </div>
 
+        <div className="pt-1 pb-1">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-[#4a6cf7]">Notes</p>
+        </div>
         <div>
           <label className="block text-gray-700 font-medium mb-1">Notes</label>
           <textarea

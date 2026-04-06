@@ -45,7 +45,7 @@ const StatusBadge = ({ status }) => {
   return (
     <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${config.bg} ${config.color} ${config.border}`}>
       {config.icon}
-      <span className="text-[10px] font-bold uppercase tracking-wide">{status}</span>
+  <span className="text-xs font-semibold">{status}</span>
     </div>
   );
 };
@@ -137,23 +137,23 @@ export default function TripsMainBody() {
 
   return (
     <div className="flex-1 min-h-0 overflow-hidden bg-[#F8FAFC] flex flex-col relative">
-      <div className="p-8 flex-1 flex flex-col min-h-0">
+      <div className="p-6 lg:p-8 flex-1 flex flex-col min-h-0">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-2xl font-extrabold text-[#172B4D] tracking-tight">Trip Management</h1>
+            <h1 className="text-3xl font-black text-[#172B4D] tracking-tight">Trip Management</h1>
             <p className="text-sm text-gray-500 font-medium mt-1">Track vehicle journeys, driver assignments, and trip status.</p>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={() => refetch()}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 shadow-sm transition-all"
+              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 shadow-sm transition-all"
             >
               <RefreshCcw size={16} className={isLoading ? "animate-spin" : ""} /> Refresh
             </button>
             <button
               onClick={() => navigate('/tenant/dashboard/orders/trips/new')}
-              className="flex items-center gap-2 px-5 py-2.5 bg-[#4a6cf7] text-white rounded-lg text-sm font-bold hover:bg-[#3b59d9] shadow-md shadow-blue-200 transition-all"
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#4a6cf7] text-white rounded-xl text-sm font-semibold hover:bg-[#3b59d9] shadow-md shadow-blue-200 transition-all"
             >
               <Plus size={18} /> Plan New Trip
             </button>
@@ -174,19 +174,19 @@ export default function TripsMainBody() {
             ) : (
               <>
                 <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total Trips:</span>
+                  <span className="text-[13px] font-semibold text-gray-500">Total Trips:</span>
                   <span className="text-[18px] font-black text-blue-600">{totalCount}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Active:</span>
+                  <span className="text-[13px] font-semibold text-gray-500">Active:</span>
                   <span className="text-[18px] font-black text-amber-600">{activeCount}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">In Transit:</span>
+                  <span className="text-[13px] font-semibold text-gray-500">In Transit:</span>
                   <span className="text-[18px] font-black text-indigo-600">{inTransitCount}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Delivered:</span>
+                  <span className="text-[13px] font-semibold text-gray-500">Delivered:</span>
                   <span className="text-[18px] font-black text-green-600">{deliveredCount}</span>
                 </div>
               </>
@@ -201,7 +201,7 @@ export default function TripsMainBody() {
                     setFilterStatus(tab.label);
                     setPage(1);
                   }}
-                  className={`px-4 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap
                   ${filterStatus === tab.label ? 'bg-[#172B4D] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`}
                  >
                    {tab.label}
@@ -236,13 +236,13 @@ export default function TripsMainBody() {
               <table className="w-full text-left border-collapse min-w-[1100px] relative">
                 <thead className="bg-[#F8FAFC] border-b border-gray-100 sticky top-0 z-10">
                   <tr>
-                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Trip</th>
-                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Order</th>
-                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Type</th>
-                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Route (Origin → Destination)</th>
-                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Fleet Info</th>
-                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Status</th>
-                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest text-right">Actions</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Trip</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Order</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Type</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Route (Origin → Destination)</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Fleet Info</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -258,7 +258,7 @@ export default function TripsMainBody() {
                       <td className="px-6 py-5">
                         <div className="flex flex-col">
                           {trip.lr_number && (
-                            <span className="text-xs font-black text-[#0052CC] uppercase tracking-widest bg-blue-50 px-2 py-1 rounded w-fit border border-blue-100/50">
+                            <span className="text-xs font-semibold text-[#0052CC] bg-blue-50 px-2 py-1 rounded w-fit border border-blue-100/50">
                               {trip.lr_number}
                             </span>
                           )}
@@ -266,7 +266,7 @@ export default function TripsMainBody() {
                       </td>
                       <td className="px-6 py-5">
                         <div className="flex flex-col">
-                          <span className="text-[10px] font-bold text-gray-600 bg-gray-50 px-2 py-1 rounded border border-gray-100 w-fit uppercase tracking-wider">
+                          <span className="text-xs font-semibold text-gray-600 bg-gray-50 px-2 py-1 rounded border border-gray-100 w-fit">
                             {trip.trip_type || 'FTL'}
                           </span>
                         </div>

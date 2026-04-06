@@ -70,7 +70,7 @@ export const customersApi = {
 
 // ─── 2. CONSIGNORS ───────────────────────────────────────────────────────────
 
-const BASE_CONSIGNORS = 'api/v1/consigners'
+const BASE_CONSIGNORS = 'api/v1/consignors'
 
 export const consignorsApi = {
   list: (params) =>

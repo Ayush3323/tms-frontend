@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Plus, Search, Download, Edit2, Truck, XCircle, 
-  Trash2, Package, CheckCircle2, Clock, RefreshCcw, X, Eye
+  Plus, Search, Download, Edit2, Truck, XCircle,
+  Package, CheckCircle2, Clock, RefreshCcw, Eye
 } from 'lucide-react';
 import { 
-  useOrders, useCancelOrder, useOrderDetail 
+  useOrders, useCancelOrder, useOrderDetail, useUpdateOrder
 } from '../../queries/orders/ordersQuery';
 import { useCustomers } from '../../queries/customers/customersQuery';
 import { 
@@ -44,6 +44,8 @@ export default function Orders() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const updateOrderMutation = useUpdateOrder();
+  const [searchInput, setSearchInput] = useState('');
 
   // Data for dropdowns
   const { data: customersData } = useCustomers({ page_size: 100 });
@@ -87,71 +89,73 @@ export default function Orders() {
     setIsAssignOpen(true);
   };
 
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    setSearch(searchInput.trim());
+    setPage(1);
+  };
+
   return (
-    <div className="min-h-screen bg-[#F4F7FE] p-6 lg:p-8">
+    <div className="min-h-screen bg-[#F8FAFC] p-6 lg:p-8">
       {/* Header section with high-density stats */}
       <div className="max-w-[1600px] mx-auto space-y-8">
         
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div>
-            <h1 className="text-3xl font-black text-[#172B4D] tracking-tight leading-none mb-2">Order Management</h1>
-            <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">LR Inventory & Logistics Dispatch</p>
+        <div className="flex items-center">
+          <div className="w-1/4">
+            <h1 className="text-2xl font-bold text-[#172B4D]">Order Management</h1>
+            <p className="text-gray-500 text-sm tracking-tight">Manage all shipment orders and LR records</p>
           </div>
-          <div className="flex flex-wrap gap-3">
-            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-black text-gray-600 hover:bg-gray-50 shadow-sm transition-all">
-              <Download size={14} /> Export CSV
+          <div className="flex-1 max-w-2xl px-8">
+            <form onSubmit={handleSearchSubmit} className="relative group/search">
+              <Search className="absolute left-4 top-3.5 text-gray-400" size={20} />
+              <input
+                type="text"
+                placeholder="Search LR #, Reference Number..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm font-medium placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-50 transition-all shadow-sm hover:shadow-md hover:border-gray-300"
+              />
+            </form>
+          </div>
+          <div className="flex items-center justify-end gap-2 ml-auto">
+            <button
+              onClick={() => refetch()}
+              className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm"
+            >
+              <RefreshCcw size={14} /> Refresh
+            </button>
+            <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm">
+              <Download size={14} /> Export
             </button>
             <button 
               onClick={() => setIsCreateOpen(true)}
-              className="flex items-center gap-2 px-6 py-2.5 bg-[#4a6cf7] rounded-xl text-xs font-black text-white hover:bg-[#3b59d9] shadow-lg shadow-blue-100 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#0052CC] rounded-xl text-xs font-bold text-white hover:bg-[#0747A6] shadow-md shadow-blue-100 transition-all"
             >
-              <Plus size={16} /> Create New LR
+              <Plus size={16} /> New LR
             </button>
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-blue-50 text-[#4a6cf7] flex items-center justify-center">
-              <Package size={24} />
+        {/* Table */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden min-h-[600px] flex flex-col">
+          <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total:</span>
+              <span className="text-[18px] font-black text-blue-600">{stats.total}</span>
             </div>
-            <div>
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Total LR's</p>
-              <p className="text-2xl font-black text-[#172B4D]">{stats.total}</p>
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Draft:</span>
+              <span className="text-[18px] font-black text-amber-600">{stats.draft}</span>
             </div>
-          </div>
-          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center">
-              <Clock size={24} />
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">In Transit:</span>
+              <span className="text-[18px] font-black text-indigo-600">{stats.in_transit}</span>
             </div>
-            <div>
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Pending Drafts</p>
-              <p className="text-2xl font-black text-[#172B4D]">{stats.draft}</p>
-            </div>
-          </div>
-          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center">
-              <Truck size={24} />
-            </div>
-            <div>
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Active In-Transit</p>
-              <p className="text-2xl font-black text-[#172B4D]">{stats.in_transit}</p>
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Delivered:</span>
+              <span className="text-[18px] font-black text-green-600">{stats.delivered}</span>
             </div>
           </div>
-          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-green-50 text-green-500 flex items-center justify-center">
-              <CheckCircle2 size={24} />
-            </div>
-            <div>
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Delivered (MTD)</p>
-              <p className="text-2xl font-black text-[#172B4D]">{stats.delivered}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Filters & Table */}
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden min-h-[600px] flex flex-col">
           
           <div className="p-4 border-b border-gray-50 flex flex-col lg:flex-row gap-4 items-center justify-between bg-gray-50/30">
             <div className="flex overflow-x-auto w-full lg:w-auto scrollbar-hide gap-1 bg-white p-1 rounded-xl border border-gray-100">
@@ -160,22 +164,11 @@ export default function Orders() {
                   key={tab.label}
                   onClick={() => setFilterStatus(tab.label)}
                   className={`px-4 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap
-                  ${filterStatus === tab.label ? 'bg-[#172B4D] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`}
+                  ${filterStatus === tab.label ? 'bg-[#0052CC] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`}
                  >
                    {tab.label}
                  </button>
                ))}
-            </div>
-
-            <div className="relative w-full lg:w-96">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-              <input 
-                type="text" 
-                placeholder="Search LR #, Reference Number..."
-                className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#4a6cf7] outline-none transition-all font-medium"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
             </div>
           </div>
 
@@ -183,50 +176,50 @@ export default function Orders() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50/50">
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100">LR Details</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100">Entities (F/T)</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100">Billing Customer</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100">Schedule</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100 text-center">Status</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100 text-right">Actions</th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">LR Details</th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Entities (F/T)</th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Billing Customer</th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Schedule</th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 text-center">Status</th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {isLoading ? (
                   Array(5).fill(0).map((_, i) => (
                     <tr key={i} className="animate-pulse">
-                      <td colSpan="6" className="px-6 py-5 underline-offset-1 h-20 bg-gray-50/10"></td>
+                      <td colSpan="7" className="px-6 py-5 underline-offset-1 h-20 bg-gray-50/10"></td>
                     </tr>
                   ))
                 ) : orders.length > 0 ? (
                   orders.map((order) => {
                     const st = STATUS_CONFIG[order.status] || STATUS_CONFIG.DRAFT;
                     return (
-                    <tr key={order.id} className="hover:bg-gray-50/80 transition-colors group">
+                    <tr key={order.id} className="hover:bg-blue-50/30 transition-colors group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${st.bg} ${st.color} border ${st.border}`}>
                             <Package size={16} />
                           </div>
                           <div>
-                            <p className="text-sm font-black text-[#172B4D] leading-none mb-1 group-hover:text-[#4a6cf7] transition-colors">{order.lr_number}</p>
-                            <p className={`${order.status === 'CANCELLED' ? 'text-red-400' : 'text-gray-400'} text-[10px] font-mono mt-0.5 whitespace-nowrap`}>
+                            <p className="text-[13px] font-bold text-[#172B4D] leading-none mb-1 group-hover:text-[#0052CC] transition-colors">{order.lr_number}</p>
+                            <p className={`${order.status === 'CANCELLED' ? 'text-red-400' : 'text-gray-400'} text-[9px] font-mono mt-0.5 whitespace-nowrap`}>
                               Ref Number: {order.reference_number || 'N/A'}
                             </p>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-sm font-medium text-gray-700 truncate w-32" title={`From: ${getCustomerName(order.consignor_id)}`}>
+                        <p className="text-[13px] font-bold text-gray-700 truncate w-32" title={`From: ${getCustomerName(order.consignor_id)}`}>
                           <span className="text-[10px] text-gray-400 mr-1">F:</span>{getCustomerName(order.consignor_id)}
                         </p>
-                        <p className="text-sm font-medium text-gray-700 truncate w-32 mt-0.5" title={`To: ${getCustomerName(order.consignee_id)}`}>
+                        <p className="text-[13px] font-bold text-gray-700 truncate w-32 mt-0.5" title={`To: ${getCustomerName(order.consignee_id)}`}>
                           <span className="text-[10px] text-gray-400 mr-1">T:</span>{getCustomerName(order.consignee_id)}
                         </p>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-sm font-black text-[#172B4D] leading-none">{getCustomerName(order.billing_customer_id)}</p>
-                        <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-1 font-bold">{order.order_type}</p>
+                        <p className="text-[13px] font-bold text-[#172B4D] leading-none">{getCustomerName(order.billing_customer_id)}</p>
+                        <p className="text-[9px] text-gray-400 mt-1 font-bold uppercase">{order.order_type}</p>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col gap-1">
@@ -238,11 +231,15 @@ export default function Orders() {
                             <CheckCircle2 size={12} className="text-green-500" />
                             <span className="text-[10px] font-bold text-gray-500">{order.delivery_date || 'TBD'}</span>
                           </div>
+                          <div className="flex items-center gap-1.5">
+                            <Clock size={12} className="text-gray-400" />
+                            <span className="text-[10px] font-bold text-gray-500">{order.lr_receiving_date || 'LR TBD'}</span>
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex justify-center">
-                          <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 border shadow-sm ${st.color} ${st.bg} ${st.border}`}>
+                          <span className={`px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 border shadow-sm ${st.color} ${st.bg} ${st.border}`}>
                             <span className="relative flex h-1.5 w-1.5">
                               <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${st.color.replace('text', 'bg')}`}></span>
                               <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${st.color.replace('text', 'bg')}`}></span>
@@ -252,7 +249,7 @@ export default function Orders() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                        <div className="flex items-center justify-end gap-2">
                           <button 
                             onClick={() => handleView(order.id)}
                             className="p-2 text-gray-400 hover:text-blue-600 hover:bg-white rounded-lg border border-transparent hover:border-blue-100 shadow-sm transition-all"
@@ -270,10 +267,19 @@ export default function Orders() {
                               <Truck size={16} />
                             </button>
                           )}
+                          {order.status === 'DRAFT' && (
+                            <button
+                              onClick={() => updateOrderMutation.mutate({ id: order.id, data: { status: 'CONFIRMED' } })}
+                              className="p-2 text-gray-400 hover:text-green-600 hover:bg-white rounded-lg border border-transparent hover:border-green-100 shadow-sm transition-all"
+                              title="Confirm Order"
+                            >
+                              <CheckCircle2 size={16} />
+                            </button>
+                          )}
 
                           <button 
                             onClick={() => handleEdit(order)}
-                            className="p-2 text-gray-400 hover:text-[#4a6cf7] hover:bg-white rounded-lg border border-transparent hover:border-blue-100 shadow-sm transition-all"
+                            className="p-2 text-gray-400 hover:text-[#0052CC] hover:bg-white rounded-lg border border-transparent hover:border-blue-100 shadow-sm transition-all"
                             title="Operational Edit"
                           >
                             <Edit2 size={16} />
@@ -285,7 +291,7 @@ export default function Orders() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan="6" className="px-6 py-20 text-center">
+                    <td colSpan="7" className="px-6 py-20 text-center">
                       <div className="flex flex-col items-center justify-center opacity-20">
                         <Package size={48} className="mb-4" />
                         <p className="text-sm font-black uppercase tracking-[0.2em]">No Shipment Records found</p>
@@ -299,7 +305,7 @@ export default function Orders() {
 
           {/* Pagination Footer */}
           <div className="px-6 py-4 border-t border-gray-50 flex items-center justify-between bg-gray-50/20">
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+            <p className="text-xs font-semibold text-gray-500">
               Showing <span className="text-[#172B4D]">{orders.length}</span> of <span className="text-[#172B4D]">{totalCount}</span> active shipments
             </p>
             <div className="flex items-center gap-2">
@@ -310,7 +316,7 @@ export default function Orders() {
               >
                 PREV
               </button>
-              <span className="px-3 py-1 bg-[#172B4D] text-white rounded-lg text-xs font-black font-mono">{page}</span>
+              <span className="px-3 py-1 bg-[#0052CC] text-white rounded-lg text-xs font-black font-mono">{page}</span>
               <button 
                 disabled={orders.length < 10}
                 onClick={() => setPage(p => p + 1)}
