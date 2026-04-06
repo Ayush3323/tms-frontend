@@ -65,10 +65,13 @@ export const createUser = async (data) => {
 
 /** Fields allowed by PATCH /api/v1/users/users/{id}/ (UserUpdateSerializer) */
 const UPDATE_ALLOWED_FIELDS = [
+  "email",
   "first_name", "middle_name", "last_name", "phone", "date_of_birth", "gender",
   "profile_picture_url", "account_type", "status", "reporting_manager",
   "is_staff", // Add this field to allow updates
   "is_verified",
+  "employment",
+  "employee_id", "department", "job_title", "joining_date", "leaving_date", "employment_status",
 ];
 
 /** Normalize date string to YYYY-MM-DD for the API (backend expects this format). */
@@ -102,6 +105,26 @@ export const updateUser = async ({ id, data }) => {
       payload[key] = value;
     }
   });
+  const employmentFieldMap = {
+    employee_id: "employee_id",
+    department: "department",
+    job_title: "job_title",
+    joining_date: "joining_date",
+    leaving_date: "leaving_date",
+    employment_status: "employment_status",
+  };
+  const flatEmploymentPayload = Object.entries(employmentFieldMap).reduce((acc, [flatKey, nestedKey]) => {
+    if (data[flatKey] !== undefined) {
+      acc[nestedKey] = data[flatKey] === "" ? null : data[flatKey];
+    }
+    return acc;
+  }, {});
+  if (Object.keys(flatEmploymentPayload).length > 0) {
+    payload.employment = {
+      ...(payload.employment || {}),
+      ...flatEmploymentPayload,
+    };
+  }
   try {
     const response = await axiosInstance.patch(`${BASE_URL}${id}/`, payload);
     return response.data;

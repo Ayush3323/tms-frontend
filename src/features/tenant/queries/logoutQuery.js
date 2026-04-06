@@ -14,9 +14,11 @@ export const useLogout = () => {
             // Optional: call a logout API endpoint if it exists
             // await axiosInstance.post('/admin/api/v1/logout/');
 
-            // Clear authentication tokens from localStorage
+            // Clear authentication tokens from both storage modes.
             localStorage.removeItem("token");
             localStorage.removeItem("refresh_token");
+            sessionStorage.removeItem("token");
+            sessionStorage.removeItem("refresh_token");
             
             // Artificial delay to simulate real logout if needed, 
             // but usually logout is immediate unless there's an API call.

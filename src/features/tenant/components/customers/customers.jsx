@@ -6,7 +6,7 @@ import {
   Info as LucideInfo
 } from 'lucide-react';
 import {
-  useCustomers, useDeleteCustomer,
+  useCustomers, useDeleteCustomer, useCustomerStats,
 } from '../../queries/customers/customersQuery';
 import { TableShimmer, ErrorState } from '../Vehicles/Common/StateFeedback';
 import { Badge, DeleteConfirm, EmptyState } from '../Vehicles/Common/VehicleCommon';
@@ -63,41 +63,14 @@ const CustomersDashboard = () => {
     ...(debouncedSearch && { search: debouncedSearch }),
   });
 
-  // Stats must be pagination-independent; fetch per-status counts from backend.
-  const { data: allCountData } = useCustomers({
-    page: 1,
-    ...(statusFilter === 'DELETED' && { deleted_only: 'true' }),
-    ...(customerTypeFilter && { customer_type: customerTypeFilter }),
-    ...(debouncedSearch && { search: debouncedSearch }),
-  });
-  const { data: activeCountData } = useCustomers({
-    page: 1,
-    status: 'ACTIVE',
-    ...(statusFilter === 'DELETED' && { deleted_only: 'true' }),
-    ...(customerTypeFilter && { customer_type: customerTypeFilter }),
-    ...(debouncedSearch && { search: debouncedSearch }),
-  });
-  const { data: inactiveCountData } = useCustomers({
-    page: 1,
-    status: 'INACTIVE',
-    ...(statusFilter === 'DELETED' && { deleted_only: 'true' }),
-    ...(customerTypeFilter && { customer_type: customerTypeFilter }),
-    ...(debouncedSearch && { search: debouncedSearch }),
-  });
-  const { data: suspendedCountData } = useCustomers({
-    page: 1,
-    status: 'SUSPENDED',
-    ...(statusFilter === 'DELETED' && { deleted_only: 'true' }),
-    ...(customerTypeFilter && { customer_type: customerTypeFilter }),
-    ...(debouncedSearch && { search: debouncedSearch }),
-  });
+  const { data: statsData } = useCustomerStats();
 
   const customers = data?.results ?? data ?? [];
-  const total = allCountData?.count ?? data?.count ?? customers.length;
-  const active = activeCountData?.count ?? customers.filter(c => c.status === 'ACTIVE').length;
-  const inactive = inactiveCountData?.count ?? customers.filter(c => c.status === 'INACTIVE').length;
-  const suspended = suspendedCountData?.count ?? customers.filter(c => c.status === 'SUSPENDED').length;
-  const statsLoading = !allCountData || !activeCountData || !inactiveCountData || !suspendedCountData;
+  const total = statsData?.total ?? data?.count ?? customers.length;
+  const active = statsData?.active ?? customers.filter(c => c.status === 'ACTIVE').length;
+  const inactive = statsData?.inactive ?? customers.filter(c => c.status === 'INACTIVE').length;
+  const suspended = statsData?.suspended ?? customers.filter(c => c.status === 'SUSPENDED').length;
+  const statsLoading = !statsData;
 
   const resetFilters = () => { setSearchTerm(''); setStatus(''); setCustomerTypeFilter(''); setOrdering('legal_name'); setCurrentPage(1); };
 
