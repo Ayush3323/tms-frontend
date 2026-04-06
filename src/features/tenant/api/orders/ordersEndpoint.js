@@ -57,6 +57,10 @@ export const tripsApi = {
     axiosInstance.get(`${BASE_TRIPS}/${tripId}/stops/`).then(r => r.data),
   createStop: (tripId, data) =>
     axiosInstance.post(`${BASE_TRIPS}/${tripId}/stops/`, data).then(r => r.data),
+  updateStop: (tripId, stopId, data) =>
+    axiosInstance.patch(`${BASE_TRIPS}/${tripId}/stops/${stopId}/`, data).then(r => r.data),
+  deleteStop: (tripId, stopId) =>
+    axiosInstance.delete(`${BASE_TRIPS}/${tripId}/stops/${stopId}/`).then(r => r.data),
 
   listStatusHistory: (tripId) =>
     axiosInstance.get(`${BASE_TRIPS}/${tripId}/status-history/`).then(r => r.data),

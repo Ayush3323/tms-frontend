@@ -6,12 +6,13 @@ import {
   AlertCircle, Hash, Clock, CheckCircle2,
   User, Shield, FileText, Receipt, Edit3,
   CreditCard, History, Plus, ArrowRight,
-  Gauge, Zap, DollarSign, Activity, Package as PackageIcon, Trash2
+  Gauge, Zap, DollarSign, Activity, Package as PackageIcon, Trash2, Save
 } from 'lucide-react';
 import {
   useTripDetail, useTripStops, useTripDocuments,
   useTripExpenses, useTripCharges, useTripStatusHistory,
-  useOrderDetail, useDeleteTrip
+  useOrderDetail, useDeleteTrip, useCreateTripStop,
+  useUpdateTripStop, useDeleteTripStop, useTripDeliveries, useCreatePOD
 } from '../../queries/orders/ordersQuery';
 import { useDriverDetail } from '../../queries/drivers/driverCoreQuery';
 import { useVehicle } from '../../queries/vehicles/vehicleQuery';
@@ -38,6 +39,56 @@ const SectionHeader = ({ icon: Icon, title, action }) => (
   </div>
 );
 
+const LABEL_MAP = {
+  status: 'Status',
+  trip_number: 'Trip Number',
+  lr_number: 'LR Number',
+  trip_type: 'Trip Type',
+  origin_address: 'Origin',
+  destination_address: 'Destination',
+  reference_number: 'Reference Number',
+  created_date: 'Created Date',
+  version: 'Version',
+  created_at: 'Created At',
+  updated_at: 'Updated At',
+  primary_driver_id: 'Primary Driver',
+  primary_vehicle_id: 'Primary Vehicle',
+  vehicle_owner_name: 'Vehicle Owner',
+  vehicle_type_code: 'Vehicle Type',
+  alternate_driver_id: 'Alternate Driver',
+  alternate_vehicle_id: 'Alternate Vehicle',
+  scheduled_pickup_date: 'Scheduled Pickup',
+  scheduled_delivery_date: 'Scheduled Delivery',
+  actual_pickup_date: 'Actual Pickup',
+  actual_delivery_date: 'Actual Delivery',
+  start_time: 'Start Time',
+  end_time: 'End Time',
+  total_distance_km: 'Total Distance',
+  start_odometer_km: 'Start Odometer',
+  end_odometer_km: 'End Odometer',
+  estimated_fuel_liters: 'Estimated Fuel',
+  actual_fuel_liters: 'Actual Fuel',
+  fuel_rate_per_liter: 'Fuel Rate/L',
+  total_bill_amount: 'Total Bill',
+  total_freight_charge: 'Freight',
+  total_accessorial_charge: 'Accessorial',
+  total_tax: 'Tax',
+  is_paid: 'Paid',
+  is_billed: 'Billed',
+  broker_commission: 'Broker Commission',
+  booked_price: 'Booked Price',
+  part_load_charge: 'Part-load Charge',
+  tds_percentage: 'TDS %',
+  tds_amount: 'TDS Amount',
+  late_fee: 'Late Fee',
+  damage_amount: 'Damage Amount',
+  incentive_amount: 'Incentive',
+  payment_received_amount: 'Payment Received',
+  payment_received_date: 'Payment Date',
+  pod_received_date: 'POD Received Date',
+  pod_turnaround_days: 'POD TAT (days)',
+};
+
 const InfoCard = ({ label, value, icon: Icon, accent = false, isLoading = false }) => (
   <div className={`p-4 rounded-2xl border transition-all ${
     accent 
@@ -56,7 +107,7 @@ const InfoCard = ({ label, value, icon: Icon, accent = false, isLoading = false 
       )}
       <div className="min-w-0 flex-1 text-left">
         <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest leading-none mb-2">
-          {label}
+          {LABEL_MAP[label] || label}
         </p>
         <div className="flex items-center gap-2">
           {isLoading ? (
@@ -158,34 +209,224 @@ const JourneyTab = ({ trip, driver, vehicle, isLoadingNames, altDriver, altVehic
   </div>
 );
 
-const StopsTab = ({ stops, isLoading }) => (
-  <div className="space-y-4">
-    <SectionHeader icon={MapPin} title="Trip Sequence" />
-    {isLoading ? (
-      <div className="flex justify-center p-12"><Loader2 className="animate-spin text-blue-600" /></div>
-    ) : stops?.length > 0 ? (
-      <div className="relative pl-8 space-y-6 before:absolute before:left-[15px] before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-100">
-        {stops.map((stop, i) => (
-          <div key={stop.id} className="relative">
-            <div className={`absolute -left-[27px] top-1 w-4 h-4 rounded-full border-4 border-white shadow-sm z-10 ${stop.status === 'COMPLETED' ? 'bg-green-500' : 'bg-blue-500'}`} />
-            <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
-              <div className="flex justify-between items-start mb-1">
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Stop #{stop.sequence_order} • {stop.stop_type}</span>
-                <Badge className={stop.status === 'COMPLETED' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'}>{stop.status}</Badge>
+const StopsTab = ({ stops, isLoading, onCreateStop, onUpdateStopStatus, onDeleteStop }) => {
+  const [newStop, setNewStop] = useState({
+    stop_sequence: 1,
+    stop_type: 'PICKUP',
+    location_address: '',
+    stop_status: 'PENDING',
+    instructions: '',
+  });
+  const [editingStopId, setEditingStopId] = useState(null);
+  const [editingStop, setEditingStop] = useState({ location_address: '', instructions: '' });
+
+  const sortedStops = [...(stops || [])].sort((a, b) => (a.stop_sequence || 0) - (b.stop_sequence || 0));
+
+  const submitNewStop = (e) => {
+    e.preventDefault();
+    if (!newStop.location_address?.trim()) return;
+    onCreateStop({
+      ...newStop,
+      stop_sequence: Number(newStop.stop_sequence || 1),
+    });
+    setNewStop((prev) => ({
+      ...prev,
+      stop_sequence: Number(prev.stop_sequence || 1) + 1,
+      location_address: '',
+      instructions: '',
+    }));
+  };
+
+  const startEditStop = (stop) => {
+    setEditingStopId(stop.id);
+    setEditingStop({
+      location_address: stop.location_address || '',
+      instructions: stop.instructions || '',
+    });
+  };
+
+  const saveEditStop = (stopId) => {
+    onUpdateStopStatus(stopId, undefined, {
+      location_address: editingStop.location_address,
+      instructions: editingStop.instructions,
+    });
+    setEditingStopId(null);
+    setEditingStop({ location_address: '', instructions: '' });
+  };
+
+  return (
+    <div className="space-y-6">
+      <SectionHeader icon={MapPin} title="Trip Sequence (Multi-point)" />
+
+      <form onSubmit={submitNewStop} className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+          <input
+            type="number"
+            min="1"
+            className="px-3 py-2 rounded-lg border border-gray-200 text-sm"
+            value={newStop.stop_sequence}
+            onChange={(e) => setNewStop((p) => ({ ...p, stop_sequence: e.target.value }))}
+            placeholder="Sequence"
+          />
+          <select
+            className="px-3 py-2 rounded-lg border border-gray-200 text-sm"
+            value={newStop.stop_type}
+            onChange={(e) => setNewStop((p) => ({ ...p, stop_type: e.target.value }))}
+          >
+            <option value="PICKUP">PICKUP</option>
+            <option value="DELIVERY">DELIVERY</option>
+            <option value="TRANSIT">TRANSIT</option>
+          </select>
+          <input
+            className="md:col-span-2 px-3 py-2 rounded-lg border border-gray-200 text-sm"
+            value={newStop.location_address}
+            onChange={(e) => setNewStop((p) => ({ ...p, location_address: e.target.value }))}
+            placeholder="Location address"
+          />
+          <button type="submit" className="px-3 py-2 rounded-lg bg-[#4a6cf7] text-white text-sm font-bold">
+            Add Stop
+          </button>
+        </div>
+      </form>
+
+      {isLoading ? (
+        <div className="flex justify-center p-12"><Loader2 className="animate-spin text-blue-600" /></div>
+      ) : sortedStops.length > 0 ? (
+        <div className="relative pl-8 space-y-6 before:absolute before:left-[15px] before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-100">
+          {sortedStops.map((stop) => (
+            <div key={stop.id} className="relative">
+              <div className={`absolute -left-[27px] top-1 w-4 h-4 rounded-full border-4 border-white shadow-sm z-10 ${stop.stop_status === 'COMPLETED' ? 'bg-green-500' : 'bg-blue-500'}`} />
+              <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+                <div className="flex justify-between items-start mb-1 gap-3">
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                    Stop #{stop.stop_sequence} • {stop.stop_type}
+                  </span>
+                  <Badge className={stop.stop_status === 'COMPLETED' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'}>
+                    {stop.stop_status}
+                  </Badge>
+                </div>
+                <p className="text-sm font-black text-[#172B4D]">{stop.location_address || '-'}</p>
+                <p className="text-xs text-gray-500 font-medium">{stop.instructions || 'No instructions'}</p>
+                {editingStopId === stop.id ? (
+                  <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <input
+                      className="md:col-span-2 px-2 py-1 text-xs rounded border border-gray-200"
+                      value={editingStop.location_address}
+                      onChange={(e) => setEditingStop((p) => ({ ...p, location_address: e.target.value }))}
+                      placeholder="Location address"
+                    />
+                    <input
+                      className="px-2 py-1 text-xs rounded border border-gray-200"
+                      value={editingStop.instructions}
+                      onChange={(e) => setEditingStop((p) => ({ ...p, instructions: e.target.value }))}
+                      placeholder="Instructions"
+                    />
+                    <div className="md:col-span-3 flex gap-2">
+                      <button type="button" onClick={() => saveEditStop(stop.id)} className="px-2 py-1 text-xs rounded bg-blue-600 text-white">Save</button>
+                      <button type="button" onClick={() => setEditingStopId(null)} className="px-2 py-1 text-xs rounded bg-gray-100">Cancel</button>
+                    </div>
+                  </div>
+                ) : null}
+                <div className="mt-3 flex gap-2 flex-wrap">
+                  <button type="button" onClick={() => onUpdateStopStatus(stop.id, 'PENDING')} className={`px-2 py-1 text-xs rounded ${stop.stop_status === 'PENDING' ? 'bg-gray-700 text-white' : 'bg-gray-100'}`}>Pending</button>
+                  <button type="button" onClick={() => onUpdateStopStatus(stop.id, 'IN_PROGRESS')} className={`px-2 py-1 text-xs rounded ${stop.stop_status === 'IN_PROGRESS' ? 'bg-blue-700 text-white' : 'bg-blue-100 text-blue-700'}`}>In Progress</button>
+                  <button type="button" onClick={() => onUpdateStopStatus(stop.id, 'COMPLETED')} className={`px-2 py-1 text-xs rounded ${stop.stop_status === 'COMPLETED' ? 'bg-green-700 text-white' : 'bg-green-100 text-green-700'}`}>Completed</button>
+                  <button type="button" onClick={() => startEditStop(stop)} className="px-2 py-1 text-xs rounded bg-slate-100 text-slate-700">Edit</button>
+                  <button type="button" onClick={() => onDeleteStop(stop.id)} className="px-2 py-1 text-xs rounded bg-red-100 text-red-700">Delete</button>
+                </div>
               </div>
-              <p className="text-sm font-black text-[#172B4D]">{stop.location_name}</p>
-              <p className="text-xs text-gray-500 font-medium">{stop.city}, {stop.state}</p>
             </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center p-12 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+          <p className="text-gray-400 text-sm">No stops recorded for this trip.</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const DeliveriesTab = ({ tripId, deliveries, createDelivery, isCreating }) => {
+  const [form, setForm] = useState({
+    delivery_date: '',
+    received_by_name: '',
+    received_by_relation: '',
+    delivery_status: 'DELIVERED',
+    remarks: '',
+    pod_number: '',
+  });
+
+  const onSubmit = (e) => {
+    e.preventDefault();
+    createDelivery({
+      trip_id: tripId,
+      ...form,
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      <SectionHeader icon={FileText} title="Deliveries / POD" />
+      <form onSubmit={onSubmit} className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div>
+            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Delivery Date</label>
+            <input type="date" className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" value={form.delivery_date} onChange={(e) => setForm((p) => ({ ...p, delivery_date: e.target.value }))} required />
           </div>
-        ))}
+          <div>
+            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Received By</label>
+            <input className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" placeholder="Receiver name" value={form.received_by_name} onChange={(e) => setForm((p) => ({ ...p, received_by_name: e.target.value }))} required />
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Relation</label>
+            <input className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" placeholder="Receiver relation" value={form.received_by_relation} onChange={(e) => setForm((p) => ({ ...p, received_by_relation: e.target.value }))} />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div>
+            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Delivery Status</label>
+            <select className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" value={form.delivery_status} onChange={(e) => setForm((p) => ({ ...p, delivery_status: e.target.value }))}>
+              <option value="DELIVERED">DELIVERED</option>
+              <option value="PARTIAL">PARTIAL</option>
+              <option value="DAMAGED">DAMAGED</option>
+              <option value="REFUSED">REFUSED</option>
+              <option value="RETURNED">RETURNED</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">POD Number</label>
+            <input className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" placeholder="Optional POD number" value={form.pod_number} onChange={(e) => setForm((p) => ({ ...p, pod_number: e.target.value }))} />
+          </div>
+          <button type="submit" disabled={isCreating} className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm font-bold">
+            {isCreating ? 'Creating...' : 'Create Delivery'}
+          </button>
+        </div>
+        <div>
+          <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Remarks</label>
+          <textarea className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" rows={2} placeholder="Remarks" value={form.remarks} onChange={(e) => setForm((p) => ({ ...p, remarks: e.target.value }))} />
+        </div>
+      </form>
+
+      <div className="space-y-3">
+        {deliveries?.length ? deliveries.map((d) => (
+          <div key={d.id} className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+            <div className="flex justify-between items-center">
+              <p className="text-sm font-black text-[#172B4D]">{d.pod_number || d.id}</p>
+              <Badge className="bg-emerald-50 text-emerald-700 border-emerald-100">{d.delivery_status}</Badge>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Date: {d.delivery_date}</p>
+            <p className="text-xs text-gray-500">Receiver: {d.received_by_name}</p>
+          </div>
+        )) : (
+          <div className="text-center p-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+            <p className="text-gray-400 text-sm">No deliveries recorded for this trip.</p>
+          </div>
+        )}
       </div>
-    ) : (
-      <div className="text-center p-12 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-        <p className="text-gray-400 text-sm">No stops recorded for this trip.</p>
-      </div>
-    )}
-  </div>
-);
+    </div>
+  );
+};
 
 const FinanceTab = ({ trip, expenses, charges, isLoadingExp, isLoadingChg }) => (
   <div className="space-y-6">
@@ -316,6 +557,12 @@ export default function TripDetail() {
   const { data: charges, isLoading: loadingChg } = useTripCharges(id);
   const { data: docs } = useTripDocuments(id);
   const { data: history, isLoading: loadingHistory } = useTripStatusHistory(id);
+  const { data: tripDeliveries } = useTripDeliveries(id);
+
+  const createStopMutation = useCreateTripStop(id);
+  const updateStopMutation = useUpdateTripStop(id);
+  const deleteStopMutation = useDeleteTripStop(id);
+  const createPODMutation = useCreatePOD();
 
   const driverId = trip?.primary_driver_id || trip?.driver_id;
   const vehicleId = trip?.primary_vehicle_id || trip?.vehicle_id;
@@ -360,12 +607,13 @@ export default function TripDetail() {
     { id: 'finance', label: 'Financials', icon: Receipt },
     { id: 'stops', label: 'Stops', icon: MapPin, count: (Array.isArray(stops) ? stops : stops?.results)?.length },
     { id: 'history', label: 'Status History', icon: History, count: (Array.isArray(history) ? history : history?.results)?.length },
+    { id: 'deliveries', label: 'Deliveries', icon: FileText, count: (Array.isArray(tripDeliveries) ? tripDeliveries : tripDeliveries?.results)?.length },
     { id: 'docs', label: 'Documents', icon: FileText, count: docs?.length },
   ];
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] p-4 font-sans">
-      <div className="w-full space-y-6">
+    <div className="min-h-screen bg-[#F8FAFC] p-6 lg:p-8 font-sans">
+      <div className="max-w-[1600px] mx-auto space-y-6">
 
         <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest mb-4">
           <button onClick={handleBack} className="text-gray-400 hover:text-blue-600 cursor-pointer transition-colors">Trips</button>
@@ -373,7 +621,7 @@ export default function TripDetail() {
           <span className="text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100 cursor-default">{trip.trip_number}</span>
         </div>
 
-        <div className="bg-white rounded-[2rem] border border-gray-100/80 overflow-hidden shadow-2xl shadow-gray-200/40">
+        <div className="bg-white rounded-3xl border border-gray-100/80 overflow-hidden shadow-xl shadow-gray-200/40">
           <div className="p-6 lg:p-8 flex flex-col md:flex-row items-center justify-between gap-10">
             <div className="flex-1 flex items-center justify-between max-w-2xl">
               {/* Origin */}
@@ -401,13 +649,13 @@ export default function TripDetail() {
             {/* Actions */}
             <div className="flex items-center gap-3 shrink-0">
               <button onClick={() => setIsEditOpen(true)} 
-                className="flex items-center gap-2.5 px-6 py-3 bg-[#4a6cf7] border border-[#4a6cf7] rounded-xl text-xs font-black text-white hover:bg-[#3b59d9] hover:border-[#3b59d9] cursor-pointer transition-all shadow-lg shadow-blue-200/50 uppercase tracking-widest">
-                <Edit3 size={14} strokeWidth={2.5} /> Edit trip
+                className="flex items-center gap-2.5 px-6 py-3 bg-[#4a6cf7] border border-[#4a6cf7] rounded-xl text-sm font-semibold text-white hover:bg-[#3b59d9] hover:border-[#3b59d9] cursor-pointer transition-all shadow-md shadow-blue-200/40">
+                <Edit3 size={14} strokeWidth={2.5} /> Edit Trip
               </button>
               <button onClick={handleDelete} 
                 disabled={deleteTripMutation.isLoading}
-                className="flex items-center gap-2.5 px-6 py-3 bg-red-50 border border-red-100 rounded-xl text-xs font-black text-red-600 hover:bg-red-100 cursor-pointer transition-all uppercase tracking-widest">
-                <Trash2 size={14} strokeWidth={2.5} /> {deleteTripMutation.isLoading ? 'Deleting...' : 'Delete trip'}
+                className="flex items-center gap-2.5 px-6 py-3 bg-red-50 border border-red-100 rounded-xl text-sm font-semibold text-red-600 hover:bg-red-100 cursor-pointer transition-all">
+                <Trash2 size={14} strokeWidth={2.5} /> {deleteTripMutation.isLoading ? 'Deleting...' : 'Delete Trip'}
               </button>
             </div>
           </div>
@@ -486,7 +734,7 @@ export default function TripDetail() {
           <div className="flex overflow-x-auto border-b border-gray-50 bg-gray-50/30 scrollbar-hide">
             {TABS.map(tab => (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2.5 px-10 py-5 text-[10px] font-black border-b-2 transition-all shrink-0 uppercase tracking-[0.15em]
+                className={`flex items-center gap-2.5 px-8 py-4 text-xs font-semibold border-b-2 transition-all shrink-0 uppercase tracking-wide
                    ${activeTab === tab.id ? 'border-[#0052CC] text-[#0052CC] bg-white' : 'border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-100/50'}`}>
                 <tab.icon size={13} strokeWidth={2.5} />
                 {tab.label}
@@ -507,8 +755,29 @@ export default function TripDetail() {
                 />
             )}
             {activeTab === 'finance' && <FinanceTab trip={trip} expenses={expenses} charges={charges} isLoadingExp={loadingExp} isLoadingChg={loadingChg} />}
-            {activeTab === 'stops' && <StopsTab stops={Array.isArray(stops) ? stops : stops?.results} isLoading={loadingStops} />}
+            {activeTab === 'stops' && (
+              <StopsTab
+                stops={Array.isArray(stops) ? stops : stops?.results}
+                isLoading={loadingStops}
+                onCreateStop={(data) => createStopMutation.mutate(data)}
+                onUpdateStopStatus={(stopId, stopStatus, extraData = {}) => {
+                  const data = stopStatus ? { stop_status: stopStatus, ...extraData } : extraData;
+                  updateStopMutation.mutate({ stopId, data });
+                }}
+                onDeleteStop={(stopId) => {
+                  if (window.confirm('Delete this stop?')) deleteStopMutation.mutate(stopId)
+                }}
+              />
+            )}
             {activeTab === 'history' && <HistoryTab history={Array.isArray(history) ? history : history?.results} isLoading={loadingHistory} />}
+            {activeTab === 'deliveries' && (
+              <DeliveriesTab
+                tripId={id}
+                deliveries={Array.isArray(tripDeliveries) ? tripDeliveries : tripDeliveries?.results}
+                isCreating={createPODMutation.isPending}
+                createDelivery={(payload) => createPODMutation.mutate(payload)}
+              />
+            )}
             {activeTab === 'docs' && (
               <div className="flex flex-col items-center justify-center py-20 text-gray-400">
                 <Clock size={32} className="opacity-20 mb-4" />
