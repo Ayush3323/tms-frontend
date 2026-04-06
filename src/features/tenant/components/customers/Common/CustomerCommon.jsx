@@ -4,16 +4,19 @@ import {
   AlertCircle, ChevronDown, Info as LucideInfo
 } from 'lucide-react';
 
-// Re-exporting basic building blocks from VehicleCommon (central entry point for consistency)
-export {
+// Central UI components from VehicleCommon
+import {
   Badge, InfoCard, SectionHeader, EmptyState, Label,
   Input, Sel, Section, Textarea, Field, Modal, DeleteConfirm,
   VehicleTypeMultiSelect
 } from '../../Vehicles/Common/VehicleCommon';
 
-import {
-  Section, Field, Sel, Input
-} from '../../Vehicles/Common/VehicleCommon';
+// Re-export for sub-modules
+export {
+  Badge, InfoCard, SectionHeader, EmptyState, Label,
+  Input, Sel, Section, Textarea, Field, Modal, DeleteConfirm,
+  VehicleTypeMultiSelect
+};
 
 /**
  * Shared section for Sales Person and Account Manager assignment
@@ -70,11 +73,14 @@ export const RelationshipManagementFields = ({
                 const linkedTo = userToCustomerMap[String(u.id)];
                 const currentUserId = initial?.user_id || initial?.customer?.user_id || initial?.customer?.user?.id;
                 const isCurrent = String(u.id) === String(currentUserId || '');
-                
-                // HIDE if linked to someone else OR if they already have a CUSTOMER account type
+                // HIDE if linked to someone else.
                 // SHOW if not linked OR linked to the CURRENT entity being edited.
                 if (isCurrent) return true;
-                if (linkedTo || u.account_type === 'CUSTOMER') return false;
+
+                // SPECIAL FILTER: User must be of type CUSTOMER but NOT yet assigned to a subtype (linkedTo).
+                if (u.account_type !== 'CUSTOMER') return false; 
+                if (linkedTo) return false;
+
                 return true;
               })
               .map(u => (
@@ -216,6 +222,3 @@ export const RelationshipOverviewSection = ({ item, showWarehouse = true }) => {
     </>
   );
 };
-
-// Internal Import for local use
-import { InfoCard } from '../../Vehicles/Common/VehicleCommon';
