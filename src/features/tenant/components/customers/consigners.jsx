@@ -93,7 +93,7 @@ const Consignors = () => {
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
   const [deleteError, setDeleteError] = useState(null);
-  const [createPortalUser, setCreatePortalUser] = useState(false);
+  const [createPortalUser, setCreatePortalUser] = useState(true);
 
   const { data: userData } = useUsers({ limit: 1000 });
   const allUsers = userData?.results ?? userData ?? [];
@@ -161,6 +161,7 @@ const Consignors = () => {
     setForm(EMPTY_FORM);
     setErrors({});
     setModal({ type: 'create' });
+    setCreatePortalUser(true);
   };
 
   const openEdit = (cl) => {
@@ -584,6 +585,31 @@ const Consignors = () => {
                 <AlertCircle size={16} /> {errors._generic}
               </div>
             )}
+
+            {/* Portal Account prioritization */}
+            {modal.type === 'create' && (
+              <CreatePortalUserSection
+                createPortalUser={createPortalUser}
+                setCreatePortalUser={setCreatePortalUser}
+                form={form}
+                setField={setField}
+                errors={errors}
+                moduleName="Consignor"
+              />
+            )}
+
+            <RelationshipManagementFields
+              form={form}
+              setField={setField}
+              allUsers={allUsers}
+              errors={errors}
+              portalUsers={portalUsers}
+              userToCustomerMap={userToCustomerMap}
+              initial={modal.consignor}
+              createPortalUser={createPortalUser}
+              disabled={modal.type === 'view'}
+            />
+
             <Section title="Consignor Details" className="col-span-2" />
             <Field label="Legal Name" required error={errors.legal_name}>
               <Input
@@ -682,30 +708,6 @@ const Consignors = () => {
               </Sel>
             </Field>
 
-            {/* Shared Relationship Management Section */}
-            <RelationshipManagementFields
-              form={form}
-              setField={setField}
-              allUsers={allUsers}
-              errors={errors}
-              portalUsers={portalUsers}
-              userToCustomerMap={userToCustomerMap}
-              initial={modal.consignor}
-              createPortalUser={createPortalUser}
-              disabled={modal.type === 'view'}
-            />
-
-            {/* Shared Portal User Creation Section */}
-            {modal.type === 'create' && (
-              <CreatePortalUserSection
-                createPortalUser={createPortalUser}
-                setCreatePortalUser={setCreatePortalUser}
-                form={form}
-                setField={setField}
-                errors={errors}
-                moduleName="Consignor"
-              />
-            )}
           </div>
         </Modal>
       )}
@@ -737,6 +739,9 @@ const Consignors = () => {
 
 const ConsignorOverview = ({ consignor: c, onEdit }) => (
   <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+    {/* Shared Relationship Info at the very TOP */}
+    <RelationshipOverviewSection item={c} />
+
     <div className="grid grid-cols-2 gap-4">
       <InfoCard label="Legal Name" value={c.customer?.legal_name} accent />
       <InfoCard label="Customer Code" value={c.customer?.customer_code} />
@@ -769,8 +774,6 @@ const ConsignorOverview = ({ consignor: c, onEdit }) => (
       <InfoCard label="Monthly Value" value={c.business_volume_value_per_month ? `₹${Number(c.business_volume_value_per_month).toLocaleString('en-IN')}` : null} />
     </div>
 
-    {/* Shared Relationship Info */}
-    <RelationshipOverviewSection item={c} />
 
     <div className="pt-3 border-t border-gray-100 flex justify-end items-center gap-4">
       <p className="text-[10px] text-gray-400 font-mono italic mr-auto">Created: {c.created_at ? new Date(c.created_at).toLocaleString() : '—'}</p>

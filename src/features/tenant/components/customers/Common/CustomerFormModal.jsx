@@ -4,7 +4,10 @@ import {
 } from 'lucide-react';
 import { useCustomers, useCreateCustomer, useUpdateCustomer } from '../../../queries/customers/customersQuery';
 import { useUsers } from '../../../queries/users/userQuery';
-import { Modal, Field, Input, Sel, Section } from '../../Vehicles/Common/VehicleCommon';
+import { 
+  Modal, Field, Input, Sel, Section,
+  RelationshipManagementFields, CreatePortalUserSection 
+} from './CustomerCommon';
 
 export const EMPTY_FORM = {
   legal_name: '',
@@ -24,9 +27,9 @@ export const EMPTY_FORM = {
   industry_sector: '',
   website: '',
   notes: '',
-  sales_person_id: '',
-  account_manager_id: '',
-  parent_customer_id: '',
+  // sales_person_id: '',
+  // account_manager_id: '',
+  // parent_customer_id: '',
   user_id: '',
   user: {
     username: '',
@@ -63,7 +66,7 @@ export const CustomerFormModal = ({ initial, onClose, onSuccess }) => {
     return map;
   }, [allCustomers]);
 
-  const [createPortalUser, setCreatePortalUser] = useState(false);
+  const [createPortalUser, setCreatePortalUser] = useState(true);
 
   const isEdit = !!initial?.id;
 
@@ -87,15 +90,16 @@ export const CustomerFormModal = ({ initial, onClose, onSuccess }) => {
         industry_sector: initial.industry_sector ?? '',
         website: initial.website ?? '',
         notes: initial.notes ?? '',
-        sales_person_id: initial.sales_person_id ?? initial.sales_person?.id ?? '',
-        account_manager_id: initial.account_manager_id ?? initial.account_manager?.id ?? '',
-        parent_customer_id: initial.parent_customer_id ?? '',
+        // sales_person_id: initial.sales_person_id ?? initial.sales_person?.id ?? '',
+        // account_manager_id: initial.account_manager_id ?? initial.account_manager?.id ?? '',
+        // parent_customer_id: initial.parent_customer_id ?? '',
         user_id: initial.user_id ?? '',
         user: EMPTY_FORM.user
       });
       setCreatePortalUser(false);
     } else {
       setForm(EMPTY_FORM);
+      setCreatePortalUser(true);
     }
   }, [initial]);
 
@@ -208,6 +212,31 @@ export const CustomerFormModal = ({ initial, onClose, onSuccess }) => {
       maxWidth="max-w-2xl"
     >
       <div className="grid grid-cols-2 gap-4">
+        {/* Portal User creation at the very beginning as requested */}
+        {!isEdit && (
+          <CreatePortalUserSection
+            createPortalUser={createPortalUser}
+            setCreatePortalUser={setCreatePortalUser}
+            form={form}
+            setField={setField}
+            errors={errors}
+            moduleName="Customer"
+          />
+        )}
+
+        {/* Relationship fields moved and commented out */}
+        <RelationshipManagementFields
+          form={form}
+          setField={setField}
+          allUsers={allUsers}
+          errors={errors}
+          portalUsers={allUsers.filter(u => u.account_type === 'CUSTOMER')}
+          userToCustomerMap={userToCustomerMap}
+          initial={initial}
+          createPortalUser={createPortalUser}
+          disabled={false}
+        />
+
         <Section title="Basic Information" className="col-span-2" />
 
         <Field label="Legal Name" required error={errors.legal_name} info="Must be unique across all customers">
@@ -297,85 +326,6 @@ export const CustomerFormModal = ({ initial, onClose, onSuccess }) => {
           <Input value={form.website} onChange={e => setField('website', e.target.value)}
             placeholder="https://example.com" />
         </Field>
-
-        <Section title="Assignments & Meta" className="col-span-2" />
-
-        <Field label="Sales Person" error={errors.sales_person_id}>
-          <Sel value={form.sales_person_id} onChange={e => setField('sales_person_id', e.target.value)}>
-            <option value="">-- No Assignment --</option>
-            {allUsers.filter(u => u.account_type === 'EMPLOYEE' || u.account_type === 'MANAGER').map(u => (
-              <option key={u.id} value={u.id}>{u.full_name || u.username} ({u.email})</option>
-            ))}
-          </Sel>
-        </Field>
-        <Field label="Account Manager" error={errors.account_manager_id}>
-          <Sel value={form.account_manager_id} onChange={e => setField('account_manager_id', e.target.value)}>
-            <option value="">-- No Assignment --</option>
-            {allUsers.filter(u => u.account_type === 'EMPLOYEE' || u.account_type === 'MANAGER').map(u => (
-              <option key={u.id} value={u.id}>{u.full_name || u.username} ({u.email})</option>
-            ))}
-          </Sel>
-        </Field>
-        <Field label="Parent Customer ID">
-          <Input value={form.parent_customer_id} onChange={e => setField('parent_customer_id', e.target.value)}
-            placeholder="UUID" />
-        </Field>
-        {!createPortalUser && (
-          <Field label="Existing User ID" error={errors.user_id}>
-            <Sel value={form.user_id} onChange={e => setField('user_id', e.target.value)}>
-              <option value="">-- No Linked User --</option>
-              {allUsers.filter(u => u.account_type === 'CUSTOMER').map(u => {
-                const linkedTo = userToCustomerMap[String(u.id)];
-                const currentUserId = initial?.user?.id || initial?.user_id;
-                const isLinkedToOther = linkedTo && String(u.id) !== String(currentUserId);
-                const displayName = u.full_name || u.username;
-                
-                return (
-                  <option key={u.id} value={u.id} disabled={isLinkedToOther}>
-                    {displayName} ({u.email}){linkedTo ? ` — [Linked to ${linkedTo}]` : ''}
-                  </option>
-                );
-              })}
-            </Sel>
-          </Field>
-        )}
-
-        {!isEdit && (
-          <div className="col-span-2 bg-blue-50/50 p-4 rounded-xl border border-blue-100 mt-2">
-            <label className="flex items-center gap-2 cursor-pointer mb-4">
-              <input
-                type="checkbox"
-                checked={createPortalUser}
-                onChange={e => setCreatePortalUser(e.target.checked)}
-                className="w-4 h-4 text-[#0052CC] border-gray-300 rounded focus:ring-blue-500"
-              />
-              <span className="text-sm font-bold text-[#172B4D]">Create New Portal User for this Customer</span>
-            </label>
-
-            {createPortalUser && (
-              <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                <Field label="Username" required error={errors['user.username']}>
-                  <Input value={form.user.username} onChange={e => setField('user.username', e.target.value)} placeholder="portal_user_1" />
-                </Field>
-                <Field label="Email Address" required error={errors['user.email']}>
-                  <Input type="email" value={form.user.email} onChange={e => setField('user.email', e.target.value)} placeholder="user@example.com" />
-                </Field>
-                <Field label="Password" required error={errors['user.password']}>
-                  <Input type="password" value={form.user.password} onChange={e => setField('user.password', e.target.value)} placeholder="••••••••" />
-                </Field>
-                <Field label="Confirm Password" required error={errors['user.password_confirm']}>
-                  <Input type="password" value={form.user.password_confirm} onChange={e => setField('user.password_confirm', e.target.value)} placeholder="••••••••" />
-                </Field>
-                <Field label="First Name" required error={errors['user.first_name']}>
-                  <Input value={form.user.first_name} onChange={e => setField('user.first_name', e.target.value)} />
-                </Field>
-                <Field label="Last Name">
-                  <Input value={form.user.last_name} onChange={e => setField('user.last_name', e.target.value)} />
-                </Field>
-              </div>
-            )}
-          </div>
-        )}
 
         <Field label="Notes" className="col-span-2">
           <Input value={form.notes} onChange={e => setField('notes', e.target.value)}
