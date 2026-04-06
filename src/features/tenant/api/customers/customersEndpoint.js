@@ -11,6 +11,9 @@ export const customersApi = {
   list: (params) =>
     axiosInstance.get(`${BASE_CUSTOMERS}/`, { params }).then(r => r.data),
 
+  stats: () =>
+    axiosInstance.get(`${BASE_CUSTOMERS}/stats/`).then(r => r.data),
+
   get: (id) =>
     axiosInstance.get(`${BASE_CUSTOMERS}/${id}/`).then(r => r.data),
 

@@ -51,6 +51,7 @@ export const useCreateUser = () => {
     mutationFn: createUser,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
+      queryClient.invalidateQueries({ queryKey: ["users-stats"] });
     },
     onError: (error) => {
       console.error("Failed to create user:", error.message);
@@ -71,6 +72,7 @@ export const useUpdateUser = () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       // Invalidate the specific user query
       queryClient.invalidateQueries({ queryKey: ["user", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["users-stats"] });
     },
     onError: (error) => {
       console.error("Failed to update user:", error.message);
@@ -86,8 +88,12 @@ export const useDeleteUser = () => {
 
   return useMutation({
     mutationFn: deleteUser,
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
+      queryClient.invalidateQueries({ queryKey: ["users-stats"] });
+      if (id) {
+        queryClient.invalidateQueries({ queryKey: ["user", id] });
+      }
     },
     onError: (error) => {
       console.error("Failed to delete user:", error.message);

@@ -21,6 +21,8 @@ import CustomerListFilterBar from './Common/CustomerListFilterBar';
 const EMPTY_FORM = {
   customer_id: '',
   legal_name: '',
+  tax_id: '',
+  pan_number: '',
   broker_code: '',
   commission_rate: '',
   commission_type: 'PERCENTAGE',
@@ -127,6 +129,8 @@ const BrokersDashboard = () => {
       ...EMPTY_FORM,
       customer_id: cust.id ?? '',
       legal_name: cust.legal_name ?? '',
+      tax_id: cust.tax_id ?? '',
+      pan_number: cust.pan_number ?? '',
       broker_code: brok.broker_code ?? '',
       commission_rate: brok.commission_rate ?? '',
       commission_type: brok.commission_type ?? 'PERCENTAGE',
@@ -164,7 +168,9 @@ const BrokersDashboard = () => {
       const match = eligibleCustomers.find(c => c.legal_name?.toLowerCase() === form.legal_name.toLowerCase());
       if (match) form.customer_id = match.id;
     }
-    if (!form.legal_name?.trim()) e.customer_id = 'Legal Name is required';
+    if (!form.legal_name?.trim()) e.legal_name = 'Legal Name is required';
+    if (!form.tax_id?.trim()) e.tax_id = 'Tax ID is required';
+    if (!form.pan_number?.trim()) e.pan_number = 'PAN number is required';
     if (!form.broker_code?.trim()) {
       const initials = (form.legal_name || 'BRK').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3);
       form.broker_code = `BRK-${initials}-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -176,6 +182,10 @@ const BrokersDashboard = () => {
       if (!form.user.password) e['user.password'] = 'Password is required';
       if (form.user.password !== form.user.password_confirm) e['user.password_confirm'] = 'Passwords must match';
       if (!form.user.first_name) e['user.first_name'] = 'First name is required';
+      if (!form.user.phone) e['user.phone'] = 'Phone is required';
+    }
+    if (modal?.type === 'create' && !createPortalUser && !form.user_id) {
+      e.user_id = 'Select an existing linked user or create a portal user';
     }
 
     setErrors(e);
@@ -512,7 +522,7 @@ const BrokersDashboard = () => {
                 <AlertCircle size={16} /> {errors._generic}
               </div>
             )}
-            <Field label="Legal Name" required error={errors.customer_id}>
+            <Field label="Legal Name" required error={errors.legal_name}>
               <Input
                 value={form.legal_name || ''}
                 onChange={e => {
@@ -524,6 +534,22 @@ const BrokersDashboard = () => {
                 }}
                 disabled={modal.type === 'edit'}
                 placeholder="Enter customer legal name..."
+              />
+            </Field>
+            <Field label="Tax ID (GSTIN)" required error={errors.tax_id}>
+              <Input
+                value={form.tax_id || ''}
+                onChange={e => setField('tax_id', e.target.value)}
+                disabled={modal.type === 'view'}
+                placeholder="e.g. 27AAACR5055K1ZV"
+              />
+            </Field>
+            <Field label="PAN Number" required error={errors.pan_number}>
+              <Input
+                value={form.pan_number || ''}
+                onChange={e => setField('pan_number', e.target.value)}
+                disabled={modal.type === 'view'}
+                placeholder="e.g. AAACR5055K"
               />
             </Field>
             <Field label="Status">

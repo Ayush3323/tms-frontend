@@ -26,7 +26,7 @@ const UserProfile = () => {
   
   const handleRevokeSession = (sessionId) => {
     if (window.confirm("Are you sure you want to revoke this session?")) {
-      revokeSessionMutation.mutate(sessionId, {
+      revokeSessionMutation.mutate({ sessionId, userId: userid }, {
         onSuccess: (data) => {
           queryClient.invalidateQueries({ queryKey: ["userSessions", userid] });
           window.alert(data?.message || "Session revoked successfully");
@@ -221,8 +221,8 @@ const UserProfile = () => {
           if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
             age--;
           }
-          if (age < 15) {
-            errors.date_of_birth = "User must be at least 15 years old";
+          if (age < 18) {
+            errors.date_of_birth = "User must be at least 18 years old";
           }
         }
       }
@@ -1033,7 +1033,7 @@ const UserProfile = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-1">
-                        <label className="text-xs font-bold text-gray-600">Date of Birth (Min 15 yrs)</label>
+                        <label className="text-xs font-bold text-gray-600">Date of Birth (Min 18 yrs)</label>
                         <div className="relative">
                           <Calendar className="absolute left-3 top-2.5 text-gray-400" size={16} />
                           <input

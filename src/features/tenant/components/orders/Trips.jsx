@@ -1,20 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Globe, Plus, Search, Filter, Download,
-  MapPin, Calendar, Truck, CheckCircle2,
-  Clock, AlertTriangle, RefreshCcw, User, Hash, X, Eye, Edit2, XCircle
+  Plus, Search, Download,
+  MapPin, Truck, CheckCircle2,
+  Clock, AlertTriangle, RefreshCcw, User, Hash, Eye, Edit2, XCircle
 } from 'lucide-react';
-import {
-  useTrips, useUpdateTrip, useTripDetail
-} from '../../queries/orders/ordersQuery';
+import { useTrips } from '../../queries/orders/ordersQuery';
 import { useDrivers } from '../../queries/drivers/driverCoreQuery';
 import { useVehicles } from '../../queries/vehicles/vehicleQuery';
-import {
-  CreateTripModal,
-  EditTripModal,
-  ViewTripModal
-} from './TripModals';
+import { EditTripModal } from './TripModals';
 
 // --- Configuration & Status Badges ---
 const TRIP_STATUS_CONFIG = {
@@ -23,7 +17,6 @@ const TRIP_STATUS_CONFIG = {
   IN_TRANSIT: { color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100', icon: <RefreshCcw size={14} /> },
   DELIVERED: { color: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-100', icon: <CheckCircle2 size={14} /> },
   CANCELLED: { color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-100', icon: <XCircle size={14} /> },
-  // Legacy or alternative backend statuses for robustness
   COMPLETED: { color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100', icon: <CheckCircle2 size={14} /> },
   STARTED: { color: 'text-amber-500', bg: 'bg-amber-50', border: 'border-amber-100', icon: <Clock size={14} /> },
   DELAYED: { color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-100', icon: <AlertTriangle size={14} /> },
@@ -38,42 +31,51 @@ const TAB_CONFIG = [
   { label: 'CANCELLED' },
 ];
 
-
-
 const StatusBadge = ({ status }) => {
   const config = TRIP_STATUS_CONFIG[status] || TRIP_STATUS_CONFIG.CREATED;
   return (
-    <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${config.bg} ${config.color} ${config.border}`}>
-      {config.icon}
-  <span className="text-xs font-semibold">{status}</span>
+    <div className="flex justify-center">
+      <span
+        className={`px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 border shadow-sm ${config.color} ${config.bg} ${config.border}`}
+      >
+        <span className="relative flex h-1.5 w-1.5">
+          <span
+            className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${config.color.replace('text', 'bg')}`}
+          />
+          <span
+            className={`relative inline-flex rounded-full h-1.5 w-1.5 ${config.color.replace('text', 'bg')}`}
+          />
+        </span>
+        {status}
+      </span>
     </div>
   );
 };
 
-// Modal Component
-const Modal = ({ isOpen, onClose, title, children }) => {
-  if (!isOpen) return null;
+const routeLabel = (trip, kind) => {
+  if (kind === 'origin') {
+    return (
+      trip.origin_address ||
+      trip.origin_name ||
+      trip.origin_city ||
+      trip.origin ||
+      'Not specified'
+    );
+  }
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-          <h2 className="text-lg font-bold text-gray-800">{title}</h2>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-            <X size={18} />
-          </button>
-        </div>
-        <div className="p-6 overflow-y-auto">
-          {children}
-        </div>
-      </div>
-    </div>
+    trip.destination_address ||
+    trip.destination_name ||
+    trip.destination_city ||
+    trip.destination ||
+    'Not specified'
   );
 };
 
 // --- Main Body Component ---
 export default function TripsMainBody() {
-  const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState("All Status");
+  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [filterStatus, setFilterStatus] = useState('All Status');
   const [page, setPage] = useState(1);
 
   const navigate = useNavigate();
@@ -81,7 +83,6 @@ export default function TripsMainBody() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState(null);
 
-  // Queries
   const queryParams = { page, ordering: '-created_at' };
   if (search) queryParams.search = search;
   if (filterStatus !== 'All Status') queryParams.status = filterStatus;
@@ -89,39 +90,36 @@ export default function TripsMainBody() {
   const { data: tripsData, isLoading, refetch } = useTrips(queryParams);
   let trips = tripsData?.results || [];
 
-  // Frontend filter fallback
-  // Handle DELIVERED/COMPLETED ambiguity and backend missing filter param
   if (filterStatus !== 'All Status' && trips.length > 0) {
-    trips = trips.filter(t => {
+    trips = trips.filter((t) => {
       if (filterStatus === 'DELIVERED') return t.status === 'DELIVERED' || t.status === 'COMPLETED';
       return t.status === filterStatus;
     });
   }
   const totalCount = tripsData?.count || 0;
 
-  // Additional Queries for Resolving IDs
   const { data: driversData } = useDrivers({ page_size: 100 });
   const drivers = driversData?.results || (Array.isArray(driversData) ? driversData : []);
 
   const { data: vehiclesData } = useVehicles({ page_size: 100 });
   const vehicles = vehiclesData?.results || (Array.isArray(vehiclesData) ? vehiclesData : []);
 
-  // Stats mapped directly
-  const activeCount = trips.filter(t => t.status !== 'DELIVERED' && t.status !== 'COMPLETED' && t.status !== 'CANCELLED').length;
-  const inTransitCount = trips.filter(t => t.status === 'IN_TRANSIT').length;
-  const deliveredCount = trips.filter(t => t.status === 'DELIVERED' || t.status === 'COMPLETED').length;
+  const activeCount = trips.filter(
+    (t) => t.status !== 'DELIVERED' && t.status !== 'COMPLETED' && t.status !== 'CANCELLED'
+  ).length;
+  const inTransitCount = trips.filter((t) => t.status === 'IN_TRANSIT').length;
+  const deliveredCount = trips.filter((t) => t.status === 'DELIVERED' || t.status === 'COMPLETED').length;
 
-  // Resolvers
   const getDriverDisplay = (id, fallbackName) => {
     if (!id) return fallbackName || 'Unassigned';
-    const d = drivers.find(dr => dr.id === id);
+    const d = drivers.find((dr) => dr.id === id);
     if (!d) return fallbackName || id.slice(-6);
     return `${d.user?.first_name || 'Driver'} ${d.user?.last_name || ''}`.trim() || d.employee_id || id.slice(-6);
   };
 
   const getVehicleDisplay = (id, fallbackNumber) => {
     if (!id) return fallbackNumber || 'Unassigned';
-    const v = vehicles.find(vh => vh.id === id);
+    const v = vehicles.find((vh) => vh.id === id);
     if (!v) return fallbackNumber || id.slice(-6);
     return v.registration_number || v.registration || fallbackNumber || id.slice(-6);
   };
@@ -135,235 +133,276 @@ export default function TripsMainBody() {
     navigate(`/tenant/dashboard/orders/trips/${trip.id}`);
   };
 
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    setSearch(searchInput.trim());
+    setPage(1);
+  };
+
   return (
     <div className="flex-1 min-h-0 overflow-hidden bg-[#F8FAFC] flex flex-col relative">
       <div className="p-6 lg:p-8 flex-1 flex flex-col min-h-0">
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-black text-[#172B4D] tracking-tight">Trip Management</h1>
-            <p className="text-sm text-gray-500 font-medium mt-1">Track vehicle journeys, driver assignments, and trip status.</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => refetch()}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 shadow-sm transition-all"
-            >
-              <RefreshCcw size={16} className={isLoading ? "animate-spin" : ""} /> Refresh
-            </button>
-            <button
-              onClick={() => navigate('/tenant/dashboard/orders/trips/new')}
-              className="flex items-center gap-2 px-5 py-2.5 bg-[#4a6cf7] text-white rounded-xl text-sm font-semibold hover:bg-[#3b59d9] shadow-md shadow-blue-200 transition-all"
-            >
-              <Plus size={18} /> Plan New Trip
-            </button>
-          </div>
-        </div>
-
-        {/* Filters and Search */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 overflow-hidden mt-2">
-          {/* Compact Stats Row */}
-          <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
-            {isLoading ? (
-              <div className="flex gap-6 animate-pulse">
-                <div className="h-5 bg-gray-200 rounded w-28"></div>
-                <div className="h-5 bg-gray-200 rounded w-28"></div>
-                <div className="h-5 bg-gray-200 rounded w-28"></div>
-                <div className="h-5 bg-gray-200 rounded w-28"></div>
-              </div>
-            ) : (
-              <>
-                <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-semibold text-gray-500">Total Trips:</span>
-                  <span className="text-[18px] font-black text-blue-600">{totalCount}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-semibold text-gray-500">Active:</span>
-                  <span className="text-[18px] font-black text-amber-600">{activeCount}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-semibold text-gray-500">In Transit:</span>
-                  <span className="text-[18px] font-black text-indigo-600">{inTransitCount}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-semibold text-gray-500">Delivered:</span>
-                  <span className="text-[18px] font-black text-green-600">{deliveredCount}</span>
-                </div>
-              </>
-            )}
-          </div>
-          <div className="p-4 border-b border-gray-50 flex flex-col lg:flex-row gap-4 items-center justify-between bg-gray-50/30">
-            <div className="flex overflow-x-auto w-full lg:w-auto scrollbar-hide gap-1 bg-white p-1 rounded-xl border border-gray-100">
-               {TAB_CONFIG.map(tab => (
-                 <button
-                  key={tab.label}
-                  onClick={() => {
-                    setFilterStatus(tab.label);
-                    setPage(1);
-                  }}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap
-                  ${filterStatus === tab.label ? 'bg-[#172B4D] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`}
-                 >
-                   {tab.label}
-                 </button>
-               ))}
+        <div className="max-w-[1600px] mx-auto w-full space-y-8 flex-1 flex flex-col min-h-0">
+          <div className="flex items-center">
+            <div className="w-1/4">
+              <h1 className="text-2xl font-bold text-[#172B4D]">Trip Management</h1>
+              <p className="text-gray-500 text-sm tracking-tight">
+                Track vehicle journeys, driver assignments, and trip status.
+              </p>
             </div>
-
-            <div className="relative w-full lg:w-96">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-              <input
-                type="text"
-                placeholder="Search by Trip ID, Route..."
-                className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#4a6cf7] outline-none transition-all font-medium"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+            <div className="flex-1 max-w-2xl px-8">
+              <form onSubmit={handleSearchSubmit} className="relative group/search">
+                <Search className="absolute left-4 top-3.5 text-gray-400" size={20} />
+                <input
+                  type="text"
+                  placeholder="Search by Trip ID, Route..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm font-medium placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-50 transition-all shadow-sm hover:shadow-md hover:border-gray-300"
+                />
+              </form>
+            </div>
+            <div className="flex items-center justify-end gap-2 ml-auto">
+              <button
+                type="button"
+                onClick={() => refetch()}
+                className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm"
+              >
+                <RefreshCcw size={14} className={isLoading ? 'animate-spin' : ''} /> Refresh
+              </button>
+              <button
+                type="button"
+                className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm"
+              >
+                <Download size={14} /> Export
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/tenant/dashboard/orders/trips/new')}
+                className="flex items-center gap-2 px-5 py-2.5 bg-[#0052CC] rounded-xl text-xs font-bold text-white hover:bg-[#0747A6] shadow-md shadow-blue-100 transition-all"
+              >
+                <Plus size={16} /> Plan New Trip
+              </button>
             </div>
           </div>
 
-          {/* Trips Table */}
-          <div className="flex-1 overflow-auto min-h-0">
-            {isLoading ? (
-              <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0052CC]"></div>
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden min-h-[600px] flex flex-col flex-1 min-h-0">
+            <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+              {isLoading ? (
+                <div className="flex gap-6 animate-pulse">
+                  <div className="h-5 bg-gray-200 rounded w-28" />
+                  <div className="h-5 bg-gray-200 rounded w-28" />
+                  <div className="h-5 bg-gray-200 rounded w-28" />
+                  <div className="h-5 bg-gray-200 rounded w-28" />
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total:</span>
+                    <span className="text-[18px] font-black text-blue-600">{totalCount}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Active:</span>
+                    <span className="text-[18px] font-black text-amber-600">{activeCount}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">In Transit:</span>
+                    <span className="text-[18px] font-black text-indigo-600">{inTransitCount}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Delivered:</span>
+                    <span className="text-[18px] font-black text-green-600">{deliveredCount}</span>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="p-4 border-b border-gray-50 flex flex-col lg:flex-row gap-4 items-center justify-between bg-gray-50/30">
+              <div className="flex overflow-x-auto w-full lg:w-auto scrollbar-hide gap-1 bg-white p-1 rounded-xl border border-gray-100">
+                {TAB_CONFIG.map((tab) => (
+                  <button
+                    key={tab.label}
+                    type="button"
+                    onClick={() => {
+                      setFilterStatus(tab.label);
+                      setPage(1);
+                    }}
+                    className={`px-4 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap
+                    ${filterStatus === tab.label ? 'bg-[#0052CC] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
               </div>
-            ) : trips.length === 0 ? (
-              <div className="flex flex-col justify-center items-center h-64 text-gray-400">
-                <Truck size={48} className="mb-4 opacity-20" />
-                <p>No trips found matching your criteria</p>
-              </div>
-            ) : (
-              <table className="w-full text-left border-collapse min-w-[1100px] relative">
-                <thead className="bg-[#F8FAFC] border-b border-gray-100 sticky top-0 z-10">
-                  <tr>
-                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Trip</th>
-                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Order</th>
-                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Type</th>
-                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Route (Origin → Destination)</th>
-                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Fleet Info</th>
-                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
-                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Actions</th>
+            </div>
+
+            <div className="flex-1 overflow-x-auto min-h-0">
+              <table className="w-full text-left border-collapse min-w-[1100px]">
+                <thead>
+                  <tr className="bg-gray-50/50">
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">
+                      Trip
+                    </th>
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">
+                      Order
+                    </th>
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">
+                      Type
+                    </th>
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">
+                      Route (Origin → Destination)
+                    </th>
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">
+                      Fleet Info
+                    </th>
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 text-center">
+                      Status
+                    </th>
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 text-right">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {trips.map((trip) => (
-                    <tr key={trip.id} className="hover:bg-blue-50/20 transition-colors group">
-                      <td className="px-6 py-5">
-                        <div className="flex flex-col">
-                          <span className="text-sm font-bold text-[#172B4D] flex items-center gap-2">
-                            <Hash size={14} className="text-[#0052CC]" /> {trip.trip_number || 'TRIP-' + trip.id.slice(-6)}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="flex flex-col">
-                          {trip.lr_number && (
-                            <span className="text-xs font-semibold text-[#0052CC] bg-blue-50 px-2 py-1 rounded w-fit border border-blue-100/50">
-                              {trip.lr_number}
+                  {isLoading ? (
+                    Array(5)
+                      .fill(0)
+                      .map((_, i) => (
+                        <tr key={i} className="animate-pulse">
+                          <td colSpan={7} className="px-6 py-5 h-20 bg-gray-50/10" />
+                        </tr>
+                      ))
+                  ) : trips.length > 0 ? (
+                    trips.map((trip) => (
+                      <tr key={trip.id} className="hover:bg-blue-50/30 transition-colors group">
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col">
+                            <span className="text-[13px] font-bold text-[#172B4D] flex items-center gap-2 group-hover:text-[#0052CC] transition-colors">
+                              <Hash size={14} className="text-[#0052CC]" />{' '}
+                              {trip.trip_number || `TRIP-${trip.id.slice(-6)}`}
                             </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="flex flex-col">
-                          <span className="text-xs font-semibold text-gray-600 bg-gray-50 px-2 py-1 rounded border border-gray-100 w-fit">
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col">
+                            {trip.lr_number && (
+                              <span className="text-[10px] font-bold text-[#0052CC] bg-[#EBF3FF] px-2 py-1 rounded w-fit border border-blue-100/50">
+                                {trip.lr_number}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-[10px] font-bold text-gray-600 bg-gray-50 px-2 py-1 rounded border border-gray-100 w-fit inline-block">
                             {trip.trip_type || 'FTL'}
                           </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-3">
-                          <div className="flex flex-col text-xs font-medium text-gray-700">
-                            <span className="flex items-center gap-1.5"><MapPin size={12} className="text-blue-500" /> {trip.origin || 'Not Specified'}</span>
-                            <div className="h-4 border-l-2 border-dashed border-gray-200 ml-[5px] my-1"></div>
-                            <span className="flex items-center gap-1.5"><MapPin size={12} className="text-red-500" /> {trip.destination || 'Not Specified'}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="flex flex-col text-[10px] font-bold text-gray-700">
+                              <span className="flex items-center gap-1.5">
+                                <MapPin size={12} className="text-blue-500 shrink-0" />{' '}
+                                <span className="line-clamp-2">{routeLabel(trip, 'origin')}</span>
+                              </span>
+                              <div className="h-4 border-l-2 border-dashed border-gray-200 ml-[5px] my-1" />
+                              <span className="flex items-center gap-1.5">
+                                <MapPin size={12} className="text-red-500 shrink-0" />{' '}
+                                <span className="line-clamp-2">{routeLabel(trip, 'destination')}</span>
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="flex flex-col gap-1.5">
-                          <div className="flex items-center gap-2 text-[12px] font-bold text-gray-600" title={trip.vehicle_id || trip.primary_vehicle_id}>
-                            <Truck size={14} className="text-gray-400" /> {getVehicleDisplay(trip.vehicle_id || trip.primary_vehicle_id, trip.vehicle_number)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col gap-1">
+                            <div
+                              className="flex items-center gap-2 text-[12px] font-bold text-gray-600"
+                              title={trip.vehicle_id || trip.primary_vehicle_id}
+                            >
+                              <Truck size={14} className="text-gray-400 shrink-0" />{' '}
+                              {getVehicleDisplay(trip.vehicle_id || trip.primary_vehicle_id, trip.vehicle_number)}
+                            </div>
+                            <div
+                              className="flex items-center gap-2 text-[12px] font-bold text-gray-600"
+                              title={trip.driver_id || trip.primary_driver_id}
+                            >
+                              <User size={14} className="text-gray-400 shrink-0" />{' '}
+                              {getDriverDisplay(trip.driver_id || trip.primary_driver_id, trip.primary_driver_name)}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 text-[12px] font-bold text-gray-600" title={trip.driver_id || trip.primary_driver_id}>
-                            <User size={14} className="text-gray-400" /> {getDriverDisplay(trip.driver_id || trip.primary_driver_id, trip.primary_driver_name)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <StatusBadge status={trip.status} />
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleViewClick(trip)}
+                              title="View Details"
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white border border-transparent transition-all"
+                            >
+                              <Eye size={14} /> View
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleEditClick(trip)}
+                              title="Edit Trip"
+                              className="p-2 text-gray-400 hover:text-[#0052CC] hover:bg-white rounded-lg border border-transparent hover:border-blue-100 shadow-sm transition-all"
+                            >
+                              <Edit2 size={16} />
+                            </button>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <StatusBadge status={trip.status} />
-                      </td>
-                      <td className="px-6 py-5 text-right">
-                        <div className="flex items-center justify-end gap-2 transition-opacity">
-                          <button
-                            onClick={() => handleViewClick(trip)}
-                            title="View Details"
-                            className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg"
-                          >
-                            <Eye size={16} />
-                          </button>
-
-                          <button
-                            onClick={() => handleEditClick(trip)}
-                            title="Edit Trip"
-                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
-                          >
-                            <Edit2 size={16} />
-                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-20 text-center">
+                        <div className="flex flex-col items-center justify-center opacity-20">
+                          <Truck size={48} className="mb-4" />
+                          <p className="text-sm font-black uppercase tracking-[0.2em]">No trips found</p>
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
-            )}
-          </div>
-
-          {/* Pagination Footer */}
-          <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100 bg-white">
-            <div className="text-sm text-gray-500">
-              Showing <span className="font-bold text-[#172B4D]">{trips.length}</span> of <span className="font-bold text-[#172B4D]">{totalCount}</span> Trips
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPage(prev => Math.max(1, prev - 1))}
-                disabled={page === 1 || isLoading}
-                className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
-              >
-                PREV
-              </button>
-              <div className="flex items-center justify-center min-w-8 h-8 bg-[#172B4D] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
-                 {page}
+
+            <div className="px-6 py-4 border-t border-gray-50 flex items-center justify-between bg-gray-50/20 shrink-0">
+              <p className="text-xs font-semibold text-gray-500">
+                Showing <span className="text-[#172B4D]">{trips.length}</span> of{' '}
+                <span className="text-[#172B4D]">{totalCount}</span> trips
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={page === 1}
+                  onClick={() => setPage((p) => p - 1)}
+                  className="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-all font-mono"
+                >
+                  PREV
+                </button>
+                <span className="px-3 py-1 bg-[#0052CC] text-white rounded-lg text-xs font-black font-mono">
+                  {page}
+                </span>
+                <button
+                  type="button"
+                  disabled={!tripsData?.next || isLoading}
+                  onClick={() => setPage((p) => p + 1)}
+                  className="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-all font-mono"
+                >
+                  NEXT
+                </button>
               </div>
-              <button
-                onClick={() => setPage(prev => prev + 1)}
-                disabled={!tripsData?.next || isLoading}
-                className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
-              >
-                NEXT
-              </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Modals */}
-      <CreateTripModal
-        isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-        drivers={drivers}
-        vehicles={vehicles}
-      />
-
       {selectedTrip && (
-        <EditTripModal
-          isOpen={isEditOpen}
-          onClose={() => setIsEditOpen(false)}
-          trip={selectedTrip}
-        />
+        <EditTripModal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} trip={selectedTrip} />
       )}
     </div>
   );
 }
-
-// Modals are now imported from TripModals.jsx

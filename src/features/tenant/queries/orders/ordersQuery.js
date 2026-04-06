@@ -252,8 +252,12 @@ export const useDeleteTrip = () => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (id) => tripsApi.delete(id),
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: orderKeys.trips() })
+      if (id) {
+        queryClient.invalidateQueries({ queryKey: orderKeys.tripDetail(id) })
+      }
+      queryClient.invalidateQueries({ queryKey: orderKeys.all })
       toast.success('Trip deleted successfully')
     },
     onError: (err) => handleApiError(err, 'Failed to delete trip'),
