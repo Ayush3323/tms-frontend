@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Plus, Edit2, Loader2, Save, Trash2, X
 } from 'lucide-react';
-import { useCustomers, useCreateCustomer, useUpdateCustomer } from '../../../queries/customers/customersQuery';
+import { 
+  useCustomers, useCreateCustomer, useUpdateCustomer,
+  useConsignors, useConsignees, useBrokers, useAgents
+} from '../../../queries/customers/customersQuery';
 import { useUsers } from '../../../queries/users/userQuery';
 import { 
   Modal, Field, Input, Sel, Section,
@@ -44,28 +47,60 @@ export const EMPTY_FORM = {
 };
 
 export const CustomerFormModal = ({ initial, onClose, onSuccess }) => {
+  const { data: customerData } = useCustomers({ limit: 1000 });
+  const { data: consignorData } = useConsignors({ limit: 1000 });
+  const { data: consigneeData } = useConsignees({ limit: 1000 });
+  const { data: brokerData } = useBrokers({ limit: 1000 });
+  const { data: agentData } = useAgents({ limit: 1000 });
+
+  const allEntities = useMemo(() => {
+    const customers = customerData?.results ?? customerData ?? [];
+    const consignors = consignorData?.results ?? consignorData ?? [];
+    const consignees = consigneeData?.results ?? consigneeData ?? [];
+    const brokers = brokerData?.results ?? brokerData ?? [];
+    const agents = agentData?.results ?? agentData ?? [];
+    return [...customers, ...consignors, ...consignees, ...brokers, ...agents];
+  }, [customerData, consignorData, consigneeData, brokerData, agentData]);
+
+  const userToCustomerMap = useMemo(() => {
+    const map = {};
+    allEntities.forEach(c => {
+      // Check all possible ID paths, including nested ones found in sub-modules
+      const uid = c.user?.id || 
+                  c.user_id || 
+                  c.portal_user_id || 
+                  c.portal_user?.id || 
+                  c.customer?.user?.id || 
+                  c.customer?.user_id ||
+                  c.customer?.portal_user_id;
+
+      if (uid) {
+        // Use any available name field, including nested ones
+        const name = c.legal_name || 
+                     c.trading_name || 
+                     c.name || 
+                     c.customer?.legal_name || 
+                     c.customer?.trading_name || 
+                     'Another Entity';
+        
+        map[String(uid)] = name;
+      }
+    });
+    console.log('Global UserToCustomerMap Built:', map);
+    return map;
+  }, [allEntities]);
+
+  const { data: userData } = useUsers({ limit: 1000 });
+  const allUsers = userData?.results ?? userData ?? [];
+
+  const portalUsers = useMemo(() => {
+    return (allUsers || []).filter(u => u.account_type === 'PORTAL' || u.account_type === 'PORTAL_USER' || u.account_type === 'PORTAL_CLIENT' || u.account_type === 'CUSTOMER');
+  }, [allUsers]);
+
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
   const createMutation = useCreateCustomer();
   const updateMutation = useUpdateCustomer();
-  const { data: userData } = useUsers({ limit: 1000 });
-  const allUsers = userData?.results ?? userData ?? [];
-
-  const { data: filterCustomers } = useCustomers({ limit: 1000 });
-  const allCustomers = filterCustomers?.results ?? filterCustomers ?? [];
-  
-  const userToCustomerMap = React.useMemo(() => {
-    const map = {};
-    allCustomers?.forEach(c => {
-      const uid = c.user?.id || c.user_id || c.portal_user_id;
-      if (uid) {
-        map[String(uid)] = c.legal_name || c.name || c.trading_name || 'Another Customer';
-      }
-    });
-    console.log('UserToCustomerMap Built (Modal):', map);
-    return map;
-  }, [allCustomers]);
-
   const [createPortalUser, setCreatePortalUser] = useState(true);
 
   const isEdit = !!initial?.id;
@@ -121,6 +156,7 @@ export const CustomerFormModal = ({ initial, onClose, onSuccess }) => {
     if (!form.legal_name.trim()) {
       e.legal_name = 'Legal name is required';
     } else {
+      const allCustomers = customerData?.results ?? customerData ?? [];
       const isDuplicate = allCustomers.some(c => 
         c.legal_name?.toLowerCase() === form.legal_name.trim().toLowerCase() && 
         c.id !== initial?.id
@@ -230,7 +266,7 @@ export const CustomerFormModal = ({ initial, onClose, onSuccess }) => {
           setField={setField}
           allUsers={allUsers}
           errors={errors}
-          portalUsers={allUsers.filter(u => u.account_type === 'CUSTOMER')}
+          portalUsers={portalUsers}
           userToCustomerMap={userToCustomerMap}
           initial={initial}
           createPortalUser={createPortalUser}

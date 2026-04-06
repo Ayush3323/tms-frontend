@@ -12,7 +12,8 @@ import {
 import {
   useCustomerAddresses, useCustomerContacts, useCustomerDocuments,
   useCustomerContracts, useCustomerNotes, useCustomerCreditHistory,
-  useConsignors, useCustomers, useCreateConsignor, useUpdateConsignor, useDeleteConsignor
+  useConsignors, useCustomers, useCreateConsignor, useUpdateConsignor, useDeleteConsignor,
+  useConsignees, useBrokers, useAgents
 } from '../../queries/customers/customersQuery';
 import { useUsers } from '../../queries/users/userQuery';
 import { TableShimmer, ErrorState } from '../Vehicles/Common/StateFeedback';
@@ -86,6 +87,44 @@ const Consignors = () => {
   });
 
   const { data: customerData } = useCustomers({ limit: 1000 });
+  const { data: consigneeData } = useConsignees({ limit: 1000 });
+  const { data: brokerData } = useBrokers({ limit: 1000 });
+  const { data: agentData } = useAgents({ limit: 1000 });
+  const { data: consignorData } = useConsignors({ limit: 1000 });
+
+  const allEntities = useMemo(() => {
+    const customers = customerData?.results ?? customerData ?? [];
+    const consignors = consignorData?.results ?? consignorData ?? [];
+    const consignees = consigneeData?.results ?? consigneeData ?? [];
+    const brokers = brokerData?.results ?? brokerData ?? [];
+    const agents = agentData?.results ?? agentData ?? [];
+    return [...customers, ...consignors, ...consignees, ...brokers, ...agents];
+  }, [customerData, consignorData, consigneeData, brokerData, agentData]);
+
+  const userToCustomerMap = useMemo(() => {
+    const map = {};
+    allEntities.forEach(c => {
+      const uid = c.user?.id || 
+                  c.user_id || 
+                  c.portal_user_id || 
+                  c.portal_user?.id || 
+                  c.customer?.user?.id || 
+                  c.customer?.user_id ||
+                  c.customer?.portal_user_id;
+
+      if (uid) {
+        const name = c.legal_name || 
+                     c.trading_name || 
+                     c.name || 
+                     c.customer?.legal_name || 
+                     c.customer?.trading_name || 
+                     'Another Entity';
+        map[String(uid)] = name;
+      }
+    });
+    return map;
+  }, [allEntities]);
+
   const allCustomers = customerData?.results ?? customerData ?? [];
 
   const [modal, setModal] = useState(null);
@@ -98,20 +137,8 @@ const Consignors = () => {
   const { data: userData } = useUsers({ limit: 1000 });
   const allUsers = userData?.results ?? userData ?? [];
 
-  const userToCustomerMap = useMemo(() => {
-    const map = {};
-    allCustomers?.forEach(c => {
-      const uid = c.user?.id || c.user_id || c.portal_user_id;
-      if (uid) {
-        map[String(uid)] = c.legal_name || c.name || c.trading_name || 'Another Customer';
-      }
-    });
-    console.log('UserToCustomerMap Built:', map);
-    return map;
-  }, [allCustomers]);
-
   const portalUsers = useMemo(() => {
-    return (allUsers || []).filter(u => u.account_type === 'CUSTOMER');
+    return (allUsers || []).filter(u => u.account_type === 'PORTAL' || u.account_type === 'PORTAL_USER' || u.account_type === 'PORTAL_CLIENT' || u.account_type === 'CUSTOMER');
   }, [allUsers]);
 
   // For Consignor-specific `warehouse_address` FK selection.
