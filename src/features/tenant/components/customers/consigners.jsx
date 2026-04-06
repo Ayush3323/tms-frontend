@@ -20,6 +20,9 @@ import CustomerListFilterBar from './Common/CustomerListFilterBar';
 
 const EMPTY_FORM = {
   customer_id: '',
+  legal_name: '',
+  tax_id: '',
+  pan_number: '',
   consignor_code: '',
   hazardous_material_handling: false,
   temperature_controlled: false,
@@ -165,6 +168,8 @@ const Consignors = () => {
     setForm({
       customer_id: consi.customer_id ?? '',
       legal_name: cust.legal_name ?? '',
+      tax_id: cust.tax_id ?? '',
+      pan_number: cust.pan_number ?? '',
       consignor_code: consi.consignor_code ?? '',
       business_volume_tons_per_month: consi.business_volume_tons_per_month ?? '',
       business_volume_value_per_month: consi.business_volume_value_per_month ?? '',
@@ -192,7 +197,9 @@ const Consignors = () => {
 
   const validate = () => {
     const e = {};
-    if (!form.customer_id) e.customer_id = 'Select a customer';
+    if (!form.legal_name?.trim()) e.legal_name = 'Legal name is required';
+    if (!form.tax_id?.trim()) e.tax_id = 'Tax ID is required';
+    if (!form.pan_number?.trim()) e.pan_number = 'PAN number is required';
     if (!form.consignor_code?.trim()) e.consignor_code = 'Consignor code is required';
 
     if (createPortalUser && modal?.type === 'create') {
@@ -201,6 +208,10 @@ const Consignors = () => {
       if (!form.user.password) e['user.password'] = 'Password is required';
       if (form.user.password !== form.user.password_confirm) e['user.password_confirm'] = 'Passwords must match';
       if (!form.user.first_name) e['user.first_name'] = 'First name is required';
+      if (!form.user.phone) e['user.phone'] = 'Phone is required';
+    }
+    if (modal?.type === 'create' && !createPortalUser && !form.user_id) {
+      e.user_id = 'Select an existing linked user or create a portal user';
     }
 
     setErrors(e);
@@ -574,7 +585,7 @@ const Consignors = () => {
               </div>
             )}
             <Section title="Consignor Details" className="col-span-2" />
-            <Field label="Legal Name" required error={errors.customer_id}>
+            <Field label="Legal Name" required error={errors.legal_name}>
               <Input
                 value={form.legal_name || ''}
                 onChange={e => {
@@ -586,6 +597,24 @@ const Consignors = () => {
                 }}
                 disabled={modal.type === 'edit' || modal.type === 'view'}
                 placeholder="Enter customer legal name..."
+                className="bg-white"
+              />
+            </Field>
+            <Field label="Tax ID (GSTIN)" required error={errors.tax_id}>
+              <Input
+                value={form.tax_id || ''}
+                onChange={e => setField('tax_id', e.target.value)}
+                disabled={modal.type === 'view'}
+                placeholder="e.g. 27AAACR5055K1ZV"
+                className="bg-white"
+              />
+            </Field>
+            <Field label="PAN Number" required error={errors.pan_number}>
+              <Input
+                value={form.pan_number || ''}
+                onChange={e => setField('pan_number', e.target.value)}
+                disabled={modal.type === 'view'}
+                placeholder="e.g. AAACR5055K"
                 className="bg-white"
               />
             </Field>

@@ -11,6 +11,7 @@ import {
 // ─── QUERY KEYS ──────────────────────────────────────────────────────────────
 export const customerKeys = {
   all: ['customers'],
+  stats: () => [...customerKeys.all, 'stats'],
   lists: () => [...customerKeys.all, 'list'],
   list: (params) => [...customerKeys.lists(), { params }],
   details: () => [...customerKeys.all, 'detail'],
@@ -56,12 +57,21 @@ export const useCustomer = (id) => {
   })
 }
 
+export const useCustomerStats = () => {
+  return useQuery({
+    queryKey: customerKeys.stats(),
+    queryFn: () => customersApi.stats(),
+    staleTime: 60 * 1000,
+  });
+}
+
 export const useCreateCustomer = () => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (data) => customersApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: customerKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: customerKeys.stats() })
       toast.success('Customer created successfully')
     },
     onError: (err) => handleApiError(err, 'Could not create customer'),
@@ -75,6 +85,7 @@ export const useDeleteCustomer = () => {
     mutationFn: (id) => customersApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: customerKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: customerKeys.stats() })
       toast.success('Customer deleted')
     },
     onError: (err) => handleApiError(err, 'Could not delete customer'),
@@ -88,6 +99,7 @@ export const useUpdateCustomer = () => {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: customerKeys.lists() })
       queryClient.invalidateQueries({ queryKey: customerKeys.detail(id) })
+      queryClient.invalidateQueries({ queryKey: customerKeys.stats() })
       toast.success('Customer updated')
     },
     onError: (err) => handleApiError(err, 'Update failed'),

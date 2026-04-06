@@ -124,6 +124,8 @@ export const CustomerFormModal = ({ initial, onClose, onSuccess }) => {
       if (isDuplicate) e.legal_name = 'This legal name is already taken';
     }
     if (!form.customer_type) e.customer_type = 'Select a type';
+    if (!form.tax_id?.trim()) e.tax_id = 'Tax ID is required';
+    if (!form.pan_number?.trim()) e.pan_number = 'PAN number is required';
 
     if (createPortalUser && !isEdit) {
       if (!form.user.email) e['user.email'] = 'Email is required';
@@ -131,6 +133,11 @@ export const CustomerFormModal = ({ initial, onClose, onSuccess }) => {
       if (!form.user.password) e['user.password'] = 'Password is required';
       if (form.user.password !== form.user.password_confirm) e['user.password_confirm'] = 'Passwords must match';
       if (!form.user.first_name) e['user.first_name'] = 'First name is required';
+      if (!form.user.phone) e['user.phone'] = 'Phone is required';
+    }
+
+    if (!isEdit && !createPortalUser && !form.user_id) {
+      e.user_id = 'Select an existing user or enable portal user creation';
     }
 
     setErrors(e);
@@ -233,11 +240,11 @@ export const CustomerFormModal = ({ initial, onClose, onSuccess }) => {
 
         <Section title="Tax & Registration" className="col-span-2" />
 
-        <Field label="Tax ID (GSTIN)">
+        <Field label="Tax ID (GSTIN)" required error={errors.tax_id}>
           <Input value={form.tax_id} onChange={e => setField('tax_id', e.target.value)}
             placeholder="e.g. 27AAACR5055K1ZV" />
         </Field>
-        <Field label="PAN Number">
+        <Field label="PAN Number" required error={errors.pan_number}>
           <Input value={form.pan_number} onChange={e => setField('pan_number', e.target.value)}
             placeholder="e.g. AAACR5055K" />
         </Field>

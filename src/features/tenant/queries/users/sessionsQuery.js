@@ -22,9 +22,16 @@ export const useRevokeSession = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: revokeSession,
-    onSuccess: () => {
+    mutationFn: (variables) => {
+      const sessionId = typeof variables === "object" ? variables?.sessionId : variables;
+      return revokeSession(sessionId);
+    },
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
+      const userId = typeof variables === "object" ? variables?.userId : undefined;
+      if (userId) {
+        queryClient.invalidateQueries({ queryKey: ["userSessions", userId] });
+      }
     },
     onError: (error) => {
       console.error("Failed to revoke session:", error.message);
