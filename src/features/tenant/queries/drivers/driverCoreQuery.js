@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import driverApi from '../../api/drivers/driverEndpoint';
+import { getDriverName } from '../../components/Drivers/common/utils';
 
 // ─── Query Keys ───────────────────────────────────────────
 export const driverKeys = {
@@ -207,7 +208,7 @@ export const useDriverLookup = () => {
     const map = {};
     data?.results?.forEach(d => {
       map[d.id] = {
-        name: `${d.user?.first_name || ''} ${d.user?.last_name || ''}`.trim() || 'System Driver',
+        name: `${d.user?.first_name || ''} ${d.user?.last_name || ''}`.trim() || '-',
         employee_id: d.employee_id
       };
     });

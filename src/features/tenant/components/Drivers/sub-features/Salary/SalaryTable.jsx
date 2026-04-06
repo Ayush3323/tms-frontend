@@ -45,11 +45,11 @@ const SalaryTable = ({ salaries, onEdit, onView, showDriver = false, driverMap =
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-[9px] flex items-center justify-center font-bold text-xs text-white shadow-sm font-syne bg-[#0052CC]">
-                        {getInitials(driverMap[sal.driver]?.name || sal.driver_name || 'System Driver')}
+                        {getInitials(driverMap[sal.driver]?.name || sal.driver_name || '-')}
                       </div>
                       <div>
                         <div className="font-semibold text-[#1a202c] text-[13px] line-height-1">
-                          {driverMap[sal.driver]?.name || (sal.driver_details?.user?.first_name ? `${sal.driver_details.user.first_name} ${sal.driver_details.user.last_name || ''}` : (sal.driver_name || 'System Driver'))}
+                          {driverMap[sal.driver]?.name || (sal.driver_details?.user?.first_name ? `${sal.driver_details.user.first_name} ${sal.driver_details.user.last_name || ''}` : (sal.driver_name || '-'))}
                         </div>
                         <div className="text-[10px] text-[#94a3b8] font-mono mt-0.5 uppercase">
                           {driverMap[sal.driver]?.employee_id || sal.employee_id || sal.driver_details?.employee_id || '—'}
