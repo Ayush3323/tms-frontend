@@ -16,6 +16,7 @@ import {
   useConsignors, useConsignees, useBrokers
 } from '../../queries/customers/customersQuery';
 import { useUsers } from '../../queries/users/userQuery';
+import { useDrivers } from '../../queries/drivers/driverCoreQuery';
 import { TableShimmer, ErrorState } from '../Vehicles/Common/StateFeedback';
 import CustomerListFilterBar from './Common/CustomerListFilterBar';
 
@@ -79,11 +80,12 @@ const AgentsDashboard = () => {
 
   const agents = data?.results ?? data ?? [];
 
-  const { data: customerData } = useCustomers({ limit: 1000 });
-  const { data: consigneeData } = useConsignees({ limit: 1000 });
-  const { data: brokerData } = useBrokers({ limit: 1000 });
-  const { data: agentData } = useAgents({ limit: 1000 });
-  const { data: consignorData } = useConsignors({ limit: 1000 });
+  const { data: customerData } = useCustomers({ page_size: 1000 });
+  const { data: consigneeData } = useConsignees({ page_size: 1000 });
+  const { data: brokerData } = useBrokers({ page_size: 1000 });
+  const { data: agentData } = useAgents({ page_size: 1000 });
+  const { data: consignorData } = useConsignors({ page_size: 1000 });
+  const { data: driverData } = useDrivers({ page_size: 1000 });
 
   const allEntities = useMemo(() => {
     const customers = customerData?.results ?? customerData ?? [];
@@ -91,8 +93,9 @@ const AgentsDashboard = () => {
     const consignees = consigneeData?.results ?? consigneeData ?? [];
     const brokers = brokerData?.results ?? brokerData ?? [];
     const agents = agentData?.results ?? agentData ?? [];
-    return [...customers, ...consignors, ...consignees, ...brokers, ...agents];
-  }, [customerData, consignorData, consigneeData, brokerData, agentData]);
+    const drivers = driverData?.results ?? driverData ?? [];
+    return [...customers, ...consignors, ...consignees, ...brokers, ...agents, ...drivers];
+  }, [customerData, consignorData, consigneeData, brokerData, agentData, driverData]);
 
   const userToCustomerMap = useMemo(() => {
     const map = {};
@@ -103,7 +106,9 @@ const AgentsDashboard = () => {
                   c.portal_user?.id || 
                   c.customer?.user?.id || 
                   c.customer?.user_id ||
-                  c.customer?.portal_user_id;
+                  c.customer?.portal_user_id ||
+                  (typeof c.user !== 'object' ? c.user : null) ||
+                  (typeof c.portal_user !== 'object' ? c.portal_user : null);
 
       if (uid) {
         const name = c.legal_name || 
@@ -126,11 +131,11 @@ const AgentsDashboard = () => {
   const [deleteError, setDeleteError] = useState(null);
   const [createPortalUser, setCreatePortalUser] = useState(true);
 
-  const { data: userData } = useUsers({ limit: 1000 });
+  const { data: userData } = useUsers({ page_size: 1000 });
   const allUsers = userData?.results ?? userData ?? [];
 
   const portalUsers = useMemo(() => {
-    return (allUsers || []).filter(u => u.account_type === 'PORTAL' || u.account_type === 'PORTAL_USER' || u.account_type === 'PORTAL_CLIENT' || u.account_type === 'CUSTOMER');
+    return (allUsers || []).filter(u => u.account_type === 'PORTAL' || u.account_type === 'PORTAL_USER' || u.account_type === 'PORTAL_CLIENT' || u.account_type === 'CUSTOMER' || u.account_type === 'DRIVER');
   }, [allUsers]);
 
   const assignedCustomerIds = new Set(agents.map(a => a.customer?.id).filter(Boolean));
