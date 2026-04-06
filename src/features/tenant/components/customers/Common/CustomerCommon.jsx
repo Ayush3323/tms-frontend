@@ -65,19 +65,23 @@ export const RelationshipManagementFields = ({
             disabled={disabled}
           >
             <option value="">-- No Linked User --</option>
-            {portalUsers.map(u => {
-              const linkedTo = userToCustomerMap[String(u.id)];
-              // Check both standard and nested structures
-              const currentUserId = initial?.customer?.user_id || initial?.customer?.user?.id || initial?.user_id;
-              const isLinkedToOther = linkedTo && String(u.id) !== String(currentUserId);
-              const displayName = u.full_name || u.username;
-
-              return (
-                <option key={u.id} value={u.id} disabled={isLinkedToOther}>
-                  {displayName} ({u.email}){linkedTo ? ` — [Linked to ${linkedTo}]` : ''}
+            {portalUsers
+              .filter(u => {
+                const linkedTo = userToCustomerMap[String(u.id)];
+                const currentUserId = initial?.user_id || initial?.customer?.user_id || initial?.customer?.user?.id;
+                const isCurrent = String(u.id) === String(currentUserId || '');
+                
+                // HIDE if linked to someone else OR if they already have a CUSTOMER account type
+                // SHOW if not linked OR linked to the CURRENT entity being edited.
+                if (isCurrent) return true;
+                if (linkedTo || u.account_type === 'CUSTOMER') return false;
+                return true;
+              })
+              .map(u => (
+                <option key={u.id} value={u.id}>
+                  {u.full_name || u.username}{u.full_name ? ` (${u.username})` : ''}
                 </option>
-              );
-            })}
+              ))}
           </Sel>
         </Field>
       )}
