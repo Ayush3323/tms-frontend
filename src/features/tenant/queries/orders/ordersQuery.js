@@ -89,6 +89,12 @@ const handleApiError = (error, customMessage) => {
   console.error(`Order Service Error [${customMessage}]:`, JSON.stringify(error.response?.data || error, null, 2))
 }
 
+const normalizeListResponse = (data) => {
+  if (Array.isArray(data)) return data
+  if (Array.isArray(data?.results)) return data.results
+  return []
+}
+
 // ─── 1. ORDER (LR) HOOKS ─────────────────────────────────────────────────────
 
 export const useOrders = (params) => {
@@ -259,7 +265,7 @@ export const useDeleteTrip = () => {
 export const useTripStops = (tripId) => {
   return useQuery({
     queryKey: orderKeys.tripStops(tripId),
-    queryFn: () => tripsApi.listStops(tripId),
+    queryFn: async () => normalizeListResponse(await tripsApi.listStops(tripId)),
     enabled: !!tripId,
     onError: (err) => handleApiError(err, 'Failed to fetch trip stops'),
   })
@@ -277,10 +283,34 @@ export const useCreateTripStop = (tripId) => {
   })
 }
 
+export const useUpdateTripStop = (tripId) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ stopId, data }) => tripsApi.updateStop(tripId, stopId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.tripStops(tripId) })
+      toast.success('Trip stop updated')
+    },
+    onError: (err) => handleApiError(err, 'Failed to update trip stop'),
+  })
+}
+
+export const useDeleteTripStop = (tripId) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (stopId) => tripsApi.deleteStop(tripId, stopId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.tripStops(tripId) })
+      toast.success('Trip stop deleted')
+    },
+    onError: (err) => handleApiError(err, 'Failed to delete trip stop'),
+  })
+}
+
 export const useTripStatusHistory = (tripId) => {
   return useQuery({
     queryKey: orderKeys.tripStatusHistory(tripId),
-    queryFn: () => tripsApi.listStatusHistory(tripId),
+    queryFn: async () => normalizeListResponse(await tripsApi.listStatusHistory(tripId)),
     enabled: !!tripId,
     onError: (err) => handleApiError(err, 'Failed to fetch trip history'),
   })
@@ -289,7 +319,7 @@ export const useTripStatusHistory = (tripId) => {
 export const useTripDocuments = (tripId) => {
   return useQuery({
     queryKey: orderKeys.tripDocuments(tripId),
-    queryFn: () => tripsApi.listDocuments(tripId),
+    queryFn: async () => normalizeListResponse(await tripsApi.listDocuments(tripId)),
     enabled: !!tripId,
     onError: (err) => handleApiError(err, 'Failed to fetch trip documents'),
   })
@@ -310,7 +340,7 @@ export const useCreateTripDocument = (tripId) => {
 export const useTripExpenses = (tripId) => {
   return useQuery({
     queryKey: orderKeys.tripExpenses(tripId),
-    queryFn: () => tripsApi.listExpenses(tripId),
+    queryFn: async () => normalizeListResponse(await tripsApi.listExpenses(tripId)),
     enabled: !!tripId,
     onError: (err) => handleApiError(err, 'Failed to fetch trip expenses'),
   })
@@ -331,7 +361,7 @@ export const useCreateTripExpense = (tripId) => {
 export const useTripCharges = (tripId) => {
   return useQuery({
     queryKey: orderKeys.tripCharges(tripId),
-    queryFn: () => tripsApi.listCharges(tripId),
+    queryFn: async () => normalizeListResponse(await tripsApi.listCharges(tripId)),
     enabled: !!tripId,
     onError: (err) => handleApiError(err, 'Failed to fetch trip charges'),
   })
@@ -402,6 +432,20 @@ export const useDeliveries = (params) => {
     queryKey: orderKeys.deliveryList(params),
     queryFn: () => deliveriesApi.list(params),
     onError: (err) => handleApiError(err, 'Failed to fetch POD records'),
+  })
+}
+
+export const useTripDeliveries = (tripId) => {
+  return useQuery({
+    queryKey: [...orderKeys.deliveries(), 'trip', tripId],
+    queryFn: async () => {
+      const raw = await deliveriesApi.list(tripId ? { trip_id: tripId } : {})
+      const rows = normalizeListResponse(raw)
+      if (!tripId) return rows
+      return rows.filter((d) => String(d.trip_id) === String(tripId))
+    },
+    enabled: !!tripId,
+    onError: (err) => handleApiError(err, 'Failed to fetch trip deliveries'),
   })
 }
 

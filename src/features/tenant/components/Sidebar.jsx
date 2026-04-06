@@ -43,7 +43,7 @@ const userSubItems = [
 
 const customerSubItems = [
   { name: 'All Customers', icon: <Users size={13} />, path: '/tenant/dashboard/customers', badge: null },
-  { name: 'Consignors', icon: <UserPlus size={13} />, path: '/tenant/dashboard/customers/consigners', badge: null },
+  { name: 'Consignors', icon: <UserPlus size={13} />, path: '/tenant/dashboard/customers/consignors', badge: null },
   { name: 'Consignees', icon: <UserMinus size={13} />, path: '/tenant/dashboard/customers/consignees', badge: null },
   { name: 'Brokers', icon: <Briefcase size={13} />, path: '/tenant/dashboard/customers/brokers', badge: null },
   { name: 'Agents', icon: <Globe size={13} />, path: '/tenant/dashboard/customers/agents', badge: null },

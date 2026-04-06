@@ -245,7 +245,7 @@ const TripsTab = ({ orderId, navigate }) => {
         <button 
           onClick={() => {
             if (trips.length > 0) {
-              navigate(`/tenant/dashboard/orders/trips/${trips[0].id}/manage`);
+              navigate(`/tenant/dashboard/orders/trips/${trips[0].id}`);
             } else {
               toast.info("No trips assigned to this order yet.");
             }
@@ -434,7 +434,7 @@ export default function OrderDetail() {
                     <button 
                         onClick={handleConfirm}
                         disabled={updateOrderMutation.isPending}
-                        className="flex items-center gap-2 px-4 py-2 text-xs font-black text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 disabled:opacity-50"
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-all shadow-md shadow-blue-100 disabled:opacity-50"
                     >
                         <CheckCircle2 size={16} /> Confirm Order
                     </button>
@@ -443,7 +443,7 @@ export default function OrderDetail() {
                 {order.status === 'CONFIRMED' && (
                     <button 
                         onClick={() => setIsAssignOpen(true)}
-                        className="flex items-center gap-2 px-4 py-2 text-xs font-black text-white bg-[#0052CC] rounded-xl hover:bg-[#0041a3] transition-all shadow-md shadow-blue-100"
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-[#0052CC] rounded-xl hover:bg-[#0041a3] transition-all shadow-md shadow-blue-100"
                     >
                         <Truck size={16} /> Assign Trip
                     </button>
@@ -457,7 +457,7 @@ export default function OrderDetail() {
                             }
                         }}
                         disabled={updateOrderMutation.isPending}
-                        className="flex items-center gap-2 px-4 py-2 text-xs font-black text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 disabled:opacity-50"
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 disabled:opacity-50"
                     >
                         <RefreshCcw size={16} /> Mark In-Transit
                     </button>
@@ -471,7 +471,7 @@ export default function OrderDetail() {
                             }
                         }}
                         disabled={updateOrderMutation.isPending}
-                        className="flex items-center gap-2 px-4 py-2 text-xs font-black text-white bg-teal-600 rounded-xl hover:bg-teal-700 transition-all shadow-md shadow-teal-100 disabled:opacity-50"
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-teal-600 rounded-xl hover:bg-teal-700 transition-all shadow-md shadow-teal-100 disabled:opacity-50"
                     >
                         <CheckCircle2 size={16} /> Complete Delivery
                     </button>
@@ -479,7 +479,7 @@ export default function OrderDetail() {
 
                 <button 
                     onClick={() => setIsEditOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2 text-xs font-black text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all shadow-sm"
+                    className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all shadow-sm"
                 >
                     <Edit2 size={16} /> Edit
                 </button>
@@ -488,7 +488,7 @@ export default function OrderDetail() {
                     <button 
                         onClick={handleCancelClick}
                         disabled={cancelOrderMutation.isPending}
-                        className="flex items-center gap-2 px-4 py-2 text-xs font-black text-red-600 bg-red-50 border border-red-100 rounded-xl hover:bg-red-100 transition-all shadow-sm disabled:opacity-50"
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-red-600 bg-red-50 border border-red-100 rounded-xl hover:bg-red-100 transition-all shadow-sm disabled:opacity-50"
                     >
                         <XCircle size={16} /> Cancel Order
                     </button>
@@ -498,7 +498,7 @@ export default function OrderDetail() {
                     <button 
                         onClick={handleDeleteClick}
                         disabled={deleteOrderMutation.isPending}
-                        className="flex items-center gap-2 px-4 py-2 text-xs font-black text-red-600 bg-red-50 border border-red-100 rounded-xl hover:bg-red-100 transition-all shadow-sm"
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-red-600 bg-red-50 border border-red-100 rounded-xl hover:bg-red-100 transition-all shadow-sm"
                     >
                         <Trash2 size={16} /> Delete Order
                     </button>

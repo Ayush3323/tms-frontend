@@ -128,7 +128,8 @@ const Routing = () => {
         {/* Specific Customer Detail Route (Must be last to avoid catching sub-paths as IDs) */}
 
         <Route path="customers" element={<CustomersDashboard />} />
-        <Route path="customers/consigners" element={<Consigners />} />
+        <Route path="customers/consignors" element={<Consigners />} />
+        <Route path="customers/consigners" element={<Navigate to="/tenant/dashboard/customers/consignors" replace />} />
         <Route path="customers/consignees" element={<Consignees />} />
         <Route path="customers/brokers" element={<Brokers />} />
         <Route path="customers/agents" element={<Agents />} />
