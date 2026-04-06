@@ -398,12 +398,14 @@ const DriversList = () => {
       header: 'Actions',
       render: d => (
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate(`/tenant/dashboard/drivers/${d.id}`)}
-            className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all font-sans"
-          >
-            <Eye size={12} /> View
-          </button>
+          {!d.is_deleted && (
+            <button
+              onClick={() => navigate(`/tenant/dashboard/drivers/${d.id}`)}
+              className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all font-sans"
+            >
+              <Eye size={12} /> View
+            </button>
+          )}
           {d.is_deleted && (
             <button
               onClick={() => restoreDriver.mutate(d.id)}
