@@ -218,6 +218,7 @@ const AddDriverModal = ({ onClose }) => {
 
 // ── Main Component ────────────────────────────────────────────────────
 const DriversList = () => {
+  const PAGE_SIZE = 10;
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatus] = useState('');
@@ -242,7 +243,8 @@ const DriversList = () => {
 
   const { data, isLoading, isError, error, refetch } = useDrivers({
     page: currentPage,
-    ...(statusFilter && { status: statusFilter }),
+    page_size: PAGE_SIZE,
+    ...(visibilityFilter !== 'deleted' && statusFilter && { status: statusFilter }),
     ...(typeFilter && { driver_type: typeFilter }),
     ...(licFilter && { license_type: licFilter }),
     ...(debouncedSearch && { search: debouncedSearch }),
@@ -255,14 +257,8 @@ const DriversList = () => {
   const { data: statsData } = useDriverStats();
   const restoreDriver = useRestoreDriver();
 
-  const rawDrivers = data?.results ?? [];
-  // Defensive client-side visibility filter to keep tabs consistent even when stale cache or
-  // backend query params are not yet reflected.
-  const drivers = rawDrivers.filter((d) => {
-    if (visibilityFilter === 'deleted') return Boolean(d.is_deleted);
-    if (visibilityFilter === 'all') return true;
-    return !d.is_deleted;
-  });
+  const drivers = data?.results ?? [];
+  const filteredTotal = data?.count ?? drivers.length;
 
   const total = statsData?.total ?? drivers.length;
   const active = statsData?.active ?? drivers.filter(d => !d.is_deleted && d.status === 'ACTIVE').length;
@@ -279,6 +275,13 @@ const DriversList = () => {
     setSearch(''); setStatus(''); setType(''); setLic('');
     setJoinedFrom(''); setJoinedTo(''); setOrdering(''); setVisibilityFilter('active'); setCurrentPage(1);
   };
+
+  // If filters change and current page becomes empty, move back one page.
+  React.useEffect(() => {
+    if (!isLoading && currentPage > 1 && filteredTotal > 0 && drivers.length === 0) {
+      setCurrentPage((prev) => Math.max(1, prev - 1));
+    }
+  }, [isLoading, currentPage, filteredTotal, drivers.length]);
 
   const SortableTH = ({ label, field }) => (
     <th
@@ -547,6 +550,9 @@ const DriversList = () => {
                     key={opt.id}
                     onClick={() => {
                       setVisibilityFilter(opt.id);
+                      if (opt.id === 'deleted') {
+                        setStatus('');
+                      }
                       setCurrentPage(1);
                     }}
                     className={`px-3 py-1 text-[11px] font-bold rounded-md transition-all ${visibilityFilter === opt.id
@@ -684,7 +690,7 @@ const DriversList = () => {
         {!isLoading && !isError && (
           <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100 bg-white shrink-0">
             <div className="text-sm text-gray-500">
-              Showing <span className="font-bold text-[#172B4D]">{drivers.length}</span> of <span className="font-bold text-[#172B4D]">{total}</span> drivers
+              Showing <span className="font-bold text-[#172B4D]">{drivers.length}</span> of <span className="font-bold text-[#172B4D]">{filteredTotal}</span> drivers
             </div>
           </div>
         )}

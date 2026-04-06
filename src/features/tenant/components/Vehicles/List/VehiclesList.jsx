@@ -42,6 +42,7 @@ const EditVehicleButton = ({ vehicleId, onEdit }) => {
 
 // ── Main Component ────────────────────────────────────────────────────
 const Vehicles = () => {
+  const PAGE_SIZE = 10;
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatus] = useState('');
@@ -65,9 +66,10 @@ const Vehicles = () => {
 
   const { data, isLoading, isError, error, refetch } = useVehicles({
     page: currentPage,
-    ...(statusFilter && { status: statusFilter }),
-    ...(fuelFilter && { fuel_type: fuelFilter }),
-    ...(ownerFilter && { ownership_type: ownerFilter }),
+    page_size: PAGE_SIZE,
+    ...(visibilityFilter !== 'deleted' && statusFilter && { status: statusFilter }),
+    ...(visibilityFilter !== 'deleted' && fuelFilter && { fuel_type: fuelFilter }),
+    ...(visibilityFilter !== 'deleted' && ownerFilter && { ownership_type: ownerFilter }),
     ...(debouncedSearch && { search: debouncedSearch }),
     ...(visibilityFilter === 'deleted' && { deleted_only: true }),
     ...(visibilityFilter === 'all' && { include_deleted: true }),
@@ -77,6 +79,7 @@ const Vehicles = () => {
   const restoreVehicle = useRestoreVehicle();
   const { data: statsData } = useVehicleStats();
   const vehicles = data?.results ?? data ?? [];
+  const filteredTotal = data?.count ?? vehicles.length;
   const total = statsData?.total ?? data?.count ?? vehicles.length;
   const active = statsData?.active ?? vehicles.filter(v => !v.is_deleted && v.status === 'ACTIVE').length;
   const maintenance = statsData?.maintenance ?? vehicles.filter(v => !v.is_deleted && v.status === 'MAINTENANCE').length;
@@ -95,6 +98,13 @@ const Vehicles = () => {
     setVisibilityFilter('active');
     setCurrentPage(1);
   };
+
+  // If filters change and current page becomes empty, move back one page.
+  useEffect(() => {
+    if (!isLoading && currentPage > 1 && filteredTotal > 0 && vehicles.length === 0) {
+      setCurrentPage((prev) => Math.max(1, prev - 1));
+    }
+  }, [isLoading, currentPage, filteredTotal, vehicles.length]);
 
   const COLUMNS = [
     {
@@ -349,6 +359,9 @@ const Vehicles = () => {
                     key={opt.id}
                     onClick={() => {
                       setVisibilityFilter(opt.id);
+                      if (opt.id === 'deleted') {
+                        setStatus('');
+                      }
                       setCurrentPage(1);
                     }}
                     className={`px-3 py-1 text-[11px] font-bold rounded-md transition-all ${visibilityFilter === opt.id
@@ -469,7 +482,7 @@ const Vehicles = () => {
           <div className="flex flex-col md:flex-row items-center justify-between px-6 py-4 border-t border-gray-100 bg-white gap-4">
             <div className="flex flex-col sm:flex-row items-center gap-6">
               <div className="text-sm text-gray-500 font-medium whitespace-nowrap">
-                Showing <span className="font-bold text-[#172B4D]">{vehicles.length}</span> of <span className="font-bold text-[#172B4D]">{total}</span> vehicles
+                Showing <span className="font-bold text-[#172B4D]">{vehicles.length}</span> of <span className="font-bold text-[#172B4D]">{filteredTotal}</span> vehicles
               </div>
             </div>
           </div>
