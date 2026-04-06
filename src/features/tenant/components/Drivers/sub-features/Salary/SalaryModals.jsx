@@ -296,7 +296,7 @@ export const ViewSalaryModal = ({ salary, driverName, employeeId, onClose }) => 
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-black text-[#172B4D] leading-none uppercase tracking-tight">{driverName || salary.driver_name || 'System Driver'}</h3>
+                <h3 className="text-base font-black text-[#172B4D] leading-none uppercase tracking-tight">{driverName || salary.driver_name || '-'}</h3>
                 <StatusBadge 
                   label={salary.payment_frequency_display ?? salary.payment_frequency} 
                   styles={FREQUENCY_STYLES[salary.payment_frequency]} 

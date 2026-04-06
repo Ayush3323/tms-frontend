@@ -434,7 +434,7 @@ export const ViewIncidentModal = ({ incident, driverName, employeeId, vehicleNam
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <h3 className="text-lg font-black text-[#172B4D] leading-none uppercase tracking-tight">{driverName || incident.driver_name || 'System Driver'}</h3>
+              <h3 className="text-lg font-black text-[#172B4D] leading-none uppercase tracking-tight">{driverName || incident.driver_name || '-'}</h3>
               <div className={`px-2 py-0.5 rounded-full border text-[10px] font-black uppercase flex items-center gap-1
                 ${incident.resolution_status === 'RESOLVED' || incident.resolution_status === 'CLOSED' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-amber-50 text-amber-600 border-amber-100'}`}>
                 {incident.resolution_status_display || incident.resolution_status}

@@ -283,7 +283,7 @@ export const ViewPerformanceModal = ({ record, driverName, employeeId, onClose }
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <h3 className="text-lg font-black text-[#172B4D] leading-none uppercase tracking-tight">{driverName || record.driver_name || 'System Driver'}</h3>
+              <h3 className="text-lg font-black text-[#172B4D] leading-none uppercase tracking-tight">{driverName || record.driver_name || '-'}</h3>
             </div>
             <div className="text-gray-400 text-[10px] font-mono font-bold uppercase tracking-widest mt-1.5 flex items-center gap-1.5">
                <User size={12} /> Employee ID: {employeeId || record.employee_id || '—'}

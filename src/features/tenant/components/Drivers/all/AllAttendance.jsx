@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Calendar, Plus, Search, RefreshCw, Download, Upload, X, RotateCcw } from 'lucide-react';
 import { useAttendance } from '../../../queries/drivers/incidentsAndAttendance';
 

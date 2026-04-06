@@ -234,7 +234,7 @@ export const ViewContactModal = ({ contact, driverName, employeeId, onClose }) =
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <h3 className="text-lg font-black text-[#172B4D] leading-none uppercase tracking-tight">{driverName || 'System Driver'}</h3>
+              <h3 className="text-lg font-black text-[#172B4D] leading-none uppercase tracking-tight">{driverName || '-'}</h3>
               {contact.is_primary && (
                 <span className="text-[10px] font-black text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-100 flex items-center gap-1 uppercase">
                   <ShieldCheck size={10} /> Primary Contact
