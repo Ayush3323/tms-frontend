@@ -35,6 +35,7 @@ const TIER_STYLES = {
 // ── MAIN COMPONENT ───────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════
 const CustomersDashboard = () => {
+  const PAGE_SIZE = 10;
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -56,6 +57,7 @@ const CustomersDashboard = () => {
 
   const { data, isLoading, isError, error, refetch } = useCustomers({
     page: currentPage,
+    page_size: PAGE_SIZE,
     ...(statusFilter === 'DELETED' && { deleted_only: 'true' }),
     ...(statusFilter && statusFilter !== 'DELETED' && { status: statusFilter }),
     ...(customerTypeFilter && { customer_type: customerTypeFilter }),
@@ -67,12 +69,20 @@ const CustomersDashboard = () => {
 
   const customers = data?.results ?? data ?? [];
   const total = statsData?.total ?? data?.count ?? customers.length;
+  const filteredTotal = data?.count ?? customers.length;
   const active = statsData?.active ?? customers.filter(c => c.status === 'ACTIVE').length;
   const inactive = statsData?.inactive ?? customers.filter(c => c.status === 'INACTIVE').length;
   const suspended = statsData?.suspended ?? customers.filter(c => c.status === 'SUSPENDED').length;
   const statsLoading = !statsData;
 
   const resetFilters = () => { setSearchTerm(''); setStatus(''); setCustomerTypeFilter(''); setOrdering('legal_name'); setCurrentPage(1); };
+
+  // If records shrink after filter/delete and current page becomes invalid, move back.
+  useEffect(() => {
+    if (!isLoading && currentPage > 1 && filteredTotal > 0 && customers.length === 0) {
+      setCurrentPage((prev) => Math.max(1, prev - 1));
+    }
+  }, [isLoading, currentPage, filteredTotal, customers.length]);
 
   // ── Modal Handlers ──────────────────────────────────────────────────
   const openCreate = () => setModal({ type: 'create' });
@@ -356,7 +366,7 @@ const CustomersDashboard = () => {
           <div className="flex flex-col md:flex-row items-center justify-between px-6 py-4 border-t border-gray-100 bg-white gap-4">
             <div className="flex flex-col sm:flex-row items-center gap-6">
               <div className="text-sm text-gray-500 font-medium whitespace-nowrap">
-                Showing <span className="font-bold text-[#172B4D]">{customers.length}</span> of <span className="font-bold text-[#172B4D]">{total}</span> customers
+                Showing <span className="font-bold text-[#172B4D]">{customers.length}</span> of <span className="font-bold text-[#172B4D]">{filteredTotal}</span> customers
               </div>
             </div>
           </div>
