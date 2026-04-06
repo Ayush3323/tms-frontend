@@ -31,7 +31,7 @@ export const RelationshipManagementFields = ({
 }) => {
   return (
     <>
-      <Section title="Relationship Management" className="col-span-2" />
+      {/* <Section title="Relationship Management" className="col-span-2" />
       <Field label="Sales Person" error={errors.sales_person_id}>
         <Sel
           value={form.sales_person_id || ''}
@@ -55,10 +55,10 @@ export const RelationshipManagementFields = ({
             <option key={u.id} value={u.id}>{u.full_name || u.username}</option>
           ))}
         </Sel>
-      </Field>
+      </Field> */}
 
       {!createPortalUser && (
-        <Field label="Portal User (Linked User)" className="col-span-2" error={errors.user_id}>
+        <Field label="Existing Login Account" className="col-span-2" error={errors.user_id}>
           <Sel
             value={form.user_id || ''}
             onChange={e => setField('user_id', e.target.value)}
@@ -105,7 +105,7 @@ export const CreatePortalUserSection = ({
           onChange={e => setCreatePortalUser(e.target.checked)}
           className="w-4 h-4 text-[#0052CC] border-gray-300 rounded focus:ring-blue-500"
         />
-        <span className="text-sm font-bold text-[#172B4D]">Create New Portal User for this {moduleName}</span>
+        <span className="text-sm font-bold text-[#172B4D]">Create New Login Account for this {moduleName}</span>
       </label>
 
       {createPortalUser && (
@@ -172,13 +172,43 @@ export const RelationshipOverviewSection = ({ item, showWarehouse = true }) => {
   const cust = item?.customer || item;
   return (
     <>
-      <Section title="Relationship Management" />
-      <div className="grid grid-cols-2 gap-3">
-        <InfoCard label="Sales Person" value={cust.sales_person?.full_name || cust.sales_person?.name || cust.sales_person_name || 'Not Assigned'} />
-        <InfoCard label="Account Manager" value={cust.account_manager?.full_name || cust.account_manager?.name || cust.account_manager_name || 'Not Assigned'} />
-        <InfoCard label="Portal User" value={cust.portal_user?.username || cust.user?.username || 'None'} />
-        {showWarehouse && <InfoCard label="Warehouse Address" value={item.warehouse_address || 'Not Provided'} />}
+      <div className="p-5 rounded-2xl bg-white border border-blue-100 shadow-sm flex items-center justify-between group transition-all hover:border-blue-200 mb-6">
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white text-lg font-bold shadow-inner">
+              {(cust?.portal_user?.first_name?.[0] || cust?.user?.first_name?.[0] || cust?.portal_user?.username?.[0] || cust?.user?.username?.[0] || '?').toUpperCase()}
+            </div>
+            <div className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-green-500 border-2 border-white" />
+          </div>
+          
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-bold text-[#172B4D]">
+                {cust?.portal_user?.full_name || cust?.user?.full_name || cust?.portal_user?.username || cust?.user?.username || 'No Access Account Linked'}
+              </h3>
+              {(cust?.portal_user || cust?.user) && <Badge className="bg-blue-50 text-[#0052CC] border-blue-100 text-[10px] font-bold px-2 py-0.5">Active</Badge>}
+            </div>
+            <p className="text-sm text-gray-500 font-medium">{cust?.portal_user?.email || cust?.user?.email || 'No email associated'}</p>
+            {(cust?.portal_user || cust?.user) && (
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
+                {(cust?.portal_user?.account_type || cust?.user?.account_type || 'Customer')} Access
+              </p>
+            )}
+          </div>
+        </div>
+
+        {(cust?.portal_user || cust?.user) && (
+          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-50 border border-green-100">
+            <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+            <span className="text-[10px] font-bold text-green-700 uppercase tracking-wider">Dashboard Access Enabled</span>
+          </div>
+        )}
       </div>
+      {showWarehouse && (
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          <InfoCard label="Warehouse Address" value={item.warehouse_address || 'Not Provided'} />
+        </div>
+      )}
     </>
   );
 };

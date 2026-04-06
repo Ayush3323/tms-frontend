@@ -17,6 +17,39 @@ import { Badge, InfoCard, SectionHeader, EmptyState, Section, Modal, Field, Inpu
 // ── Tab: Overview ────────────────────────────────────────────────────
 export const CustomerOverview = ({ customer: c, onEdit }) => (
   <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+    <div className="p-5 rounded-2xl bg-white border border-blue-100 shadow-sm flex items-center justify-between group transition-all hover:border-blue-200">
+      <div className="flex items-center gap-4">
+        <div className="relative">
+          <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white text-lg font-bold shadow-inner">
+            {(c?.portal_user?.first_name?.[0] || c?.portal_user?.username?.[0] || '?').toUpperCase()}
+          </div>
+          <div className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-green-500 border-2 border-white" />
+        </div>
+        
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="text-base font-bold text-[#172B4D]">
+              {c?.portal_user?.full_name || c?.portal_user?.username || 'No Login Account Linked'}
+            </h3>
+            {c?.portal_user && <Badge className="bg-blue-50 text-[#0052CC] border-blue-100 text-[10px] font-bold px-2 py-0.5">Active</Badge>}
+          </div>
+          <p className="text-sm text-gray-500 font-medium">{c?.portal_user?.email || 'No email associated'}</p>
+          {c?.portal_user && (
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
+              {c.portal_user.account_type || 'Customer'} Access
+            </p>
+          )}
+        </div>
+      </div>
+
+      {c?.portal_user && (
+        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-50 border border-green-100">
+          <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+          <span className="text-[10px] font-bold text-green-700 uppercase tracking-wider">Dashboard Access Enabled</span>
+        </div>
+      )}
+    </div>
+
     <div className="grid grid-cols-2 gap-4">
       <InfoCard label="Legal Name" value={c?.legal_name} accent />
       <InfoCard label="Customer Code" value={c?.customer_code} />
@@ -28,33 +61,6 @@ export const CustomerOverview = ({ customer: c, onEdit }) => (
       <InfoCard label="Notes" value={c?.notes} />
     </div>
 
-    <Section title="Assignments & Portal" />
-    <div className="grid grid-cols-2 gap-3">
-      <div className="p-4 rounded-xl border border-gray-100 bg-white">
-        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Sales Person</p>
-        <p className="text-sm font-bold text-[#172B4D]">{c?.sales_person?.full_name || c?.sales_person?.username || '—'}</p>
-        {c?.sales_person?.email && <p className="text-[10px] text-gray-400 font-mono mt-0.5">{c.sales_person.email}</p>}
-      </div>
-      <div className="p-4 rounded-xl border border-gray-100 bg-white">
-        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Account Manager</p>
-        <p className="text-sm font-bold text-[#172B4D]">{c?.account_manager?.full_name || c?.account_manager?.username || '—'}</p>
-        {c?.account_manager?.email && <p className="text-[10px] text-gray-400 font-mono mt-0.5">{c.account_manager.email}</p>}
-      </div>
-      <div className="p-4 rounded-xl border border-blue-100 bg-blue-50/30 col-span-2">
-        <p className="text-[10px] font-black text-[#0052CC] uppercase tracking-widest mb-2">Linked Portal User</p>
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-white border border-blue-100 flex items-center justify-center text-[#0052CC] text-xs font-black">
-            {(c?.portal_user?.first_name?.[0] || c?.portal_user?.username?.[0] || '?').toUpperCase()}
-          </div>
-          <div>
-            <p className="text-sm font-bold text-[#172B4D]">
-              {c?.portal_user?.full_name || c?.portal_user?.username || 'No Portal User Linked'}
-            </p>
-            {c?.portal_user?.email && <p className="text-[10px] text-gray-500 font-medium">{c.portal_user.email} — {c.portal_user.account_type}</p>}
-          </div>
-        </div>
-      </div>
-    </div>
 
     <Section title="Tax & Registration" />
     <div className="grid grid-cols-2 gap-3">

@@ -84,7 +84,7 @@ const BrokersDashboard = () => {
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
   const [deleteError, setDeleteError] = useState(null);
-  const [createPortalUser, setCreatePortalUser] = useState(false);
+  const [createPortalUser, setCreatePortalUser] = useState(true);
 
   const { data: userData } = useUsers({ limit: 1000 });
   const allUsers = userData?.results ?? userData ?? [];
@@ -119,6 +119,7 @@ const BrokersDashboard = () => {
     setForm(EMPTY_FORM);
     setErrors({});
     setModal({ type: 'create' });
+    setCreatePortalUser(true);
   };
 
   const openEdit = (b) => {
@@ -522,6 +523,33 @@ const BrokersDashboard = () => {
                 <AlertCircle size={16} /> {errors._generic}
               </div>
             )}
+
+            {/* Portal User creation at the very beginning for Brokers too */}
+            {modal.type === 'create' && (
+              <CreatePortalUserSection
+                createPortalUser={createPortalUser}
+                setCreatePortalUser={setCreatePortalUser}
+                form={form}
+                setField={setField}
+                errors={errors}
+                moduleName="Broker"
+              />
+            )}
+
+            {/* Relationship fields moved to the top and commented out in Common, but here we just keep the call */}
+            <RelationshipManagementFields
+              form={form}
+              setField={setField}
+              allUsers={allUsers}
+              errors={errors}
+              portalUsers={portalUsers}
+              userToCustomerMap={userToCustomerMap}
+              initial={modal.broker}
+              createPortalUser={createPortalUser}
+              disabled={modal.type === 'view'}
+            />
+
+            <Section title="Basic Information" className="col-span-2" />
             <Field label="Legal Name" required error={errors.legal_name}>
               <Input
                 value={form.legal_name || ''}
@@ -579,30 +607,6 @@ const BrokersDashboard = () => {
               <Input type="date" value={form.license_expiry} onChange={e => setField('license_expiry', e.target.value)} />
             </Field>
 
-            {/* Shared Relationship Management Section */}
-            <RelationshipManagementFields
-              form={form}
-              setField={setField}
-              allUsers={allUsers}
-              errors={errors}
-              portalUsers={portalUsers}
-              userToCustomerMap={userToCustomerMap}
-              initial={modal.broker}
-              createPortalUser={createPortalUser}
-              disabled={modal.type === 'view'}
-            />
-
-            {/* Shared Portal User Creation Section */}
-            {modal.type === 'create' && (
-              <CreatePortalUserSection
-                createPortalUser={createPortalUser}
-                setCreatePortalUser={setCreatePortalUser}
-                form={form}
-                setField={setField}
-                errors={errors}
-                moduleName="Broker"
-              />
-            )}
           </div>
         </Modal>
       )}
@@ -653,6 +657,9 @@ const BrokersDashboard = () => {
 
 const BrokerOverview = ({ broker: b, onEdit }) => (
   <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+    {/* Shared Relationship Info at the very TOP */}
+    <RelationshipOverviewSection item={b} showWarehouse={false} />
+
     <div className="grid grid-cols-2 gap-4">
       <InfoCard label="Legal Name" value={b.customer?.legal_name} accent />
       <InfoCard label="Customer Code" value={b.customer?.customer_code} />
@@ -672,8 +679,6 @@ const BrokerOverview = ({ broker: b, onEdit }) => (
       <InfoCard label="License Expiry" value={b.license_expiry || 'Not Set'} />
     </div>
 
-    {/* Shared Relationship Info */}
-    <RelationshipOverviewSection item={b} showWarehouse={false} />
 
 
   </div>

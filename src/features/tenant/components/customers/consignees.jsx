@@ -86,7 +86,7 @@ const ConsigneesDashboard = () => {
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
   const [deleteError, setDeleteError] = useState(null);
-  const [createPortalUser, setCreatePortalUser] = useState(false);
+  const [createPortalUser, setCreatePortalUser] = useState(true);
 
   const { data: userData } = useUsers({ limit: 1000 });
   const allUsers = userData?.results ?? userData ?? [];
@@ -122,6 +122,7 @@ const ConsigneesDashboard = () => {
     setForm(EMPTY_FORM);
     setErrors({});
     setModal({ type: 'create' });
+    setCreatePortalUser(true);
   };
 
   const openEdit = (c) => {
@@ -572,6 +573,31 @@ const ConsigneesDashboard = () => {
                 <AlertCircle size={16} /> {errors._generic}
               </div>
             )}
+
+            {/* Portal Account prioritization */}
+            {modal.type === 'create' && (
+              <CreatePortalUserSection
+                createPortalUser={createPortalUser}
+                setCreatePortalUser={setCreatePortalUser}
+                form={form}
+                setField={setField}
+                errors={errors}
+                moduleName="Consignee"
+              />
+            )}
+
+            <RelationshipManagementFields
+              form={form}
+              setField={setField}
+              allUsers={allUsers}
+              errors={errors}
+              portalUsers={portalUsers}
+              userToCustomerMap={userToCustomerMap}
+              initial={modal.consignee}
+              createPortalUser={createPortalUser}
+              disabled={modal.type === 'view'}
+            />
+
             <Section title="Consignee Details" className="col-span-2" />
             <Field label="Legal Name" required error={errors.legal_name}>
               <Input
@@ -661,30 +687,6 @@ const ConsigneesDashboard = () => {
 
 
 
-            {/* Shared Relationship Management Section */}
-            <RelationshipManagementFields
-              form={form}
-              setField={setField}
-              allUsers={allUsers}
-              errors={errors}
-              portalUsers={portalUsers}
-              userToCustomerMap={userToCustomerMap}
-              initial={modal.consignee}
-              createPortalUser={createPortalUser}
-              disabled={modal.type === 'view'}
-            />
-
-            {/* Shared Portal User Creation Section */}
-            {modal.type === 'create' && (
-              <CreatePortalUserSection
-                createPortalUser={createPortalUser}
-                setCreatePortalUser={setCreatePortalUser}
-                form={form}
-                setField={setField}
-                errors={errors}
-                moduleName="Consignee"
-              />
-            )}
 
           </div>
         </Modal>
@@ -715,8 +717,11 @@ const ConsigneesDashboard = () => {
 
 
 
-const ConsigneeOverview = ({ consignee: c }) => (
+const ConsigneeOverview = ({ consignee: c, onEdit }) => (
   <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+    {/* Shared Relationship Info at the very TOP */}
+    <RelationshipOverviewSection item={c} showWarehouse={false} />
+
     <div className="grid grid-cols-2 gap-4">
       <InfoCard label="Legal Name" value={c.customer?.legal_name} accent />
       <InfoCard label="Customer Code" value={c.customer?.customer_code} />
@@ -741,8 +746,6 @@ const ConsigneeOverview = ({ consignee: c }) => (
       <InfoCard label="Unloading Instructions" value={c.unloading_instructions} />
     </div>
 
-    {/* Shared Relationship Info */}
-    <RelationshipOverviewSection item={c} showWarehouse={false} />
 
 
     <div className="pt-3 border-t border-gray-100 flex justify-end items-center gap-4">
