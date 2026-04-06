@@ -29,11 +29,11 @@ const PerformanceTable = ({ metrics, onEdit, onView, showDriver = false, driverM
                 <td className="px-4 py-3 whitespace-nowrap">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-[9px] flex items-center justify-center font-bold text-xs text-white shadow-sm font-syne bg-[#0052CC]">
-                      {getInitials(driverMap[m.driver]?.name || m.driver_name || 'System Driver')}
+                      {getInitials(driverMap[m.driver]?.name || m.driver_name || '-')}
                     </div>
                     <div>
                       <div className="font-semibold text-[#1a202c] text-[13px] line-height-1">
-                        {driverMap[m.driver]?.name || m.driver_name || 'System Driver'}
+                        {driverMap[m.driver]?.name || m.driver_name || '-'}
                       </div>
                       <div className="text-[10px] text-[#94a3b8] font-mono mt-0.5 uppercase">
                         {driverMap[m.driver]?.employee_id || m.employee_id || '—'}

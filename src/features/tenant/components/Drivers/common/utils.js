@@ -11,7 +11,7 @@ export const getDriverName = (driver) => {
   const u = driver.user ?? driver;
   const parts = [u.first_name, u.middle_name, u.last_name].filter(Boolean);
   if (parts.length > 0) return parts.join(' ');
-  return driver.driver_name || (driver.employee_id ? `Driver ${driver.employee_id}` : 'System Driver');
+  return driver.driver_name || '-';
 };
 
 /**
@@ -55,7 +55,7 @@ export const cleanObject = (obj) => {
   return Object.fromEntries(
     Object.entries(obj).map(([k, v]) => {
       // Basic text fields that should be "" instead of null
-      if (['middle_name', 'phone', 'alternate_phone', 'issuing_authority', 'license_issuing_authority'].includes(k) && v === '') return [k, ''];
+      if (['middle_name', 'phone', 'alternate_phone'].includes(k) && v === '') return [k, ''];
       return [k, v === '' ? null : v];
     })
   );

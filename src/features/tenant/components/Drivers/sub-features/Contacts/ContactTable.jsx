@@ -22,7 +22,7 @@ const ContactTable = ({ contacts, onEdit, onView, showDriver = false, driverMap 
         </thead>
         <tbody className="divide-y divide-gray-50">
           {contacts.map(c => {
-            const driverName = driverMap[c.driver]?.name || c.driver_name || 'System Driver';
+            const driverName = driverMap[c.driver]?.name || c.driver_name || '-';
             const empId = driverMap[c.driver]?.employee_id || c.employee_id || '—';
 
             return (
