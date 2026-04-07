@@ -43,7 +43,7 @@ export const EMPTY_FORM = {
 const DriverDisplay = ({ driverId }) => {
   const lookup = useDriverLookup();
   const driver = typeof driverId === 'object' ? driverId : lookup[driverId];
-  
+
   return (
     <p className="text-sm font-bold text-[#172B4D]">
       {driverName(driver ?? driverId)}
@@ -150,10 +150,10 @@ export const VehicleFormModal = ({ initial, onClose, isView }) => {
       color: initial.color ?? '',
       purchase_date: initial.purchase_date ?? '',
       purchase_price: initial.purchase_price != null ? String(parseFloat(initial.purchase_price)) : '',
-      ownership_type:                initial.ownership_type                               ?? '',
-      current_odometer:              initial.current_odometer != null ? String(parseFloat(initial.current_odometer)) : '0',
-      status:                        initial.status                                       ?? 'ACTIVE',
-      assigned_driver:               initial.assigned_driver?.id ?? initial.assigned_driver ?? '',
+      ownership_type: initial.ownership_type ?? '',
+      current_odometer: initial.current_odometer != null ? String(parseFloat(initial.current_odometer)) : '0',
+      status: initial.status ?? 'ACTIVE',
+      assigned_driver: initial.assigned_driver?.id ?? initial.assigned_driver ?? '',
     } : EMPTY_FORM
   );
 
@@ -276,12 +276,12 @@ export const VehicleFormModal = ({ initial, onClose, isView }) => {
               <div><Label>Purchase Price (₹)</Label><Input type="number" placeholder="e.g. 1800000" value={form.purchase_price} onChange={set('purchase_price')} /></div>
               <div className="col-span-2">
                 <Label>Assigned Driver</Label>
-                <DriverSelect 
-                  value={form.assigned_driver} 
+                <DriverSelect
+                  value={form.assigned_driver}
                   onChange={(val) => {
                     setForm(p => ({ ...p, assigned_driver: val }));
                     if (errors.assigned_driver) setErrors(p => ({ ...p, assigned_driver: null }));
-                  }} 
+                  }}
                   currentVehicleId={initial?.id}
                   disableBusy={true}
                 />
