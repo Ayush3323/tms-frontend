@@ -76,6 +76,7 @@ export default function TripsMainBody() {
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [filterStatus, setFilterStatus] = useState('All Status');
+  const [sortByCreated, setSortByCreated] = useState('newest');
   const [page, setPage] = useState(1);
 
   const navigate = useNavigate();
@@ -83,7 +84,7 @@ export default function TripsMainBody() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState(null);
 
-  const queryParams = { page, ordering: '-created_at' };
+  const queryParams = { page, ordering: sortByCreated === 'newest' ? '-created_at' : 'created_at' };
   if (search) queryParams.search = search;
   if (filterStatus !== 'All Status') queryParams.status = filterStatus;
 
@@ -233,6 +234,19 @@ export default function TripsMainBody() {
                     {tab.label}
                   </button>
                 ))}
+              </div>
+              <div className="w-full lg:w-auto">
+                <select
+                  value={sortByCreated}
+                  onChange={(e) => {
+                    setSortByCreated(e.target.value);
+                    setPage(1);
+                  }}
+                  className="px-3 py-2 rounded-lg border border-gray-200 text-[11px] font-bold uppercase tracking-wider text-gray-600 bg-white"
+                >
+                  <option value="newest">Created: Newest First</option>
+                  <option value="oldest">Created: Oldest First</option>
+                </select>
               </div>
             </div>
 

@@ -153,6 +153,39 @@ export function CreatePODModal({ isOpen, onClose }) {
             </div>
           </div>
         </div>
+        <div className="space-y-4">
+          <h3 className="font-bold text-gray-800 text-xs uppercase tracking-widest border-b pb-1">POD Details</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-gray-700 font-medium mb-1 uppercase text-[10px]">POD Number</label>
+              <input type="text" className="w-full p-2 border border-gray-300 rounded" value={formData.pod_number} onChange={e => setFormData({ ...formData, pod_number: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-gray-700 font-medium mb-1 uppercase text-[10px]">Delivery Status</label>
+              <select className="w-full p-2 border border-gray-300 rounded" value={formData.delivery_status} onChange={e => setFormData({ ...formData, delivery_status: e.target.value })}>
+                <option value="DELIVERED">DELIVERED</option>
+                <option value="PARTIAL">PARTIAL</option>
+                <option value="DAMAGED">DAMAGED</option>
+                <option value="REFUSED">REFUSED</option>
+                <option value="RETURNED">RETURNED</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <input type="url" placeholder="Signature URL" className="w-full p-2 border border-gray-300 rounded" value={formData.signature_url} onChange={e => setFormData({ ...formData, signature_url: e.target.value })} />
+            <input type="text" placeholder="Photo URLs (comma separated)" className="w-full p-2 border border-gray-300 rounded" onChange={e => setFormData({ ...formData, photo_urls: e.target.value.split(',').map(v => v.trim()).filter(Boolean) })} />
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <input type="number" step="0.000001" placeholder="Latitude" className="w-full p-2 border border-gray-300 rounded" value={formData.delivery_latitude} onChange={e => setFormData({ ...formData, delivery_latitude: e.target.value })} />
+            <input type="number" step="0.000001" placeholder="Longitude" className="w-full p-2 border border-gray-300 rounded" value={formData.delivery_longitude} onChange={e => setFormData({ ...formData, delivery_longitude: e.target.value })} />
+            <input type="number" step="0.01" placeholder="Accuracy (m)" className="w-full p-2 border border-gray-300 rounded" value={formData.location_accuracy_meters} onChange={e => setFormData({ ...formData, location_accuracy_meters: e.target.value })} />
+          </div>
+          <textarea className="w-full p-2 border border-gray-300 rounded" rows="2" placeholder="Remarks" value={formData.remarks} onChange={e => setFormData({ ...formData, remarks: e.target.value })} />
+          <div className="grid grid-cols-2 gap-4">
+            <textarea className="w-full p-2 border border-gray-300 rounded" rows="2" placeholder="Damage notes" value={formData.damage_notes} onChange={e => setFormData({ ...formData, damage_notes: e.target.value })} />
+            <textarea className="w-full p-2 border border-gray-300 rounded" rows="2" placeholder="Shortage notes" value={formData.shortage_notes} onChange={e => setFormData({ ...formData, shortage_notes: e.target.value })} />
+          </div>
+        </div>
         <div className="flex justify-end gap-3 pt-6 border-t">
           <button type="button" onClick={onClose} className="px-5 py-2.5 text-gray-600 bg-gray-100 rounded-lg">Cancel</button>
           <button type="submit" disabled={createPODMutation.isPending} className="px-6 py-2.5 text-white bg-[#0052CC] rounded-lg shadow-md disabled:opacity-50">
@@ -174,7 +207,14 @@ export function EditDeliveryModal({ isOpen, onClose, delivery }) {
     status: delivery?.status || "PENDING",
     remarks: delivery?.remarks || "",
     damage_notes: delivery?.damage_notes || "",
-    shortage_notes: delivery?.shortage_notes || ""
+    shortage_notes: delivery?.shortage_notes || "",
+    signature_url: delivery?.signature_url || "",
+    pod_number: delivery?.pod_number || "",
+    delivery_latitude: delivery?.delivery_latitude || "",
+    delivery_longitude: delivery?.delivery_longitude || "",
+    location_accuracy_meters: delivery?.location_accuracy_meters || "",
+    verified_by: delivery?.verified_by || "",
+    verified_at: delivery?.verified_at || "",
   });
 
   useEffect(() => {
@@ -186,7 +226,14 @@ export function EditDeliveryModal({ isOpen, onClose, delivery }) {
         status: delivery.status || "PENDING",
         remarks: delivery.remarks || "",
         damage_notes: delivery.damage_notes || "",
-        shortage_notes: delivery.shortage_notes || ""
+        shortage_notes: delivery.shortage_notes || "",
+        signature_url: delivery.signature_url || "",
+        pod_number: delivery.pod_number || "",
+        delivery_latitude: delivery.delivery_latitude || "",
+        delivery_longitude: delivery.delivery_longitude || "",
+        location_accuracy_meters: delivery.location_accuracy_meters || "",
+        verified_by: delivery.verified_by || "",
+        verified_at: delivery.verified_at || "",
       });
     }
   }, [delivery, isOpen]);
@@ -237,13 +284,32 @@ export function EditDeliveryModal({ isOpen, onClose, delivery }) {
           </div>
           <div>
             <label className="block text-gray-700 font-medium mb-1">Delivery Status</label>
-            <input
-              type="text"
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC]"
-              value={formData.delivery_status}
-              onChange={e => setFormData({ ...formData, delivery_status: e.target.value })}
-            />
+            <select className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC]" value={formData.delivery_status} onChange={e => setFormData({ ...formData, delivery_status: e.target.value })}>
+              <option value="DELIVERED">DELIVERED</option>
+              <option value="PARTIAL">PARTIAL</option>
+              <option value="DAMAGED">DAMAGED</option>
+              <option value="REFUSED">REFUSED</option>
+              <option value="RETURNED">RETURNED</option>
+            </select>
           </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <input type="text" placeholder="POD Number" className="w-full p-2 border border-gray-300 rounded" value={formData.pod_number} onChange={e => setFormData({ ...formData, pod_number: e.target.value })} />
+          <input type="url" placeholder="Signature URL" className="w-full p-2 border border-gray-300 rounded" value={formData.signature_url} onChange={e => setFormData({ ...formData, signature_url: e.target.value })} />
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          <input type="number" step="0.000001" placeholder="Latitude" className="w-full p-2 border border-gray-300 rounded" value={formData.delivery_latitude} onChange={e => setFormData({ ...formData, delivery_latitude: e.target.value })} />
+          <input type="number" step="0.000001" placeholder="Longitude" className="w-full p-2 border border-gray-300 rounded" value={formData.delivery_longitude} onChange={e => setFormData({ ...formData, delivery_longitude: e.target.value })} />
+          <input type="number" step="0.01" placeholder="Accuracy" className="w-full p-2 border border-gray-300 rounded" value={formData.location_accuracy_meters} onChange={e => setFormData({ ...formData, location_accuracy_meters: e.target.value })} />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <textarea className="w-full p-2 border border-gray-300 rounded" rows="2" placeholder="Damage notes" value={formData.damage_notes} onChange={e => setFormData({ ...formData, damage_notes: e.target.value })} />
+          <textarea className="w-full p-2 border border-gray-300 rounded" rows="2" placeholder="Shortage notes" value={formData.shortage_notes} onChange={e => setFormData({ ...formData, shortage_notes: e.target.value })} />
+        </div>
+        <textarea className="w-full p-2 border border-gray-300 rounded" rows="2" placeholder="Remarks" value={formData.remarks} onChange={e => setFormData({ ...formData, remarks: e.target.value })} />
+        <div className="grid grid-cols-2 gap-4">
+          <input type="text" placeholder="Verified by (UUID)" className="w-full p-2 border border-gray-300 rounded" value={formData.verified_by} onChange={e => setFormData({ ...formData, verified_by: e.target.value })} />
+          <input type="datetime-local" placeholder="Verified at" className="w-full p-2 border border-gray-300 rounded" value={formData.verified_at ? new Date(formData.verified_at).toISOString().slice(0,16) : ''} onChange={e => setFormData({ ...formData, verified_at: e.target.value ? new Date(e.target.value).toISOString() : '' })} />
         </div>
         <div className="flex justify-end gap-3 pt-6 border-t">
           <button type="button" onClick={onClose} className="px-5 py-2.5 text-gray-600 bg-gray-100 rounded-lg">Cancel</button>

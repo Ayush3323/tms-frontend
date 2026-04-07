@@ -34,8 +34,11 @@ export const ordersApi = {
   delete: (id) =>
     axiosInstance.delete(`${BASE_ORDERS}/${id}/`).then(r => r.data),
 
-  assignTrip: (id, data) =>
-    axiosInstance.post(`${BASE_ORDERS}/${id}/assign_trip/`, data).then(r => r.data),
+  assignTrip: (id, data) => {
+    const payload = { ...(data || {}) }
+    delete payload.trip_number // backend always auto-generates unique trip_number
+    return axiosInstance.post(`${BASE_ORDERS}/${id}/assign_trip/`, payload).then(r => r.data)
+  },
 }
 
 // ─── 3. TRIPS ───────────────────────────────────────────────────────────────
@@ -49,8 +52,11 @@ export const tripsApi = {
   get: (id) =>
     axiosInstance.get(`${BASE_TRIPS}/${id}/`).then(r => r.data),
 
-  create: (data) =>
-    axiosInstance.post(`${BASE_TRIPS}/`, data).then(r => r.data),
+  create: (data) => {
+    const payload = { ...(data || {}) }
+    delete payload.trip_number // backend-controlled identifier
+    return axiosInstance.post(`${BASE_TRIPS}/`, payload).then(r => r.data)
+  },
 
   // --- Sub-resources ---
   listStops: (tripId) =>
@@ -69,16 +75,28 @@ export const tripsApi = {
     axiosInstance.get(`${BASE_TRIPS}/${tripId}/documents/`).then(r => r.data),
   createDocument: (tripId, data) =>
     axiosInstance.post(`${BASE_TRIPS}/${tripId}/documents/`, data).then(r => r.data),
+  updateDocument: (tripId, documentId, data) =>
+    axiosInstance.patch(`${BASE_TRIPS}/${tripId}/documents/${documentId}/`, data).then(r => r.data),
+  deleteDocument: (tripId, documentId) =>
+    axiosInstance.delete(`${BASE_TRIPS}/${tripId}/documents/${documentId}/`).then(r => r.data),
 
   listExpenses: (tripId) =>
     axiosInstance.get(`${BASE_TRIPS}/${tripId}/expenses/`).then(r => r.data),
   createExpense: (tripId, data) =>
     axiosInstance.post(`${BASE_TRIPS}/${tripId}/expenses/`, data).then(r => r.data),
+  updateExpense: (tripId, expenseId, data) =>
+    axiosInstance.patch(`${BASE_TRIPS}/${tripId}/expenses/${expenseId}/`, data).then(r => r.data),
+  deleteExpense: (tripId, expenseId) =>
+    axiosInstance.delete(`${BASE_TRIPS}/${tripId}/expenses/${expenseId}/`).then(r => r.data),
 
   listCharges: (tripId) =>
     axiosInstance.get(`${BASE_TRIPS}/${tripId}/charges/`).then(r => r.data),
   createCharge: (tripId, data) =>
     axiosInstance.post(`${BASE_TRIPS}/${tripId}/charges/`, data).then(r => r.data),
+  updateCharge: (tripId, chargeId, data) =>
+    axiosInstance.patch(`${BASE_TRIPS}/${tripId}/charges/${chargeId}/`, data).then(r => r.data),
+  deleteCharge: (tripId, chargeId) =>
+    axiosInstance.delete(`${BASE_TRIPS}/${tripId}/charges/${chargeId}/`).then(r => r.data),
 
   update: (id, data) =>
     axiosInstance.patch(`${BASE_TRIPS}/${id}/`, data).then(r => r.data),
@@ -106,6 +124,8 @@ export const cargoApi = {
     axiosInstance.patch(`${BASE_CARGO}/${id}/`, data).then(r => r.data),
   replace: (id, data) =>
     axiosInstance.put(`${BASE_CARGO}/${id}/`, data).then(r => r.data),
+  delete: (id) =>
+    axiosInstance.delete(`${BASE_CARGO}/${id}/`).then(r => r.data),
 }
 
 // ─── 5. DELIVERIES (POD) ────────────────────────────────────────────────────
@@ -126,4 +146,6 @@ export const deliveriesApi = {
     axiosInstance.patch(`${BASE_DELIVERIES}/${id}/`, data).then(r => r.data),
   replace: (id, data) =>
     axiosInstance.put(`${BASE_DELIVERIES}/${id}/`, data).then(r => r.data),
+  delete: (id) =>
+    axiosInstance.delete(`${BASE_DELIVERIES}/${id}/`).then(r => r.data),
 }
