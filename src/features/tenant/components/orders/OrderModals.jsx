@@ -14,6 +14,53 @@ import {
 import { useDrivers } from '../../queries/drivers/driverCoreQuery';
 import { useVehicles } from '../../queries/vehicles/vehicleQuery';
 
+const REFERENCE_REGEX = /^[A-Za-z0-9/_-]+$/;
+
+const normalizeOrderPayload = (source) => {
+  const payload = { ...source };
+  const nullableFields = ['consignor_id', 'consignee_id', 'broker_id', 'pickup_date', 'delivery_date', 'lr_receiving_date'];
+  nullableFields.forEach((field) => {
+    if (!payload[field]) payload[field] = null;
+  });
+  if (typeof payload.reference_number === 'string') payload.reference_number = payload.reference_number.trim();
+  if (typeof payload.billing_company_name === 'string') payload.billing_company_name = payload.billing_company_name.trim();
+  if (typeof payload.notes === 'string') payload.notes = payload.notes.trim();
+  return payload;
+};
+
+const validateOrderForm = (formData, { requireBillingCustomer = true } = {}) => {
+  const errors = {};
+  const reference = (formData.reference_number || '').trim();
+  const billingName = (formData.billing_company_name || '').trim();
+  const notes = (formData.notes || '').trim();
+  const pickup = formData.pickup_date || '';
+  const delivery = formData.delivery_date || '';
+  const receiving = formData.lr_receiving_date || '';
+
+  if (requireBillingCustomer && !formData.billing_customer_id) {
+    errors.billing_customer_id = 'Billing customer is required.';
+  }
+  if (reference.length > 100) {
+    errors.reference_number = 'Reference number cannot exceed 100 characters.';
+  } else if (reference && !REFERENCE_REGEX.test(reference)) {
+    errors.reference_number = 'Use only letters, numbers, slash (/), underscore (_), or hyphen (-).';
+  }
+  if (billingName.length > 255) {
+    errors.billing_company_name = 'Billing company name cannot exceed 255 characters.';
+  }
+  if (notes.length > 1000) {
+    errors.notes = 'Notes cannot exceed 1000 characters.';
+  }
+  if (pickup && delivery && delivery < pickup) {
+    errors.delivery_date = 'Delivery date cannot be before pickup date.';
+  }
+  if (receiving && pickup && receiving > pickup) {
+    errors.lr_receiving_date = 'LR receiving date cannot be after pickup date.';
+  }
+
+  return errors;
+};
+
 // --- Base Modal Component ---
 export const Modal = ({ isOpen, onClose, title, children }) => {
   if (!isOpen) return null;
@@ -65,16 +112,15 @@ export function CreateOrderModal({ isOpen, onClose }) {
     lr_receiving_date: "",
     billing_company_name: ""
   });
+  const [formErrors, setFormErrors] = useState({});
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const payload = { ...formData };
-    
-    // Normalize empty strings to null for ID and Date fields
-    const optionalFields = ['consignor_id', 'consignee_id', 'broker_id', 'pickup_date', 'delivery_date', 'lr_receiving_date'];
-    optionalFields.forEach(field => {
-      if (!payload[field]) payload[field] = null;
-    });
+    const errors = validateOrderForm(formData, { requireBillingCustomer: true });
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    const payload = normalizeOrderPayload(formData);
 
     createOrderMutation.mutate(payload, {
       onSuccess: () => {
@@ -85,6 +131,7 @@ export function CreateOrderModal({ isOpen, onClose }) {
           lr_receiving_date: "",
           billing_company_name: ""
         });
+        setFormErrors({});
         onClose();
       }
     });
@@ -103,9 +150,12 @@ export function CreateOrderModal({ isOpen, onClose }) {
             </label>
             <select
               required
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              className={`w-full p-2 border rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none ${formErrors.billing_customer_id ? 'border-red-400' : 'border-gray-300'}`}
               value={formData.billing_customer_id}
-              onChange={e => setFormData({ ...formData, billing_customer_id: e.target.value })}
+              onChange={e => {
+                setFormData({ ...formData, billing_customer_id: e.target.value });
+                if (formErrors.billing_customer_id) setFormErrors((prev) => ({ ...prev, billing_customer_id: undefined }));
+              }}
             >
               <option value="">Select Customer</option>
               {customers.map((c, idx) => (
@@ -114,6 +164,7 @@ export function CreateOrderModal({ isOpen, onClose }) {
                 </option>
               ))}
             </select>
+            {formErrors.billing_customer_id && <p className="mt-1 text-xs text-red-600">{formErrors.billing_customer_id}</p>}
           </div>
           <div>
             <label className="block text-gray-700 font-medium mb-1">Order Type</label>
@@ -144,6 +195,38 @@ export function CreateOrderModal({ isOpen, onClose }) {
           </div>
         </div>
 
+        <div className="pt-1 pb-1">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-[#4a6cf7]">Schedule</p>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Pickup Date</label>
+            <input
+              type="date"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              value={formData.pickup_date}
+              onChange={e => setFormData({ ...formData, pickup_date: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Delivery Date</label>
+            <input
+              type="date"
+              min={formData.pickup_date || undefined}
+              className={`w-full p-2 border rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none ${formErrors.delivery_date ? 'border-red-400' : 'border-gray-300'}`}
+              value={formData.delivery_date}
+              onChange={e => {
+                setFormData({ ...formData, delivery_date: e.target.value });
+                if (formErrors.delivery_date) setFormErrors((prev) => ({ ...prev, delivery_date: undefined }));
+              }}
+            />
+            {formErrors.delivery_date && <p className="mt-1 text-xs text-red-600">{formErrors.delivery_date}</p>}
+          </div>
+        </div>
+
+        <details className="rounded-lg border border-gray-200 bg-gray-50/70 p-3" open>
+          <summary className="cursor-pointer text-xs font-bold uppercase tracking-widest text-gray-700">Optional Details</summary>
+          <div className="mt-3 space-y-4">
         <div className="pt-1 pb-1">
           <p className="text-[11px] font-bold uppercase tracking-widest text-[#4a6cf7]">Parties</p>
         </div>
@@ -181,7 +264,7 @@ export function CreateOrderModal({ isOpen, onClose }) {
         </div>
 
         <div className="pt-1 pb-1">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-[#4a6cf7]">Schedule</p>
+          <p className="text-[11px] font-bold uppercase tracking-widest text-[#4a6cf7]">Optional Meta</p>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -221,32 +304,19 @@ export function CreateOrderModal({ isOpen, onClose }) {
             <label className="block text-gray-700 font-medium mb-1">Reference Number</label>
             <input
               type="text"
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              maxLength={100}
+              pattern="[A-Za-z0-9/_-]+"
+              className={`w-full p-2 border rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none ${formErrors.reference_number ? 'border-red-400' : 'border-gray-300'}`}
               placeholder="PO-001..."
               value={formData.reference_number}
-              onChange={e => setFormData({ ...formData, reference_number: e.target.value })}
+              onChange={e => {
+                setFormData({ ...formData, reference_number: e.target.value });
+                if (formErrors.reference_number) setFormErrors((prev) => ({ ...prev, reference_number: undefined }));
+              }}
             />
+            {formErrors.reference_number && <p className="mt-1 text-xs text-red-600">{formErrors.reference_number}</p>}
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-gray-700 font-medium mb-1">Pickup Date</label>
-              <input
-                type="date"
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
-                value={formData.pickup_date}
-                onChange={e => setFormData({ ...formData, pickup_date: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-gray-700 font-medium mb-1">Delivery Date</label>
-              <input
-                type="date"
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
-                value={formData.delivery_date}
-                onChange={e => setFormData({ ...formData, delivery_date: e.target.value })}
-              />
-            </div>
-          </div>
+          <div />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -263,10 +333,15 @@ export function CreateOrderModal({ isOpen, onClose }) {
             <label className="block text-gray-700 font-medium mb-1">LR Receiving Date</label>
             <input
               type="date"
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              max={formData.pickup_date || undefined}
+              className={`w-full p-2 border rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none ${formErrors.lr_receiving_date ? 'border-red-400' : 'border-gray-300'}`}
               value={formData.lr_receiving_date}
-              onChange={e => setFormData({ ...formData, lr_receiving_date: e.target.value })}
+              onChange={e => {
+                setFormData({ ...formData, lr_receiving_date: e.target.value });
+                if (formErrors.lr_receiving_date) setFormErrors((prev) => ({ ...prev, lr_receiving_date: undefined }));
+              }}
             />
+            {formErrors.lr_receiving_date && <p className="mt-1 text-xs text-red-600">{formErrors.lr_receiving_date}</p>}
           </div>
         </div>
 
@@ -276,13 +351,20 @@ export function CreateOrderModal({ isOpen, onClose }) {
         <div>
           <label className="block text-gray-700 font-medium mb-1">Notes</label>
           <textarea
-            className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+            maxLength={1000}
+            className={`w-full p-2 border rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none ${formErrors.notes ? 'border-red-400' : 'border-gray-300'}`}
             rows="3"
             placeholder="Additional instructions..."
             value={formData.notes}
-            onChange={e => setFormData({ ...formData, notes: e.target.value })}
+            onChange={e => {
+              setFormData({ ...formData, notes: e.target.value });
+              if (formErrors.notes) setFormErrors((prev) => ({ ...prev, notes: undefined }));
+            }}
           />
+          {formErrors.notes && <p className="mt-1 text-xs text-red-600">{formErrors.notes}</p>}
         </div>
+          </div>
+        </details>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
           <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
@@ -329,6 +411,7 @@ export function EditOrderModal({ isOpen, onClose, order }) {
     lr_receiving_date: order?.lr_receiving_date || "",
     billing_company_name: order?.billing_company_name || ""
   });
+  const [formErrors, setFormErrors] = useState({});
 
   useEffect(() => {
     if (order && isOpen) {
@@ -352,13 +435,10 @@ export function EditOrderModal({ isOpen, onClose, order }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const payload = { ...formData };
-    
-    // Normalize empty strings to null for ID and Date fields
-    const optionalFields = ['consignor_id', 'consignee_id', 'broker_id', 'pickup_date', 'delivery_date', 'lr_receiving_date'];
-    optionalFields.forEach(field => {
-      if (!payload[field]) payload[field] = null;
-    });
+    const errors = validateOrderForm(formData, { requireBillingCustomer: false });
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+    const payload = normalizeOrderPayload(formData);
 
     updateOrderMutation.mutate({ id: order.id, data: payload, fullReplace: true }, {
       onSuccess: () => onClose()
@@ -368,6 +448,11 @@ export function EditOrderModal({ isOpen, onClose, order }) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Edit Order: ${order?.lr_number}`}>
       <form onSubmit={handleSubmit} className="space-y-4 text-sm">
+        {Object.keys(formErrors).length > 0 && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-700 text-xs">
+            Please fix highlighted fields before saving.
+          </div>
+        )}
         <div className="pt-1 pb-1">
           <p className="text-[11px] font-bold uppercase tracking-widest text-[#4a6cf7]">Billing</p>
         </div>
@@ -436,13 +521,22 @@ export function EditOrderModal({ isOpen, onClose, order }) {
             <label className="block text-gray-700 font-medium mb-1">Reference Number</label>
             <input
               type="text"
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              maxLength={100}
+              pattern="[A-Za-z0-9/_-]+"
+              className={`w-full p-2 border rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none ${formErrors.reference_number ? 'border-red-400' : 'border-gray-300'}`}
               value={formData.reference_number}
-              onChange={e => setFormData({ ...formData, reference_number: e.target.value })}
+              onChange={e => {
+                setFormData({ ...formData, reference_number: e.target.value });
+                if (formErrors.reference_number) setFormErrors((prev) => ({ ...prev, reference_number: undefined }));
+              }}
             />
+            {formErrors.reference_number && <p className="mt-1 text-xs text-red-600">{formErrors.reference_number}</p>}
           </div>
         </div>
 
+        <details className="rounded-lg border border-gray-200 bg-gray-50/70 p-3" open>
+          <summary className="cursor-pointer text-xs font-bold uppercase tracking-widest text-gray-700">Optional Details</summary>
+          <div className="mt-3 space-y-4">
         <div className="pt-1 pb-1">
           <p className="text-[11px] font-bold uppercase tracking-widest text-[#4a6cf7]">Parties</p>
         </div>
@@ -514,10 +608,15 @@ export function EditOrderModal({ isOpen, onClose, order }) {
             <label className="block text-gray-700 font-medium mb-1">LR Receiving Date</label>
             <input
               type="date"
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              max={formData.pickup_date || undefined}
+              className={`w-full p-2 border rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none ${formErrors.lr_receiving_date ? 'border-red-400' : 'border-gray-300'}`}
               value={formData.lr_receiving_date}
-              onChange={e => setFormData({ ...formData, lr_receiving_date: e.target.value })}
+              onChange={e => {
+                setFormData({ ...formData, lr_receiving_date: e.target.value });
+                if (formErrors.lr_receiving_date) setFormErrors((prev) => ({ ...prev, lr_receiving_date: undefined }));
+              }}
             />
+            {formErrors.lr_receiving_date && <p className="mt-1 text-xs text-red-600">{formErrors.lr_receiving_date}</p>}
           </div>
         </div>
 
@@ -535,10 +634,15 @@ export function EditOrderModal({ isOpen, onClose, order }) {
             <label className="block text-gray-700 font-medium mb-1">Delivery Date</label>
             <input
               type="date"
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              min={formData.pickup_date || undefined}
+              className={`w-full p-2 border rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none ${formErrors.delivery_date ? 'border-red-400' : 'border-gray-300'}`}
               value={formData.delivery_date}
-              onChange={e => setFormData({ ...formData, delivery_date: e.target.value })}
+              onChange={e => {
+                setFormData({ ...formData, delivery_date: e.target.value });
+                if (formErrors.delivery_date) setFormErrors((prev) => ({ ...prev, delivery_date: undefined }));
+              }}
             />
+            {formErrors.delivery_date && <p className="mt-1 text-xs text-red-600">{formErrors.delivery_date}</p>}
           </div>
         </div>
 
@@ -548,12 +652,19 @@ export function EditOrderModal({ isOpen, onClose, order }) {
         <div>
           <label className="block text-gray-700 font-medium mb-1">Notes</label>
           <textarea
-            className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+            maxLength={1000}
+            className={`w-full p-2 border rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none ${formErrors.notes ? 'border-red-400' : 'border-gray-300'}`}
             rows="3"
             value={formData.notes}
-            onChange={e => setFormData({ ...formData, notes: e.target.value })}
+            onChange={e => {
+              setFormData({ ...formData, notes: e.target.value });
+              if (formErrors.notes) setFormErrors((prev) => ({ ...prev, notes: undefined }));
+            }}
           />
+          {formErrors.notes && <p className="mt-1 text-xs text-red-600">{formErrors.notes}</p>}
         </div>
+          </div>
+        </details>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
           <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
@@ -582,7 +693,6 @@ export function AssignTripModal({ isOpen, onClose, order, consignor, consignee }
   const [formData, setFormData] = useState({
     driver_id: "",
     vehicle_id: "",
-    trip_number: "",
     trip_type: "FTL",
     origin_address: "",
     destination_address: "",
@@ -601,7 +711,6 @@ export function AssignTripModal({ isOpen, onClose, order, consignor, consignee }
       setFormData({
         driver_id: "",
         vehicle_id: "",
-        trip_number: "",
         trip_type: order.order_type || "FTL",
         origin_address: getAddress(consignor),
         destination_address: getAddress(consignee),
@@ -721,13 +830,12 @@ export function AssignTripModal({ isOpen, onClose, order, consignor, consignee }
             </select>
           </div>
           <div>
-            <label className="block text-gray-700 font-bold mb-1 uppercase text-[10px] tracking-widest">Trip Number (Optional)</label>
+            <label className="block text-gray-700 font-bold mb-1 uppercase text-[10px] tracking-widest">Trip Number</label>
             <input
               type="text"
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
-              placeholder="Auto-generated if left blank"
-              value={formData.trip_number}
-              onChange={e => setFormData({ ...formData, trip_number: e.target.value })}
+              readOnly
+              className="w-full p-2 border border-gray-200 bg-gray-50 rounded text-gray-500 cursor-not-allowed outline-none"
+              value="Auto-generated"
             />
           </div>
         </div>

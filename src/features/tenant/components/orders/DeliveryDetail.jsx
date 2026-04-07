@@ -8,7 +8,7 @@ import {
   PenTool, CheckCircle2,
   Maximize
 } from 'lucide-react';
-import { useDeliveryDetail, useTripDetail } from '../../queries/orders/ordersQuery';
+import { useDeliveryDetail, useTripDetail, useUpdateDelivery, useDeleteDelivery } from '../../queries/orders/ordersQuery';
 import { EditDeliveryModal } from './DeliveryModals';
 
 // --- Shared Components ---
@@ -46,6 +46,8 @@ export default function DeliveryDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const updateDeliveryMutation = useUpdateDelivery();
+  const deleteDeliveryMutation = useDeleteDelivery();
 
   const { data: pod, isLoading, isError, error } = useDeliveryDetail(id);
   const { data: trip } = useTripDetail(pod?.trip_id || pod?.trip || pod?.trip_stop?.trip_id);
@@ -118,8 +120,26 @@ export default function DeliveryDetail() {
                   >
                     Edit Record
                   </button>
-                  <button className="px-5 py-2.5 text-sm font-black text-white bg-green-600 rounded-xl hover:bg-green-700 shadow-lg shadow-green-100 transition-all flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      updateDeliveryMutation.mutate({
+                        id: pod.id,
+                        data: { status: 'VERIFIED', verified_at: new Date().toISOString() }
+                      });
+                    }}
+                    className="px-5 py-2.5 text-sm font-black text-white bg-green-600 rounded-xl hover:bg-green-700 shadow-lg shadow-green-100 transition-all flex items-center gap-2"
+                  >
                     <CheckCircle2 size={16} /> Verify POD
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (window.confirm('Delete this POD record?')) {
+                        deleteDeliveryMutation.mutate(pod.id, { onSuccess: handleBack });
+                      }
+                    }}
+                    className="px-5 py-2.5 text-sm font-black text-red-600 bg-red-50 border border-red-100 rounded-xl hover:bg-red-100 transition-all"
+                  >
+                    Delete
                   </button>
                 </div>
               </div>

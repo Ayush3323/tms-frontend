@@ -12,6 +12,7 @@ import {
   useUpdateOrder, 
   useDeleteOrder, 
   useTrips,
+  useCargoItems,
   useAssignTrip,
   useCancelOrder
 } from '../../queries/orders/ordersQuery';
@@ -338,6 +339,49 @@ const TripsTab = ({ orderId, navigate }) => {
   );
 };
 
+const CargoTab = ({ orderId, navigate }) => {
+  const { data: tripsData, isLoading: loadingTrips } = useTrips({ order_id: orderId, page_size: 200 });
+  const { data: cargoData, isLoading: loadingCargo } = useCargoItems({ page_size: 500 });
+  const trips = tripsData?.results || [];
+  const cargoItems = cargoData?.results || [];
+  const tripIds = new Set(trips.map((t) => String(t.id)));
+  const filteredCargo = cargoItems.filter((c) => tripIds.has(String(c.trip)));
+
+  if (loadingTrips || loadingCargo) {
+    return <div className="p-10 text-center"><Loader2 className="animate-spin inline-block mr-2 text-[#0052CC]" /> Loading cargo...</div>;
+  }
+
+  if (!filteredCargo.length) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-gray-300">
+        <div className="p-6 bg-white rounded-full border border-gray-100 shadow-sm mb-4">
+          <Package size={48} className="opacity-10" />
+        </div>
+        <h3 className="font-bold text-gray-400 uppercase tracking-widest text-[10px]">No Cargo Items Linked</h3>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {filteredCargo.map((item) => (
+        <div key={item.id} className="bg-white border border-gray-100 rounded-xl p-4 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-black text-[#172B4D]">{item.description || 'Cargo Item'}</p>
+            <p className="text-xs text-gray-500 uppercase">{item.item_code || item.id?.slice(-8)} • {item.status || 'PENDING'}</p>
+          </div>
+          <button
+            onClick={() => navigate(`/tenant/dashboard/orders/cargo/${item.id}`)}
+            className="text-xs font-bold text-[#0052CC] hover:underline"
+          >
+            Open Cargo
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 // --- Main Component ---
 
 export default function OrderDetail() {
@@ -541,15 +585,7 @@ export default function OrderDetail() {
                     />
                 )}
                 {activeTab === 'trips' && <TripsTab orderId={id} navigate={navigate} />}
-                {activeTab === 'cargo' && (
-                    <div className="flex flex-col items-center justify-center py-20 text-gray-300">
-                        <div className="p-6 bg-white rounded-full border border-gray-100 shadow-sm mb-4">
-                            <Package size={48} className="opacity-10" />
-                        </div>
-                        <h3 className="font-bold text-gray-400 uppercase tracking-widest text-[10px]">Cargo Inventory</h3>
-                        <p className="text-xs mt-1">Management module coming in next update.</p>
-                    </div>
-                )}
+                {activeTab === 'cargo' && <CargoTab orderId={id} navigate={navigate} />}
                 {activeTab === 'documents' && (
                     <div className="flex flex-col items-center justify-center py-20 text-gray-300">
                         <div className="p-6 bg-white rounded-full border border-gray-100 shadow-sm mb-4">

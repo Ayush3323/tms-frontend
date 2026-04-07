@@ -3,7 +3,8 @@ import {
   LayoutGrid, Users, Globe, Truck, FileText, Shield,
   Wrench, Search, Fuel, Settings, Plug, Tag, ScrollText,
   ChevronDown, ChevronsRight, ChevronsLeft, UserCheck, Phone, GraduationCap,
-  HeartPulse, BarChart2, AlertTriangle, CalendarClock, Car, Banknote, UserPlus, UserMinus, Briefcase, Building2
+  HeartPulse, BarChart2, AlertTriangle, CalendarClock, Car, Banknote, UserPlus, UserMinus, Briefcase, Building2,
+  Package, MapPinned, ClipboardCheck,
 } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 
@@ -49,13 +50,23 @@ const customerSubItems = [
   { name: 'Agents', icon: <Globe size={13} />, path: '/tenant/dashboard/customers/agents', badge: null },
 ];
 
+const ORDERS_ROOT = '/tenant/dashboard/orders';
+const ORDER_MODULE_RESERVED = new Set(['trips', 'cargo', 'deliveries', 'trip-manager']);
 const orderSubItems = [
-  { name: 'All Orders (LR)', icon: <FileText size={13} />, path: '/tenant/dashboard/orders', badge: null },
-  { name: 'Trips', icon: <Globe size={13} />, path: '/tenant/dashboard/orders/trips', badge: null },
-  { name: 'Trip Manager', icon: <Wrench size={13} />, path: '/tenant/dashboard/orders/trip-manager', badge: null },
-  { name: 'Cargo Items', icon: <LayoutGrid size={13} />, path: '/tenant/dashboard/orders/cargo', badge: null },
-  { name: 'Deliveries (POD)', icon: <Shield size={13} />, path: '/tenant/dashboard/orders/deliveries', badge: null },
+  { name: 'All Orders', icon: <FileText size={13} />, path: '/tenant/dashboard/orders', badge: null },
+  { name: 'Trips', icon: <MapPinned size={13} />, path: '/tenant/dashboard/orders/trips', badge: null },
+  { name: 'Trip Manager', icon: <MapPinned size={13} />, path: '/tenant/dashboard/orders/trip-manager', badge: null },
+  { name: 'Cargo', icon: <Package size={13} />, path: '/tenant/dashboard/orders/cargo', badge: null },
+  { name: 'Deliveries', icon: <ClipboardCheck size={13} />, path: '/tenant/dashboard/orders/deliveries', badge: null },
 ];
+
+/** Orders list, order detail, and order-scoped trip stop manager (orders/:id/trips) — not global trips/cargo/deliveries lists */
+function isOrdersNavActive(pathname) {
+  if (pathname === ORDERS_ROOT) return true;
+  const m = pathname.match(/^\/tenant\/dashboard\/orders\/([^/]+)(\/.*)?$/);
+  if (!m) return false;
+  return !ORDER_MODULE_RESERVED.has(m[1]);
+}
 
 const SubMenu = ({ items, onNavigate }) => (
   <div className="ml-5 mt-1 mb-1 space-y-0.5">
@@ -66,7 +77,7 @@ const SubMenu = ({ items, onNavigate }) => (
 
         onClick={onNavigate}
 
-        end={item.path === '/tenant/dashboard/vehicles' || item.path === '/tenant/dashboard/drivers' || item.path === '/tenant/dashboard/users' || item.path === '/tenant/dashboard/customers' || item.path === '/tenant/dashboard/orders'}
+        end={item.path === '/tenant/dashboard/vehicles' || item.path === '/tenant/dashboard/drivers' || item.path === '/tenant/dashboard/users' || item.path === '/tenant/dashboard/customers'}
 
         className={({ isActive }) =>
           `flex items-center gap-2 px-2.5 py-[6px] rounded-md text-[12.5px] transition-all border ${isActive
@@ -94,7 +105,12 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const isDriverPath = location.pathname.startsWith('/tenant/dashboard/drivers');
   const isUserPath = location.pathname.startsWith('/tenant/dashboard/users');
   const isCustomerPath = location.pathname.startsWith('/tenant/dashboard/customers');
-  const isOrderPath = location.pathname.startsWith('/tenant/dashboard/orders');
+  const ordersNavActive = isOrdersNavActive(location.pathname);
+  const isTripsPath = location.pathname.startsWith(`${ORDERS_ROOT}/trips`);
+  const isTripManagerPath = location.pathname.startsWith(`${ORDERS_ROOT}/trip-manager`);
+  const isCargoPath = location.pathname.startsWith(`${ORDERS_ROOT}/cargo`);
+  const isDeliveriesPath = location.pathname.startsWith(`${ORDERS_ROOT}/deliveries`);
+  const isOrderPath = ordersNavActive || isTripsPath || isTripManagerPath || isCargoPath || isDeliveriesPath;
 
   const [vehiclesOpen, setVehiclesOpen] = useState(isVehiclePath);
   const [driversOpen, setDriversOpen] = useState(isDriverPath);
