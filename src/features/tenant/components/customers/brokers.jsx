@@ -99,23 +99,23 @@ const BrokersDashboard = () => {
   const userToCustomerMap = useMemo(() => {
     const map = {};
     allEntities.forEach(c => {
-      const uid = c.user?.id || 
-                  c.user_id || 
-                  c.portal_user_id || 
-                  c.portal_user?.id || 
-                  c.customer?.user?.id || 
-                  c.customer?.user_id ||
-                  c.customer?.portal_user_id ||
-                  (typeof c.user !== 'object' ? c.user : null) ||
-                  (typeof c.portal_user !== 'object' ? c.portal_user : null);
+      const uid = c.user?.id ||
+        c.user_id ||
+        c.portal_user_id ||
+        c.portal_user?.id ||
+        c.customer?.user?.id ||
+        c.customer?.user_id ||
+        c.customer?.portal_user_id ||
+        (typeof c.user !== 'object' ? c.user : null) ||
+        (typeof c.portal_user !== 'object' ? c.portal_user : null);
 
       if (uid) {
-        const name = c.legal_name || 
-                     c.trading_name || 
-                     c.name || 
-                     c.customer?.legal_name || 
-                     c.customer?.trading_name || 
-                     'Another Entity';
+        const name = c.legal_name ||
+          c.trading_name ||
+          c.name ||
+          c.customer?.legal_name ||
+          c.customer?.trading_name ||
+          'Another Entity';
         map[String(uid)] = name;
       }
     });
@@ -590,8 +590,14 @@ const BrokersDashboard = () => {
                   const val = e.target.value;
                   setField('legal_name', val);
                   const match = eligibleCustomers.find(c => c.legal_name?.toLowerCase() === val.toLowerCase());
-                  if (match) setField('customer_id', match.id);
-                  else setField('customer_id', '');
+                  if (match) {
+                    setField('customer_id', match.id);
+                    // Prefill tax_id and pan_number from matched customer
+                    if (match.tax_id) setField('tax_id', match.tax_id);
+                    if (match.pan_number) setField('pan_number', match.pan_number);
+                  } else {
+                    setField('customer_id', '');
+                  }
                 }}
                 disabled={modal.type === 'edit'}
                 placeholder="Enter customer legal name..."

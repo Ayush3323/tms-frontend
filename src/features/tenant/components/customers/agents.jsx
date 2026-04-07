@@ -100,23 +100,23 @@ const AgentsDashboard = () => {
   const userToCustomerMap = useMemo(() => {
     const map = {};
     allEntities.forEach(c => {
-      const uid = c.user?.id || 
-                  c.user_id || 
-                  c.portal_user_id || 
-                  c.portal_user?.id || 
-                  c.customer?.user?.id || 
-                  c.customer?.user_id ||
-                  c.customer?.portal_user_id ||
-                  (typeof c.user !== 'object' ? c.user : null) ||
-                  (typeof c.portal_user !== 'object' ? c.portal_user : null);
+      const uid = c.user?.id ||
+        c.user_id ||
+        c.portal_user_id ||
+        c.portal_user?.id ||
+        c.customer?.user?.id ||
+        c.customer?.user_id ||
+        c.customer?.portal_user_id ||
+        (typeof c.user !== 'object' ? c.user : null) ||
+        (typeof c.portal_user !== 'object' ? c.portal_user : null);
 
       if (uid) {
-        const name = c.legal_name || 
-                     c.trading_name || 
-                     c.name || 
-                     c.customer?.legal_name || 
-                     c.customer?.trading_name || 
-                     'Another Entity';
+        const name = c.legal_name ||
+          c.trading_name ||
+          c.name ||
+          c.customer?.legal_name ||
+          c.customer?.trading_name ||
+          'Another Entity';
         map[String(uid)] = name;
       }
     });

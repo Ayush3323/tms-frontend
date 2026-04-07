@@ -140,10 +140,10 @@ const TollTagModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) 
                 <div className="col-span-2">
                   <Label required={!isEdit}>Vehicle</Label>
                   <VehicleSelect
-                  value={form.vehicle}
-                  placeholder={initial?.vehicle_registration_number || initial?.vehicle_registration || initial?.vehicle_display}
-                  onChange={(id) => setForm(p => ({ ...p, vehicle: id }))}
-                />
+                    value={form.vehicle}
+                    placeholder={initial?.vehicle_registration_number || initial?.vehicle_registration || initial?.vehicle_display}
+                    onChange={(id) => setForm(p => ({ ...p, vehicle: id }))}
+                  />
                 </div>
               )}
               <Field label="Tag Number" required>
