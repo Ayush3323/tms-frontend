@@ -31,6 +31,7 @@ import TripsDashboard from '../components/orders/Trips';
 import TripDetail from '../components/orders/TripDetail';
 import TripNestedSubResource from '../components/orders/TripNestedSub-Resource';
 import CreateTripPage from '../components/orders/CreateTripPage';
+import TripManagerPlaceholder from '../components/orders/TripManagerPlaceholder';
 
 import CargoDashboard from '../components/orders/Cargo';
 import CargoDetail from '../components/orders/CargoDetail';
@@ -150,7 +151,7 @@ const Routing = () => {
 
         <Route path="orders/:id" element={<ErrorBoundary><OrderDetail /></ErrorBoundary>} />
         <Route path="orders/:id/trips" element={<ErrorBoundary><TripNestedSubResource /></ErrorBoundary>} />
-        <Route path="orders/trip-manager" element={<ErrorBoundary><TripNestedSubResource /></ErrorBoundary>} />
+        <Route path="orders/trip-manager" element={<ErrorBoundary><TripManagerPlaceholder /></ErrorBoundary>} />
 
         {/* Finance */}
         <Route path="finance/invoices" element={<InvoicesDashboard />} />
