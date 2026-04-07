@@ -42,8 +42,6 @@ export function CreateCargoModal({ isOpen, onClose }) {
   const createCargoMutation = useCreateCargo();
   const { data: tripsData } = useTrips({ page_size: 100 });
   const trips = tripsData?.results || [];
-  const { data: tripStopsData } = useTripStops(formData.trip || null);
-  const tripStops = Array.isArray(tripStopsData?.results) ? tripStopsData.results : (Array.isArray(tripStopsData) ? tripStopsData : []);
 
   const [formData, setFormData] = useState({
     trip: "",
@@ -68,6 +66,8 @@ export function CreateCargoModal({ isOpen, onClose }) {
     orientation: "NA",
     status: "PENDING"
   });
+  const { data: tripStopsData } = useTripStops(formData.trip || null);
+  const tripStops = Array.isArray(tripStopsData?.results) ? tripStopsData.results : (Array.isArray(tripStopsData) ? tripStopsData : []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -275,8 +275,6 @@ export function EditCargoModal({ isOpen, onClose, item }) {
   const updateCargoMutation = useUpdateCargo();
   const { data: tripsData } = useTrips({ page_size: 100 });
   const trips = tripsData?.results || [];
-  const { data: tripStopsData } = useTripStops(formData.trip || null);
-  const tripStops = Array.isArray(tripStopsData?.results) ? tripStopsData.results : (Array.isArray(tripStopsData) ? tripStopsData : []);
 
   const [formData, setFormData] = useState({
     trip: item?.trip || "",
@@ -301,6 +299,8 @@ export function EditCargoModal({ isOpen, onClose, item }) {
     stackable: item?.stackable ?? true,
     insurance_required: item?.insurance_required || false
   });
+  const { data: tripStopsData } = useTripStops(formData.trip || null);
+  const tripStops = Array.isArray(tripStopsData?.results) ? tripStopsData.results : (Array.isArray(tripStopsData) ? tripStopsData : []);
 
   useEffect(() => {
     if (item && isOpen) {
