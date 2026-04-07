@@ -191,7 +191,7 @@ const DocModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => {
                   onChange={(id) => setForm(p => ({ ...p, vehicle: id }))}
                 />
                 {isEdit && !form.vehicle && (
-                  <p className="text-[11px] text-orange-500 mt-1">⚠ Vehicle info not available in API — will be preserved on update</p>
+                  <p className="text-[11px] text-orange-500 mt-1"></p>
                 )}
               </Field>
             )}
@@ -239,6 +239,7 @@ const VehicleDocuments = ({ vehicleId, isTab }) => {
   const [viewTarget, setView] = useState(null);
   const [deleteTarget, setDelete] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [showAlertModal, setShowAlertModal] = useState(false);
 
   const del = useDeleteVehicleDocument();
 
@@ -257,6 +258,13 @@ const VehicleDocuments = ({ vehicleId, isTab }) => {
   const expiring = docs.filter(d => d.status === 'EXPIRING_SOON').length;
   const expired = docs.filter(d => d.status === 'EXPIRED').length;
 
+  // Auto-show modal if there are expired or expiring documents (only on first load with data)
+  useEffect(() => {
+    if ((expired > 0 || expiring > 0) && !isLoading) {
+      setShowAlertModal(true);
+    }
+  }, [expired, expiring, isLoading]);
+
   const content = (
     <div className={`flex flex-col h-full ${isTab ? '' : 'p-6 bg-[#f8fafc] flex-1 min-h-0 overflow-hidden relative font-sans text-slate-900'}`}>
 
@@ -270,6 +278,89 @@ const VehicleDocuments = ({ vehicleId, isTab }) => {
         <DeleteConfirm label="Document" onClose={() => setDelete(null)}
           onConfirm={() => del.mutate(deleteTarget.id, { onSuccess: () => setDelete(null) })}
           deleting={del.isPending} />
+      )}
+
+      {showAlertModal && (
+        <Modal
+          title="Compliance & Renewal Alerts"
+          onClose={() => setShowAlertModal(false)}
+          maxWidth="max-w-4xl"
+          isView
+        >
+          <div className="space-y-4">
+            <div className={`flex items-center gap-3 p-4 rounded-2xl border ${expired > 0 ? 'bg-red-50 border-red-100 text-red-700' : 'bg-orange-50 border-orange-100 text-orange-700'}`}>
+              {expired > 0 ? <AlertCircle size={24} className="shrink-0 animate-pulse" /> : <Clock size={24} className="shrink-0 animate-bounce" />}
+              <div>
+                <p className="font-black text-sm uppercase tracking-tight">
+                  {expired > 0 ? 'Critical Expirations Detected' : 'Upcoming Renewals Needed'}
+                </p>
+                <p className="text-xs font-bold opacity-80">
+                  {expired > 0
+                    ? `You have ${expired} expired documents. Please renew them immediately to avoid legal and operational issues.`
+                    : `You have ${expiring} documents expiring soon. Please plan their renewal to ensure continuous compliance.`
+                  }
+                </p>
+              </div>
+            </div>
+
+            <div className="overflow-hidden border border-gray-100 rounded-2xl shadow-sm">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                    <th className="px-4 py-3 text-left">Vehicle</th>
+                    <th className="px-4 py-3 text-left">Doc Type</th>
+                    <th className="px-4 py-3 text-left">Expiry Date</th>
+                    <th className="px-4 py-3 text-left">Status</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {docs
+                    .filter(d => d.status === 'EXPIRED' || d.status === 'EXPIRING_SOON')
+                    .sort((a, b) => a.status === 'EXPIRED' ? -1 : 1)
+                    .map(d => (
+                      <tr key={d.id} className={`hover:bg-gray-50/50 transition-colors ${d.status === 'EXPIRED' ? 'bg-red-50/20' : ''}`}>
+                        <td className="px-4 py-3 font-mono font-bold text-[#172B4D] uppercase">
+                          {typeof d.vehicle === 'object' ? d.vehicle?.registration_number : d.vehicle_registration_number || d.vehicle_display}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-black border ${DOC_TYPE_COLORS[d.document_type]}`}>
+                            {d.document_type}
+                          </span>
+                        </td>
+                        <td className={`px-4 py-3 font-bold text-xs ${d.status === 'EXPIRED' ? 'text-red-600' : 'text-orange-600'}`}>
+                          {fmtDate(d.expiry_date)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge className={STATUS_STYLES[d.status].color}>
+                            <span className={`w-1 h-1 rounded-full ${STATUS_STYLES[d.status].dot}`} />
+                            {STATUS_STYLES[d.status].label}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            onClick={() => { setShowAlertModal(false); setModal(d); }}
+                            className="px-3 py-1 bg-white border border-gray-200 rounded-lg text-[11px] font-bold text-[#0052CC] hover:bg-blue-50 transition-all shadow-sm"
+                          >
+                            Edit / Renew
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setShowAlertModal(false)}
+                className="px-6 py-2 bg-gray-100 text-gray-600 rounded-xl text-sm font-bold hover:bg-gray-200 transition-all shadow-md active:scale-95"
+              >
+                Dismiss Alerts
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
 
       {/* Header — hidden in tab mode */}
@@ -346,13 +437,23 @@ const VehicleDocuments = ({ vehicleId, isTab }) => {
                 <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Valid:</span>
                 <span className="text-[18px] font-black text-emerald-600">{valid}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Expiring:</span>
-                <span className="text-[18px] font-black text-orange-500">{expiring}</span>
+              <div
+                className={`flex items-center gap-2 transition-all duration-300 p-2 rounded-xl ${expiring > 0 ? 'bg-orange-50/50 cursor-pointer hover:bg-orange-100/80 hover:scale-105 shadow-sm shadow-orange-100 group/expiring' : ''}`}
+                onClick={() => expiring > 0 && setShowAlertModal(true)}
+                title={expiring > 0 ? "Click to view upcoming renewals" : ""}
+              >
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider group-hover/expiring:text-orange-700">Expiring:</span>
+                <span className={`text-[18px] font-black ${expiring > 0 ? 'text-orange-500 animate-pulse' : 'text-orange-500'}`}>{expiring}</span>
+                {expiring > 0 && <Clock size={14} className="text-orange-500 animate-spin-slow" />}
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Expired:</span>
-                <span className="text-[18px] font-black text-red-600">{expired}</span>
+              <div
+                className={`flex items-center gap-2 transition-all duration-300 p-2 rounded-xl ${expired > 0 ? 'bg-red-50/50 cursor-pointer hover:bg-red-100/80 hover:scale-105 shadow-sm shadow-red-100 group/expired' : ''}`}
+                onClick={() => expired > 0 && setShowAlertModal(true)}
+                title={expired > 0 ? "Click to view expired documents" : ""}
+              >
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider group-hover/expired:text-red-700">Expired:</span>
+                <span className={`text-[18px] font-black ${expired > 0 ? 'text-red-600 animate-pulse' : 'text-red-600'}`}>{expired}</span>
+                {expired > 0 && <AlertCircle size={14} className="text-red-500 animate-bounce" />}
               </div>
             </>
           )}
@@ -369,72 +470,72 @@ const VehicleDocuments = ({ vehicleId, isTab }) => {
 
 
         <div>
-        {/* Filters & Pagination Row */}
-        <div className="flex items-center justify-between px-5 py-3 bg-white border-b border-gray-50 h-[60px]">
-          <div className="flex items-center gap-6">
-            {isTab && (
-              <div className="relative w-64 text-gray-400">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Search number..."
-                  className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border-none rounded-lg focus:ring-2 focus:ring-[#0052CC]/10 text-[#172B4D] font-medium"
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                />
-                {search && (
-                  <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500">
-                    <X size={14} />
-                  </button>
-                )}
+          {/* Filters & Pagination Row */}
+          <div className="flex items-center justify-between px-5 py-3 bg-white border-b border-gray-50 h-[60px]">
+            <div className="flex items-center gap-6">
+              {isTab && (
+                <div className="relative w-64 text-gray-400">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search number..."
+                    className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border-none rounded-lg focus:ring-2 focus:ring-[#0052CC]/10 text-[#172B4D] font-medium"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                  />
+                  {search && (
+                    <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500">
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+              )}
+              <div className="relative">
+                <select
+                  value={typeFilter}
+                  onChange={e => setType(e.target.value)}
+                  className="appearance-none pl-3 pr-8 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-[12px] font-bold text-[#172B4D] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all hover:border-gray-200 cursor-pointer shadow-sm"
+                >
+                  <option value="">All Types</option>
+                  {DOC_TYPES.map(o => <option key={o} value={o}>{o}</option>)}
+                </select>
+                <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               </div>
-            )}
-            <div className="relative">
-              <select
-                value={typeFilter}
-                onChange={e => setType(e.target.value)}
-                className="appearance-none pl-3 pr-8 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-[12px] font-bold text-[#172B4D] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all hover:border-gray-200 cursor-pointer shadow-sm"
-              >
-                <option value="">All Types</option>
-                {DOC_TYPES.map(o => <option key={o} value={o}>{o}</option>)}
-              </select>
-              <ChevronDown size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              {typeFilter && (
+                <button
+                  onClick={() => setType('')}
+                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                  title="Clear Filters"
+                >
+                  <RotateCcw size={14} />
+                </button>
+              )}
             </div>
-            {typeFilter && (
-              <button
-                onClick={() => setType('')}
-                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                title="Clear Filters"
-              >
-                <RotateCcw size={14} />
-              </button>
+
+            {!isTab && (
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1 || isLoading}
+                  className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+                >
+                  Previous
+                </button>
+
+                <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
+                  {currentPage}
+                </div>
+
+                <button
+                  onClick={() => setCurrentPage(prev => prev + 1)}
+                  disabled={!data?.next || isLoading}
+                  className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+                >
+                  Next
+                </button>
+              </div>
             )}
           </div>
-
-          {!isTab && (
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1 || isLoading}
-                className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-              >
-                Previous
-              </button>
-
-              <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
-                {currentPage}
-              </div>
-
-              <button
-                onClick={() => setCurrentPage(prev => prev + 1)}
-                disabled={!data?.next || isLoading}
-                className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
-              >
-                Next
-              </button>
-            </div>
-          )}
-        </div>
         </div>
 
         {isLoading && <TabContentShimmer />}

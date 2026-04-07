@@ -57,9 +57,26 @@ const FormSec = ({ title }) => (
 );
 
 const vehicleDisplay = (v, item) => {
-  if (!v) return '—';
-  if (typeof v === 'object') return v.registration_number ?? '—';
-  return item?.vehicle_registration_number ?? item?.vehicle_registration ?? item?.vehicle_display ?? v;
+  if (!v && !item) return '—';
+  
+  // if v is the vehicle object (from expand=vehicle)
+  if (typeof v === 'object' && v !== null) {
+    return v.registration_number || v.registration || v.vehicle_number || v.display_name || '—';
+  }
+  
+  // check for registration fields directly on the item
+  const reg = item?.vehicle_registration_number || 
+              item?.vehicle_registration || 
+              item?.registration_number || 
+              item?.registration || 
+              item?.vehicle_display || 
+              item?.vehicle_name ||
+              item?.display_name;
+              
+  if (reg) return reg;
+
+  // last resort: return the raw vehicle ID if it exists, otherwise dash
+  return v || '—';
 };
 
 const daysUntil = (date) => {
@@ -520,6 +537,7 @@ const SchedulesTab = ({ onEdit, onDelete, onView, onAdd, vehicleId, isTab }) => 
     ...(typeFilter && { maintenance_type: typeFilter }),
     ...(search && { search }),
     ...(vehicleId && { vehicle: vehicleId }),
+    expand: 'vehicle',
     page: currentPage,
   });
 
@@ -696,6 +714,7 @@ const RecordsTab = ({ onEdit, onDelete, onView, onAdd, vehicleId, isTab }) => {
   const { data, isLoading, isError, error, refetch } = useMaintenanceRecords({
     ...(search && { search }),
     ...(vehicleId && { vehicle: vehicleId }),
+    expand: 'vehicle',
     page: currentPage,
   });
 
