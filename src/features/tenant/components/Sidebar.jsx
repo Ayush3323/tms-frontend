@@ -53,14 +53,14 @@ const customerSubItems = [
 const ORDERS_ROOT = '/tenant/dashboard/orders';
 const ORDER_MODULE_RESERVED = new Set(['trips', 'cargo', 'deliveries', 'trip-manager']);
 const orderSubItems = [
-  { name: 'All Orders', icon: <FileText size={13} />, path: '/tenant/dashboard/orders', badge: null },
+  { name: 'Orders', icon: <FileText size={13} />, path: '/tenant/dashboard/orders', badge: null },
   { name: 'Trips', icon: <MapPinned size={13} />, path: '/tenant/dashboard/orders/trips', badge: null },
-  { name: 'Trip Manager', icon: <MapPinned size={13} />, path: '/tenant/dashboard/orders/trip-manager', badge: null },
+  { name: 'Trip Ops', icon: <MapPinned size={13} />, path: '/tenant/dashboard/orders/trip-manager', badge: null },
   { name: 'Cargo', icon: <Package size={13} />, path: '/tenant/dashboard/orders/cargo', badge: null },
   { name: 'Deliveries', icon: <ClipboardCheck size={13} />, path: '/tenant/dashboard/orders/deliveries', badge: null },
 ];
 
-/** Orders list, order detail, and order-scoped trip stop manager (orders/:id/trips) — not global trips/cargo/deliveries lists */
+/** Orders area root (order list/detail + related operational modules). */
 function isOrdersNavActive(pathname) {
   if (pathname === ORDERS_ROOT) return true;
   const m = pathname.match(/^\/tenant\/dashboard\/orders\/([^/]+)(\/.*)?$/);
@@ -250,7 +250,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                 setIsOpen={setOrdersOpen}
                 isActive={isOrderPath}
                 subItems={orderSubItems}
-                title="Orders Management"
+                title="Orders & Operations"
               />
             </nav>
           </div>
