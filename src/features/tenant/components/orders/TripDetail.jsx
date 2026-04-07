@@ -6,13 +6,14 @@ import {
   AlertCircle, Hash, Clock, CheckCircle2,
   User, Shield, FileText, Receipt, Edit3,
   CreditCard, History, Plus, ArrowRight,
-  Gauge, Zap, DollarSign, Activity, Package as PackageIcon, Trash2, Save
+  Gauge, Zap, DollarSign, Activity, Package as PackageIcon, Trash2, Save, X
 } from 'lucide-react';
 import {
   useTripDetail, useTripStops, useTripDocuments,
   useTripExpenses, useTripCharges, useTripStatusHistory,
   useOrderDetail, useDeleteTrip, useCreateTripStop,
-  useUpdateTripStop, useDeleteTripStop, useTripDeliveries, useCreatePOD
+  useUpdateTripStop, useDeleteTripStop, useTripDeliveries, useCreatePOD,
+  useUpdateTripExpense, useDeleteTripExpense, useUpdateTripCharge, useDeleteTripCharge, useUpdateTrip
 } from '../../queries/orders/ordersQuery';
 import { useDriverDetail } from '../../queries/drivers/driverCoreQuery';
 import { useVehicle } from '../../queries/vehicles/vehicleQuery';
@@ -38,6 +39,29 @@ const SectionHeader = ({ icon: Icon, title, action }) => (
     {action}
   </div>
 );
+
+const EditFinanceModal = ({ isOpen, onClose, value, onChange, onSubmit, isPending, title }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[500] flex items-center justify-center bg-[#0f172a]/70 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+      <div className="w-full max-w-lg bg-white rounded-2xl border border-gray-100 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h3 className="text-xs font-black uppercase tracking-wider text-[#172B4D]">{title}</h3>
+          <button type="button" onClick={onClose} className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all">
+            <X size={16} />
+          </button>
+        </div>
+        <form onSubmit={onSubmit} className="p-6 space-y-4">
+          <input type="number" required step="0.01" className="w-full p-2.5 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#4a6cf7]" placeholder="Amount" value={value.amount} onChange={(e) => onChange((p) => ({ ...p, amount: e.target.value }))} />
+          <textarea rows="3" className="w-full p-2.5 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#4a6cf7]" placeholder="Description" value={value.description} onChange={(e) => onChange((p) => ({ ...p, description: e.target.value }))} />
+          <button type="submit" disabled={isPending} className="w-full py-2.5 rounded-lg bg-[#4a6cf7] text-white font-bold text-sm hover:bg-[#3b59d9] disabled:opacity-50">
+            {isPending ? 'Saving...' : 'Save Changes'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
 
 const LABEL_MAP = {
   status: 'Status',
@@ -87,6 +111,18 @@ const LABEL_MAP = {
   payment_received_date: 'Payment Date',
   pod_received_date: 'POD Received Date',
   pod_turnaround_days: 'POD TAT (days)',
+};
+
+const TRIP_TRANSITIONS = {
+  CREATED: ['ASSIGNED', 'CANCELLED'],
+  ASSIGNED: ['DISPATCHED', 'CANCELLED'],
+  DISPATCHED: ['IN_TRANSIT', 'CANCELLED'],
+  IN_TRANSIT: ['DELAYED', 'ARRIVED', 'DELIVERED', 'COMPLETED', 'CANCELLED'],
+  DELAYED: ['IN_TRANSIT', 'CANCELLED'],
+  ARRIVED: ['DELIVERED', 'COMPLETED', 'CANCELLED'],
+  DELIVERED: ['COMPLETED'],
+  COMPLETED: [],
+  CANCELLED: [],
 };
 
 const InfoCard = ({ label, value, icon: Icon, accent = false, isLoading = false }) => (
@@ -428,7 +464,7 @@ const DeliveriesTab = ({ tripId, deliveries, createDelivery, isCreating }) => {
   );
 };
 
-const FinanceTab = ({ trip, expenses, charges, isLoadingExp, isLoadingChg }) => (
+const FinanceTab = ({ trip, expenses, charges, isLoadingExp, isLoadingChg, onEditFinance, onDeleteFinance }) => (
   <div className="space-y-6">
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <InfoCard label="total_bill_amount" value={`${trip.total_bill_amount || '0.00'} INR`} icon={DollarSign} accent />
@@ -462,6 +498,31 @@ const FinanceTab = ({ trip, expenses, charges, isLoadingExp, isLoadingChg }) => 
           <InfoCard label="pod_turnaround_days" value={`${trip.pod_turnaround_days || '—'} Days`} icon={Clock} />
         </div>
       </div>
+    </div>
+    <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+      <SectionHeader icon={Receipt} title="Expense & Charge Records" />
+      {(isLoadingExp || isLoadingChg) ? (
+        <div className="flex justify-center p-8"><Loader2 className="animate-spin text-blue-600" /></div>
+      ) : (
+        <div className="space-y-3">
+          {[...(expenses || []).map(e => ({ ...e, res_type: 'EXPENSE', label: e.expense_type })), ...(charges || []).map(c => ({ ...c, res_type: 'CHARGE', label: c.charge_type }))].map((item) => (
+            <div key={item.id} className="flex items-center justify-between p-3 rounded-xl border border-gray-100">
+              <div>
+                <p className="text-sm font-bold text-[#172B4D]">{item.label || item.res_type}</p>
+                <p className="text-xs text-gray-500">{item.res_type} • {item.status || 'PENDING'}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <p className="text-sm font-extrabold text-[#172B4D]">{item.amount || '0.00'} {item.currency || 'INR'}</p>
+                <button type="button" onClick={() => onEditFinance(item)} className="px-2 py-1 text-xs rounded bg-slate-100 text-slate-700">Edit</button>
+                <button type="button" onClick={() => onDeleteFinance(item)} className="px-2 py-1 text-xs rounded bg-red-100 text-red-700">Delete</button>
+              </div>
+            </div>
+          ))}
+          {((expenses || []).length + (charges || []).length) === 0 && (
+            <div className="text-center p-6 text-sm text-gray-400">No expense or charge records found.</div>
+          )}
+        </div>
+      )}
     </div>
   </div>
 );
@@ -538,6 +599,8 @@ export default function TripDetail() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editFinanceItem, setEditFinanceItem] = useState(null);
+  const [editFinanceForm, setEditFinanceForm] = useState({ amount: '', description: '' });
   const deleteTripMutation = useDeleteTrip();
 
   const handleBack = () => navigate('/tenant/dashboard/orders/trips');
@@ -563,6 +626,53 @@ export default function TripDetail() {
   const updateStopMutation = useUpdateTripStop(id);
   const deleteStopMutation = useDeleteTripStop(id);
   const createPODMutation = useCreatePOD();
+  const updateTripMutation = useUpdateTrip();
+  const updateExpenseMutation = useUpdateTripExpense(id);
+  const deleteExpenseMutation = useDeleteTripExpense(id);
+  const updateChargeMutation = useUpdateTripCharge(id);
+  const deleteChargeMutation = useDeleteTripCharge(id);
+
+  const handleEditFinance = (item) => {
+    setEditFinanceItem(item);
+    setEditFinanceForm({
+      amount: item.amount ?? '',
+      description: item.description || item.remarks || '',
+    });
+  };
+
+  const handleDeleteFinance = (item) => {
+    if (!window.confirm(`Delete this ${item.res_type.toLowerCase()} record?`)) return;
+    if (item.res_type === 'EXPENSE') {
+      deleteExpenseMutation.mutate(item.id);
+    } else {
+      deleteChargeMutation.mutate(item.id);
+    }
+  };
+
+  const closeEditFinanceModal = () => {
+    setEditFinanceItem(null);
+    setEditFinanceForm({ amount: '', description: '' });
+  };
+
+  const handleSaveFinance = (e) => {
+    e.preventDefault();
+    if (!editFinanceItem) return;
+    const payload = {
+      amount: editFinanceForm.amount,
+      description: editFinanceForm.description,
+    };
+    if (editFinanceItem.res_type === 'EXPENSE') {
+      updateExpenseMutation.mutate(
+        { expenseId: editFinanceItem.id, data: payload },
+        { onSuccess: closeEditFinanceModal }
+      );
+    } else {
+      updateChargeMutation.mutate(
+        { chargeId: editFinanceItem.id, data: payload },
+        { onSuccess: closeEditFinanceModal }
+      );
+    }
+  };
 
   const driverId = trip?.primary_driver_id || trip?.driver_id;
   const vehicleId = trip?.primary_vehicle_id || trip?.vehicle_id;
@@ -595,11 +705,17 @@ export default function TripDetail() {
 
   const statusMap = {
     CREATED: { bg: 'bg-blue-50', color: 'text-blue-600', dot: 'bg-blue-600' },
-    STARTED: { bg: 'bg-amber-50', color: 'text-amber-600', dot: 'bg-amber-600' },
+    ASSIGNED: { bg: 'bg-indigo-50', color: 'text-indigo-600', dot: 'bg-indigo-600' },
+    DISPATCHED: { bg: 'bg-cyan-50', color: 'text-cyan-600', dot: 'bg-cyan-600' },
     IN_TRANSIT: { bg: 'bg-indigo-50', color: 'text-indigo-600', dot: 'bg-indigo-600' },
+    DELAYED: { bg: 'bg-amber-50', color: 'text-amber-600', dot: 'bg-amber-600' },
+    ARRIVED: { bg: 'bg-purple-50', color: 'text-purple-600', dot: 'bg-purple-600' },
+    DELIVERED: { bg: 'bg-emerald-50', color: 'text-emerald-600', dot: 'bg-emerald-600' },
     COMPLETED: { bg: 'bg-green-50', color: 'text-green-600', dot: 'bg-green-600' },
+    CANCELLED: { bg: 'bg-rose-50', color: 'text-rose-600', dot: 'bg-rose-600' },
   };
   const st = statusMap[trip.status] || statusMap.CREATED;
+  const nextStatuses = TRIP_TRANSITIONS[trip.status] || [];
 
   const TABS = [
     { id: 'overview', label: 'Overview', icon: MapIcon },
@@ -662,8 +778,8 @@ export default function TripDetail() {
 
           {/* Badges Row */}
           <div className="px-8 pb-8 flex items-center gap-2 flex-wrap">
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-[10px] font-bold text-gray-600">
-                  <div className="w-2 h-2 rounded-full bg-gray-400" />
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-bold border ${st.bg} ${st.color}`}>
+                  <div className={`w-2 h-2 rounded-full ${st.dot}`} />
                   {trip.status}
               </div>
               <div className="px-3 py-1.5 text-blue-600 text-[10px] font-black uppercase tracking-widest">
@@ -673,6 +789,17 @@ export default function TripDetail() {
                   <Hash size={10} className="text-gray-200" />
                   {order?.lr_number || trip.lr_number || 'LR-PENDING'}
               </div>
+              {nextStatuses.map((status) => (
+                <button
+                  key={status}
+                  type="button"
+                  onClick={() => updateTripMutation.mutate({ id: trip.id, data: { status } })}
+                  disabled={updateTripMutation.isPending}
+                  className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border border-blue-100 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all disabled:opacity-50"
+                >
+                  Move to {status}
+                </button>
+              ))}
           </div>
 
           {/* Bottom Summary Cards */}
@@ -754,7 +881,7 @@ export default function TripDetail() {
                     altVehicle={getVehicleDisplay(altVehicle, altVehicleId, trip?.alternate_vehicle_number)}
                 />
             )}
-            {activeTab === 'finance' && <FinanceTab trip={trip} expenses={expenses} charges={charges} isLoadingExp={loadingExp} isLoadingChg={loadingChg} />}
+            {activeTab === 'finance' && <FinanceTab trip={trip} expenses={expenses} charges={charges} isLoadingExp={loadingExp} isLoadingChg={loadingChg} onEditFinance={handleEditFinance} onDeleteFinance={handleDeleteFinance} />}
             {activeTab === 'stops' && (
               <StopsTab
                 stops={Array.isArray(stops) ? stops : stops?.results}
@@ -797,6 +924,15 @@ export default function TripDetail() {
           trip={trip}
         />
       )}
+      <EditFinanceModal
+        isOpen={!!editFinanceItem}
+        onClose={closeEditFinanceModal}
+        value={editFinanceForm}
+        onChange={setEditFinanceForm}
+        onSubmit={handleSaveFinance}
+        isPending={updateExpenseMutation.isPending || updateChargeMutation.isPending}
+        title={editFinanceItem?.res_type === 'EXPENSE' ? 'Edit Expense' : 'Edit Charge'}
+      />
     </div>
   );
 }

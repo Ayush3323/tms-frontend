@@ -4,6 +4,7 @@ import {
   useCreateCargo, 
   useUpdateCargo,
   useTrips,
+  useTripStops,
   useTripDetail,
   useOrderDetail 
 } from '../../queries/orders/ordersQuery';
@@ -41,6 +42,8 @@ export function CreateCargoModal({ isOpen, onClose }) {
   const createCargoMutation = useCreateCargo();
   const { data: tripsData } = useTrips({ page_size: 100 });
   const trips = tripsData?.results || [];
+  const { data: tripStopsData } = useTripStops(formData.trip || null);
+  const tripStops = Array.isArray(tripStopsData?.results) ? tripStopsData.results : (Array.isArray(tripStopsData) ? tripStopsData : []);
 
   const [formData, setFormData] = useState({
     trip: "",
@@ -111,6 +114,22 @@ export function CreateCargoModal({ isOpen, onClose }) {
                 <option value="">Select a trip</option>
                 {trips.map(trip => (
                   <option key={trip.id} value={trip.id}>{trip.trip_number || trip.id?.slice(-8)}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-gray-700 font-medium mb-1">Trip Stop</label>
+              <select
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+                value={formData.trip_stop}
+                onChange={e => setFormData({ ...formData, trip_stop: e.target.value })}
+                disabled={!formData.trip}
+              >
+                <option value="">Select stop (optional)</option>
+                {tripStops.map((stop) => (
+                  <option key={stop.id} value={stop.id}>
+                    #{stop.stop_sequence} {stop.stop_type} - {stop.location_address || 'No location'}
+                  </option>
                 ))}
               </select>
             </div>
@@ -256,18 +275,27 @@ export function EditCargoModal({ isOpen, onClose, item }) {
   const updateCargoMutation = useUpdateCargo();
   const { data: tripsData } = useTrips({ page_size: 100 });
   const trips = tripsData?.results || [];
+  const { data: tripStopsData } = useTripStops(formData.trip || null);
+  const tripStops = Array.isArray(tripStopsData?.results) ? tripStopsData.results : (Array.isArray(tripStopsData) ? tripStopsData : []);
 
   const [formData, setFormData] = useState({
     trip: item?.trip || "",
+    trip_stop: item?.trip_stop || "",
     description: item?.description || "",
     item_code: item?.item_code || "",
     quantity: item?.quantity || "1",
     commodity_type: item?.commodity_type || "GENERAL",
+    hazardous_class: item?.hazardous_class || "",
+    package_type: item?.package_type || "",
     status: item?.status || "PENDING",
     weight_kg: item?.weight_kg || "",
+    volume_cbm: item?.volume_cbm || "",
     length_cm: item?.length_cm || "",
     width_cm: item?.width_cm || "",
     height_cm: item?.height_cm || "",
+    declared_value: item?.declared_value || "",
+    temperature_range: item?.temperature_range || "",
+    orientation: item?.orientation || "NA",
     is_fragile: item?.is_fragile || false,
     is_perishable: item?.is_perishable || false,
     stackable: item?.stackable ?? true,
@@ -278,15 +306,22 @@ export function EditCargoModal({ isOpen, onClose, item }) {
     if (item && isOpen) {
       setFormData({
         trip: item.trip || "",
+        trip_stop: item.trip_stop || "",
         description: item.description || "",
         item_code: item.item_code || "",
         quantity: item.quantity || "1",
         commodity_type: item.commodity_type || "GENERAL",
+        hazardous_class: item.hazardous_class || "",
+        package_type: item.package_type || "",
         status: item.status || "PENDING",
         weight_kg: item.weight_kg || "",
+        volume_cbm: item.volume_cbm || "",
         length_cm: item.length_cm || "",
         width_cm: item.width_cm || "",
         height_cm: item.height_cm || "",
+        declared_value: item.declared_value || "",
+        temperature_range: item.temperature_range || "",
+        orientation: item.orientation || "NA",
         is_fragile: item.is_fragile || false,
         is_perishable: item.is_perishable || false,
         stackable: item.stackable ?? true,
@@ -299,6 +334,12 @@ export function EditCargoModal({ isOpen, onClose, item }) {
     e.preventDefault();
     const payload = { ...formData };
     if (payload.quantity) payload.quantity = parseInt(payload.quantity, 10);
+    if (payload.length_cm) payload.length_cm = parseInt(payload.length_cm, 10);
+    if (payload.width_cm) payload.width_cm = parseInt(payload.width_cm, 10);
+    if (payload.height_cm) payload.height_cm = parseInt(payload.height_cm, 10);
+    Object.keys(payload).forEach((k) => {
+      if (payload[k] === '' || payload[k] === null) delete payload[k];
+    });
     
     updateCargoMutation.mutate({ id: item.id, data: payload }, {
       onSuccess: () => onClose()
@@ -320,6 +361,22 @@ export function EditCargoModal({ isOpen, onClose, item }) {
                 <option value="">Select a trip</option>
                 {trips.map(t => (
                   <option key={t.id} value={t.id}>{t.trip_number || t.id?.slice(-8)}</option>
+                ))}
+              </select>
+           </div>
+           <div>
+              <label className="block text-gray-700 font-medium mb-1">Trip Stop</label>
+              <select
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+                value={formData.trip_stop}
+                onChange={e => setFormData({ ...formData, trip_stop: e.target.value })}
+                disabled={!formData.trip}
+              >
+                <option value="">Select stop (optional)</option>
+                {tripStops.map((stop) => (
+                  <option key={stop.id} value={stop.id}>
+                    #{stop.stop_sequence} {stop.stop_type} - {stop.location_address || 'No location'}
+                  </option>
                 ))}
               </select>
            </div>
@@ -352,6 +409,37 @@ export function EditCargoModal({ isOpen, onClose, item }) {
                 <option value="DAMAGED">DAMAGED</option>
               </select>
            </div>
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Commodity</label>
+            <input type="text" className="w-full p-2 border border-gray-300 rounded" value={formData.commodity_type} onChange={e => setFormData({...formData, commodity_type: e.target.value})} />
+          </div>
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Package Type</label>
+            <input type="text" className="w-full p-2 border border-gray-300 rounded" value={formData.package_type} onChange={e => setFormData({...formData, package_type: e.target.value})} />
+          </div>
+          <div>
+            <label className="block text-gray-700 font-medium mb-1">Hazardous Class</label>
+            <input type="text" className="w-full p-2 border border-gray-300 rounded" value={formData.hazardous_class} onChange={e => setFormData({...formData, hazardous_class: e.target.value})} />
+          </div>
+        </div>
+        <div className="grid grid-cols-4 gap-3">
+          <input type="number" step="0.01" placeholder="Weight kg" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.weight_kg} onChange={e => setFormData({...formData, weight_kg: e.target.value})} />
+          <input type="number" step="0.01" placeholder="Volume cbm" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.volume_cbm} onChange={e => setFormData({...formData, volume_cbm: e.target.value})} />
+          <input type="number" placeholder="Length cm" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.length_cm} onChange={e => setFormData({...formData, length_cm: e.target.value})} />
+          <input type="number" placeholder="Width cm" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.width_cm} onChange={e => setFormData({...formData, width_cm: e.target.value})} />
+        </div>
+        <div className="grid grid-cols-4 gap-3">
+          <input type="number" placeholder="Height cm" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.height_cm} onChange={e => setFormData({...formData, height_cm: e.target.value})} />
+          <input type="number" step="0.01" placeholder="Declared value" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.declared_value} onChange={e => setFormData({...formData, declared_value: e.target.value})} />
+          <input type="text" placeholder="Temp range" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.temperature_range} onChange={e => setFormData({...formData, temperature_range: e.target.value})} />
+          <select className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.orientation} onChange={e => setFormData({...formData, orientation: e.target.value})}>
+            <option value="NA">NA</option>
+            <option value="UP">UP</option>
+            <option value="DOWN">DOWN</option>
+            <option value="SIDE">SIDE</option>
+          </select>
         </div>
 
         <div className="flex justify-end gap-3 pt-6 border-t border-gray-100">

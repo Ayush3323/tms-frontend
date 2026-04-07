@@ -139,8 +139,8 @@ const Routing = () => {
         <Route path="orders" element={<ErrorBoundary><OrdersDashboard /></ErrorBoundary>} />
 
         <Route path="orders/trips" element={<ErrorBoundary><TripsDashboard /></ErrorBoundary>} />
-        <Route path="orders/trips/:id" element={<ErrorBoundary><TripDetail /></ErrorBoundary>} />
         <Route path="orders/trips/new" element={<ErrorBoundary><CreateTripPage /></ErrorBoundary>} />
+        <Route path="orders/trips/:id" element={<ErrorBoundary><TripDetail /></ErrorBoundary>} />
 
         <Route path="orders/cargo" element={<ErrorBoundary><CargoDashboard /></ErrorBoundary>} />
         <Route path="orders/cargo/:id" element={<ErrorBoundary><CargoDetail /></ErrorBoundary>} />

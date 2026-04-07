@@ -341,6 +341,30 @@ export const useCreateTripDocument = (tripId) => {
   })
 }
 
+export const useUpdateTripDocument = (tripId) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ documentId, data }) => tripsApi.updateDocument(tripId, documentId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.tripDocuments(tripId) })
+      toast.success('Document updated')
+    },
+    onError: (err) => handleApiError(err, 'Failed to update document'),
+  })
+}
+
+export const useDeleteTripDocument = (tripId) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (documentId) => tripsApi.deleteDocument(tripId, documentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.tripDocuments(tripId) })
+      toast.success('Document deleted')
+    },
+    onError: (err) => handleApiError(err, 'Failed to delete document'),
+  })
+}
+
 export const useTripExpenses = (tripId) => {
   return useQuery({
     queryKey: orderKeys.tripExpenses(tripId),
@@ -362,6 +386,30 @@ export const useCreateTripExpense = (tripId) => {
   })
 }
 
+export const useUpdateTripExpense = (tripId) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ expenseId, data }) => tripsApi.updateExpense(tripId, expenseId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.tripExpenses(tripId) })
+      toast.success('Expense updated')
+    },
+    onError: (err) => handleApiError(err, 'Failed to update expense'),
+  })
+}
+
+export const useDeleteTripExpense = (tripId) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (expenseId) => tripsApi.deleteExpense(tripId, expenseId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.tripExpenses(tripId) })
+      toast.success('Expense deleted')
+    },
+    onError: (err) => handleApiError(err, 'Failed to delete expense'),
+  })
+}
+
 export const useTripCharges = (tripId) => {
   return useQuery({
     queryKey: orderKeys.tripCharges(tripId),
@@ -380,6 +428,30 @@ export const useCreateTripCharge = (tripId) => {
       toast.success('Charge added')
     },
     onError: (err) => handleApiError(err, 'Failed to add charge'),
+  })
+}
+
+export const useUpdateTripCharge = (tripId) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ chargeId, data }) => tripsApi.updateCharge(tripId, chargeId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.tripCharges(tripId) })
+      toast.success('Charge updated')
+    },
+    onError: (err) => handleApiError(err, 'Failed to update charge'),
+  })
+}
+
+export const useDeleteTripCharge = (tripId) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (chargeId) => tripsApi.deleteCharge(tripId, chargeId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.tripCharges(tripId) })
+      toast.success('Charge deleted')
+    },
+    onError: (err) => handleApiError(err, 'Failed to delete charge'),
   })
 }
 
@@ -426,6 +498,18 @@ export const useUpdateCargo = () => {
       toast.success('Cargo item updated successfully')
     },
     onError: (err) => handleApiError(err, 'Update failed'),
+  })
+}
+
+export const useDeleteCargo = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id) => cargoApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.cargo() })
+      toast.success('Cargo item deleted')
+    },
+    onError: (err) => handleApiError(err, 'Failed to delete cargo'),
   })
 }
 
@@ -486,5 +570,17 @@ export const useUpdateDelivery = () => {
       toast.success('Delivery record updated')
     },
     onError: (err) => handleApiError(err, 'Update failed'),
+  })
+}
+
+export const useDeleteDelivery = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id) => deliveriesApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.deliveries() })
+      toast.success('Delivery record deleted')
+    },
+    onError: (err) => handleApiError(err, 'Failed to delete delivery record'),
   })
 }

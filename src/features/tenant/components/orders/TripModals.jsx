@@ -8,6 +8,7 @@ import {
 } from '../../queries/orders/ordersQuery';
 import { useDrivers } from '../../queries/drivers/driverCoreQuery';
 import { useVehicles } from '../../queries/vehicles/vehicleQuery';
+import { useVehicleTypes } from '../../queries/vehicles/vehicletypeQuery';
 
 // --- Base Modal Component ---
 const Modal = ({ isOpen, onClose, title, subtitle, children }) => {
@@ -67,6 +68,18 @@ const StatusBadge = ({ status }) => {
   );
 };
 
+const TRIP_TRANSITIONS = {
+  CREATED: ['ASSIGNED', 'CANCELLED'],
+  ASSIGNED: ['DISPATCHED', 'CANCELLED'],
+  DISPATCHED: ['IN_TRANSIT', 'CANCELLED'],
+  IN_TRANSIT: ['DELAYED', 'ARRIVED', 'DELIVERED', 'COMPLETED', 'CANCELLED'],
+  DELAYED: ['IN_TRANSIT', 'CANCELLED'],
+  ARRIVED: ['DELIVERED', 'COMPLETED', 'CANCELLED'],
+  DELIVERED: ['COMPLETED'],
+  COMPLETED: [],
+  CANCELLED: [],
+};
+
 // --- Modals ---
 
 export function CreateTripModal({ isOpen, onClose, orderId, orderNumber }) {
@@ -75,6 +88,8 @@ export function CreateTripModal({ isOpen, onClose, orderId, orderNumber }) {
   const drivers = driversData?.results || [];
   const { data: vehiclesData } = useVehicles({ page_size: 100 });
   const vehicles = vehiclesData?.results || [];
+  const { data: vehicleTypesData } = useVehicleTypes({ page_size: 200 });
+  const vehicleTypes = vehicleTypesData?.results || [];
   const { data: ordersData } = useOrders({ page_size: 100 });
   const ordersDataResults = ordersData?.results || [];
   const orders = useMemo(() => ordersDataResults.filter(o => 
@@ -84,7 +99,6 @@ export function CreateTripModal({ isOpen, onClose, orderId, orderNumber }) {
   const [formData, setFormData] = useState({
     order_id: orderId || "", primary_driver_id: null, primary_vehicle_id: null, 
     alternate_driver_id: null, alternate_vehicle_id: null,
-    trip_number: orderNumber ? `TRP-${orderNumber}` : "", 
     lr_number: "", reference_number: "", trip_type: "FTL", status: "CREATED",
     origin_address: "", destination_address: "", 
     scheduled_pickup_date: null, scheduled_delivery_date: null,
@@ -117,11 +131,6 @@ export function CreateTripModal({ isOpen, onClose, orderId, orderNumber }) {
        alert("Please link an order to this trip.");
        return;
     }
-    if (!formData.trip_number) {
-       alert("Trip number is required.");
-       return;
-    }
-
     // Clean payload: UUIDs and Dates must be null if empty to pass backend validation
     const cleanData = {
       ...formData,
@@ -159,8 +168,8 @@ export function CreateTripModal({ isOpen, onClose, orderId, orderNumber }) {
                     {orders.map(o => <option key={o.id} value={o.id}>{o.lr_number} ({o.status})</option>)}
                  </select>
               </FieldGroup>
-              <FieldGroup label="Trip number" required>
-                 <input type="text" required className={inputClass} placeholder="TRP-..." value={formData.trip_number} onChange={e => setFormData({ ...formData, trip_number: e.target.value })} />
+              <FieldGroup label="Trip number">
+                 <input type="text" readOnly className={`${inputClass} bg-gray-50 text-gray-500 cursor-not-allowed`} value="Auto-generated" />
               </FieldGroup>
            </div>
            <div className="grid grid-cols-3 gap-4">
@@ -185,27 +194,35 @@ export function CreateTripModal({ isOpen, onClose, orderId, orderNumber }) {
               <FieldGroup label="Primary driver">
                  <select className={inputClass} value={formData.primary_driver_id || ""} onChange={e => setFormData({ ...formData, primary_driver_id: e.target.value })}>
                     <option value="">Select Driver</option>
-                    {drivers.map(d => <option key={d.id} value={d.id}>{d.user?.first_name} {d.user?.last_name} — {d.employee_id || 'DRV'}</option>)}
+                    {drivers.map(d => <option key={d.id} value={d.id} disabled={String(formData.alternate_driver_id) === String(d.id)}>{d.user?.first_name} {d.user?.last_name} — {d.employee_id || 'DRV'}</option>)}
                  </select>
               </FieldGroup>
               <FieldGroup label="Primary vehicle">
                  <select className={inputClass} value={formData.primary_vehicle_id || ""} onChange={e => setFormData({ ...formData, primary_vehicle_id: e.target.value })}>
                     <option value="">Select Vehicle</option>
-                    {vehicles.map(v => <option key={v.id} value={v.id}>{v.registration_number}</option>)}
+                    {vehicles.map(v => <option key={v.id} value={v.id} disabled={String(formData.alternate_vehicle_id) === String(v.id)}>{v.registration_number}</option>)}
                  </select>
               </FieldGroup>
               <FieldGroup label="Alternate driver">
                  <select className={inputClass} value={formData.alternate_driver_id || ""} onChange={e => setFormData({ ...formData, alternate_driver_id: e.target.value })}>
                     <option value="">No alternate driver</option>
-                    {drivers.map(d => <option key={d.id} value={d.id}>{d.user?.first_name} {d.user?.last_name}</option>)}
+                    {drivers.map(d => <option key={d.id} value={d.id} disabled={String(formData.primary_driver_id) === String(d.id)}>{d.user?.first_name} {d.user?.last_name}</option>)}
                  </select>
               </FieldGroup>
               <FieldGroup label="Alternate vehicle">
                  <select className={inputClass} value={formData.alternate_vehicle_id || ""} onChange={e => setFormData({ ...formData, alternate_vehicle_id: e.target.value })}>
                     <option value="">No alternate vehicle</option>
-                    {vehicles.map(v => <option key={v.id} value={v.id}>{v.registration_number}</option>)}
+                    {vehicles.map(v => <option key={v.id} value={v.id} disabled={String(formData.primary_vehicle_id) === String(v.id)}>{v.registration_number}</option>)}
                  </select>
               </FieldGroup>
+           </div>
+           <div className="grid grid-cols-2 gap-4">
+             <FieldGroup label="Vehicle type">
+               <select className={inputClass} value={formData.vehicle_type_code || ""} onChange={e => setFormData({ ...formData, vehicle_type_code: e.target.value })}>
+                 <option value="">Select vehicle type</option>
+                 {vehicleTypes.map(vt => <option key={vt.id} value={vt.type_code}>{vt.type_code} - {vt.type_name}</option>)}
+               </select>
+             </FieldGroup>
            </div>
         </div>
 
@@ -312,6 +329,10 @@ export function EditTripModal({ isOpen, onClose, trip }) {
   const drivers = driversData?.results || [];
   const { data: vehiclesData } = useVehicles({ page_size: 100 });
   const vehicles = vehiclesData?.results || [];
+  const { data: vehicleTypesData } = useVehicleTypes({ page_size: 200 });
+  const vehicleTypes = vehicleTypesData?.results || [];
+  const currentStatus = formData.status || trip?.status || 'CREATED';
+  const statusOptions = [currentStatus, ...(TRIP_TRANSITIONS[currentStatus] || [])];
 
   useEffect(() => {
     if (trip && isOpen) {
@@ -463,11 +484,11 @@ export function EditTripModal({ isOpen, onClose, trip }) {
                 <div className="grid grid-cols-2 gap-6">
                   <FieldGroup label="Status">
                     <select name="status" className={inputClass} value={formData.status || ""} onChange={handleInputChange}>
-                      <option value="CREATED">CREATED</option>
-                      <option value="ASSIGNED">ASSIGNED</option>
-                      <option value="IN_TRANSIT">IN_TRANSIT</option>
-                      <option value="DELIVERED">DELIVERED</option>
-                      <option value="COMPLETED">COMPLETED</option>
+                      {statusOptions.map((status, idx) => (
+                        <option key={status} value={status} disabled={idx === 0}>
+                          {status}
+                        </option>
+                      ))}
                     </select>
                   </FieldGroup>
                   <FieldGroup label="Created Date">
@@ -483,13 +504,13 @@ export function EditTripModal({ isOpen, onClose, trip }) {
                   <FieldGroup label="Primary Vehicle">
                     <select name="primary_vehicle_id" className={inputClass} value={formData.primary_vehicle_id || ""} onChange={handleInputChange}>
                       <option value="">Select Primary Vehicle</option>
-                      {vehicles.map(v => <option key={v.id} value={v.id}>{v.registration_number}</option>)}
+                      {vehicles.map(v => <option key={v.id} value={v.id} disabled={String(formData.alternate_vehicle_id) === String(v.id)}>{v.registration_number}</option>)}
                     </select>
                   </FieldGroup>
                   <FieldGroup label="Primary Driver">
                     <select name="primary_driver_id" className={inputClass} value={formData.primary_driver_id || ""} onChange={handleInputChange}>
                       <option value="">Select Primary Driver</option>
-                      {drivers.map(d => <option key={d.id} value={d.id}>{d.user?.first_name} {d.user?.last_name}</option>)}
+                      {drivers.map(d => <option key={d.id} value={d.id} disabled={String(formData.alternate_driver_id) === String(d.id)}>{d.user?.first_name} {d.user?.last_name}</option>)}
                     </select>
                   </FieldGroup>
                 </div>
@@ -497,19 +518,26 @@ export function EditTripModal({ isOpen, onClose, trip }) {
                   <FieldGroup label="Alternate Vehicle">
                     <select name="alternate_vehicle_id" className={inputClass} value={formData.alternate_vehicle_id || ""} onChange={handleInputChange}>
                       <option value="">None</option>
-                      {vehicles.map(v => <option key={v.id} value={v.id}>{v.registration_number}</option>)}
+                      {vehicles.map(v => <option key={v.id} value={v.id} disabled={String(formData.primary_vehicle_id) === String(v.id)}>{v.registration_number}</option>)}
                     </select>
                   </FieldGroup>
                   <FieldGroup label="Alternate Driver">
                     <select name="alternate_driver_id" className={inputClass} value={formData.alternate_driver_id || ""} onChange={handleInputChange}>
                       <option value="">None</option>
-                      {drivers.map(d => <option key={d.id} value={d.id}>{d.user?.first_name} {d.user?.last_name}</option>)}
+                      {drivers.map(d => <option key={d.id} value={d.id} disabled={String(formData.primary_driver_id) === String(d.id)}>{d.user?.first_name} {d.user?.last_name}</option>)}
                     </select>
                   </FieldGroup>
                 </div>
                 <div className="grid grid-cols-3 gap-6">
                    <FieldGroup label="Vehicle Number"><input type="text" name="vehicle_number" className={inputClass} value={formData.vehicle_number || ""} onChange={handleInputChange} /></FieldGroup>
-                   <FieldGroup label="Vehicle Type Code"><input type="text" name="vehicle_type_code" className={inputClass} value={formData.vehicle_type_code || ""} onChange={handleInputChange} /></FieldGroup>
+                   <FieldGroup label="Vehicle Type Code">
+                    <select name="vehicle_type_code" className={inputClass} value={formData.vehicle_type_code || ""} onChange={handleInputChange}>
+                      <option value="">Select Vehicle Type</option>
+                      {vehicleTypes.map((vt) => (
+                        <option key={vt.id} value={vt.type_code}>{vt.type_code} - {vt.type_name}</option>
+                      ))}
+                    </select>
+                   </FieldGroup>
                    <FieldGroup label="Vehicle Owner Name"><input type="text" name="vehicle_owner_name" className={inputClass} value={formData.vehicle_owner_name || ""} onChange={handleInputChange} /></FieldGroup>
                 </div>
               </div>
@@ -536,8 +564,8 @@ export function EditTripModal({ isOpen, onClose, trip }) {
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-6">
-                    <FieldGroup label="Start Time"><input type="time" name="start_time" className={inputClass} value={formData.start_time || ""} onChange={handleInputChange} /></FieldGroup>
-                    <FieldGroup label="End Time"><input type="time" name="end_time" className={inputClass} value={formData.end_time || ""} onChange={handleInputChange} /></FieldGroup>
+                    <FieldGroup label="Start Time"><input type="datetime-local" name="start_time" className={inputClass} value={formData.start_time || ""} onChange={handleInputChange} /></FieldGroup>
+                    <FieldGroup label="End Time"><input type="datetime-local" name="end_time" className={inputClass} value={formData.end_time || ""} onChange={handleInputChange} /></FieldGroup>
                 </div>
               </div>
             )}

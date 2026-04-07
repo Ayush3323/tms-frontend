@@ -7,13 +7,11 @@ import {
   Hash, RefreshCcw, AlertCircle, CheckCircle2, X
 } from 'lucide-react';
 import { 
-  useCargoItems, useUpdateCargo, useTrips, useTripDetail, useOrderDetail 
+  useCargoItems, useDeleteCargo
 } from '../../queries/orders/ordersQuery';
-import { useCustomers } from '../../queries/customers/customersQuery';
 import { 
   CreateCargoModal, 
-  EditCargoModal, 
-  ViewCargoModal 
+  EditCargoModal
 } from './CargoModals';
 
 
@@ -35,7 +33,9 @@ export default function CargoMainBody() {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedCargo, setSelectedCargo] = useState(null);
+  const deleteCargoMutation = useDeleteCargo();
 
   // Queries
   const queryParams = { page, ordering: '-created_at' };
@@ -222,6 +222,27 @@ export default function CargoMainBody() {
                         <div className="flex items-center justify-end gap-2 transition-opacity">
                             <button 
                               onClick={() => {
+                                setSelectedCargo(item);
+                                setIsEditOpen(true);
+                              }}
+                              className="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg bg-gray-50 border border-gray-100"
+                              title="Edit Cargo"
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                            <button 
+                              onClick={() => {
+                                if (window.confirm('Delete this cargo item?')) {
+                                  deleteCargoMutation.mutate(item.id);
+                                }
+                              }}
+                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg bg-gray-50 border border-gray-100"
+                              title="Delete Cargo"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                            <button 
+                              onClick={() => {
                                 navigate(`/tenant/dashboard/orders/cargo/${item.id}`);
                               }}
                               className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg bg-gray-50 border border-gray-100"
@@ -247,6 +268,7 @@ export default function CargoMainBody() {
       </div>
 
       <CreateCargoModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
+      <EditCargoModal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} item={selectedCargo} />
     </div>
   );
 }
