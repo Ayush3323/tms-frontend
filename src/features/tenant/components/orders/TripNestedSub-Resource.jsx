@@ -48,6 +48,7 @@ export default function TripNestedSubResource() {
   const [activeModal, setActiveModal] = useState(null);
   const [editFinanceItem, setEditFinanceItem] = useState(null);
   const [editFinanceForm, setEditFinanceForm] = useState({ amount: '', description: '' });
+  const [searchError, setSearchError] = useState('');
 
   // API Hooks
   // API Hooks
@@ -86,10 +87,29 @@ export default function TripNestedSubResource() {
 
   const handleSearchTrip = (e) => {
     e.preventDefault();
-    if (searchInput) {
-      setTripId(searchInput);
-      navigate(`/tenant/dashboard/orders/trips/${searchInput}`);
+    const raw = (searchInput || '').trim();
+    if (!raw) return;
+
+    const match = availableTrips.find((t) => {
+      const idMatch = String(t.id || '').toLowerCase() === raw.toLowerCase();
+      const tripNumberMatch = String(t.trip_number || '').toLowerCase() === raw.toLowerCase();
+      return idMatch || tripNumberMatch;
+    });
+
+    if (match?.id) {
+      setTripId(match.id);
+      setSearchError('');
+      return;
     }
+
+    // Fallback: allow direct UUID even if it is not in current page cache.
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(raw)) {
+      setTripId(raw);
+      setSearchError('');
+      return;
+    }
+
+    setSearchError('Trip not found. Search by valid Trip ID or exact Trip Number.');
   };
 
   const handleStopStatusChange = (stopId, stopStatus) => {
@@ -211,7 +231,7 @@ export default function TripNestedSubResource() {
                 <input 
                   value={searchInput}
                   onChange={e => setSearchInput(e.target.value)}
-                  placeholder="Enter Trip ID..." 
+                  placeholder="Search by Trip ID or Trip Number..." 
                   className="w-full pl-12 pr-4 py-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-[#3b82f6]/20 focus:border-[#3b82f6] transition-all"
                 />
               </form>
@@ -230,6 +250,11 @@ export default function TripNestedSubResource() {
                  </select>
               </div>
            </div>
+           {searchError && (
+             <div className="px-4 py-2 rounded-lg border border-red-200 bg-red-50 text-red-700 text-xs font-semibold animate-in fade-in duration-200">
+               {searchError}
+             </div>
+           )}
 
            {/* Results Table/List (Clean Dashboard Style) */}
            <div className="border border-[#e2e8f0] rounded-xl overflow-hidden min-h-[400px]">
