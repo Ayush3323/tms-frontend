@@ -4,6 +4,7 @@ import { useDriverIncidents } from '../../../queries/drivers/incidentsAndAttenda
 import { useUsers } from '../../../queries/users/userQuery';
 import { useCurrentUser } from '../../../queries/users/userActionQuery';
 import { useVehiclesList } from '../../../queries/drivers/vehicleAssignmentQuery';
+import { useTrips } from '../../../queries/orders/ordersQuery';
 import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
 
 import { LoadingState, ErrorState, EmptyState, TabLayoutShimmer } from '../common/StateFeedback';
@@ -20,6 +21,7 @@ const IncidentsTab = ({ driverId }) => {
   const { data: usersData } = useUsers({ page_size: 1000 });
   const { data: currentUser } = useCurrentUser();
   const { data: vehiclesData } = useVehiclesList();
+  const { data: tripsData } = useTrips({ page_size: 1000 });
   const driverMap = useDriverLookup();
 
   const vehicleMap = useMemo(() => {
@@ -27,6 +29,13 @@ const IncidentsTab = ({ driverId }) => {
       ...acc, [v.id]: v.registration_number
     }), {});
   }, [vehiclesData]);
+
+  const tripMap = useMemo(() => {
+    const results = tripsData?.results || (Array.isArray(tripsData) ? tripsData : []);
+    return results.reduce((acc, t) => ({
+      ...acc, [t.id]: t.trip_number
+    }), {});
+  }, [tripsData]);
 
   const userMap = useMemo(() => {
     const map = {};
@@ -67,6 +76,7 @@ const IncidentsTab = ({ driverId }) => {
           driverName={driverMap[driverId]?.name} 
           employeeId={driverMap[driverId]?.employee_id}
           vehicleName={vehicleMap[viewIncident.vehicle]}
+          tripNumber={tripMap[viewIncident.trip_id]}
           userMap={userMap}
           currentUser={currentUser}
           onClose={() => setViewIncident(null)} 
@@ -107,6 +117,7 @@ const IncidentsTab = ({ driverId }) => {
           showDriver={false}
           driverMap={driverMap}
           vehicleMap={vehicleMap}
+          tripMap={tripMap}
           userMap={userMap}
           currentUser={currentUser}
         />
