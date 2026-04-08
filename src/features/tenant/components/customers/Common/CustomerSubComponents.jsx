@@ -473,11 +473,25 @@ const DocumentFormModal = ({ initial, onClose, onSubmit, submitting }) => {
     document_type: 'GST_CERTIFICATE', document_name: '', document_number: '', 
     file_url: '', issue_date: '', expiry_date: '', remarks: ''
   });
+  const [errors, setErrors] = useState({});
 
   const TYPES = ['GST_CERTIFICATE', 'PAN_CARD', 'CIN', 'REGISTRATION', 'AADHAR', 'VOTER_ID', 'PASSPORT', 'TAX_EXEMPTION', 'OTHER'];
 
+  const handleSubmit = () => {
+    const e = {};
+    if (form.issue_date && form.expiry_date) {
+      if (new Date(form.issue_date) >= new Date(form.expiry_date)) {
+        e.expiry_date = 'Expiry date must be strictly after the issue date';
+        e.issue_date = 'Issue date must be strictly before the expiry date';
+      }
+    }
+    setErrors(e);
+    if (Object.keys(e).length > 0) return;
+    onSubmit(form);
+  };
+
   return (
-    <Modal title={initial ? 'Edit Document' : 'Upload Document'} onClose={onClose} onSubmit={() => onSubmit(form)} submitting={submitting}>
+    <Modal title={initial ? 'Edit Document' : 'Upload Document'} onClose={onClose} onSubmit={handleSubmit} submitting={submitting}>
       <div className="grid grid-cols-2 gap-4">
         <Field label="Document Type" required>
           <Sel value={form.document_type} onChange={e => setForm({...form, document_type: e.target.value})}>
@@ -493,11 +507,17 @@ const DocumentFormModal = ({ initial, onClose, onSubmit, submitting }) => {
         <Field label="File URL" required>
           <Input value={form.file_url} onChange={e => setForm({...form, file_url: e.target.value})} placeholder="Direct link to file (e.g. S3/Storage URL)" />
         </Field>
-        <Field label="Issue Date">
-          <Input type="date" value={form.issue_date} onChange={e => setForm({...form, issue_date: e.target.value})} />
+        <Field label="Issue Date" error={errors.issue_date}>
+          <Input type="date" value={form.issue_date} onChange={e => {
+            setForm({...form, issue_date: e.target.value});
+            setErrors(prev => ({ ...prev, issue_date: null }));
+          }} />
         </Field>
-        <Field label="Expiry Date">
-          <Input type="date" value={form.expiry_date} onChange={e => setForm({...form, expiry_date: e.target.value})} />
+        <Field label="Expiry Date" error={errors.expiry_date}>
+          <Input type="date" value={form.expiry_date} onChange={e => {
+            setForm({...form, expiry_date: e.target.value});
+            setErrors(prev => ({ ...prev, expiry_date: null }));
+          }} />
         </Field>
         <Field label="Remarks" className="col-span-2">
           <Input value={form.remarks} onChange={e => setForm({...form, remarks: e.target.value})} />
@@ -599,9 +619,23 @@ const ContractFormModal = ({ initial, onClose, onSubmit, submitting }) => {
     contract_type: 'ANNUAL', start_date: '', end_date: '', 
     status: 'ACTIVE', terms: '', contract_number: ''
   });
+  const [errors, setErrors] = useState({});
+
+  const handleSubmit = () => {
+    const e = {};
+    if (form.start_date && form.end_date) {
+      if (new Date(form.start_date) >= new Date(form.end_date)) {
+        e.start_date = 'Start date must be strictly before the end date';
+        e.end_date = 'End date must be strictly after the start date';
+      }
+    }
+    setErrors(e);
+    if (Object.keys(e).length > 0) return;
+    onSubmit(form);
+  };
 
   return (
-    <Modal title={initial ? 'Edit Contract' : 'Create Contract'} onClose={onClose} onSubmit={() => onSubmit(form)} submitting={submitting}>
+    <Modal title={initial ? 'Edit Contract' : 'Create Contract'} onClose={onClose} onSubmit={handleSubmit} submitting={submitting}>
       <div className="grid grid-cols-2 gap-4">
         <Field label="Contract Number" className="col-span-2">
           <Input value={form.contract_number} onChange={e => setForm({...form, contract_number: e.target.value})} placeholder="e.g. CON-2024-001" />
@@ -622,11 +656,17 @@ const ContractFormModal = ({ initial, onClose, onSubmit, submitting }) => {
             <option value="TERMINATED">TERMINATED</option>
           </Sel>
         </Field>
-        <Field label="Start Date" required>
-          <Input type="date" value={form.start_date} onChange={e => setForm({...form, start_date: e.target.value})} />
+        <Field label="Start Date" required error={errors.start_date}>
+          <Input type="date" value={form.start_date} onChange={e => {
+            setForm({...form, start_date: e.target.value});
+            setErrors(prev => ({ ...prev, start_date: null }));
+          }} />
         </Field>
-        <Field label="End Date">
-          <Input type="date" value={form.end_date} onChange={e => setForm({...form, end_date: e.target.value})} />
+        <Field label="End Date" error={errors.end_date}>
+          <Input type="date" value={form.end_date} onChange={e => {
+            setForm({...form, end_date: e.target.value});
+            setErrors(prev => ({ ...prev, end_date: null }));
+          }} />
         </Field>
         <Field label="Terms & Conditions" className="col-span-2">
           <textarea 
