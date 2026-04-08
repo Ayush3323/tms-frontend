@@ -153,7 +153,13 @@ export function CreateOrderModal({ isOpen, onClose }) {
               className={`w-full p-2 border rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none ${formErrors.billing_customer_id ? 'border-red-400' : 'border-gray-300'}`}
               value={formData.billing_customer_id}
               onChange={e => {
-                setFormData({ ...formData, billing_customer_id: e.target.value });
+                const selectedCust = customers.find(c => c.id === e.target.value);
+                setFormData({ 
+                  ...formData, 
+                  billing_customer_id: e.target.value,
+                  billing_company_name: selectedCust ? (selectedCust.trading_name || "") : "",
+                  broker_id: selectedCust?.customer_type === 'BROKER' ? e.target.value : formData.broker_id
+                });
                 if (formErrors.billing_customer_id) setFormErrors((prev) => ({ ...prev, billing_customer_id: undefined }));
               }}
             >
@@ -493,7 +499,8 @@ export function EditOrderModal({ isOpen, onClose, order }) {
             <label className="block text-gray-700 font-medium mb-1">Billing Company Name</label>
             <input
               type="text"
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+              disabled
+              className="w-full p-2 border border-gray-200 bg-gray-50 rounded text-gray-500 cursor-not-allowed outline-none"
               placeholder="e.g. KCM PVT LTD"
               value={formData.billing_company_name}
               onChange={e => setFormData({ ...formData, billing_company_name: e.target.value })}
