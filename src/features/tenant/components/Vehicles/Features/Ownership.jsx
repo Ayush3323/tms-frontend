@@ -10,7 +10,9 @@ import {
   useCreateVehicleOwnership,
   useUpdateVehicleOwnership,
   useDeleteVehicleOwnership,
+  useVehicleOwnershipItem,
 } from '../../../queries/vehicles/vehicleInfoQuery';
+import { useVehicles } from '../../../queries/vehicles/vehicleQuery';
 import {
   Badge, InfoCard, SectionHeader, EmptyState, Modal, DeleteConfirm, ItemActions,
   Label, Input, Sel, Field, StatCard, Textarea, VehicleSelect,
@@ -84,12 +86,30 @@ const ViewDetail = ({ data, onClose }) => (
 const OwnershipModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => {
   // Force browser reload comment: v2
   const isEdit = !!initial?.id && !isView;
-  console.log('OwnershipModal Debug:', { initial, vehicleId, isEdit });
+
+  // FETCH FULL DATA IF EDIT (to get missing vehicle ID from the list response)
+  const { data: fullData } = useVehicleOwnershipItem(initial?.id, {
+    enabled: isEdit && !vehicleId && (!initial?.vehicle || typeof initial?.vehicle !== 'object'),
+    expand: 'vehicle'
+  });
+
+  // Backup: Manual mapping via vehicle list
+  const { data: vData } = useVehicles({ all: true }, { enabled: isEdit && !vehicleId });
+  const allVehicles = vData?.results ?? vData ?? [];
 
   const resolveVehicleId = () => {
     if (vehicleId) return vehicleId;
-    if (typeof initial?.vehicle === 'object') return initial.vehicle?.id ?? '';
-    return initial?.vehicle_id ?? initial?.vehicle ?? '';
+    if (typeof initial?.vehicle === 'object' && initial.vehicle !== null) return initial.vehicle.id || '';
+    if (initial?.vehicle_id) return initial.vehicle_id;
+
+    // Attempt manual match by registration string
+    const reg = initial?.vehicle_registration_number || initial?.vehicle_registration || initial?.vehicle || '';
+    if (reg && allVehicles.length > 0) {
+      const norm = (s) => String(s || '').replace(/\s+/g, '').toUpperCase();
+      const match = allVehicles.find(v => norm(v.registration_number) === norm(reg));
+      if (match) return match.id;
+    }
+    return '';
   };
 
   const [form, setForm] = useState(
@@ -108,6 +128,24 @@ const OwnershipModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }
   const update = useUpdateVehicleOwnership();
   const isPending = create.isPending || update.isPending;
   const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
+
+  // Sync vehicle ID when full data or vehicle list is fetched
+  React.useEffect(() => {
+    if (isEdit && !form.vehicle && allVehicles.length > 0) {
+      const reg = initial?.vehicle_registration_number || initial?.vehicle_registration || initial?.vehicle || '';
+      if (reg) {
+        const norm = (s) => String(s || '').replace(/\s+/g, '').toUpperCase();
+        const match = allVehicles.find(v => norm(v.registration_number) === norm(reg));
+        if (match) setForm(p => ({ ...p, vehicle: match.id }));
+      }
+    }
+    if (fullData) {
+      const vId = fullData.vehicle?.id || fullData.vehicle || fullData.vehicle_id || '';
+      if (vId && !form.vehicle) {
+        setForm(p => ({ ...p, vehicle: vId }));
+      }
+    }
+  }, [allVehicles, fullData, isEdit, initial, form.vehicle]);
 
   const handleSubmit = () => {
     const clean = Object.fromEntries(Object.entries(form).map(([k, v]) => [k, v === '' ? null : v]));
@@ -136,10 +174,11 @@ const OwnershipModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }
                 <div className="col-span-2">
                   <Label required={!isEdit}>Vehicle</Label>
                   <VehicleSelect
-                  value={form.vehicle}
-                  placeholder={initial?.vehicle_registration_number || initial?.vehicle_registration || initial?.vehicle_display}
-                  onChange={(id) => setForm(p => ({ ...p, vehicle: id }))}
-                />
+                    value={form.vehicle}
+                    disabled={isEdit}
+                    placeholder={initial?.vehicle_registration_number || initial?.vehicle_registration || initial?.vehicle_display}
+                    onChange={(id) => setForm(p => ({ ...p, vehicle: id }))}
+                  />
                 </div>
               )}
               <Field label="Transfer Type" required>
@@ -191,6 +230,7 @@ const VehicleOwnership = ({ vehicleId, isTab }) => {
     ...(search && { search }),
     ...(typeFilter && { transfer_type: typeFilter }),
     ...(vehicleId && { vehicle: vehicleId }),
+    expand: 'vehicle',
     page: currentPage,
   });
   const del = useDeleteVehicleOwnership();
@@ -251,25 +291,25 @@ const VehicleOwnership = ({ vehicleId, isTab }) => {
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 mt-2 overflow-hidden">
         {/* Compact Stats Row */}
-          <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
-            <div className="flex items-center gap-2">
-              <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total Records:</span>
-              <span className="text-[18px] font-black text-[#172B4D]">{history.length}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Latest Transfer:</span>
-              <span className="text-[18px] font-black text-indigo-600">{history[0] ? fmtDate(history[0].transfer_date) : 'None'}</span>
-            </div>
-            <div className="ml-auto w-1/4 flex justify-end">
-              <button
-                onClick={() => setModal({ mode: 'add' })}
-                className="mr-0 bg-[#0052CC] text-white px-6 py-3 rounded-xl flex items-center gap-2 text-sm font-bold hover:bg-[#0747A6] transition-all shadow-lg hover:shadow-blue-200 active:scale-95 group"
-              >
-                <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" />
-                <span>Add Record</span>
-              </button>
-            </div>
+        <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total Records:</span>
+            <span className="text-[18px] font-black text-[#172B4D]">{history.length}</span>
           </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Latest Transfer:</span>
+            <span className="text-[18px] font-black text-indigo-600">{history[0] ? fmtDate(history[0].transfer_date) : 'None'}</span>
+          </div>
+          <div className="ml-auto w-1/4 flex justify-end">
+            <button
+              onClick={() => setModal({ mode: 'add' })}
+              className="mr-0 bg-[#0052CC] text-white px-6 py-3 rounded-xl flex items-center gap-2 text-sm font-bold hover:bg-[#0747A6] transition-all shadow-lg hover:shadow-blue-200 active:scale-95 group"
+            >
+              <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" />
+              <span>Add Record</span>
+            </button>
+          </div>
+        </div>
 
         {/* Filters & Pagination Row */}
         <div className="flex items-center justify-between px-5 py-3 bg-white border-b border-gray-50 h-[60px]">
@@ -357,7 +397,7 @@ const VehicleOwnership = ({ vehicleId, isTab }) => {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {history.map(h => (
-                  <tr key={h.id} className="hover:bg-blue-50/30 transition-colors group">
+                  <tr key={h.id} className="hover:bg-blue-50/30 transition-colors group cursor-pointer" onClick={() => setViewing(h)}>
                     {!vehicleId && (
                       <td className="px-5 py-4 text-sm font-medium text-gray-600 truncate max-w-[150px]">
                         <button onClick={() => setViewing(h)}
@@ -387,7 +427,7 @@ const VehicleOwnership = ({ vehicleId, isTab }) => {
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex justify-end gap-2">
-                        <button onClick={() => setModal({ mode: 'edit', data: h })} className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all">
+                        <button onClick={(e) => { e.stopPropagation(); setModal({ mode: 'edit', data: h }); }} className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all">
                           <Edit2 size={12} /> Edit
                         </button>
                       </div>

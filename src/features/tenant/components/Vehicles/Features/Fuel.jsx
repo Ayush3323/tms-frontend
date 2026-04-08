@@ -12,7 +12,7 @@ import {
   useUpdateFuelLog,
   useDeleteFuelLog,
 } from '../../../queries/vehicles/vehicleInfoQuery';
-import { useVehicle } from '../../../queries/vehicles/vehicleQuery';
+import { useVehicles, useVehicle } from '../../../queries/vehicles/vehicleQuery';
 import { useTrips } from '../../../queries/orders/ordersQuery';
 import {
   Badge, InfoCard, SectionHeader, EmptyState, Modal, DeleteConfirm, ItemActions,
@@ -99,12 +99,30 @@ const ViewDetail = ({ data, onClose }) => {
 const FuelModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => {
   // Force browser reload comment: v2
   const isEdit = !!initial?.id && !isView;
-  console.log('FuelModal Debug:', { initial, vehicleId, isEdit });
+
+  // FETCH FULL DATA IF EDIT (to get missing vehicle ID from the list response)
+  const { data: fullData } = useVehicleFuelLog(initial?.id, {
+    enabled: isEdit && !vehicleId && (!initial?.vehicle || typeof initial?.vehicle !== 'object'),
+    expand: 'vehicle'
+  });
+
+  // Backup: Manual mapping via vehicle list
+  const { data: vData } = useVehicles({ all: true }, { enabled: isEdit && !vehicleId });
+  const allVehicles = vData?.results ?? vData ?? [];
 
   const resolveVehicleId = () => {
     if (vehicleId) return vehicleId;
-    if (typeof initial?.vehicle === 'object') return initial.vehicle?.id ?? '';
-    return initial?.vehicle_id ?? initial?.vehicle ?? '';
+    if (typeof initial?.vehicle === 'object' && initial.vehicle !== null) return initial.vehicle.id || '';
+    if (initial?.vehicle_id) return initial.vehicle_id;
+    
+    // Attempt manual match by registration string
+    const reg = initial?.vehicle_registration_number || initial?.vehicle_registration || initial?.vehicle || '';
+    if (reg && allVehicles.length > 0) {
+      const norm = (s) => String(s || '').replace(/\s+/g, '').toUpperCase();
+      const match = allVehicles.find(v => norm(v.registration_number) === norm(reg));
+      if (match) return match.id;
+    }
+    return '';
   };
 
   const [form, setForm] = useState(
@@ -149,6 +167,24 @@ const FuelModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => 
     }
   }, [vehicle, isEdit, form.fuel_type, form.odometer_reading]);
 
+  // Sync vehicle ID when full data or vehicle list is fetched
+  React.useEffect(() => {
+    if (isEdit && !form.vehicle && allVehicles.length > 0) {
+      const reg = initial?.vehicle_registration_number || initial?.vehicle_registration || initial?.vehicle || '';
+      if (reg) {
+        const norm = (s) => String(s || '').replace(/\s+/g, '').toUpperCase();
+        const match = allVehicles.find(v => norm(v.registration_number) === norm(reg));
+        if (match) setForm(p => ({ ...p, vehicle: match.id }));
+      }
+    }
+    if (fullData) {
+      const vId = fullData.vehicle?.id || fullData.vehicle || fullData.vehicle_id || '';
+      if (vId && !form.vehicle) {
+        setForm(p => ({ ...p, vehicle: vId }));
+      }
+    }
+  }, [allVehicles, fullData, isEdit, initial, form.vehicle]);
+
   const set = (f) => (e) => {
     const val = e.target.value;
     setForm(p => {
@@ -191,6 +227,7 @@ const FuelModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => 
                   <Label required={!isEdit}>Vehicle</Label>
                   <VehicleSelect
                     value={form.vehicle}
+                    disabled={isEdit}
                     placeholder={initial?.vehicle_registration_number || initial?.vehicle_registration || initial?.vehicle_display}
                     onChange={(id, v) => setForm(p => ({
                       ...p,
@@ -270,6 +307,7 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
     ...(search && { search }),
     ...(typeFilter && { fuel_type: typeFilter }),
     ...(vehicleId && { vehicle: vehicleId }),
+    expand: 'vehicle',
     page: currentPage,
   });
   const del = useDeleteFuelLog();
@@ -491,7 +529,7 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {logs.map(l => (
-                    <tr key={l.id} className="hover:bg-blue-50/30 transition-colors group">
+                    <tr key={l.id} className="hover:bg-blue-50/30 transition-colors group cursor-pointer" onClick={() => setViewing(l)}>
                       {!vehicleId && (
                         <td className="px-4 py-3 align-middle">
                           <span className="font-bold text-[#172B4D] text-[13px] uppercase font-mono">
@@ -525,11 +563,11 @@ const VehicleFuel = ({ vehicleId, isTab }) => {
                       </td>
                       <td className="px-5 py-3 text-right align-middle">
                         <div className="flex justify-end gap-2">
-                          <button onClick={() => setViewing(l)}
+                          <button onClick={(e) => { e.stopPropagation(); setViewing(l); }}
                             className="p-2 text-gray-400 hover:text-[#0052CC] hover:bg-blue-50 rounded-lg transition-all" title="View Details">
                             <Eye size={16} />
                           </button>
-                          <button onClick={() => setModal({ mode: 'edit', data: l })}
+                          <button onClick={(e) => { e.stopPropagation(); setModal({ mode: 'edit', data: l }); }}
                             className="p-2 text-gray-400 hover:text-[#0052CC] hover:bg-blue-50 rounded-lg transition-all" title="Edit Log">
                             <Pencil size={16} />
                           </button>

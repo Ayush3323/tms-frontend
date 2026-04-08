@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   ClipboardCheck, Plus, Pencil, Trash2, X, Search,
   RotateCcw, Loader2, AlertCircle, CheckCircle,
@@ -10,7 +10,9 @@ import {
   useCreateVehicleInspection,
   useUpdateVehicleInspection,
   useDeleteVehicleInspection,
+  useVehicleInspection,
 } from '../../../queries/vehicles/vehicleInfoQuery';
+import { useVehicles, useVehicle } from '../../../queries/vehicles/vehicleQuery';
 import {
   Badge, InfoCard, SectionHeader, EmptyState, Modal, DeleteConfirm, ItemActions,
   Label, Input, Sel, Field, StatCard, Textarea, VehicleSelect, DriverSelect,
@@ -20,6 +22,7 @@ import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
 import { TabContentShimmer, ErrorState } from '../Common/StateFeedback';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
+// Force browser reload: version 4
 const TYPE_OPTIONS = [
   { value: 'PRE_TRIP', label: 'Pre-Trip' },
   { value: 'POST_TRIP', label: 'Post-Trip' },
@@ -120,19 +123,25 @@ const ViewDetail = ({ data, onClose }) => {
 const InspectionModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => {
   const isEdit = !!initial?.id && !isView;
 
+  // 1. Helpers first
   const resolveVehicleId = () => {
     if (vehicleId) return vehicleId;
-    if (typeof initial?.vehicle === 'object') return initial.vehicle?.id ?? '';
-    return initial?.vehicle_id ?? initial?.vehicle ?? '';
+    if (typeof initial?.vehicle === 'object' && initial.vehicle !== null) return initial.vehicle.id || '';
+    if (initial?.vehicle_id) return initial.vehicle_id;
+    return initial?.vehicle_registration_number || initial?.vehicle_registration || initial?.vehicle || '';
   };
 
-  // Resolve driver: always store UUID. If the API returns an object, extract its id.
   const resolveDriverId = (d) => {
     if (!d) return '';
     if (typeof d === 'object') return d.id ?? '';
     return d;
   };
 
+  // 2. Base data hooks
+  const { data: vData } = useVehicles({ all: true }, { enabled: isEdit && !vehicleId });
+  const allVehicles = vData?.results ?? vData ?? [];
+
+  // 3. Form state
   const [form, setForm] = useState(
     initial ? {
       vehicle: resolveVehicleId(),
@@ -148,11 +157,49 @@ const InspectionModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest 
     } : { ...EMPTY_FORM, vehicle: vehicleId ?? '' }
   );
 
+  // 4. Dependent data hooks
+  const { data: fullData } = useVehicleInspection(initial?.id, {
+    enabled: isEdit && !vehicleId && (!initial?.vehicle || typeof initial?.vehicle !== 'object'),
+    expand: 'vehicle'
+  });
+
+  const { data: vDetail } = useVehicle(form?.vehicle, {
+    enabled: !!form?.vehicle && !isEdit && !isView
+  });
+
   const create = useCreateVehicleInspection();
   const update = useUpdateVehicleInspection();
   const isPending = create.isPending || update.isPending;
   const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
   const [errors, setErrors] = useState({});
+
+  // Sync vehicle ID when full data or vehicle list is fetched
+  useEffect(() => {
+    if (isEdit && !form.vehicle && allVehicles.length > 0) {
+      const reg = initial?.vehicle_registration_number || initial?.vehicle_registration || initial?.vehicle || '';
+      if (reg) {
+        const norm = (s) => String(s || '').replace(/\s+/g, '').toUpperCase();
+        const match = allVehicles.find(v => norm(v.registration_number) === norm(reg));
+        if (match) setForm(p => ({ ...p, vehicle: match.id }));
+      }
+    }
+    if (fullData) {
+      const vId = fullData.vehicle?.id || fullData.vehicle || fullData.vehicle_id || '';
+      if (vId && !form.vehicle) {
+        setForm(p => ({ ...p, vehicle: vId }));
+      }
+    }
+  }, [allVehicles, fullData, isEdit, initial, form.vehicle]);
+
+  // Sync driver when vehicle details are fetched
+  useEffect(() => {
+    if (vDetail && !isEdit && !isView) {
+      const dId = resolveDriverId(vDetail.assigned_driver);
+      if (dId && !form.driver) {
+        setForm(p => ({ ...p, driver: dId }));
+      }
+    }
+  }, [vDetail, isEdit, isView, form.driver]);
 
   const handleSubmit = () => {
     const errs = {};
@@ -194,12 +241,13 @@ const InspectionModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest 
                   <Label required={!isEdit}>Vehicle</Label>
                   <VehicleSelect
                     value={form.vehicle}
+                    disabled={isEdit}
                     placeholder={initial?.vehicle_registration_number || initial?.vehicle_registration || initial?.vehicle_display}
                     onChange={(id, v) => {
                       setForm(p => ({
                         ...p,
                         vehicle: id,
-                        driver: v ? (v.assigned_driver_name ?? resolveDriverId(v.assigned_driver)) : p.driver
+                        driver: v ? (resolveDriverId(v.assigned_driver) || p.driver) : p.driver
                       }));
                     }}
                   />
@@ -271,6 +319,7 @@ const VehicleInspections = ({ vehicleId, isTab }) => {
     ...(search && { search }),
     ...(typeFilter && { inspection_type: typeFilter }),
     ...(vehicleId && { vehicle: vehicleId }),
+    expand: 'vehicle',
     page: currentPage,
   });
   const del = useDeleteVehicleInspection();
@@ -338,29 +387,29 @@ const VehicleInspections = ({ vehicleId, isTab }) => {
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col min-h-0 mt-2 overflow-hidden">
         {/* Compact Stats Row */}
-          <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
-            <div className="flex items-center gap-2">
-              <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total Inspections:</span>
-              <span className="text-[18px] font-black text-[#172B4D]">{stats.total}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Passed:</span>
-              <span className="text-[18px] font-black text-emerald-600">{stats.passed}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Failed:</span>
-              <span className="text-[18px] font-black text-red-600">{stats.failed}</span>
-            </div>
-            <div className="ml-auto w-1/4 flex justify-end">
-              <button
-                onClick={() => setModal({ mode: 'add' })}
-                className="mr-0 bg-[#0052CC] text-white px-6 py-3 rounded-xl flex items-center gap-2 text-sm font-bold hover:bg-[#0747A6] transition-all shadow-lg hover:shadow-blue-200 active:scale-95 group"
-              >
-                <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" />
-                <span>Add Inspection</span>
-              </button>
-            </div>
+        <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total Inspections:</span>
+            <span className="text-[18px] font-black text-[#172B4D]">{stats.total}</span>
           </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Passed:</span>
+            <span className="text-[18px] font-black text-emerald-600">{stats.passed}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Failed:</span>
+            <span className="text-[18px] font-black text-red-600">{stats.failed}</span>
+          </div>
+          <div className="ml-auto w-1/4 flex justify-end">
+            <button
+              onClick={() => setModal({ mode: 'add' })}
+              className="mr-0 bg-[#0052CC] text-white px-6 py-3 rounded-xl flex items-center gap-2 text-sm font-bold hover:bg-[#0747A6] transition-all shadow-lg hover:shadow-blue-200 active:scale-95 group"
+            >
+              <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" />
+              <span>Add Inspection</span>
+            </button>
+          </div>
+        </div>
 
         {/* Filters & Pagination Row */}
         <div className="flex items-center justify-between px-5 py-3 bg-white border-b border-gray-50 h-[60px]">
@@ -446,7 +495,7 @@ const VehicleInspections = ({ vehicleId, isTab }) => {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {inspections.map(i => (
-                  <tr key={i.id} className="hover:bg-blue-50/30 transition-colors">
+                  <tr key={i.id} className="hover:bg-blue-50/30 transition-colors cursor-pointer" onClick={() => setViewing(i)}>
                     {!vehicleId && (
                       <td className="px-4 py-3 whitespace-nowrap">
                         <button onClick={() => setViewing(i)}
@@ -481,7 +530,7 @@ const VehicleInspections = ({ vehicleId, isTab }) => {
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center gap-2">
-                        <button onClick={() => setModal({ mode: 'edit', data: i })}
+                        <button onClick={(e) => { e.stopPropagation(); setModal({ mode: 'edit', data: i }); }}
                           className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all">
                           <Pencil size={12} /> Edit
                         </button>

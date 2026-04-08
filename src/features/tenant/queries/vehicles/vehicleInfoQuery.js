@@ -17,7 +17,7 @@ import { toast } from 'react-hot-toast'
 
 // ───────── COMMON ERROR HANDLER ─────────
 
-const parseError = (error) => {
+export const parseError = (error) => {
   const status = error?.response?.status;
   const data = error?.response?.data;
 
@@ -35,15 +35,19 @@ const parseError = (error) => {
     if (data.includes('<html')) return `Server Error (${status || 'Unknown'})`;
     return data;
   }
-  if (typeof data.detail === 'string') return data.detail;
-  if (typeof data.error === 'string') return data.error;
-  if (typeof data.message === 'string') return data.message;
   
-  // 4. Object unpacking (DRF Validation)
-  if (typeof data === 'object') {
+  // Handle nested error object (some API wrappers)
+  const errorObj = data.error || data;
+  if (typeof errorObj.message === 'string' && (!errorObj.details || Object.keys(errorObj.details).length === 0)) {
+    return errorObj.message;
+  }
+  
+  // 4. Object unpacking (DRF Validation & details)
+  const details = errorObj.details || errorObj;
+  if (typeof details === 'object') {
      const errs = [];
-     for (const key in data) {
-         const messages = Array.isArray(data[key]) ? data[key] : [data[key]];
+     for (const key in details) {
+         const messages = Array.isArray(details[key]) ? details[key] : [details[key]];
          messages.forEach(msg => {
              if (typeof msg !== 'string') return;
              if (key === 'non_field_errors' || key === '__all__') {
@@ -54,8 +58,11 @@ const parseError = (error) => {
              }
          });
      }
-     if (errs.length > 0) return errs.join(' • '); // Bullet point separation for better single-line toast readability
+     if (errs.length > 0) return errs.join(' • '); 
   }
+  
+  if (typeof data.detail === 'string') return data.detail;
+  if (typeof data.message === 'string') return data.message;
   
   return "An unexpected error occurred.";
 };

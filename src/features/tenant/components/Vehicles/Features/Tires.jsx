@@ -9,7 +9,9 @@ import {
   useCreateVehicleTire,
   useUpdateVehicleTire,
   useDeleteVehicleTire,
+  useVehicleTire,
 } from '../../../queries/vehicles/vehicleInfoQuery';
+import { useVehicles } from '../../../queries/vehicles/vehicleQuery';
 import {
   Badge, InfoCard, SectionHeader, EmptyState, Modal, DeleteConfirm, ItemActions,
   Label, Input, Sel, Field, StatCard, Textarea, VehicleSelect,
@@ -100,12 +102,30 @@ const ViewDetail = ({ data, onClose }) => (
 const TireModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => {
   // Force browser reload comment: v2
   const isEdit = !!initial?.id && !isView;
-  console.log('TireModal Debug:', { initial, vehicleId, isEdit });
+
+  // FETCH FULL DATA IF EDIT (to get missing vehicle ID from the list response)
+  const { data: fullData } = useVehicleTire(initial?.id, {
+    enabled: isEdit && !vehicleId && (!initial?.vehicle || typeof initial?.vehicle !== 'object'),
+    expand: 'vehicle'
+  });
+
+  // Backup: Manual mapping via vehicle list
+  const { data: vData } = useVehicles({ all: true }, { enabled: isEdit && !vehicleId });
+  const allVehicles = vData?.results ?? vData ?? [];
 
   const resolveVehicleId = () => {
     if (vehicleId) return vehicleId;
-    if (typeof initial?.vehicle === 'object') return initial.vehicle?.id ?? '';
-    return initial?.vehicle_id ?? initial?.vehicle ?? '';
+    if (typeof initial?.vehicle === 'object' && initial.vehicle !== null) return initial.vehicle.id || '';
+    if (initial?.vehicle_id) return initial.vehicle_id;
+    
+    // Attempt manual match by registration string
+    const reg = initial?.vehicle_registration_number || initial?.vehicle_registration || initial?.vehicle || '';
+    if (reg && allVehicles.length > 0) {
+      const norm = (s) => String(s || '').replace(/\s+/g, '').toUpperCase();
+      const match = allVehicles.find(v => norm(v.registration_number) === norm(reg));
+      if (match) return match.id;
+    }
+    return '';
   };
 
   const [form, setForm] = useState(
@@ -129,6 +149,24 @@ const TireModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => 
   const isPending = create.isPending || update.isPending;
   const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
   const [errors, setErrors] = useState({});
+
+  // Sync vehicle ID when full data or vehicle list is fetched
+  React.useEffect(() => {
+    if (isEdit && !form.vehicle && allVehicles.length > 0) {
+      const reg = initial?.vehicle_registration_number || initial?.vehicle_registration || initial?.vehicle || '';
+      if (reg) {
+        const norm = (s) => String(s || '').replace(/\s+/g, '').toUpperCase();
+        const match = allVehicles.find(v => norm(v.registration_number) === norm(reg));
+        if (match) setForm(p => ({ ...p, vehicle: match.id }));
+      }
+    }
+    if (fullData) {
+      const vId = fullData.vehicle?.id || fullData.vehicle || fullData.vehicle_id || '';
+      if (vId && !form.vehicle) {
+        setForm(p => ({ ...p, vehicle: vId }));
+      }
+    }
+  }, [allVehicles, fullData, isEdit, initial, form.vehicle]);
 
   const handleSubmit = () => {
     const errs = {};
@@ -165,6 +203,7 @@ const TireModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => 
                   <Label required={!isEdit}>Vehicle</Label>
                   <VehicleSelect
                     value={form.vehicle}
+                    disabled={isEdit}
                     placeholder={initial?.vehicle_registration_number || initial?.vehicle_registration || initial?.vehicle_display}
                     onChange={(id) => setForm(p => ({ ...p, vehicle: id }))}
                   />
@@ -246,6 +285,7 @@ const VehicleTires = ({ vehicleId, isTab }) => {
     ...(posFilter && { tire_position: posFilter }),
     ...(statusFilter && { status: statusFilter }),
     ...(vehicleId && { vehicle: vehicleId }),
+    expand: 'vehicle',
     page: currentPage,
   });
   const del = useDeleteVehicleTire();
@@ -441,7 +481,7 @@ const VehicleTires = ({ vehicleId, isTab }) => {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {tires.map(t => (
-                  <tr key={t.id} className="hover:bg-blue-50/30 transition-colors">
+                  <tr key={t.id} className="hover:bg-blue-50/30 transition-colors cursor-pointer" onClick={() => setViewing(t)}>
                     {!vehicleId && (
                       <td className="px-4 py-3 whitespace-nowrap">
                         <button onClick={() => setViewing(t)}
@@ -481,7 +521,7 @@ const VehicleTires = ({ vehicleId, isTab }) => {
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center gap-2">
-                        <button onClick={() => setModal({ mode: 'edit', data: t })}
+                        <button onClick={(e) => { e.stopPropagation(); setModal({ mode: 'edit', data: t }); }}
                           className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all">
                           <Pencil size={12} /> Edit
                         </button>
