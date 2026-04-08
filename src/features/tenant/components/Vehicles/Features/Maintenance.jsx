@@ -11,11 +11,14 @@ import {
   useCreateMaintenanceSchedule,
   useUpdateMaintenanceSchedule,
   useDeleteMaintenanceSchedule,
+  useMaintenanceSchedule,
   useMaintenanceRecords,
   useCreateMaintenanceRecord,
   useUpdateMaintenanceRecord,
   useDeleteMaintenanceRecord,
+  useMaintenanceRecord,
 } from '../../../queries/vehicles/vehicleInfoQuery';
+import { useVehicles } from '../../../queries/vehicles/vehicleQuery';
 import {
   Badge, InfoCard, SectionHeader, EmptyState, Modal, DeleteConfirm, ItemActions,
   Label, Input, Sel, Section, Field, StatCard, Textarea, VehicleSelect,
@@ -58,21 +61,21 @@ const FormSec = ({ title }) => (
 
 const vehicleDisplay = (v, item) => {
   if (!v && !item) return '—';
-  
+
   // if v is the vehicle object (from expand=vehicle)
   if (typeof v === 'object' && v !== null) {
     return v.registration_number || v.registration || v.vehicle_number || v.display_name || '—';
   }
-  
+
   // check for registration fields directly on the item
-  const reg = item?.vehicle_registration_number || 
-              item?.vehicle_registration || 
-              item?.registration_number || 
-              item?.registration || 
-              item?.vehicle_display || 
-              item?.vehicle_name ||
-              item?.display_name;
-              
+  const reg = item?.vehicle_registration_number ||
+    item?.vehicle_registration ||
+    item?.registration_number ||
+    item?.registration ||
+    item?.vehicle_display ||
+    item?.vehicle_name ||
+    item?.display_name;
+
   if (reg) return reg;
 
   // last resort: return the raw vehicle ID if it exists, otherwise dash
@@ -253,12 +256,30 @@ const RecordDetailView = ({ data, onClose }) => {
 const ScheduleModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => {
   // Force browser reload comment: v2
   const isEdit = !!initial?.id && !isView;
-  console.log('Maintenance ScheduleModal Debug:', { initial, vehicleId, isEdit });
+
+  // FETCH FULL DATA IF EDIT (to get missing vehicle ID from the list response)
+  const { data: fullData } = useMaintenanceSchedule(initial?.id, {
+    enabled: isEdit && !vehicleId && (!initial?.vehicle || typeof initial?.vehicle !== 'object'),
+    expand: 'vehicle'
+  });
+
+  // Backup: Manual mapping via vehicle list
+  const { data: vData } = useVehicles({ all: true }, { enabled: isEdit && !vehicleId });
+  const allVehicles = vData?.results ?? vData ?? [];
 
   const resolveVehicleId = () => {
     if (vehicleId) return vehicleId;
-    if (typeof initial?.vehicle === 'object') return initial.vehicle?.id ?? '';
-    return initial?.vehicle_id ?? initial?.vehicle ?? '';
+    if (typeof initial?.vehicle === 'object' && initial.vehicle !== null) return initial.vehicle.id || '';
+    if (initial?.vehicle_id) return initial.vehicle_id;
+
+    // Attempt manual match by registration string
+    const reg = initial?.vehicle_registration_number || initial?.vehicle_registration || initial?.vehicle || '';
+    if (reg && allVehicles.length > 0) {
+      const norm = (s) => String(s || '').replace(/\s+/g, '').toUpperCase();
+      const match = allVehicles.find(v => norm(v.registration_number) === norm(reg));
+      if (match) return match.id;
+    }
+    return '';
   };
 
   const [form, setForm] = useState(
@@ -281,6 +302,24 @@ const ScheduleModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest })
   const isPending = create.isPending || update.isPending;
   const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
   const [errors, setErrors] = useState({});
+
+  // Sync vehicle ID when full data or vehicle list is fetched
+  useEffect(() => {
+    if (isEdit && !form.vehicle && allVehicles.length > 0) {
+      const reg = initial?.vehicle_registration_number || initial?.vehicle_registration || initial?.vehicle || '';
+      if (reg) {
+        const norm = (s) => String(s || '').replace(/\s+/g, '').toUpperCase();
+        const match = allVehicles.find(v => norm(v.registration_number) === norm(reg));
+        if (match) setForm(p => ({ ...p, vehicle: match.id }));
+      }
+    }
+    if (fullData) {
+      const vId = fullData.vehicle?.id || fullData.vehicle || fullData.vehicle_id || '';
+      if (vId && !form.vehicle) {
+        setForm(p => ({ ...p, vehicle: vId }));
+      }
+    }
+  }, [allVehicles, fullData, isEdit, initial, form.vehicle]);
 
   const handleSubmit = () => {
     const errs = {};
@@ -316,7 +355,7 @@ const ScheduleModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest })
                 <div className="col-span-2">
                   <Label required={!isEdit}>Vehicle</Label>
                   <VehicleSelect
-                    value={form.vehicle}
+                    value={form.vehicle} disabled={isEdit}
                     placeholder={initial?.vehicle_registration_number || initial?.vehicle_registration || initial?.vehicle_display}
                     onChange={(id) => setForm(p => ({ ...p, vehicle: id }))}
                   />
@@ -374,12 +413,30 @@ const ScheduleModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest })
 const RecordModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => {
   // Force browser reload comment: v2
   const isEdit = !!initial?.id && !isView;
-  console.log('Maintenance RecordModal Debug:', { initial, vehicleId, isEdit });
+
+  // FETCH FULL DATA IF EDIT
+  const { data: fullData } = useMaintenanceRecord(initial?.id, {
+    enabled: isEdit && !vehicleId && (!initial?.vehicle || typeof initial?.vehicle !== 'object'),
+    expand: 'vehicle'
+  });
+
+  // Backup: Manual mapping via vehicle list
+  const { data: vData } = useVehicles({ all: true }, { enabled: isEdit && !vehicleId });
+  const allVehicles = vData?.results ?? vData ?? [];
 
   const resolveVehicleId = () => {
     if (vehicleId) return vehicleId;
-    if (typeof initial?.vehicle === 'object') return initial.vehicle?.id ?? '';
-    return initial?.vehicle_id ?? initial?.vehicle ?? '';
+    if (typeof initial?.vehicle === 'object' && initial.vehicle !== null) return initial.vehicle.id || '';
+    if (initial?.vehicle_id) return initial.vehicle_id;
+
+    // Attempt manual match by registration string
+    const reg = initial?.vehicle_registration_number || initial?.vehicle_registration || initial?.vehicle || '';
+    if (reg && allVehicles.length > 0) {
+      const norm = (s) => String(s || '').replace(/\s+/g, '').toUpperCase();
+      const match = allVehicles.find(v => norm(v.registration_number) === norm(reg));
+      if (match) return match.id;
+    }
+    return '';
   };
 
   const [form, setForm] = useState(
@@ -403,6 +460,24 @@ const RecordModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) =
   const isPending = create.isPending || update.isPending;
   const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
   const [errors, setErrors] = useState({});
+
+  // Sync vehicle ID when full data or vehicle list is fetched
+  useEffect(() => {
+    if (isEdit && !form.vehicle && allVehicles.length > 0) {
+      const reg = initial?.vehicle_registration_number || initial?.vehicle_registration || initial?.vehicle || '';
+      if (reg) {
+        const norm = (s) => String(s || '').replace(/\s+/g, '').toUpperCase();
+        const match = allVehicles.find(v => norm(v.registration_number) === norm(reg));
+        if (match) setForm(p => ({ ...p, vehicle: match.id }));
+      }
+    }
+    if (fullData) {
+      const vId = fullData.vehicle?.id || fullData.vehicle || fullData.vehicle_id || '';
+      if (vId && !form.vehicle) {
+        setForm(p => ({ ...p, vehicle: vId }));
+      }
+    }
+  }, [allVehicles, fullData, isEdit, initial, form.vehicle]);
 
   const [newPart, setNewPart] = useState({ part_name: '', quantity: '', cost: '' });
   const addPart = () => {
@@ -446,7 +521,7 @@ const RecordModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) =
                 <div className="col-span-2">
                   <Label required={!isEdit}>Vehicle</Label>
                   <VehicleSelect
-                    value={form.vehicle}
+                    value={form.vehicle} disabled={isEdit}
                     placeholder={initial?.vehicle_registration_number || initial?.vehicle_registration || initial?.vehicle_display}
                     onChange={(id) => setForm(p => ({ ...p, vehicle: id }))}
                   />
@@ -636,7 +711,7 @@ const SchedulesTab = ({ onEdit, onDelete, onView, onAdd, vehicleId, isTab }) => 
                 const days = daysUntil(row.next_due_date);
                 const urgency = days !== null && days <= 7 && row.status === 'SCHEDULED';
                 return (
-                  <tr key={row.id} className={`hover:bg-blue-50/30 transition-colors ${urgency ? 'bg-orange-50/30' : ''}`}>
+                  <tr key={row.id} className={`hover:bg-blue-50/30 transition-colors cursor-pointer ${urgency ? 'bg-orange-50/30' : ''}`} onClick={() => onView(row)}>
                     {!vehicleId && (
                       <td className="px-4 py-3 whitespace-nowrap">
                         <button onClick={() => onView(row)}
@@ -673,7 +748,7 @@ const SchedulesTab = ({ onEdit, onDelete, onView, onAdd, vehicleId, isTab }) => 
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center gap-2">
-                        <button onClick={() => onEdit(row)} className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100">
+                        <button onClick={(e) => { e.stopPropagation(); onEdit(row); }} className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100">
                           <Pencil size={12} /> Edit
                         </button>
                       </div>
@@ -794,7 +869,7 @@ const RecordsTab = ({ onEdit, onDelete, onView, onAdd, vehicleId, isTab }) => {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {records.map(r => (
-                <tr key={r.id} className="hover:bg-blue-50/30 transition-colors">
+                <tr key={r.id} className="hover:bg-blue-50/30 transition-colors cursor-pointer" onClick={() => onView(r)}>
                   {!vehicleId && (
                     <td className="px-4 py-3 whitespace-nowrap">
                       <button onClick={() => onView(r)}
@@ -824,7 +899,7 @@ const RecordsTab = ({ onEdit, onDelete, onView, onAdd, vehicleId, isTab }) => {
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center gap-2">
-                      <button onClick={() => onEdit(r)} className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100">
+                      <button onClick={(e) => { e.stopPropagation(); onEdit(r); }} className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100">
                         <Pencil size={12} /> Edit
                       </button>
                     </div>

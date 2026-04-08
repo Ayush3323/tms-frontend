@@ -188,7 +188,7 @@ export const Field = ({ label, required, children, error, className = '' }) => (
 );
 
 // ── Modal Component ──────────────────────────────────────────────────
-export const Modal = ({ title, onClose, onSubmit, submitting, isView, children, maxWidth = 'max-w-lg', onDelete, isDeleting }) => (
+export const Modal = ({ title, onClose, onSubmit, submitting, isView, children, maxWidth = 'max-w-lg', onDelete, isDeleting, submitDisabled }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
     <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
     <div className={`relative bg-white rounded-2xl shadow-2xl w-full ${maxWidth} max-h-[90vh] flex flex-col overflow-hidden`}>
@@ -214,7 +214,7 @@ export const Modal = ({ title, onClose, onSubmit, submitting, isView, children, 
             <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all">
               Cancel
             </button>
-            <button onClick={onSubmit} disabled={submitting}
+            <button onClick={onSubmit} disabled={submitting || submitDisabled}
               className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-xl hover:bg-[#0043A8] transition-all disabled:opacity-50 shadow-sm shadow-blue-200">
               {submitting ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
               Save
@@ -275,12 +275,12 @@ export const ItemActions = ({ onEdit, onDelete, editLabel = "Edit", deleteLabel 
 );
 
 // ── Vehicle Searchable Dropdown ───────────────────────────────────────
-export const VehicleSelect = ({ value, onChange, placeholder }) => {
+export const VehicleSelect = ({ value, onChange, placeholder, disabled }) => {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
-  const { data: vData, isLoading } = useVehicles({}, { enabled: open || !!value });
+  const { data: vData, isLoading } = useVehicles({ expand: 'assigned_driver' }, { enabled: open || !!value });
   const allVehicles = vData?.results ?? vData ?? [];
   const vehicles = query
     ? allVehicles.filter(v =>
@@ -298,10 +298,10 @@ export const VehicleSelect = ({ value, onChange, placeholder }) => {
   const selected = allVehicles.find(v => v.id === value);
 
   return (
-    <div className="relative" ref={ref}>
-      <div onClick={() => setOpen(o => !o)}
+    <div className={`relative ${disabled ? "opacity-70 cursor-not-allowed" : ""}`} ref={ref}>
+      <div onClick={() => !disabled && setOpen(o => !o)}
         className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50
-          cursor-pointer flex items-center justify-between gap-2 transition-all hover:border-[#0052CC]/40">
+          flex items-center justify-between gap-2 transition-all ${disabled ? '' : 'hover:border-[#0052CC]/40 cursor-pointer'}">
         <span className={`font-mono truncate ${selected || placeholder ? 'text-[#172B4D] font-bold' : 'text-gray-300'}`}>
           {selected ? `${selected.registration_number} — ${selected.make ?? ''} ${selected.model ?? ''}`.trim() : (placeholder || 'Select vehicle...')}
         </span>
