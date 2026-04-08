@@ -203,8 +203,26 @@ const BrokersDashboard = () => {
       if (match) form.customer_id = match.id;
     }
     if (!form.legal_name?.trim()) e.legal_name = 'Legal Name is required';
-    if (!form.tax_id?.trim()) e.tax_id = 'Tax ID is required';
-    if (!form.pan_number?.trim()) e.pan_number = 'PAN number is required';
+    
+    if (!form.tax_id?.trim()) {
+      e.tax_id = 'Tax ID is required';
+    } else {
+      const isDuplicate = allCustomers.some(c => 
+        c.tax_id?.toLowerCase() === form.tax_id.trim().toLowerCase() && 
+        c.id !== (String(form.customer_id) || String(modal?.broker?.customer?.id))
+      );
+      if (isDuplicate) e.tax_id = 'This Tax ID is already taken by another customer';
+    }
+
+    if (!form.pan_number?.trim()) {
+      e.pan_number = 'PAN number is required';
+    } else {
+      const isDuplicate = allCustomers.some(c => 
+        c.pan_number?.toLowerCase() === form.pan_number.trim().toLowerCase() && 
+        c.id !== (String(form.customer_id) || String(modal?.broker?.customer?.id))
+      );
+      if (isDuplicate) e.pan_number = 'This PAN number is already taken by another customer';
+    }
     if (!form.broker_code?.trim()) {
       const initials = (form.legal_name || 'BRK').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3);
       form.broker_code = `BRK-${initials}-${Math.floor(1000 + Math.random() * 9000)}`;
