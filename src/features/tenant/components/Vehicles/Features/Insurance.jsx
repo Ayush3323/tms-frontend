@@ -10,9 +10,12 @@ import {
   useCreateVehicleInsurance,
   useUpdateVehicleInsurance,
   useDeleteVehicleInsurance,
+  parseError,
+  useVehicleInsurance,
 } from '../../../queries/vehicles/vehicleInfoQuery';
+import { useVehicles } from '../../../queries/vehicles/vehicleQuery';
 import {
-  Badge, InfoCard, SectionHeader, EmptyState, Modal, DeleteConfirm,
+  Badge, Modal, DeleteConfirm,
   Label, Input, Sel, Section, Field, StatCard, Textarea, VehicleSelect,
   fmtDate, fmtINR, ItemActions
 } from '../Common/VehicleCommon';
@@ -48,12 +51,17 @@ const EMPTY_FORM = {
   notes: '',
 };
 
-// ── Expiry status helper ──────────────────────────────────────────────
+const getDaysLeft = (date) => {
+  if (!date) return null;
+  const d = new Date(date);
+  d.setHours(23, 59, 59, 999);
+  const diff = d - new Date();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+};
+
 const getExpiryStatus = (expiryDate) => {
   if (!expiryDate) return null;
-  const today = new Date();
-  const expiry = new Date(expiryDate);
-  const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+  const diffDays = getDaysLeft(expiryDate);
 
   if (diffDays < 0) return { label: 'Expired', color: 'bg-red-50 text-red-600 border-red-200', dot: 'bg-red-500' };
   if (diffDays <= 30) return { label: `${diffDays}d`, color: 'bg-orange-50 text-orange-600 border-orange-200', dot: 'bg-orange-500' };
@@ -123,6 +131,16 @@ const InsuranceDetailView = ({ data, onClose }) => {
         </Field>
         <Field label="Expiry Date">
           <p className="text-sm text-gray-600 font-semibold">{fmtDate(data.expiry_date)}</p>
+          {data.expiry_date && (getDaysLeft(data.expiry_date) <= 30) && (
+            <div className="flex items-center gap-1.5 mt-1.5 px-2 py-0.5 rounded-lg bg-red-50 border border-red-100 w-fit">
+              <ShieldAlert size={10} className="text-red-500" />
+              <p className="text-[10px] font-black text-red-600 uppercase tracking-tight">
+                {getDaysLeft(data.expiry_date) < 0
+                  ? `${Math.abs(getDaysLeft(data.expiry_date))}d overdue`
+                  : `${getDaysLeft(data.expiry_date)}d left`}
+              </p>
+            </div>
+          )}
         </Field>
       </div>
 
@@ -143,14 +161,32 @@ const InsuranceDetailView = ({ data, onClose }) => {
 
 // ── Add / Edit Modal ──────────────────────────────────────────────────
 const InsuranceModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) => {
-  // Force browser reload comment: v2
+  const [localError, setLocalError] = useState(null);
   const isEdit = !!initial?.id && !isView;
-  console.log('InsuranceModal Debug:', { initial, vehicleId, isEdit });
+
+  // FETCH FULL DATA IF EDIT (to get missing vehicle ID from the list response)
+  const { data: fullData } = useVehicleInsurance(initial?.id, {
+    enabled: isEdit && !vehicleId && (!initial?.vehicle || typeof initial?.vehicle !== 'object'),
+    expand: 'vehicle'
+  });
+
+  // Backup: Manual mapping via vehicle list
+  const { data: vData } = useVehicles({ all: true }, { enabled: isEdit && !vehicleId });
+  const allVehicles = vData?.results ?? vData ?? [];
 
   const resolveVehicleId = () => {
     if (vehicleId) return vehicleId;
-    if (typeof initial?.vehicle === 'object') return initial.vehicle?.id ?? '';
-    return initial?.vehicle_id ?? initial?.vehicle ?? '';
+    if (typeof initial?.vehicle === 'object' && initial.vehicle !== null) return initial.vehicle.id || '';
+    if (initial?.vehicle_id) return initial.vehicle_id;
+
+    // Attempt manual match by registration string
+    const reg = initial?.vehicle_registration_number || initial?.vehicle_registration || initial?.vehicle || '';
+    if (reg && allVehicles.length > 0) {
+      const norm = (s) => String(s || '').replace(/\s+/g, '').toUpperCase();
+      const match = allVehicles.find(v => norm(v.registration_number) === norm(reg));
+      if (match) return match.id;
+    }
+    return '';
   };
 
   const [form, setForm] = useState(
@@ -174,6 +210,24 @@ const InsuranceModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }
   const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
   const [errors, setErrors] = useState({});
 
+  // Sync vehicle ID when full data or vehicle list is fetched
+  useEffect(() => {
+    if (isEdit && !form.vehicle && allVehicles.length > 0) {
+      const reg = initial?.vehicle_registration_number || initial?.vehicle_registration || initial?.vehicle || '';
+      if (reg) {
+        const norm = (s) => String(s || '').replace(/\s+/g, '').toUpperCase();
+        const match = allVehicles.find(v => norm(v.registration_number) === norm(reg));
+        if (match) setForm(p => ({ ...p, vehicle: match.id }));
+      }
+    }
+    if (fullData) {
+      const vId = fullData.vehicle?.id || fullData.vehicle || fullData.vehicle_id || '';
+      if (vId && !form.vehicle) {
+        setForm(p => ({ ...p, vehicle: vId }));
+      }
+    }
+  }, [allVehicles, fullData, isEdit, initial, form.vehicle]);
+
   const { data: checkData } = useVehicleInsurances(
     { vehicle: form.vehicle },
     { enabled: !!form.vehicle && !isEdit }
@@ -193,8 +247,18 @@ const InsuranceModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }
     setErrors({});
 
     const clean = Object.fromEntries(Object.entries(form).map(([k, v]) => [k, v === '' ? null : v]));
-    if (isEdit) update.mutate({ id: initial.id, data: clean }, { onSuccess: onClose });
-    else create.mutate(clean, { onSuccess: onClose });
+
+    const handleSuccess = () => {
+      setLocalError(null);
+      onClose();
+    };
+
+    const handleError = (err) => {
+      setLocalError(parseError(err));
+    };
+
+    if (isEdit) update.mutate({ id: initial.id, data: clean }, { onSuccess: handleSuccess, onError: handleError });
+    else create.mutate(clean, { onSuccess: handleSuccess, onError: handleError });
   };
 
   return (
@@ -208,6 +272,15 @@ const InsuranceModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }
       onDelete={isEdit ? onDeleteRequest : null}
     >
       <div className="space-y-4">
+        {!isView && localError && (
+          <div className="p-4 rounded-xl bg-red-50 border border-red-100 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+            <AlertCircle className="text-red-500 mt-0.5 shrink-0" size={18} />
+            <div className="flex-1">
+              <p className="text-sm font-bold text-red-900 leading-tight">Validation Error</p>
+              <p className="text-xs text-red-700 font-medium mt-1 leading-relaxed">{localError}</p>
+            </div>
+          </div>
+        )}
         {isView ? (
           <InsuranceDetailView data={initial} onClose={onClose} />
         ) : (
@@ -216,6 +289,7 @@ const InsuranceModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }
               <Field label="Vehicle" required={!isEdit} error={errors.vehicle}>
                 <VehicleSelect
                   value={form.vehicle}
+                  disabled={isEdit}
                   placeholder={initial?.vehicle_registration_number || initial?.vehicle_registration || initial?.vehicle_display}
                   onChange={(id) => {
                     setForm(p => ({ ...p, vehicle: id }));
@@ -223,7 +297,7 @@ const InsuranceModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }
                   }}
                 />
                 {isEdit && !form.vehicle && (
-                  <p className="text-[11px] text-orange-500 mt-1">⚠ Vehicle info not available in API — will be preserved on update</p>
+                  <p className="text-[11px] text-orange-500 mt-1"></p>
                 )}
               </Field>
             )}
@@ -249,21 +323,21 @@ const InsuranceModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Premium Amount (₹)</Label>
+                <Label required>Premium Amount (₹)</Label>
                 <Input type="number" placeholder="e.g. 50000" value={form.premium_amount} onChange={set('premium_amount')} />
               </div>
               <div>
-                <Label>Coverage Amount (₹)</Label>
+                <Label required>Coverage Amount (₹)</Label>
                 <Input type="number" placeholder="e.g. 5000000" value={form.coverage_amount} onChange={set('coverage_amount')} />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Issue Date</Label>
+                <Label required>Issue Date</Label>
                 <Input type="date" value={form.issue_date} onChange={set('issue_date')} />
               </div>
-              <Field label="Expiry Date" error={errors.expiry_date}>
+              <Field label="Expiry Date" required error={errors.expiry_date}>
                 <Input type="date" value={form.expiry_date} onChange={set('expiry_date')} />
               </Field>
             </div>
@@ -305,6 +379,7 @@ const VehicleInsurance = ({ vehicleId, isTab }) => {
     ...(vehicleId && { vehicle: vehicleId }),
     ...(search && { search }),
     ...(typeFilter && { policy_type: typeFilter }),
+    expand: 'vehicle',
     page: currentPage,
   });
 
@@ -517,7 +592,7 @@ const VehicleInsurance = ({ vehicleId, isTab }) => {
                   const statusLabel = doc.status_display ?? doc.status ?? expiryStatus?.label ?? '—';
 
                   return (
-                    <tr key={doc.id} className="hover:bg-blue-50/30 transition-colors">
+                    <tr key={doc.id} className="hover:bg-blue-50/30 transition-colors cursor-pointer" onClick={() => setView(doc)}>
 
                       {/* Vehicle */}
                       {!vehicleId && (
@@ -545,10 +620,16 @@ const VehicleInsurance = ({ vehicleId, isTab }) => {
 
                       {/* Expiry Date */}
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span className="flex items-center gap-1 text-gray-500 text-[12px]">
-                          <Calendar size={12} className="text-gray-300" />
-                          {fmtDate(doc.expiry_date)}
-                        </span>
+                        <div className="flex flex-col">
+                          <span className="text-sm text-gray-600 font-semibold">{fmtDate(doc.expiry_date)}</span>
+                          {doc.expiry_date && (getDaysLeft(doc.expiry_date) <= 30) && (
+                            <span className="text-[10px] font-bold text-red-500 mt-0.5">
+                              {getDaysLeft(doc.expiry_date) < 0
+                                ? `${Math.abs(getDaysLeft(doc.expiry_date))}d overdue`
+                                : `${getDaysLeft(doc.expiry_date)}d left`}
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Status */}
@@ -562,7 +643,7 @@ const VehicleInsurance = ({ vehicleId, isTab }) => {
                       {/* Actions */}
                       <td className="px-4 py-3 whitespace-nowrap text-right">
                         <div className="flex items-center justify-end gap-2 text-right">
-                          <button onClick={() => setModal(doc)}
+                          <button onClick={(e) => { e.stopPropagation(); setModal(doc); }}
                             className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all">
                             <Pencil size={12} /> Edit
                           </button>
@@ -592,7 +673,7 @@ const VehicleInsurance = ({ vehicleId, isTab }) => {
                 <> of <span className="font-bold text-gray-600">{data.count}</span></>
               } policies
             </span>
-            {!isTab && <span className="text-[11px]">Fleet Management System</span>}
+            {!isTab && <span className="text-[11px]"></span>}
           </div>
         )}
       </div>
