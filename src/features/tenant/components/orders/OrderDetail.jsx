@@ -132,9 +132,10 @@ const OverviewTab = ({ order, getCustomerName, st, consignor, consignee, billing
         </Section>
 
         <Section title="Shipment Timeline" icon={Calendar}>
-            <div className="grid grid-cols-2 gap-5">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
                 <DataField label="Pickup Date" value={order.pickup_date || 'Not Set'} />
                 <DataField label="Delivery Date" value={order.delivery_date || 'Not Set'} />
+                <DataField label="LR Receiving Date" value={order.lr_receiving_date || 'Not Set'} />
             </div>
         </Section>
     </div>
@@ -185,7 +186,7 @@ const OverviewTab = ({ order, getCustomerName, st, consignor, consignee, billing
 
     {/* Billing & Reference Details */}
     <Section title="Billing & Reference" icon={Hash}>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-5 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-5 items-start">
             <div className="flex flex-col gap-0.5">
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Billing Customer</span>
                 <span className="text-sm font-black text-[#172B4D] truncate">
@@ -193,8 +194,9 @@ const OverviewTab = ({ order, getCustomerName, st, consignor, consignee, billing
                 </span>
                 <span className="text-[9px] text-gray-400 font-bold uppercase tracking-tight">{billingCustomer?.customer_code}</span>
             </div>
+            <DataField label="Billing Company Name" value={order.billing_company_name} />
             <DataField label="Customer Reference Number" value={order.reference_number} mono />
-            <div className="md:col-span-2">
+            <div className="md:col-span-3 lg:col-span-1">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 leading-none">Internal Notes</p>
                 <p className="text-xs text-gray-600 italic line-clamp-2">
                     {order.notes || "No special instructions provided for this shipment."}
@@ -486,40 +488,14 @@ export default function OrderDetail() {
 
                 {order.status === 'CONFIRMED' && (
                     <button 
-                        onClick={() => setIsAssignOpen(true)}
+                        onClick={() => navigate(`/tenant/dashboard/orders/trips/new?order_id=${order.id}`)}
                         className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-[#0052CC] rounded-xl hover:bg-[#0041a3] transition-all shadow-md shadow-blue-100"
                     >
                         <Truck size={16} /> Assign Trip
                     </button>
                 )}
 
-                {order.status === 'ASSIGNED' && (
-                    <button 
-                        onClick={() => {
-                            if (window.confirm("Move this order to IN_TRANSIT?")) {
-                                updateOrderMutation.mutate({ id: order.id, data: { status: 'IN_TRANSIT' } });
-                            }
-                        }}
-                        disabled={updateOrderMutation.isPending}
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 disabled:opacity-50"
-                    >
-                        <RefreshCcw size={16} /> Mark In-Transit
-                    </button>
-                )}
 
-                {order.status === 'IN_TRANSIT' && (
-                    <button 
-                        onClick={() => {
-                            if (window.confirm("Mark this order as DELIVERED?")) {
-                                updateOrderMutation.mutate({ id: order.id, data: { status: 'DELIVERED' } });
-                            }
-                        }}
-                        disabled={updateOrderMutation.isPending}
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-teal-600 rounded-xl hover:bg-teal-700 transition-all shadow-md shadow-teal-100 disabled:opacity-50"
-                    >
-                        <CheckCircle2 size={16} /> Complete Delivery
-                    </button>
-                )}
 
                 <button 
                     onClick={() => setIsEditOpen(true)}

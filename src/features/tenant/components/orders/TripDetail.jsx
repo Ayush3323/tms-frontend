@@ -109,8 +109,25 @@ const LABEL_MAP = {
   incentive_amount: 'Incentive',
   payment_received_amount: 'Payment Received',
   payment_received_date: 'Payment Date',
-  pod_received_date: 'POD Received Date',
   pod_turnaround_days: 'POD TAT (days)',
+};
+
+const formatDateTime = (val) => {
+  if (!val) return '—';
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return val;
+  // If it's just a date (YYYY-MM-DD), show as date
+  if (typeof val === 'string' && val.length === 10) {
+    return d.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+  return d.toLocaleString('en-IN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  });
 };
 
 const TRIP_TRANSITIONS = {
@@ -181,7 +198,7 @@ const OverviewTab = ({ trip, driver, vehicle, order, isLoadingNames }) => (
         <SectionHeader icon={Calendar} title="Reference Details" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <InfoCard label="reference_number" value={trip.reference_number} icon={Hash} />
-          <InfoCard label="created_date" value={trip.created_date} icon={Calendar} />
+          <InfoCard label="created_date" value={formatDateTime(trip.created_date)} icon={Calendar} />
         </div>
       </div>
     </div>
@@ -221,12 +238,12 @@ const JourneyTab = ({ trip, driver, vehicle, isLoadingNames, altDriver, altVehic
       <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
         <SectionHeader icon={Clock} title="Schedule & Timing" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <InfoCard label="scheduled_pickup_date" value={trip.scheduled_pickup_date} icon={Calendar} />
-          <InfoCard label="scheduled_delivery_date" value={trip.scheduled_delivery_date} icon={CheckCircle2} />
-          <InfoCard label="actual_pickup_date" value={trip.actual_pickup_date} icon={Clock} />
-          <InfoCard label="actual_delivery_date" value={trip.actual_delivery_date} icon={CheckCircle2} />
-          <InfoCard label="start_time" value={trip.start_time} icon={Zap} />
-          <InfoCard label="end_time" value={trip.end_time} icon={Zap} />
+          <InfoCard label="scheduled_pickup_date" value={formatDateTime(trip.scheduled_pickup_date)} icon={Calendar} />
+          <InfoCard label="scheduled_delivery_date" value={formatDateTime(trip.scheduled_delivery_date)} icon={CheckCircle2} />
+          <InfoCard label="actual_pickup_date" value={formatDateTime(trip.actual_pickup_date)} icon={Clock} />
+          <InfoCard label="actual_delivery_date" value={formatDateTime(trip.actual_delivery_date)} icon={CheckCircle2} />
+          <InfoCard label="start_time" value={formatDateTime(trip.start_time)} icon={Zap} />
+          <InfoCard label="end_time" value={formatDateTime(trip.end_time)} icon={Zap} />
         </div>
       </div>
     </div>

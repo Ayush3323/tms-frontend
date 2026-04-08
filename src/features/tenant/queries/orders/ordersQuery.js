@@ -226,14 +226,23 @@ export const useUpdateTrip = () => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, data, fullReplace = false }) => {
+      const currentTrip = queryClient.getQueryData(orderKeys.tripDetail(id));
       const response = fullReplace ? await tripsApi.replace(id, data) : await tripsApi.update(id, data);
       
-      // If trip's order is updated, we also ensure the order is marked as ASSIGNED
-      if (data.order_id) {
-        try {
-          await ordersApi.update(data.order_id, { status: 'ASSIGNED' });
-        } catch (err) {
-          console.error("Order status update failed (on trip update):", err);
+      const orderId = data.order_id || currentTrip?.order_id;
+      if (orderId && data.status && data.status !== currentTrip?.status) {
+        let orderStatus = null;
+        if (data.status === 'IN_TRANSIT') orderStatus = 'IN_TRANSIT';
+        else if (['DELIVERED', 'COMPLETED'].includes(data.status)) orderStatus = 'DELIVERED';
+        else if (data.status === 'CANCELLED') orderStatus = 'CANCELLED';
+        else if (data.status === 'ASSIGNED' || data.status === 'CREATED') orderStatus = 'ASSIGNED';
+
+        if (orderStatus) {
+          try {
+            await ordersApi.update(orderId, { status: orderStatus });
+          } catch (err) {
+            console.error("Order status update failed (on trip update):", err);
+          }
         }
       }
       return response;

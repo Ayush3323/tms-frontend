@@ -445,7 +445,7 @@ const DriversList = () => {
             <Search className="absolute left-4 top-3.5 text-gray-400 group-focus-within/search:text-[#0052CC] transition-all duration-300 group-focus-within/search:scale-110" size={20} />
             <input
               type="text"
-              placeholder="Search drivers by name, employee ID, license..."
+              placeholder="Search by Employee ID or License No..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-12 pr-12 py-3 bg-white border border-gray-200 rounded-2xl text-[15px] font-medium placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-50 transition-all shadow-sm hover:shadow-md hover:border-gray-300"
@@ -599,7 +599,7 @@ const DriversList = () => {
               />
             </div>
 
-            {(statusFilter || typeFilter || licFilter || joinedFrom || joinedTo || visibilityFilter !== 'active') && (
+            {(statusFilter || typeFilter || licFilter || joinedFrom || joinedTo || visibilityFilter !== 'active' || search) && (
               <button
                 onClick={resetFilters}
                 className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
