@@ -2,15 +2,15 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   Plus, Edit2, Loader2, Save, Trash2, X
 } from 'lucide-react';
-import { 
+import {
   useCustomers, useCreateCustomer, useUpdateCustomer,
   useConsignors, useConsignees, useBrokers, useAgents
 } from '../../../queries/customers/customersQuery';
 import { useUsers } from '../../../queries/users/userQuery';
 import { useDrivers } from '../../../queries/drivers/driverCoreQuery';
-import { 
+import {
   Modal, Field, Input, Sel, Section,
-  RelationshipManagementFields, CreatePortalUserSection 
+  RelationshipManagementFields, CreatePortalUserSection
 } from './CustomerCommon';
 
 export const EMPTY_FORM = {
@@ -69,25 +69,25 @@ export const CustomerFormModal = ({ initial, onClose, onSuccess }) => {
     const map = {};
     allEntities.forEach(c => {
       // Check all possible ID paths, including nested ones found in sub-modules
-      const uid = c.user?.id || 
-                  c.user_id || 
-                  c.portal_user_id || 
-                  c.portal_user?.id || 
-                  c.customer?.user?.id || 
-                  c.customer?.user_id ||
-                  c.customer?.portal_user_id ||
-                  (typeof c.user !== 'object' ? c.user : null) ||
-                  (typeof c.portal_user !== 'object' ? c.portal_user : null);
+      const uid = c.user?.id ||
+        c.user_id ||
+        c.portal_user_id ||
+        c.portal_user?.id ||
+        c.customer?.user?.id ||
+        c.customer?.user_id ||
+        c.customer?.portal_user_id ||
+        (typeof c.user !== 'object' ? c.user : null) ||
+        (typeof c.portal_user !== 'object' ? c.portal_user : null);
 
       if (uid) {
         // Use any available name field, including nested ones
-        const name = c.legal_name || 
-                     c.trading_name || 
-                     c.name || 
-                     c.customer?.legal_name || 
-                     c.customer?.trading_name || 
-                     'Another Entity';
-        
+        const name = c.legal_name ||
+          c.trading_name ||
+          c.name ||
+          c.customer?.legal_name ||
+          c.customer?.trading_name ||
+          'Another Entity';
+
         map[String(uid)] = name;
       }
     });
@@ -158,19 +158,37 @@ export const CustomerFormModal = ({ initial, onClose, onSuccess }) => {
 
   const validate = () => {
     const e = {};
+    const allCustomers = customerData?.results ?? customerData ?? [];
     if (!form.legal_name.trim()) {
       e.legal_name = 'Legal name is required';
     } else {
-      const allCustomers = customerData?.results ?? customerData ?? [];
-      const isDuplicate = allCustomers.some(c => 
-        c.legal_name?.toLowerCase() === form.legal_name.trim().toLowerCase() && 
+      const isDuplicate = allCustomers.some(c =>
+        c.legal_name?.toLowerCase() === form.legal_name.trim().toLowerCase() &&
         c.id !== initial?.id
       );
       if (isDuplicate) e.legal_name = 'This legal name is already taken';
     }
     if (!form.customer_type) e.customer_type = 'Select a type';
-    if (!form.tax_id?.trim()) e.tax_id = 'Tax ID is required';
-    if (!form.pan_number?.trim()) e.pan_number = 'PAN number is required';
+
+    if (!form.tax_id?.trim()) {
+      e.tax_id = 'Tax ID is required';
+    } else {
+      const isDuplicate = allCustomers.some(c =>
+        c.tax_id?.toLowerCase() === form.tax_id.trim().toLowerCase() &&
+        c.id !== initial?.id
+      );
+      if (isDuplicate) e.tax_id = 'This Tax ID is already taken by another customer';
+    }
+
+    if (!form.pan_number?.trim()) {
+      e.pan_number = 'PAN number is required';
+    } else {
+      const isDuplicate = allCustomers.some(c =>
+        c.pan_number?.toLowerCase() === form.pan_number.trim().toLowerCase() &&
+        c.id !== initial?.id
+      );
+      if (isDuplicate) e.pan_number = 'This PAN number is already taken by another customer';
+    }
 
     if (createPortalUser && !isEdit) {
       if (!form.user.email) e['user.email'] = 'Email is required';

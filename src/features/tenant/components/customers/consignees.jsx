@@ -78,6 +78,7 @@ const ConsigneesDashboard = () => {
     ...(statusFilter === 'DELETED' && { deleted_only: true }),
     ...(statusFilter && statusFilter !== 'DELETED' && { customer__status: statusFilter }),
     ...(search && { search }),
+    ...(ordering && { ordering }),
     page: currentPage,
   });
 
@@ -214,8 +215,26 @@ const ConsigneesDashboard = () => {
   const validate = () => {
     const e = {};
     if (!form.legal_name?.trim()) e.legal_name = 'Legal name is required';
-    if (!form.tax_id?.trim()) e.tax_id = 'Tax ID is required';
-    if (!form.pan_number?.trim()) e.pan_number = 'PAN number is required';
+    
+    if (!form.tax_id?.trim()) {
+      e.tax_id = 'Tax ID is required';
+    } else {
+      const isDuplicate = allCustomers.some(c => 
+        c.tax_id?.toLowerCase() === form.tax_id.trim().toLowerCase() && 
+        c.id !== (String(form.customer_id) || String(modal?.consignee?.customer?.id))
+      );
+      if (isDuplicate) e.tax_id = 'This Tax ID is already taken by another customer';
+    }
+
+    if (!form.pan_number?.trim()) {
+      e.pan_number = 'PAN number is required';
+    } else {
+      const isDuplicate = allCustomers.some(c => 
+        c.pan_number?.toLowerCase() === form.pan_number.trim().toLowerCase() && 
+        c.id !== (String(form.customer_id) || String(modal?.consignee?.customer?.id))
+      );
+      if (isDuplicate) e.pan_number = 'This PAN number is already taken by another customer';
+    }
     if (form.legal_name) {
       const match = eligibleCustomers.find(c => c.legal_name?.toLowerCase() === form.legal_name.toLowerCase());
       if (match) form.customer_id = match.id;
@@ -329,7 +348,7 @@ const ConsigneesDashboard = () => {
   const inactive = consignees.filter(c => c.customer?.status === 'INACTIVE' || c.customer?.status === 'Inactive').length;
   const suspended = consignees.filter(c => c.customer?.status === 'SUSPENDED' || c.customer?.status === 'Suspended').length;
 
-  const resetFilters = () => { setSearch(''); setDebouncedSearch(''); setStatus(''); setOrdering('customer__legal_name'); setCurrentPage(1); };
+  const resetFilters = () => { setSearch(''); setStatus(''); setOrdering('customer__legal_name'); setCurrentPage(1); };
 
   const COLUMNS = [
     {

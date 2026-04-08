@@ -70,15 +70,13 @@ const CustomerListFilterBar = ({
 
         {extraFilters}
 
-        {clearVisible && (
-          <button
-            onClick={onClearFilters}
-            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-            title="Clear filters"
-          >
-            <RotateCcw size={14} />
-          </button>
-        )}
+        <button
+          onClick={onClearFilters}
+          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+          title="Clear filters"
+        >
+          <RotateCcw size={14} />
+        </button>
       </div>
 
       <div className="flex items-center gap-3">

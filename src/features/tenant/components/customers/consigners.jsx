@@ -231,8 +231,26 @@ const Consignors = () => {
   const validate = () => {
     const e = {};
     if (!form.legal_name?.trim()) e.legal_name = 'Legal name is required';
-    if (!form.tax_id?.trim()) e.tax_id = 'Tax ID is required';
-    if (!form.pan_number?.trim()) e.pan_number = 'PAN number is required';
+    
+    if (!form.tax_id?.trim()) {
+      e.tax_id = 'Tax ID is required';
+    } else {
+      const isDuplicate = allCustomers.some(c => 
+        c.tax_id?.toLowerCase() === form.tax_id.trim().toLowerCase() && 
+        c.id !== (String(form.customer_id) || String(modal?.consignor?.customer?.id))
+      );
+      if (isDuplicate) e.tax_id = 'This Tax ID is already taken by another customer';
+    }
+
+    if (!form.pan_number?.trim()) {
+      e.pan_number = 'PAN number is required';
+    } else {
+      const isDuplicate = allCustomers.some(c => 
+        c.pan_number?.toLowerCase() === form.pan_number.trim().toLowerCase() && 
+        c.id !== (String(form.customer_id) || String(modal?.consignor?.customer?.id))
+      );
+      if (isDuplicate) e.pan_number = 'This PAN number is already taken by another customer';
+    }
     if (!form.consignor_code?.trim()) e.consignor_code = 'Consignor code is required';
 
     if (createPortalUser && modal?.type === 'create') {
