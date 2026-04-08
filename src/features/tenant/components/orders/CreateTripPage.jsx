@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   ChevronLeft, ChevronRight, Save, X, FileText, Truck, 
-  MapPin, Gauge, DollarSign, CheckCircle2, AlertCircle, GripVertical
+  MapPin, Gauge, DollarSign, CheckCircle2, AlertCircle, GripVertical, Circle
 } from 'lucide-react';
 import { useCreateTrip, useOrders } from '../../queries/orders/ordersQuery';
 import { useDrivers } from '../../queries/drivers/driverCoreQuery';
@@ -11,16 +11,44 @@ import { useVehicleTypes } from '../../queries/vehicles/vehicletypeQuery';
 import { tripsApi } from '../../api/orders/ordersEndpoint';
 
 // --- Reusable UI Components (matching previous standardization) ---
-const FieldGroup = ({ label, children, required }) => (
+const formatLabel = (str) => {
+  if (!str) return "";
+  return str
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
+
+const FieldGroup = ({ label, children, required, error }) => (
   <div className="flex flex-col">
     <label className="block text-gray-700 font-medium mb-1 text-sm">
-      {label}{required && <span className="text-red-500 ml-0.5">*</span>}
+      {formatLabel(label)}{required && <span className="text-red-500 ml-0.5">*</span>}
     </label>
     {children}
+    {error && <span className="text-[10px] text-red-500 font-bold mt-1 animate-in fade-in slide-in-from-top-1">{error}</span>}
   </div>
 );
 
-const inputClass = "w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4a6cf7] outline-none transition-all text-sm";
+const GroupHeader = ({ title }) => (
+  <div className="bg-gray-50/80 px-4 py-2 border-x border-t border-gray-200 first:rounded-t-2xl mt-6 first:mt-0">
+    <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{title}</h3>
+  </div>
+);
+
+const MetricsRow = ({ label, children, suffix, helpText }) => (
+  <div className="flex border-x border-b border-gray-200 last:rounded-b-2xl overflow-hidden group">
+    <div className="w-[35%] bg-gray-50/30 px-5 py-3.5 border-r border-gray-100 flex items-center transition-colors group-hover:bg-blue-50/30">
+      <label className="text-xs font-bold text-gray-600 group-hover:text-[#4a6cf7] transition-colors">{formatLabel(label)}</label>
+    </div>
+    <div className="w-[65%] px-5 py-2.5 flex items-center gap-4 bg-white transition-colors group-hover:bg-blue-50/10">
+      <div className="flex-1">{children}</div>
+      {suffix && <span className="text-[10px] font-black text-gray-400 uppercase w-10 text-right">{suffix}</span>}
+      {helpText && <span className="text-[10px] font-medium text-gray-400 italic hidden sm:block whitespace-nowrap">{helpText}</span>}
+    </div>
+  </div>
+);
+
+const inputClass = "w-full p-2.5 border border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-50 focus:border-[#4a6cf7] outline-none transition-all text-sm font-bold text-slate-600 placeholder:text-gray-300 shadow-sm";
 
 export default function CreateTripPage() {
   const navigate = useNavigate();
@@ -60,7 +88,17 @@ export default function CreateTripPage() {
     remarks: "", version: 1
   });
   const [fieldErrors, setFieldErrors] = useState({});
+  const hasErrors = Object.values(fieldErrors).some(err => err && err !== '');
   const [stopErrors, setStopErrors] = useState([]);
+  const [searchParams] = useSearchParams();
+  const orderIdFromUrl = searchParams.get('order_id');
+
+  useEffect(() => {
+    if (orderIdFromUrl && orders.length > 0) {
+      handleOrderChange(orderIdFromUrl);
+    }
+  }, [orderIdFromUrl, orders]);
+
   const [dragIdx, setDragIdx] = useState(null);
   const [dragOverIdx, setDragOverIdx] = useState(null);
   const [plannedStops, setPlannedStops] = useState([
@@ -106,6 +144,10 @@ export default function CreateTripPage() {
     if (name === 'actual_pickup_date' || name === 'actual_delivery_date') {
       const pickup = currentData.actual_pickup_date;
       const delivery = currentData.actual_delivery_date;
+      const today = new Date().toISOString().split('T')[0];
+      
+      if (pickup && pickup > today) return 'Actual pickup cannot be in the future';
+      if (delivery && delivery > today) return 'Actual delivery cannot be in the future';
       if (pickup && delivery && delivery < pickup) return 'Actual delivery cannot be before actual pickup';
     }
     if (name === 'alternate_vehicle_id' || name === 'primary_vehicle_id') {
@@ -137,6 +179,8 @@ export default function CreateTripPage() {
       const driverPairErr = validateField('alternate_driver_id', next.alternate_driver_id, next);
       const scheduledDateErr = validateField('scheduled_delivery_date', next.scheduled_delivery_date, next);
       const actualDateErr = validateField('actual_delivery_date', next.actual_delivery_date, next);
+      const startTimeErr = validateField('start_time', next.start_time, next);
+      const endTimeErr = validateField('end_time', next.end_time, next);
       setFieldErrors((p) => ({
         ...p,
         [name]: err,
@@ -146,6 +190,8 @@ export default function CreateTripPage() {
         alternate_driver_id: driverPairErr,
         scheduled_delivery_date: scheduledDateErr,
         actual_delivery_date: actualDateErr,
+        start_time: startTimeErr,
+        end_time: endTimeErr,
       }));
       return next;
     });
@@ -179,6 +225,7 @@ export default function CreateTripPage() {
   };
 
   const handleNext = () => {
+    if (hasErrors) return;
     if (currentStep === 3 && !validateStops()) return;
     setCurrentStep(prev => Math.min(prev + 1, steps.length));
   };
@@ -190,7 +237,10 @@ export default function CreateTripPage() {
     const driverPairErr = validateField('alternate_driver_id', formData.alternate_driver_id, formData);
     const scheduledDateErr = validateField('scheduled_delivery_date', formData.scheduled_delivery_date, formData);
     const actualDateErr = validateField('actual_delivery_date', formData.actual_delivery_date, formData);
-    if (vehiclePairErr || driverPairErr || scheduledDateErr || actualDateErr) {
+    const startTimeErr = validateField('start_time', formData.start_time, formData);
+    const endTimeErr = validateField('end_time', formData.end_time, formData);
+
+    if (vehiclePairErr || driverPairErr || scheduledDateErr || actualDateErr || startTimeErr || endTimeErr) {
       setFieldErrors((p) => ({
         ...p,
         primary_vehicle_id: vehiclePairErr,
@@ -199,6 +249,8 @@ export default function CreateTripPage() {
         alternate_driver_id: driverPairErr,
         scheduled_delivery_date: scheduledDateErr,
         actual_delivery_date: actualDateErr,
+        start_time: startTimeErr,
+        end_time: endTimeErr,
       }));
       return;
     }
@@ -358,15 +410,12 @@ export default function CreateTripPage() {
                     <div className="p-2 bg-blue-50 text-[#4a6cf7] rounded-lg"><FileText size={20} /></div>
                     <h2 className="text-lg font-bold text-gray-800 tracking-tight">General Information</h2>
                   </div>
-                  <div className="grid grid-cols-2 gap-8">
+                  <div className="grid grid-cols-1 gap-8">
                     <FieldGroup label="order">
                       <select name="order_id" className={inputClass} value={formData.order_id} onChange={e => handleOrderChange(e.target.value)}>
                         <option value="">Standalone Trip (No Order)</option>
                         {orders.map(o => <option key={o.id} value={o.id}>{o.lr_number} — {o.status}</option>)}
                       </select>
-                    </FieldGroup>
-                    <FieldGroup label="trip_number">
-                      <input type="text" readOnly className={`${inputClass} bg-gray-50 text-gray-500 cursor-not-allowed`} value="Auto-generated by backend (unique)" />
                     </FieldGroup>
                   </div>
                   <div className="grid grid-cols-3 gap-8">
@@ -413,14 +462,12 @@ export default function CreateTripPage() {
                         <option value="">Select Vehicle</option>
                         {vehicles.map(v => <option key={v.id} value={v.id} disabled={String(formData.alternate_vehicle_id) === String(v.id)}>{v.registration_number}</option>)}
                       </select>
-                      {fieldErrors.primary_vehicle_id && <p className="mt-1 text-xs text-red-600">{fieldErrors.primary_vehicle_id}</p>}
                     </FieldGroup>
                     <FieldGroup label="primary_driver_id">
                       <select name="primary_driver_id" className={inputClass} value={formData.primary_driver_id || ""} onChange={handleInputChange}>
                         <option value="">Select Driver</option>
                         {drivers.map(d => <option key={d.id} value={d.id} disabled={String(formData.alternate_driver_id) === String(d.id)}>{d.user?.first_name} {d.user?.last_name}</option>)}
                       </select>
-                      {fieldErrors.primary_driver_id && <p className="mt-1 text-xs text-red-600">{fieldErrors.primary_driver_id}</p>}
                     </FieldGroup>
                   </div>
                   <div className="grid grid-cols-2 gap-8 border-t border-gray-50 pt-8 mt-8">
@@ -429,14 +476,12 @@ export default function CreateTripPage() {
                         <option value="">None</option>
                         {vehicles.map(v => <option key={v.id} value={v.id} disabled={String(formData.primary_vehicle_id) === String(v.id)}>{v.registration_number}</option>)}
                       </select>
-                      {fieldErrors.alternate_vehicle_id && <p className="mt-1 text-xs text-red-600">{fieldErrors.alternate_vehicle_id}</p>}
                     </FieldGroup>
                     <FieldGroup label="alternate_driver_id">
                       <select name="alternate_driver_id" className={inputClass} value={formData.alternate_driver_id || ""} onChange={handleInputChange}>
                         <option value="">None</option>
                         {drivers.map(d => <option key={d.id} value={d.id} disabled={String(formData.primary_driver_id) === String(d.id)}>{d.user?.first_name} {d.user?.last_name}</option>)}
                       </select>
-                      {fieldErrors.alternate_driver_id && <p className="mt-1 text-xs text-red-600">{fieldErrors.alternate_driver_id}</p>}
                     </FieldGroup>
                   </div>
                   <div className="grid grid-cols-3 gap-8 mt-4">
@@ -462,13 +507,43 @@ export default function CreateTripPage() {
                     <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg"><MapPin size={20} /></div>
                     <h2 className="text-lg font-bold text-gray-800 tracking-tight">Route & Schedule</h2>
                   </div>
-                  <div className="grid grid-cols-2 gap-8">
-                    <FieldGroup label="origin_address">
-                      <textarea name="origin_address" rows="3" className={inputClass} value={formData.origin_address} onChange={handleInputChange} placeholder="Complete origin location..." />
-                    </FieldGroup>
-                    <FieldGroup label="destination_address">
-                      <textarea name="destination_address" rows="3" className={inputClass} value={formData.destination_address} onChange={handleInputChange} placeholder="Complete destination location..." />
-                    </FieldGroup>
+                  <div className="bg-gray-50/50 rounded-2xl p-6 border border-gray-100 flex gap-6 relative overflow-hidden group mb-8">
+                    {/* Visual Journey Line */}
+                    <div className="flex flex-col items-center gap-1.5 relative z-10 w-6 pt-7">
+                      <div className="w-5 h-5 rounded-full bg-[#4a6cf7] border-4 border-white shadow-sm flex items-center justify-center text-[9px] text-white font-black shrink-0">1</div>
+                      <div className="flex-1 w-0.5 border-l-2 border-dashed border-gray-200 my-1"></div>
+                      <div className="w-5 h-5 rounded-full bg-[#10b981] border-4 border-white shadow-sm flex items-center justify-center text-[9px] text-white font-black shrink-0">2</div>
+                    </div>
+
+                    {/* Input Stack */}
+                    <div className="flex-1 space-y-10">
+                      <div className="relative">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest absolute -top-6 left-0 flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-[#4a6cf7] border-2 border-white shadow-sm" /> Origin address
+                        </label>
+                        <textarea 
+                          name="origin_address" 
+                          rows="2" 
+                          className={`${inputClass} !bg-white focus:shadow-lg focus:shadow-blue-50/50 transition-all !resize-none`} 
+                          value={formData.origin_address} 
+                          onChange={handleInputChange} 
+                          placeholder="Enter starting point..." 
+                        />
+                      </div>
+                      <div className="relative">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest absolute -top-6 left-0 flex items-center gap-2">
+                          <MapPin size={10} className="text-[#10b981]" /> Destination address
+                        </label>
+                        <textarea 
+                          name="destination_address" 
+                          rows="2" 
+                          className={`${inputClass} !bg-white focus:shadow-lg focus:shadow-emerald-50/50 transition-all !resize-none`} 
+                          value={formData.destination_address} 
+                          onChange={handleInputChange} 
+                          placeholder="Enter drop-off point..." 
+                        />
+                      </div>
+                    </div>
                   </div>
                   <div className="border border-gray-200 rounded-xl p-4 bg-gray-50/40">
                     <div className={`mb-4 rounded-lg border px-3 py-2 text-xs font-semibold transition-all ${
@@ -544,29 +619,26 @@ export default function CreateTripPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-8 border-t border-gray-50 pt-8 mt-8">
                     <div className="grid grid-cols-2 gap-4">
-                      <FieldGroup label="scheduled_pickup_date">
+                      <FieldGroup label="scheduled_pickup_date" error={fieldErrors.scheduled_pickup_date}>
                         <input type="date" name="scheduled_pickup_date" className={inputClass} value={formData.scheduled_pickup_date || ""} onChange={handleInputChange} />
                       </FieldGroup>
-                      <FieldGroup label="scheduled_delivery_date">
+                      <FieldGroup label="scheduled_delivery_date" error={fieldErrors.scheduled_delivery_date}>
                         <input type="date" name="scheduled_delivery_date" className={inputClass} value={formData.scheduled_delivery_date || ""} onChange={handleInputChange} />
-                        {fieldErrors.scheduled_delivery_date && <p className="mt-1 text-xs text-red-600">{fieldErrors.scheduled_delivery_date}</p>}
                       </FieldGroup>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                      <FieldGroup label="actual_pickup_date">
+                      <FieldGroup label="actual_pickup_date" error={fieldErrors.actual_pickup_date}>
                         <input type="date" name="actual_pickup_date" className={inputClass} value={formData.actual_pickup_date || ""} onChange={handleInputChange} />
                       </FieldGroup>
-                      <FieldGroup label="actual_delivery_date">
+                      <FieldGroup label="actual_delivery_date" error={fieldErrors.actual_delivery_date}>
                         <input type="date" name="actual_delivery_date" className={inputClass} value={formData.actual_delivery_date || ""} onChange={handleInputChange} />
-                        {fieldErrors.actual_delivery_date && <p className="mt-1 text-xs text-red-600">{fieldErrors.actual_delivery_date}</p>}
                       </FieldGroup>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-8">
-                      <FieldGroup label="start_time"><input type="datetime-local" name="start_time" className={inputClass} value={formData.start_time || ""} onChange={handleInputChange} /></FieldGroup>
-                      <FieldGroup label="end_time">
+                      <FieldGroup label="start_time" error={fieldErrors.start_time}><input type="datetime-local" name="start_time" className={inputClass} value={formData.start_time || ""} onChange={handleInputChange} /></FieldGroup>
+                      <FieldGroup label="end_time" error={fieldErrors.end_time}>
                         <input type="datetime-local" name="end_time" className={inputClass} value={formData.end_time || ""} onChange={handleInputChange} />
-                        {fieldErrors.end_time && <p className="mt-1 text-xs text-red-600">{fieldErrors.end_time}</p>}
                       </FieldGroup>
                   </div>
                   <FieldGroup label="created_date"><input type="date" name="created_date" className={inputClass} value={formData.created_date} onChange={handleInputChange} /></FieldGroup>
@@ -574,74 +646,126 @@ export default function CreateTripPage() {
               )}
 
               {currentStep === 4 && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <div className="flex items-center gap-3 mb-8 border-b border-gray-50 pb-4">
-                    <div className="p-2 bg-amber-50 text-amber-600 rounded-lg"><Gauge size={20} /></div>
-                    <h2 className="text-lg font-bold text-gray-800 tracking-tight">Metrics & Performance</h2>
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="flex items-center gap-3 mb-8 border-b border-gray-100 pb-5">
+                    <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl shadow-sm border border-amber-100/50"><Gauge size={24} /></div>
+                    <div>
+                      <h2 className="text-xl font-black text-[#172B4D] tracking-tight">Metrics & Performance</h2>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Journey efficiency & operational data</p>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-8">
-                    <FieldGroup label="total_distance_km"><input type="number" name="total_distance_km" className={inputClass} value={formData.total_distance_km || ""} onChange={handleInputChange} /></FieldGroup>
-                    <FieldGroup label="start_odometer_km"><input type="number" name="start_odometer_km" className={inputClass} value={formData.start_odometer_km || ""} onChange={handleInputChange} /></FieldGroup>
-                    <FieldGroup label="end_odometer_km"><input type="number" name="end_odometer_km" className={inputClass} value={formData.end_odometer_km || ""} onChange={handleInputChange} /></FieldGroup>
-                  </div>
-                  <div className="grid grid-cols-3 gap-8 border-t border-gray-50 pt-8 mt-8">
-                    <FieldGroup label="estimated_fuel_liters"><input type="number" name="estimated_fuel_liters" className={inputClass} value={formData.estimated_fuel_liters || ""} onChange={handleInputChange} /></FieldGroup>
-                    <FieldGroup label="actual_fuel_liters"><input type="number" name="actual_fuel_liters" className={inputClass} value={formData.actual_fuel_liters || ""} onChange={handleInputChange} /></FieldGroup>
-                    <FieldGroup label="fuel_rate_per_liter"><input type="number" name="fuel_rate_per_liter" className={inputClass} value={formData.fuel_rate_per_liter || ""} onChange={handleInputChange} /></FieldGroup>
-                  </div>
-                  <div className="grid grid-cols-2 gap-8">
-                    <FieldGroup label="damage_count">
-                      <input type="number" min="0" name="damage_count" className={inputClass} value={formData.damage_count} onChange={handleInputChange} />
-                      {fieldErrors.damage_count && <p className="mt-1 text-xs text-red-600">{fieldErrors.damage_count}</p>}
-                    </FieldGroup>
-                    <FieldGroup label="pod_turnaround_days">
-                      <input type="number" min="0" name="pod_turnaround_days" className={inputClass} value={formData.pod_turnaround_days || ""} onChange={handleInputChange} />
-                      {fieldErrors.pod_turnaround_days && <p className="mt-1 text-xs text-red-600">{fieldErrors.pod_turnaround_days}</p>}
-                    </FieldGroup>
+                  
+                  <div className="max-w-4xl">
+                    <GroupHeader title="Distance" />
+                    <MetricsRow label="total_distance" suffix="KM">
+                      <input type="number" name="total_distance_km" className={inputClass} value={formData.total_distance_km || ""} onChange={handleInputChange} placeholder="0" />
+                    </MetricsRow>
+                    <MetricsRow label="start_odometer" suffix="KM">
+                      <input type="number" name="start_odometer_km" className={inputClass} value={formData.start_odometer_km || ""} onChange={handleInputChange} placeholder="Start Reading" />
+                    </MetricsRow>
+                    <MetricsRow label="end_odometer" suffix="KM">
+                      <input type="number" name="end_odometer_km" className={inputClass} value={formData.end_odometer_km || ""} onChange={handleInputChange} placeholder="End Reading" />
+                    </MetricsRow>
+
+                    <GroupHeader title="Fuel" />
+                    <MetricsRow label="estimated_fuel" suffix="L">
+                      <div className="flex items-center gap-3">
+                        <input type="number" name="estimated_fuel_liters" className={`${inputClass} !bg-gray-50/50`} value={formData.estimated_fuel_liters || ""} onChange={handleInputChange} placeholder="Auto-calculated" />
+                        <button type="button" className="text-[10px] font-black text-[#0052CC] uppercase tracking-tighter hover:underline whitespace-nowrap">From route</button>
+                      </div>
+                    </MetricsRow>
+                    <MetricsRow label="actual_fuel_used" suffix="L">
+                      <input type="number" name="actual_fuel_liters" className={inputClass} value={formData.actual_fuel_liters || ""} onChange={handleInputChange} placeholder="Pump reading" />
+                    </MetricsRow>
+                    <MetricsRow label="fuel_rate_per_litre" suffix="₹/L">
+                      <input type="number" name="fuel_rate_per_liter" className={inputClass} value={formData.fuel_rate_per_liter || ""} onChange={handleInputChange} placeholder="0.00" />
+                    </MetricsRow>
+
+                    <GroupHeader title="Operations" />
+                    <MetricsRow label="damage_count" helpText="Number of damaged items">
+                      <input type="number" min="0" name="damage_count" className={inputClass} value={formData.damage_count} onChange={handleInputChange} placeholder="0" />
+                    </MetricsRow>
+                    <MetricsRow label="pod_turnaround_days" helpText="Proof of delivery days">
+                      <input type="number" min="0" name="pod_turnaround_days" className={inputClass} value={formData.pod_turnaround_days || ""} onChange={handleInputChange} placeholder="0" />
+                    </MetricsRow>
                   </div>
                 </div>
               )}
 
               {currentStep === 5 && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <div className="flex items-center gap-3 mb-8 border-b border-gray-50 pb-4">
-                    <div className="p-2 bg-rose-50 text-rose-600 rounded-lg"><DollarSign size={20} /></div>
-                    <h2 className="text-lg font-bold text-gray-800 tracking-tight">Financials & Audits</h2>
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="flex items-center gap-3 mb-8 border-b border-gray-100 pb-5">
+                    <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl shadow-sm border border-rose-100/50"><DollarSign size={24} /></div>
+                    <div>
+                      <h2 className="text-xl font-black text-[#172B4D] tracking-tight">Financials & Audits</h2>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Billing & settlement details</p>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-4 gap-6">
-                    <FieldGroup label="booked_price"><input type="number" name="booked_price" className={inputClass} value={formData.booked_price || ""} onChange={handleInputChange} /></FieldGroup>
-                    <FieldGroup label="total_freight_charge"><input type="number" name="total_freight_charge" className={inputClass} value={formData.total_freight_charge} onChange={handleInputChange} /></FieldGroup>
-                    <FieldGroup label="total_accessorial_charge"><input type="number" name="total_accessorial_charge" className={inputClass} value={formData.total_accessorial_charge} onChange={handleInputChange} /></FieldGroup>
-                    <FieldGroup label="total_tax"><input type="number" name="total_tax" className={inputClass} value={formData.total_tax} onChange={handleInputChange} /></FieldGroup>
-                  </div>
-                  <div className="grid grid-cols-4 gap-6">
-                    <FieldGroup label="tds_percentage"><input type="number" name="tds_percentage" className={inputClass} value={formData.tds_percentage} onChange={handleInputChange} /></FieldGroup>
-                    <FieldGroup label="tds_amount"><input type="number" name="tds_amount" className={inputClass} value={formData.tds_amount} onChange={handleInputChange} /></FieldGroup>
-                    <FieldGroup label="incentive_amount"><input type="number" name="incentive_amount" className={inputClass} value={formData.incentive_amount} onChange={handleInputChange} /></FieldGroup>
-                    <FieldGroup label="late_fee"><input type="number" name="late_fee" className={inputClass} value={formData.late_fee} onChange={handleInputChange} /></FieldGroup>
-                  </div>
-                  <div className="grid grid-cols-2 gap-6">
-                    <FieldGroup label="part_load_charge"><input type="number" name="part_load_charge" className={inputClass} value={formData.part_load_charge} onChange={handleInputChange} /></FieldGroup>
-                    <FieldGroup label="damage_amount"><input type="number" name="damage_amount" className={inputClass} value={formData.damage_amount} onChange={handleInputChange} /></FieldGroup>
-                  </div>
-                  <div className="grid grid-cols-3 gap-6 border-t border-gray-50 pt-6">
-                    <FieldGroup label="broker_commission"><input type="number" name="broker_commission" className={inputClass} value={formData.broker_commission} onChange={handleInputChange} /></FieldGroup>
-                    <FieldGroup label="total_bill_amount"><input type="number" name="total_bill_amount" className={inputClass} value={formData.total_bill_amount} onChange={handleInputChange} /></FieldGroup>
-                    <FieldGroup label="payment_received_amount"><input type="number" name="payment_received_amount" className={inputClass} value={formData.payment_received_amount} onChange={handleInputChange} /></FieldGroup>
-                  </div>
-                  <div className="grid grid-cols-2 gap-6 mt-4">
-                    <FieldGroup label="pod_received_date"><input type="date" name="pod_received_date" className={inputClass} value={formData.pod_received_date || ""} onChange={handleInputChange} /></FieldGroup>
-                    <FieldGroup label="payment_received_date"><input type="date" name="payment_received_date" className={inputClass} value={formData.payment_received_date || ""} onChange={handleInputChange} /></FieldGroup>
-                  </div>
-                  <div className="flex gap-8 items-center bg-gray-50 p-4 rounded-xl mt-4">
-                    <label className="flex items-center gap-2 cursor-pointer font-bold text-xs text-gray-600 uppercase">
-                      <input type="checkbox" name="is_billed" checked={formData.is_billed} onChange={handleInputChange} className="w-4 h-4 rounded text-[#4a6cf7]" />
-                      is_billed
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer font-bold text-xs text-gray-600 uppercase">
-                      <input type="checkbox" name="is_paid" checked={formData.is_paid} onChange={handleInputChange} className="w-4 h-4 rounded text-[#4a6cf7]" />
-                      is_paid
-                    </label>
+                  
+                  <div className="max-w-4xl">
+                    <GroupHeader title="Primary Charges" />
+                    <MetricsRow label="booked_price" suffix="₹">
+                      <input type="number" name="booked_price" className={inputClass} value={formData.booked_price || ""} onChange={handleInputChange} placeholder="0.00" />
+                    </MetricsRow>
+                    <MetricsRow label="total_freight_charge" suffix="₹">
+                      <input type="number" name="total_freight_charge" className={inputClass} value={formData.total_freight_charge || "0.00"} onChange={handleInputChange} />
+                    </MetricsRow>
+                    <MetricsRow label="total_accessorial_charge" suffix="₹">
+                      <input type="number" name="total_accessorial_charge" className={inputClass} value={formData.total_accessorial_charge || "0.00"} onChange={handleInputChange} />
+                    </MetricsRow>
+
+                    <GroupHeader title="Taxes & TDS" />
+                    <MetricsRow label="total_tax" suffix="₹">
+                      <input type="number" name="total_tax" className={inputClass} value={formData.total_tax || "0.00"} onChange={handleInputChange} />
+                    </MetricsRow>
+                    <MetricsRow label="tds" suffix="%">
+                       <input type="number" name="tds_percentage" className={inputClass} value={formData.tds_percentage || "0.00"} onChange={handleInputChange} />
+                    </MetricsRow>
+                    <MetricsRow label="tds_amount" suffix="₹">
+                      <input type="number" name="tds_amount" className={inputClass} value={formData.tds_amount || "0.00"} onChange={handleInputChange} />
+                    </MetricsRow>
+
+                    <GroupHeader title="Adjustments" />
+                    <MetricsRow label="incentive_amount" suffix="₹">
+                      <input type="number" name="incentive_amount" className={inputClass} value={formData.incentive_amount || "0.00"} onChange={handleInputChange} />
+                    </MetricsRow>
+                    <MetricsRow label="late_fee" suffix="₹">
+                      <input type="number" name="late_fee" className={inputClass} value={formData.late_fee || "0.00"} onChange={handleInputChange} />
+                    </MetricsRow>
+                    <MetricsRow label="part_load_charge" suffix="₹">
+                      <input type="number" name="part_load_charge" className={inputClass} value={formData.part_load_charge || "0.00"} onChange={handleInputChange} />
+                    </MetricsRow>
+                    <MetricsRow label="damage_amount" suffix="₹">
+                      <input type="number" name="damage_amount" className={inputClass} value={formData.damage_amount || "0.00"} onChange={handleInputChange} />
+                    </MetricsRow>
+
+                    <GroupHeader title="Final Settlement" />
+                    <MetricsRow label="broker_commission" suffix="₹">
+                      <input type="number" name="broker_commission" className={inputClass} value={formData.broker_commission || "0.00"} onChange={handleInputChange} />
+                    </MetricsRow>
+                    <MetricsRow label="total_bill_amount" suffix="₹">
+                      <input type="number" name="total_bill_amount" className={`${inputClass} !bg-blue-50/30 text-blue-700 font-black`} value={formData.total_bill_amount || "0.00"} onChange={handleInputChange} />
+                    </MetricsRow>
+                    <MetricsRow label="payment_received_amount" suffix="₹">
+                      <input type="number" name="payment_received_amount" className={inputClass} value={formData.payment_received_amount || "0.00"} onChange={handleInputChange} />
+                    </MetricsRow>
+                    
+                    <div className="h-4" />
+                    <div className="grid grid-cols-2 gap-6">
+                      <FieldGroup label="pod_received_date"><input type="date" name="pod_received_date" className={inputClass} value={formData.pod_received_date || ""} onChange={handleInputChange} /></FieldGroup>
+                      <FieldGroup label="payment_received_date"><input type="date" name="payment_received_date" className={inputClass} value={formData.payment_received_date || ""} onChange={handleInputChange} /></FieldGroup>
+                    </div>
+
+                    <div className="flex gap-8 items-center bg-gray-50/50 p-5 rounded-2xl border border-gray-100 mt-6 transition-all hover:bg-white hover:shadow-sm">
+                      <label className="flex items-center gap-3 cursor-pointer group">
+                        <input type="checkbox" name="is_billed" checked={formData.is_billed || false} onChange={handleInputChange} className="w-5 h-5 rounded-lg text-[#4a6cf7] border-gray-300 focus:ring-[#4a6cf7]" />
+                        <span className="text-[11px] font-black uppercase tracking-widest text-[#64748b] group-hover:text-[#4a6cf7] transition-colors">is_billed</span>
+                      </label>
+                      <label className="flex items-center gap-3 cursor-pointer group">
+                        <input type="checkbox" name="is_paid" checked={formData.is_paid || false} onChange={handleInputChange} className="w-5 h-5 rounded-lg text-[#4a6cf7] border-gray-300 focus:ring-[#4a6cf7]" />
+                        <span className="text-[11px] font-black uppercase tracking-widest text-[#64748b] group-hover:text-[#4a6cf7] transition-colors">is_paid</span>
+                      </label>
+                    </div>
                   </div>
                 </div>
               )}
@@ -694,8 +818,8 @@ export default function CreateTripPage() {
                     key="next-btn"
                     type="button"
                     onClick={handleNext}
-                    disabled={currentStep === 3 && stopErrors.length > 0}
-                    className="flex items-center gap-2 px-8 py-2.5 bg-[#4a6cf7] text-white font-bold text-sm rounded-xl hover:bg-[#3b59d9] shadow-lg shadow-blue-100 transition-all hover:scale-105 active:scale-95"
+                    disabled={hasErrors || (currentStep === 3 && stopErrors.length > 0)}
+                    className="flex items-center gap-2 px-8 py-2.5 bg-[#4a6cf7] text-white font-bold text-sm rounded-xl hover:bg-[#3b59d9] shadow-lg shadow-blue-100 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:shadow-none"
                   >
                     Next Step <ChevronRight size={18} />
                   </button>
@@ -703,8 +827,8 @@ export default function CreateTripPage() {
                   <button 
                     key="submit-btn"
                     type="submit"
-                    disabled={createTripMutation.isPending}
-                    className="flex items-center gap-2 px-10 py-2.5 bg-green-600 text-white font-bold text-sm rounded-xl hover:bg-green-700 shadow-lg shadow-green-100 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                    disabled={createTripMutation.isPending || hasErrors}
+                    className="flex items-center gap-2 px-10 py-2.5 bg-green-600 text-white font-bold text-sm rounded-xl hover:bg-green-700 shadow-lg shadow-green-100 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:shadow-none"
                   >
                     {createTripMutation.isPending ? 'Syncing...' : 'Create Trip'} <CheckCircle2 size={18} />
                   </button>

@@ -85,8 +85,7 @@ export default function Orders() {
   };
 
   const handleAssignTrip = (order) => {
-    setSelectedOrder(order);
-    setIsAssignOpen(true);
+    navigate(`/tenant/dashboard/orders/trips/new?order_id=${order.id}`);
   };
 
   const handleSearchSubmit = (e) => {
