@@ -12,7 +12,9 @@ import {
   useCreateSalaryStructure,
   useUpdateSalaryStructure,
   useDeleteSalaryStructure,
+  useSalaryStructures,
 } from '../../../../queries/drivers/salaryStructureQuery';
+import { useMemo } from 'react';
 
 export const PAYMENT_FREQUENCIES = ['MONTHLY', 'BIWEEKLY', 'WEEKLY'];
 
@@ -67,15 +69,31 @@ export const AddSalaryModal = ({ driverId, onClose }) => {
     effective_to: '',
     notes: '',
   });
+  const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const createSalary = useCreateSalaryStructure(targetDriverId);
+  
+  const { data: allSalariesData } = useSalaryStructures({ page_size: 1000 });
+  const existingDriverIds = useMemo(() => {
+    if (!allSalariesData?.results) return [];
+    return allSalariesData.results.map(s => String(s.driver));
+  }, [allSalariesData]);
+
   const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
 
   const handleSubmit = () => {
     setError('');
-    if (!targetDriverId) return setError('Please select a driver.');
-    if (!form.base_salary) return setError('Base salary is required.');
-    if (!form.effective_from) return setError('Effective from date is required.');
+    const errors = {};
+    if (!targetDriverId) errors.driver = 'This field is required';
+    if (!form.base_salary) errors.base_salary = 'This field is required';
+    if (!form.effective_from) errors.effective_from = 'This field is required';
+
+    if (targetDriverId && existingDriverIds.includes(String(targetDriverId))) {
+      errors.driver = 'Driver already has a salary structure';
+    }
+
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
 
     if (form.effective_to && form.effective_to < form.effective_from) {
       return setError('Effective To date cannot be before Effective From date.');
@@ -104,7 +122,7 @@ export const AddSalaryModal = ({ driverId, onClose }) => {
       footer={
         <>
           <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-          <button onClick={handleSubmit} disabled={!form.base_salary || !form.effective_from || createSalary.isPending}
+          <button onClick={handleSubmit} disabled={createSalary.isPending}
             className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed">
             {createSalary.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Plus size={14} /> Add Salary</>}
           </button>
@@ -116,13 +134,16 @@ export const AddSalaryModal = ({ driverId, onClose }) => {
         
         {!driverId && (
           <div>
-            <Label required>Driver</Label>
-            <DriverSelect value={targetDriverId} onChange={setTargetDriverId} />
+            <div className="flex items-center justify-between mb-1">
+              <Label required>Driver</Label>
+              {fieldErrors.driver && <span className="text-[10px] font-bold text-red-500 uppercase tracking-tighter animate-in fade-in slide-in-from-right-2">{fieldErrors.driver}</span>}
+            </div>
+            <DriverSelect value={targetDriverId} onChange={(val) => { setTargetDriverId(val); setFieldErrors(p => ({ ...p, driver: '' })); }} disabledDriverIds={existingDriverIds} />
           </div>
         )}
 
         <div className="grid grid-cols-2 gap-4">
-          <div><Label required>base_salary (₹)</Label><Input type="number" placeholder="monthly base" value={form.base_salary} onChange={set('base_salary')} /></div>
+          <div><div className="flex items-center justify-between mb-1"><Label required>base_salary (₹)</Label>{fieldErrors.base_salary && <span className="text-[10px] font-bold text-red-500 uppercase tracking-tighter animate-in fade-in slide-in-from-right-2">{fieldErrors.base_salary}</span>}</div><Input type="number" placeholder="monthly base" value={form.base_salary} onChange={(e) => { set('base_salary')(e); setFieldErrors(p => ({ ...p, base_salary: '' })); }} /></div>
           <div><Label>per_trip_rate (₹)</Label><Input type="number" placeholder="rate per trip" value={form.per_trip_rate} onChange={set('per_trip_rate')} /></div>
           <div><Label>per_km_rate (₹)</Label><Input type="number" placeholder="rate per km" value={form.per_km_rate} onChange={set('per_km_rate')} /></div>
           <div><Label>overtime_rate (₹/hr)</Label><Input type="number" placeholder="hourly rate" value={form.overtime_rate} onChange={set('overtime_rate')} /></div>
@@ -133,7 +154,7 @@ export const AddSalaryModal = ({ driverId, onClose }) => {
           </div>
           <div><Label>allowances (₹)</Label><Input type="number" placeholder="total allowances" value={form.allowances} onChange={set('allowances')} /></div>
           <div><Label>deductions (₹)</Label><Input type="number" placeholder="total deductions" value={form.deductions} onChange={set('deductions')} /></div>
-          <div><Label required>effective_from</Label><Input type="date" value={form.effective_from} onChange={set('effective_from')} /></div>
+          <div><div className="flex items-center justify-between mb-1"><Label required>effective_from</Label>{fieldErrors.effective_from && <span className="text-[10px] font-bold text-red-500 uppercase tracking-tighter animate-in fade-in slide-in-from-right-2">{fieldErrors.effective_from}</span>}</div><Input type="date" value={form.effective_from} onChange={(e) => { set('effective_from')(e); setFieldErrors(p => ({ ...p, effective_from: '' })); }} /></div>
           <div><Label>effective_to</Label><Input type="date" value={form.effective_to} onChange={set('effective_to')} /></div>
         </div>
         <NetSalaryPreview base={form.base_salary} allowances={form.allowances} deductions={form.deductions} />

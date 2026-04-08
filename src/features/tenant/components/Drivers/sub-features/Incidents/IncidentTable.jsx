@@ -4,7 +4,7 @@ import TableActions from '../../common/TableActions';
 import { SEVERITY_STYLES, INCIDENT_TYPE_STYLES, STATUS_STYLES } from '../../common/constants';
 import { getInitials } from '../../common/utils';
 
-const IncidentTable = ({ incidents, onEdit, onView, showDriver = false, driverMap = {}, vehicleMap = {}, userMap = {}, currentUser = null }) => {
+const IncidentTable = ({ incidents, onEdit, onView, showDriver = false, driverMap = {}, vehicleMap = {}, tripMap = {}, userMap = {}, currentUser = null }) => {
   const formatDate = (dateStr) => {
     if (!dateStr) return '—';
     return new Date(dateStr).toLocaleString('en-IN', {
@@ -16,7 +16,7 @@ const IncidentTable = ({ incidents, onEdit, onView, showDriver = false, driverMa
   const headers = [
     { key: 'incident_type', label: 'Incident Type' },
     { key: 'vehicle', label: 'Vehicle' },
-    { key: 'trip_id', label: 'Trip ID' },
+    { key: 'trip_id', label: 'Trip Number' },
     { key: 'incident_date', label: 'Incident Date' },
     { key: 'location', label: 'Location' },
     { key: 'severity', label: 'Severity' },
@@ -72,8 +72,8 @@ const IncidentTable = ({ incidents, onEdit, onView, showDriver = false, driverMa
                   {vehicleMap[inc.vehicle] || inc.vehicle_registration || inc.vehicle || '—'}
                 </span>
               </td>
-              <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-500 font-mono">
-                {inc.trip_id || '—'}
+              <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-500 font-bold">
+                {tripMap[inc.trip_id] || inc.trip_id || '—'}
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-[12px] text-gray-600">
                 {formatDate(inc.incident_date)}

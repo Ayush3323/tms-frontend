@@ -20,27 +20,51 @@ export const AddAttendanceModal = ({ driverId, onClose }) => {
   const [targetDriverId, setTargetDriverId] = useState(driverId || '');
   const [form, setForm] = useState({
     date: '',
-    status: 'PRESENT',
+    status: '',
     check_in: '',
     check_out: '',
     total_hours: '',
     notes: '',
   });
+  const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const createAttendance = useCreateAttendance(targetDriverId);
   const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
+  
+  // Proactive validation for immediate feedback
+  React.useEffect(() => {
+    if (form.check_in && form.check_out && form.status !== 'ABSENT' && form.status !== 'LEAVE') {
+      if (form.check_out <= form.check_in) {
+        setFieldErrors(p => ({ ...p, check_out: 'Must be after Check In' }));
+      } else {
+        setFieldErrors(p => ({ ...p, check_out: '' }));
+      }
+    }
+  }, [form.check_in, form.check_out, form.status]);
 
   const handleSubmit = () => {
     setError('');
-    if (!targetDriverId) return setError('Please select a driver.');
-    if (!form.date) return setError('Date is required.');
-    if (!form.status) return setError('Status is required.');
+    const errors = {};
+    if (!targetDriverId) errors.driver = 'This field is required';
+    if (!form.date) errors.date = 'This field is required';
+    if (!form.status) errors.status = 'This field is required';
+
+    if (form.check_in && form.check_out && !isOffDuty) {
+      if (form.check_out <= form.check_in) {
+        errors.check_out = 'Must be after Check In';
+      }
+    }
+
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
 
     createAttendance.mutate(cleanObject(form), {
       onSuccess: onClose,
       onError: (err) => setError(formatError(err)),
     });
   };
+
+  const isOffDuty = form.status === 'ABSENT' || form.status === 'LEAVE';
 
   return (
     <ModalWrapper
@@ -50,7 +74,7 @@ export const AddAttendanceModal = ({ driverId, onClose }) => {
       footer={
         <>
           <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-          <button onClick={handleSubmit} disabled={!form.date || !form.status || createAttendance.isPending}
+          <button onClick={handleSubmit} disabled={createAttendance.isPending}
             className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed">
             {createAttendance.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Plus size={14} /> Add Attendance</>}
           </button>
@@ -59,24 +83,51 @@ export const AddAttendanceModal = ({ driverId, onClose }) => {
     >
       <div className="space-y-4">
         {error && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium">{error}</div>}
-        
+
         {!driverId && (
           <div>
             <Label required>Driver</Label>
-            <DriverSelect value={targetDriverId} onChange={setTargetDriverId} />
+            <DriverSelect value={targetDriverId} onChange={(val) => { setTargetDriverId(val); setFieldErrors(p => ({ ...p, driver: '' })); }} />
+            {fieldErrors.driver && <div className="mt-1 text-[10px] font-bold text-red-500 uppercase tracking-tighter animate-in fade-in slide-in-from-top-1">{fieldErrors.driver}</div>}
           </div>
         )}
 
         <div className="grid grid-cols-2 gap-4">
-          <div><Label required>Date</Label><Input type="date" value={form.date} onChange={set('date')} /></div>
-          <div><Label required>Status</Label>
-            <Select value={form.status} onChange={set('status')}>
+          <div>            <div className="flex items-center justify-between mb-1">
+            <Label required>Date</Label>
+            {fieldErrors.date && <span className="text-[10px] font-bold text-red-500 uppercase tracking-tighter animate-in fade-in slide-in-from-right-2">{fieldErrors.date}</span>}
+          </div>
+            <Input type="date" value={form.date} onChange={(e) => { set('date')(e); setFieldErrors(p => ({ ...p, date: '' })); }} />
+          </div>
+          <div>
+            <Label required>Status</Label>
+            <Select value={form.status} onChange={(e) => {
+              const newStatus = e.target.value;
+              setForm(p => ({
+                ...p,
+                status: newStatus,
+                check_in: (newStatus === 'ABSENT' || newStatus === 'LEAVE') ? '' : p.check_in,
+                check_out: (newStatus === 'ABSENT' || newStatus === 'LEAVE') ? '' : p.check_out,
+                total_hours: (newStatus === 'ABSENT' || newStatus === 'LEAVE') ? '' : p.total_hours
+              }));
+              setFieldErrors(p => ({ ...p, status: '' }));
+            }}>
+              <option value="">Select Status</option>
               {ATTENDANCE_STATUS.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
             </Select>
+            {fieldErrors.status && <div className="mt-1 text-[10px] font-bold text-red-500 uppercase tracking-tighter animate-in fade-in slide-in-from-top-1">{fieldErrors.status}</div>}
           </div>
-          <div><Label>Check In</Label><Input type="time" value={form.check_in} onChange={set('check_in')} /></div>
-          <div><Label>Check Out</Label><Input type="time" value={form.check_out} onChange={set('check_out')} /></div>
-          <div><Label>Total Hours</Label><Input type="number" placeholder="e.g. 9.0" min="0" step="0.5" value={form.total_hours} onChange={set('total_hours')} /></div>
+          <div>
+            <Label>Check In</Label>
+            <Input type="time" value={form.check_in} onChange={(e) => { set('check_in')(e); setFieldErrors(p => ({ ...p, check_in: '', check_out: '' })); }} disabled={isOffDuty} />
+            {fieldErrors.check_in && <div className="mt-1 text-[10px] font-bold text-red-500 uppercase tracking-tighter animate-in fade-in slide-in-from-top-1">{fieldErrors.check_in}</div>}
+          </div>
+          <div>
+            <Label>Check Out</Label>
+            <Input type="time" value={form.check_out} onChange={(e) => { set('check_out')(e); setFieldErrors(p => ({ ...p, check_out: '' })); }} disabled={isOffDuty} />
+            {fieldErrors.check_out && <div className="mt-1 text-[10px] font-bold text-red-500 uppercase tracking-tighter animate-in fade-in slide-in-from-top-1">{fieldErrors.check_out}</div>}
+          </div>
+          <div><Label>Total Hours</Label><Input type="number" placeholder="e.g. 9.0" min="0" step="0.5" value={form.total_hours} onChange={set('total_hours')} disabled={isOffDuty} /></div>
         </div>
         <div><Label>Notes</Label>
           <textarea rows={2} placeholder="Any additional notes..." value={form.notes} onChange={set('notes')}
@@ -96,22 +147,46 @@ export const EditAttendanceModal = ({ record, driverId, onClose }) => {
     total_hours: record.total_hours ?? '',
     notes: record.notes ?? '',
   });
+  const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const [showDelete, setShowDelete] = useState(false);
   const updateAttendance = useUpdateAttendance(driverId, record.id);
   const deleteAttendance = useDeleteAttendance(driverId);
   const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
 
+  // Proactive validation for immediate feedback
+  React.useEffect(() => {
+    if (form.check_in && form.check_out && form.status !== 'ABSENT' && form.status !== 'LEAVE') {
+      if (form.check_out <= form.check_in) {
+        setFieldErrors(p => ({ ...p, check_out: 'Must be after Check In' }));
+      } else {
+        setFieldErrors(p => ({ ...p, check_out: '' }));
+      }
+    }
+  }, [form.check_in, form.check_out, form.status]);
+
   const handleSubmit = () => {
     setError('');
-    if (!form.date) return setError('Date is required.');
-    if (!form.status) return setError('Status is required.');
+    const errors = {};
+    if (!form.date) errors.date = 'This field is required';
+    if (!form.status) errors.status = 'This field is required';
+
+    if (form.check_in && form.check_out && !isOffDuty) {
+      if (form.check_out <= form.check_in) {
+        errors.check_out = 'Must be after Check In';
+      }
+    }
+
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
 
     updateAttendance.mutate(cleanObject(form), {
       onSuccess: onClose,
       onError: (err) => setError(formatError(err)),
     });
   };
+
+  const isOffDuty = form.status === 'ABSENT' || form.status === 'LEAVE';
 
   return (
     <ModalWrapper
@@ -120,7 +195,7 @@ export const EditAttendanceModal = ({ record, driverId, onClose }) => {
       onClose={onClose}
       footer={
         <div className="flex items-center justify-between w-full">
-          <button 
+          <button
             onClick={() => setShowDelete(true)}
             className="px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
           >
@@ -128,7 +203,7 @@ export const EditAttendanceModal = ({ record, driverId, onClose }) => {
           </button>
           <div className="flex items-center gap-2">
             <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-            <button onClick={handleSubmit} disabled={!form.date || !form.status || updateAttendance.isPending}
+            <button onClick={handleSubmit} disabled={updateAttendance.isPending}
               className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed">
               {updateAttendance.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Edit size={14} /> Update Attendance</>}
             </button>
@@ -148,22 +223,48 @@ export const EditAttendanceModal = ({ record, driverId, onClose }) => {
       <div className="space-y-4">
         {error && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium">{error}</div>}
         <div className="grid grid-cols-2 gap-4">
-          <div><Label required>Date</Label><Input type="date" value={form.date} onChange={set('date')} /></div>
-          <div><Label required>Status</Label>
-            <Select value={form.status} onChange={set('status')}>
+          <div>            <div className="flex items-center justify-between mb-1">
+            <Label required>Date</Label>
+            {fieldErrors.date && <span className="text-[10px] font-bold text-red-500 uppercase tracking-tighter animate-in fade-in slide-in-from-right-2">{fieldErrors.date}</span>}
+          </div>
+            <Input type="date" value={form.date} onChange={(e) => { set('date')(e); setFieldErrors(p => ({ ...p, date: '' })); }} />
+          </div>
+          <div>
+            <Label required>Status</Label>
+            <Select value={form.status} onChange={(e) => {
+              const newStatus = e.target.value;
+              setForm(p => ({
+                ...p,
+                status: newStatus,
+                check_in: (newStatus === 'ABSENT' || newStatus === 'LEAVE') ? '' : p.check_in,
+                check_out: (newStatus === 'ABSENT' || newStatus === 'LEAVE') ? '' : p.check_out,
+                total_hours: (newStatus === 'ABSENT' || newStatus === 'LEAVE') ? '' : p.total_hours
+              }));
+              setFieldErrors(p => ({ ...p, status: '' })); 
+            }}>
+              <option value="">Select Status</option>
               {ATTENDANCE_STATUS.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
             </Select>
+            {fieldErrors.status && <div className="mt-1 text-[10px] font-bold text-red-500 uppercase tracking-tighter animate-in fade-in slide-in-from-top-1">{fieldErrors.status}</div>}
           </div>
-          <div><Label>Check In</Label><Input type="time" value={form.check_in} onChange={set('check_in')} /></div>
-          <div><Label>Check Out</Label><Input type="time" value={form.check_out} onChange={set('check_out')} /></div>
-          <div><Label>Total Hours</Label><Input type="number" placeholder="e.g. 9.0" min="0" step="0.5" value={form.total_hours} onChange={set('total_hours')} /></div>
+        <div>
+          <Label>Check In</Label>
+          <Input type="time" value={form.check_in} onChange={(e) => { set('check_in')(e); setFieldErrors(p => ({ ...p, check_in: '', check_out: '' })); }} disabled={isOffDuty} />
+          {fieldErrors.check_in && <div className="mt-1 text-[10px] font-bold text-red-500 uppercase tracking-tighter animate-in fade-in slide-in-from-top-1">{fieldErrors.check_in}</div>}
         </div>
-        <div><Label>Notes</Label>
-          <textarea rows={2} placeholder="Any additional notes..." value={form.notes} onChange={set('notes')}
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] placeholder:text-gray-300 resize-none" />
+        <div>
+          <Label>Check Out</Label>
+          <Input type="time" value={form.check_out} onChange={(e) => { set('check_out')(e); setFieldErrors(p => ({ ...p, check_out: '' })); }} disabled={isOffDuty} />
+          {fieldErrors.check_out && <div className="mt-1 text-[10px] font-bold text-red-500 uppercase tracking-tighter animate-in fade-in slide-in-from-top-1">{fieldErrors.check_out}</div>}
         </div>
+        <div><Label>Total Hours</Label><Input type="number" placeholder="e.g. 9.0" min="0" step="0.5" value={form.total_hours} onChange={set('total_hours')} disabled={isOffDuty} /></div>
       </div>
-    </ModalWrapper>
+      <div><Label>Notes</Label>
+        <textarea rows={2} placeholder="Any additional notes..." value={form.notes} onChange={set('notes')}
+          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] placeholder:text-gray-300 resize-none" />
+      </div>
+    </div>
+    </ModalWrapper >
   );
 };
 
@@ -202,8 +303,8 @@ export const ViewAttendanceModal = ({ record, driverName, employeeId, onClose })
       onClose={onClose}
       footer={
         <div className="flex justify-end w-full">
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="px-8 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] transition-all"
           >
             Close
@@ -221,13 +322,13 @@ export const ViewAttendanceModal = ({ record, driverName, employeeId, onClose })
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-black text-[#172B4D] leading-none uppercase tracking-tight">{driverName || record.driver_name || '-'}</h3>
-                <StatusBadge 
-                  label={record.status_display ?? record.status} 
-                  styles={STATUS_STYLES[record.status]} 
+                <StatusBadge
+                  label={record.status_display ?? record.status}
+                  styles={STATUS_STYLES[record.status]}
                 />
               </div>
               <div className="text-gray-400 text-[10px] font-mono font-bold uppercase tracking-widest mt-1.5 flex items-center gap-1.5">
-                 <User size={12} /> Employee ID: {employeeId || record.employee_id || '—'}
+                <User size={12} /> Employee ID: {employeeId || record.employee_id || '—'}
               </div>
             </div>
           </div>
@@ -240,20 +341,20 @@ export const ViewAttendanceModal = ({ record, driverName, employeeId, onClose })
             <LabelValue label="Check In" value={record.check_in || '—'} />
             <LabelValue label="Check Out" value={record.check_out || '—'} />
             <LabelValue label="Total Hours" value={record.total_hours != null ? `${record.total_hours} hrs` : '—'} />
-            <LabelValue 
-              label="Record Created At" 
-              value={record.created_at ? new Date(record.created_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }).replace(',', '') : '—'} 
+            <LabelValue
+              label="Record Created At"
+              value={record.created_at ? new Date(record.created_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }).replace(',', '') : '—'}
             />
           </div>
 
           {/* Notes Section */}
           <div className="mt-4 pt-4 border-t border-gray-50 uppercase">
-             <span className="text-[10px] font-bold text-gray-400 tracking-widest ">Notes & Remarks</span>
-             <div className="mt-2 bg-gray-50/50 rounded-lg p-3 border border-gray-100/50">
-                <p className="text-[12px] text-gray-600 leading-relaxed italic">
-                  {record.notes || 'No additional notes provided for this record.'}
-                </p>
-             </div>
+            <span className="text-[10px] font-bold text-gray-400 tracking-widest ">Notes & Remarks</span>
+            <div className="mt-2 bg-gray-50/50 rounded-lg p-3 border border-gray-100/50">
+              <p className="text-[12px] text-gray-600 leading-relaxed italic">
+                {record.notes || 'No additional notes provided for this record.'}
+              </p>
+            </div>
           </div>
         </div>
       </div>

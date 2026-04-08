@@ -14,6 +14,7 @@ import {
 import { useVehiclesList } from '../../../../queries/drivers/vehicleAssignmentQuery';
 import { useUsers } from '../../../../queries/users/userQuery';
 import { useCurrentUser } from '../../../../queries/users/userActionQuery';
+import { useTrips } from '../../../../queries/orders/ordersQuery';
 import DriverSelect from '../../common/DriverSelect';
 import { INCIDENT_TYPES, SEVERITY_TYPES as SEVERITY_LIST, RESOLUTION_STATUS } from '../../common/constants';
 
@@ -28,6 +29,38 @@ export const VehicleSelect = ({ value, onChange, ...props }) => {
       {vehicles.map(v => (
         <option key={v.id} value={v.id}>
           {v.registration_number} — {v.make} {v.model}
+        </option>
+      ))}
+    </Select>
+  );
+};
+
+// Trip Select for incidents - Displays Trip Number and Route
+export const TripSelect = ({ value, onChange, onSelectTrip, ...props }) => {
+  const { data, isLoading } = useTrips({ page_size: 1000, ordering: '-created_at' });
+  
+  // Filtering trips based on user request: DISPATCHED, IN_TRANSIT, DELAYED
+  const trips = useMemo(() => {
+    const results = data?.results || (Array.isArray(data) ? data : []);
+    const allowedStatuses = ['DISPATCHED', 'IN_TRANSIT', 'DELAYED'];
+    return results.filter(t => allowedStatuses.includes(t.status));
+  }, [data]);
+
+  const handleChange = (e) => {
+    const tripId = e.target.value;
+    onChange(e);
+    if (onSelectTrip) {
+      const trip = trips.find(t => t.id === tripId);
+      onSelectTrip(trip);
+    }
+  };
+
+  return (
+    <Select value={value} onChange={handleChange} disabled={isLoading} {...props}>
+      <option value="">{isLoading ? 'Loading trips...' : (trips.length === 0 ? 'No active trips found' : 'Select trip')}</option>
+      {trips.map(t => (
+        <option key={t.id} value={t.id}>
+          {t.trip_number || `TRIP-${t.id.slice(-6)}`} — {t.origin_city || 'N/A'} to {t.destination_city || 'N/A'}
         </option>
       ))}
     </Select>
@@ -64,6 +97,19 @@ export const AddIncidentModal = ({ driverId, onClose }) => {
       onSuccess: onClose,
       onError: (err) => setError(formatError(err)),
     });
+  };
+
+  const handleTripSelect = (trip) => {
+    if (!trip) return;
+    setForm(p => ({
+      ...p,
+      vehicle: trip.vehicle_id || trip.primary_vehicle_id || p.vehicle,
+      trip_id: trip.id
+    }));
+    // If we're in "All Incidents" mode (driverId is null), auto-fill the driver too
+    if (!driverId && (trip.driver_id || trip.primary_driver_id)) {
+      setTargetDriverId(trip.driver_id || trip.primary_driver_id);
+    }
   };
 
   return (
@@ -112,8 +158,12 @@ export const AddIncidentModal = ({ driverId, onClose }) => {
             <VehicleSelect value={form.vehicle} onChange={(e) => setForm(p => ({ ...p, vehicle: e.target.value }))} />
           </div>
           <div>
-            <Label>Trip ID</Label>
-            <Input placeholder="Trip UUID" value={form.trip_id} onChange={set('trip_id')} />
+            <Label>Trip Number</Label>
+            <TripSelect 
+              value={form.trip_id} 
+              onChange={(e) => setForm(p => ({ ...p, trip_id: e.target.value }))} 
+              onSelectTrip={handleTripSelect}
+            />
           </div>
           <div>
             <Label>Severity</Label>
@@ -248,6 +298,15 @@ export const EditIncidentModal = ({ incident, driverId, onClose }) => {
     });
   };
 
+  const handleTripSelect = (trip) => {
+    if (!trip) return;
+    setForm(p => ({
+      ...p,
+      vehicle: trip.vehicle_id || trip.primary_vehicle_id || p.vehicle,
+      trip_id: trip.id
+    }));
+  };
+
   return (
     <ModalWrapper
       title="Edit Incident"
@@ -301,8 +360,13 @@ export const EditIncidentModal = ({ incident, driverId, onClose }) => {
           <div><Label>Vehicle</Label>
             <VehicleSelect value={form.vehicle} onChange={(e) => setForm(p => ({ ...p, vehicle: e.target.value }))} />
           </div>
-          <div><Label>Trip ID</Label>
-            <Input placeholder="Trip UUID" value={form.trip_id} onChange={set('trip_id')} />
+          <div>
+            <Label>Trip Number</Label>
+            <TripSelect 
+              value={form.trip_id} 
+              onChange={(e) => setForm(p => ({ ...p, trip_id: e.target.value }))} 
+              onSelectTrip={handleTripSelect}
+            />
           </div>
           <div>
             <Label>Severity</Label>
@@ -388,7 +452,7 @@ export const DeleteIncidentDialog = ({ incident, driverId, onClose }) => {
   );
 };
 
-export const ViewIncidentModal = ({ incident, driverName, employeeId, vehicleName, userMap, currentUser, onClose }) => {
+export const ViewIncidentModal = ({ incident, driverName, employeeId, vehicleName, tripNumber, userMap, currentUser, onClose }) => {
   // Record view logic
   const LabelValue = ({ label, value, color }) => (
     <div className="py-2 border-b border-gray-50 last:border-0 flex flex-col gap-1">
@@ -451,7 +515,7 @@ export const ViewIncidentModal = ({ incident, driverName, employeeId, vehicleNam
            <LabelValue label="Incident Type" value={incident.incident_type_display || incident.incident_type} />
            <LabelValue label="Incident Date" value={formatDate(incident.incident_date)} />
            <LabelValue label="Vehicle Registration" value={vehicleName || incident.vehicle_registration} />
-           <LabelValue label="Trip ID" value={incident.trip_id} color="font-mono" />
+           <LabelValue label="Trip Number" value={tripNumber || incident.trip_id} />
         </div>
 
         {/* Detailed Metrics Grid */}

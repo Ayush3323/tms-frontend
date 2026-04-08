@@ -9,6 +9,7 @@ import DriverSelect from '../common/DriverSelect';
 import { useDriverLookup } from '../../../queries/drivers/driverCoreQuery';
 import { useVehiclesList } from '../../../queries/drivers/vehicleAssignmentQuery';
 import { useUsers } from '../../../queries/users/userQuery';
+import { useTrips } from '../../../queries/orders/ordersQuery';
 import { INCIDENT_TYPES, SEVERITY_TYPES, RESOLUTION_LIST } from '../common/constants';
 import Select from '../common/Select';
 import Input from '../common/Input';
@@ -35,6 +36,14 @@ const AllIncidents = () => {
   const vehicleMap = (vehiclesData?.results ?? []).reduce((acc, v) => ({
     ...acc, [v.id]: v.registration_number
   }), {});
+
+  const { data: tripsData } = useTrips({ page_size: 1000 });
+  const tripMap = useMemo(() => {
+    const results = tripsData?.results || (Array.isArray(tripsData) ? tripsData : []);
+    return results.reduce((acc, t) => ({
+      ...acc, [t.id]: t.trip_number
+    }), {});
+  }, [tripsData]);
 
   const { data: usersData } = useUsers({ page_size: 1000 });
   const userMap = useMemo(() => {
@@ -93,6 +102,7 @@ const AllIncidents = () => {
           driverName={driverMap[viewIncident.driver]?.name}
           employeeId={driverMap[viewIncident.driver]?.employee_id}
           vehicleName={vehicleMap[viewIncident.vehicle]}
+          tripNumber={tripMap[viewIncident.trip_id]}
           userMap={userMap}
           onClose={() => setViewIncident(null)} 
         />
@@ -206,6 +216,7 @@ const AllIncidents = () => {
               showDriver={true} 
               driverMap={driverMap}
               vehicleMap={vehicleMap}
+              tripMap={tripMap}
               userMap={userMap}
             />
           )}
