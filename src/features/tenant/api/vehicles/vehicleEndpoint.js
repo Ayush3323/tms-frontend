@@ -69,10 +69,14 @@ export const vehicleDocumentsApi = {
     axiosInstance.get(`${BASE_DOCUMENTS}/${id}/`).then(r => r.data),
 
   create: (data) =>
-    axiosInstance.post(`${BASE_DOCUMENTS}/`, data).then(r => r.data),
+    axiosInstance.post(`${BASE_DOCUMENTS}/`, data, {
+      headers: data instanceof FormData ? { 'Content-Type': undefined } : {}
+    }).then(r => r.data),
 
   update: (id, data) =>
-    axiosInstance.patch(`${BASE_DOCUMENTS}/${id}/`, data).then(r => r.data),
+    axiosInstance.patch(`${BASE_DOCUMENTS}/${id}/`, data, {
+      headers: data instanceof FormData ? { 'Content-Type': undefined } : {}
+    }).then(r => r.data),
 
   delete: (id) =>
     axiosInstance.delete(`${BASE_DOCUMENTS}/${id}/`).then(r => r.data),
