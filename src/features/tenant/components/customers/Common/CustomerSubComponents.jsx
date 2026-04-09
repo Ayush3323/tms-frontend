@@ -57,7 +57,7 @@ export const CustomerOverview = ({ customer: c, onEdit }) => (
       <InfoCard label="Type" value={c?.customer_type} />
       <InfoCard label="Business Type" value={c?.business_type} />
       <InfoCard label="Industry Sector" value={c?.industry_sector} />
-      <InfoCard label="Website" value={c?.website} />
+      <InfoCard label={c?.document_type ? c.document_type.replace('_', ' ') : 'Document URL'} value={c?.website} />
       <InfoCard label="Notes" value={c?.notes} />
     </div>
 
