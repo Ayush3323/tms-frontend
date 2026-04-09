@@ -30,6 +30,7 @@ export const EMPTY_FORM = {
   business_type: '',
   industry_sector: '',
   website: '',
+  document_type: '',
   notes: '',
   // sales_person_id: '',
   // account_manager_id: '',
@@ -129,6 +130,7 @@ export const CustomerFormModal = ({ initial, onClose, onSuccess }) => {
         business_type: initial.business_type ?? '',
         industry_sector: initial.industry_sector ?? '',
         website: initial.website ?? '',
+        document_type: initial.document_type ?? '',
         notes: initial.notes ?? '',
         // sales_person_id: initial.sales_person_id ?? initial.sales_person?.id ?? '',
         // account_manager_id: initial.account_manager_id ?? initial.account_manager?.id ?? '',
@@ -381,9 +383,23 @@ export const CustomerFormModal = ({ initial, onClose, onSuccess }) => {
           <Input value={form.industry_sector} onChange={e => setField('industry_sector', e.target.value)}
             placeholder="e.g. Logistics" />
         </Field>
-        <Field label="Website" className="col-span-2">
-          <Input value={form.website} onChange={e => setField('website', e.target.value)}
-            placeholder="https://example.com" />
+        <Field label="Document URL" className="col-span-2">
+          <div className="flex gap-2">
+            <Sel className="w-1/3" value={form.document_type || ''} onChange={e => setField('document_type', e.target.value)}>
+              <option value="">Select Document Type</option>
+              <option value="GST_CERTIFICATE">GST Certificate</option>
+              <option value="PAN_CARD">PAN Card</option>
+              <option value="CIN">CIN</option>
+              <option value="REGISTRATION">Registration</option>
+              <option value="AADHAR">Aadhar</option>
+              <option value="VOTER_ID">Voter ID</option>
+              <option value="PASSPORT">Passport</option>
+              <option value="TAX_EXEMPTION">Tax Exemption</option>
+              <option value="OTHER">Other</option>
+            </Sel>
+            <Input className="flex-1" value={form.website} onChange={e => setField('website', e.target.value)}
+              placeholder="Document URL (https://...)" />
+          </div>
         </Field>
 
         <Field label="Notes" className="col-span-2">
