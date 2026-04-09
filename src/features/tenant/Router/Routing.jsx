@@ -68,6 +68,9 @@ import CustomerPaymentsDashboard from '../components/Finance/CustomerPaymentsDas
 import OwnerPaymentsDashboard from '../components/Finance/OwnerPaymentsDashboard';
 import PayrollDashboard from '../components/Finance/PayrollDashboard';
 import TDSSummaryDashboard from '../components/Finance/TDSSummaryDashboard';
+import AdvancesDashboard from '../components/Finance/AdvancesDashboard';
+import InvoiceDetail from '../components/Finance/InvoiceDetail';
+import AdvanceDetail from '../components/Finance/AdvanceDetail';
 import GeographyDashboard from '../components/MasterData/GeographyDashboard';
 import RateCardsDashboard from '../components/MasterData/RateCardsDashboard';
 import VehicleTypesMasterDashboard from '../components/MasterData/VehicleTypesMasterDashboard';
@@ -155,10 +158,13 @@ const Routing = () => {
 
         {/* Finance */}
         <Route path="finance/invoices" element={<InvoicesDashboard />} />
+        <Route path="finance/invoices/:id" element={<InvoiceDetail />} />
         <Route path="finance/customer-payments" element={<CustomerPaymentsDashboard />} />
         <Route path="finance/owner-payments" element={<OwnerPaymentsDashboard />} />
         <Route path="finance/payroll" element={<PayrollDashboard />} />
         <Route path="finance/tds" element={<TDSSummaryDashboard />} />
+        <Route path="finance/advances" element={<AdvancesDashboard />} />
+        <Route path="finance/advances/:id" element={<AdvanceDetail />} />
 
         {/* Master Data */}
         <Route path="master-data/geography" element={<GeographyDashboard />} />
