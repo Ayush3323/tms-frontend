@@ -10,6 +10,7 @@ import {
 import { useDrivers } from '../../queries/drivers/driverCoreQuery';
 import { useVehicles } from '../../queries/vehicles/vehicleQuery';
 import { useVehicleTypes } from '../../queries/vehicles/vehicletypeQuery';
+import { tripsApi } from '../../api/orders/ordersEndpoint';
 
 const formatLabel = (str) => {
   if (!str) return "";
@@ -1219,5 +1220,221 @@ export function ViewTripModal({ isOpen, onClose, tripId }) {
         <button onClick={onClose} className="px-6 py-2 text-white bg-[#172B4D] rounded-lg font-bold text-sm uppercase tracking-widest shadow-lg active:scale-95 transition-all">Close Journey View</button>
       </div>
     </Modal>
+  );
+}
+
+export function AddStopsModal({ isOpen, onClose, tripId, nextSequenceNumber, onSuccess }) {
+  const [plannedStops, setPlannedStops] = useState([
+    { stop_type: 'PICKUP', location_address: '', instructions: '', scheduled_arrival: '', scheduled_departure: '' }
+  ]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [dragIdx, setDragIdx] = useState(null);
+  const [dragOverIdx, setDragOverIdx] = useState(null);
+  const [stopErrors, setStopErrors] = useState([]);
+
+  const validateStops = (stops = plannedStops) => {
+    const errors = [];
+    const hasLocation = stops.some(s => s.location_address?.trim());
+    if (!hasLocation) errors.push("At least one stop must have a location address.");
+    setStopErrors(errors);
+    return errors.length === 0;
+  };
+
+  const addStopRow = () => {
+    setPlannedStops(prev => [
+      ...prev,
+      { stop_type: 'DELIVERY', location_address: '', instructions: '', scheduled_arrival: '', scheduled_departure: '' }
+    ]);
+  };
+
+  const removeStopRow = (index) => {
+    setPlannedStops(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updateStopRow = (index, key, value) => {
+    setPlannedStops(prev => {
+      const next = prev.map((s, i) => i === index ? { ...s, [key]: value } : s);
+      validateStops(next);
+      return next;
+    });
+  };
+
+  const handleStopDragStart = (index) => setDragIdx(index);
+  const handleStopDragOver = (e, index) => {
+    e.preventDefault();
+    setDragOverIdx(index);
+  };
+  const handleStopDrop = (index) => {
+    if (dragIdx === null || dragIdx === index) {
+      setDragIdx(null);
+      setDragOverIdx(null);
+      return;
+    }
+    setPlannedStops((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(dragIdx, 1);
+      next.splice(index, 0, moved);
+      return next;
+    });
+    setDragIdx(null);
+    setDragOverIdx(null);
+  };
+
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
+    if (!validateStops()) return;
+    
+    setIsLoading(true);
+    try {
+      // Filter out empty rows and then iterate
+      const stopsToCreate = plannedStops.filter(s => s.location_address?.trim());
+      for (let i = 0; i < stopsToCreate.length; i++) {
+        const stop = stopsToCreate[i];
+        await tripsApi.createStop(tripId, {
+          stop_sequence: nextSequenceNumber + i,
+          stop_type: stop.stop_type,
+          location_address: stop.location_address,
+          instructions: stop.instructions,
+          scheduled_arrival: stop.scheduled_arrival || null,
+          scheduled_departure: stop.scheduled_departure || null,
+          stop_status: 'PENDING'
+        });
+      }
+      onSuccess?.();
+      onClose();
+    } catch (err) {
+      console.error("Batch stop creation failed:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  const inputClass = "w-full p-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all";
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+      <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+        {/* Header */}
+        <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+          <div className="flex items-center gap-3">
+             <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl"><MapPin size={24} /></div>
+             <div>
+               <h2 className="text-xl font-black text-gray-800 tracking-tight">Add Trip Stops</h2>
+               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Multi-stop Planner</p>
+             </div>
+          </div>
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all">
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Form Body */}
+        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+          <div className="max-w-4xl mx-auto space-y-6">
+            <div className={`mb-6 rounded-2xl border px-4 py-3 text-xs font-bold transition-all flex items-center gap-3 ${
+              stopErrors.length
+                ? 'border-red-100 bg-red-50 text-red-600'
+                : 'border-emerald-100 bg-emerald-50 text-emerald-600'
+            }`}>
+              {stopErrors.length ? <AlertCircle size={14} /> : <CheckCircle2 size={14} />}
+              {stopErrors.length ? stopErrors.join(' ') : 'Plan your journey sequence here. You can add multiple stops and reorder them.'}
+            </div>
+
+            <div className="flex items-center justify-between mb-4 px-2">
+              <h3 className="text-sm font-black text-gray-700 uppercase tracking-wider">Stop Sequence</h3>
+              <button 
+                type="button" 
+                onClick={addStopRow} 
+                className="flex items-center gap-2 px-4 py-1.5 text-xs font-black text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all"
+              >
+                + Add Stop Row
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {plannedStops.map((stop, idx) => (
+                <div
+                  key={`stop-${idx}`}
+                  className={`grid grid-cols-12 gap-3 items-end bg-white border rounded-2xl p-4 transition-all duration-300 hover:shadow-lg hover:shadow-gray-100 ${
+                    dragOverIdx === idx ? 'border-blue-400 ring-4 ring-blue-50' : 'border-gray-200'
+                  }`}
+                  onDragOver={(e) => handleStopDragOver(e, idx)}
+                  onDrop={() => handleStopDrop(idx)}
+                >
+                  <div
+                    className="col-span-1 flex items-center justify-center cursor-grab text-gray-300 hover:text-gray-500 transition-colors"
+                    draggable
+                    onDragStart={() => handleStopDragStart(idx)}
+                    onDragEnd={() => { setDragIdx(null); setDragOverIdx(null); }}
+                  >
+                    <GripVertical size={20} />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block ml-1">Type</label>
+                    <select className={inputClass} value={stop.stop_type} onChange={(e) => updateStopRow(idx, 'stop_type', e.target.value)}>
+                      <option value="PICKUP">PICKUP</option>
+                      <option value="DELIVERY">DELIVERY</option>
+                      <option value="TRANSIT">TRANSIT</option>
+                      <option value="BREAK">BREAK</option>
+                      <option value="FUEL">FUEL</option>
+                      <option value="OTHER">OTHER</option>
+                    </select>
+                  </div>
+                  <div className="col-span-3">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block ml-1">Location Address</label>
+                    <input className={inputClass} value={stop.location_address} onChange={(e) => updateStopRow(idx, 'location_address', e.target.value)} placeholder="Complete address" />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block ml-1">ETA (Sch Arrival)</label>
+                    <input type="datetime-local" className={inputClass} value={stop.scheduled_arrival} onChange={(e) => updateStopRow(idx, 'scheduled_arrival', e.target.value)} />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block ml-1">ETD (Sch Departure)</label>
+                    <input type="datetime-local" className={inputClass} value={stop.scheduled_departure} onChange={(e) => updateStopRow(idx, 'scheduled_departure', e.target.value)} />
+                  </div>
+                  <div className="col-span-1">
+                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block text-center">Seq</label>
+                     <div className="h-9 flex items-center justify-center font-black text-gray-400 bg-gray-50 rounded-xl border border-gray-100">{nextSequenceNumber + idx}</div>
+                  </div>
+                  <div className="col-span-1 text-right">
+                    <button type="button" onClick={() => removeStopRow(idx)} className="h-9 w-9 flex items-center justify-center text-red-500 bg-red-50 hover:bg-red-500 hover:text-white rounded-xl transition-all ml-auto">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                  <div className="col-span-12 mt-1 px-1">
+                     <input 
+                       className={`${inputClass} !py-1.5 text-[11px] font-medium bg-gray-50/50 border-dashed`} 
+                       value={stop.instructions || ""} 
+                       onChange={(e) => updateStopRow(idx, 'instructions', e.target.value)} 
+                       placeholder="Special instructions for this stop (optional)..." 
+                     />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-8 py-6 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
+          <button 
+            type="button" 
+            onClick={onClose} 
+            className="px-6 py-2.5 text-xs font-black uppercase tracking-widest text-gray-500 hover:bg-white rounded-xl border border-transparent hover:border-gray-200 transition-all"
+          >
+            Cancel
+          </button>
+          <button 
+            onClick={handleSubmit}
+            disabled={isLoading || stopErrors.length > 0}
+            className="flex items-center gap-2 px-8 py-2.5 bg-[#172B4D] text-white font-black text-xs uppercase tracking-widest rounded-xl hover:bg-slate-900 shadow-xl shadow-slate-200 transition-all active:scale-95 disabled:opacity-50"
+          >
+            {isLoading ? 'Saving Stops...' : 'Add All Stops to Trip'} <Save size={16} />
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Truck, MapPin, Calendar,
@@ -17,7 +17,7 @@ import {
 } from '../../queries/orders/ordersQuery';
 import { useDriverDetail } from '../../queries/drivers/driverCoreQuery';
 import { useVehicle } from '../../queries/vehicles/vehicleQuery';
-import { EditTripModal } from './TripModals';
+import { EditTripModal, AddStopsModal } from './TripModals';
 import { useCurrentUser } from '../../queries/users/rolesPermissionsQuery';
 
 // --- Shared Components ---
@@ -166,7 +166,7 @@ const InfoCard = ({ label, value, icon: Icon, accent = false, isLoading = false 
           {isLoading ? (
             <div className="h-5 w-24 bg-gray-100 animate-pulse rounded-md" />
           ) : (
-            <p className={`text-sm font-black tracking-tight truncate ${accent ? 'text-blue-700' : 'text-[#172B4D]'}`}>
+            <p className={`text-sm font-black tracking-tight ${accent ? 'text-blue-700' : 'text-[#172B4D]'}`}>
               {value || '—'}
             </p>
           )}
@@ -286,7 +286,8 @@ const JourneyTab = ({ trip, driver, vehicle, isLoadingNames, altDriver, altVehic
   </div>
 );
 
-const StopsTab = ({ stops, isLoading, onCreateStop, onUpdateStopStatus, onDeleteStop }) => {
+const StopsTab = ({ tripId, stops, isLoading, onCreateStop, onUpdateStopStatus, onDeleteStop }) => {
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newStop, setNewStop] = useState({
     stop_sequence: 1,
     stop_type: 'PICKUP',
@@ -298,21 +299,11 @@ const StopsTab = ({ stops, isLoading, onCreateStop, onUpdateStopStatus, onDelete
   const [editingStop, setEditingStop] = useState({ location_address: '', instructions: '' });
 
   const sortedStops = [...(stops || [])].sort((a, b) => (a.stop_sequence || 0) - (b.stop_sequence || 0));
-
-  const submitNewStop = (e) => {
-    e.preventDefault();
-    if (!newStop.location_address?.trim()) return;
-    onCreateStop({
-      ...newStop,
-      stop_sequence: Number(newStop.stop_sequence || 1),
-    });
-    setNewStop((prev) => ({
-      ...prev,
-      stop_sequence: Number(prev.stop_sequence || 1) + 1,
-      location_address: '',
-      instructions: '',
-    }));
-  };
+  const nextSeq = sortedStops.length > 0 ? Math.max(...sortedStops.map(s => s.stop_sequence || 0)) + 1 : 1;
+  
+  useEffect(() => {
+    setNewStop(prev => ({ ...prev, stop_sequence: nextSeq }));
+  }, [nextSeq]);
 
   const startEditStop = (stop) => {
     setEditingStopId(stop.id);
@@ -330,41 +321,57 @@ const StopsTab = ({ stops, isLoading, onCreateStop, onUpdateStopStatus, onDelete
     setEditingStopId(null);
     setEditingStop({ location_address: '', instructions: '' });
   };
+  
 
   return (
     <div className="space-y-6">
-      <SectionHeader icon={MapPin} title="Trip Sequence (Multi-point)" />
+      <SectionHeader 
+        icon={MapPin} 
+        title="Trip Sequence (Multi-point)" 
+      />
 
-      <form onSubmit={submitNewStop} className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-          <input
-            type="number"
-            min="1"
-            className="px-3 py-2 rounded-lg border border-gray-200 text-sm"
-            value={newStop.stop_sequence}
-            onChange={(e) => setNewStop((p) => ({ ...p, stop_sequence: e.target.value }))}
-            placeholder="Sequence"
-          />
-          <select
-            className="px-3 py-2 rounded-lg border border-gray-200 text-sm"
-            value={newStop.stop_type}
-            onChange={(e) => setNewStop((p) => ({ ...p, stop_type: e.target.value }))}
-          >
-            <option value="PICKUP">PICKUP</option>
-            <option value="DELIVERY">DELIVERY</option>
-            <option value="TRANSIT">TRANSIT</option>
-          </select>
-          <input
-            className="md:col-span-2 px-3 py-2 rounded-lg border border-gray-200 text-sm"
-            value={newStop.location_address}
-            onChange={(e) => setNewStop((p) => ({ ...p, location_address: e.target.value }))}
-            placeholder="Location address"
-          />
-          <button type="submit" className="px-3 py-2 rounded-lg bg-[#4a6cf7] text-white text-sm font-bold">
-            Add Stop
-          </button>
-        </div>
-      </form>
+      <div className="bg-white border border-gray-100 rounded-2xl p-3 shadow-sm flex items-center gap-3 animate-in slide-in-from-top-2 duration-300">
+         <div className="w-16">
+            <input 
+              type="number" 
+              min="1"
+              className="w-full p-2 bg-gray-100/50 border border-gray-100 rounded-xl text-[11px] font-bold text-slate-600 outline-none focus:border-blue-400"
+              value={newStop.stop_sequence} 
+              onChange={e => setNewStop({...newStop, stop_sequence: e.target.value})} 
+              placeholder="Seq"
+            />
+         </div>
+         <div className="w-28">
+            <select 
+              className="w-full p-2 bg-gray-100/50 border border-gray-100 rounded-xl text-[11px] font-bold text-slate-600 outline-none focus:border-blue-400"
+              value={newStop.stop_type} 
+              onChange={e => setNewStop({...newStop, stop_type: e.target.value})}
+            >
+               <option value="PICKUP">PICKUP</option>
+               <option value="DELIVERY">DELIVERY</option>
+               <option value="TRANSIT">TRANSIT</option>
+               <option value="FUEL">FUEL</option>
+               <option value="BREAK">BREAK</option>
+               <option value="OTHER">OTHER</option>
+            </select>
+         </div>
+         <div className="w-64">
+            <input 
+              className="w-full p-2 bg-gray-100/50 border border-gray-100 rounded-xl text-[11px] font-bold text-slate-600 outline-none focus:border-blue-400"
+              value={newStop.location_address} 
+              onChange={e => setNewStop({...newStop, location_address: e.target.value})} 
+              placeholder="Location"
+            />
+         </div>
+         <div className="ml-auto flex items-center gap-2">
+           <button 
+             onClick={() => setIsAddModalOpen(true)}
+             className="flex items-center gap-2 px-6 py-2 bg-[#4a6cf7] text-white text-[11px] font-black uppercase tracking-widest rounded-xl hover:bg-[#3b59d9] transition-all shadow-lg shadow-blue-100 active:scale-95"
+           >
+             <Plus size={14} strokeWidth={3} /> Add Stop
+           </button>
+         </div>
+      </div>
 
       {isLoading ? (
         <div className="flex justify-center p-12"><Loader2 className="animate-spin text-blue-600" /></div>
@@ -420,6 +427,12 @@ const StopsTab = ({ stops, isLoading, onCreateStop, onUpdateStopStatus, onDelete
           <p className="text-gray-400 text-sm">No stops recorded for this trip.</p>
         </div>
       )}
+      <AddStopsModal 
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        tripId={tripId}
+        nextSequenceNumber={nextSeq}
+      />
     </div>
   );
 };
@@ -787,11 +800,11 @@ export default function TripDetail() {
 
         <div className="bg-white rounded-3xl border border-gray-100/80 overflow-hidden shadow-xl shadow-gray-200/40">
           <div className="p-6 lg:p-8 flex flex-col md:flex-row items-center justify-between gap-10">
-            <div className="flex-1 flex items-center justify-between max-w-2xl">
+            <div className="flex-1 flex items-center justify-between max-w-5xl gap-12">
               {/* Origin */}
               <div className="text-left">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-0.5">Origin</p>
-                <h1 className="text-4xl font-black text-[#172B4D] tracking-tighter">{originDisplay}</h1>
+                <h1 className="text-2xl font-bold text-[#172B4D] leading-tight break-words">{originDisplay}</h1>
                 <p className="text-[11px] font-semibold text-gray-400 mt-1">Managed via Stops tab</p>
               </div>
 
@@ -807,7 +820,7 @@ export default function TripDetail() {
               {/* Destination */}
               <div className="text-left">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-0.5">Destination</p>
-                <h1 className="text-4xl font-black text-[#172B4D] tracking-tighter">{destinationDisplay}</h1>
+                <h1 className="text-2xl font-bold text-[#172B4D] leading-tight break-words">{destinationDisplay}</h1>
                 <p className="text-[11px] font-semibold text-gray-400 mt-1">Managed via Stops tab</p>
               </div>
             </div>
@@ -934,6 +947,7 @@ export default function TripDetail() {
             {activeTab === 'finance' && <FinanceTab trip={trip} expenses={expenses} charges={charges} isLoadingExp={loadingExp} isLoadingChg={loadingChg} onEditFinance={handleEditFinance} onDeleteFinance={handleDeleteFinance} />}
             {activeTab === 'stops' && (
               <StopsTab
+                tripId={id}
                 stops={Array.isArray(stops) ? stops : stops?.results}
                 isLoading={loadingStops}
                 onCreateStop={(data) => createStopMutation.mutate(data)}
