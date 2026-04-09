@@ -67,6 +67,7 @@ const financeSubItems = [
   { name: 'Payroll', icon: <Users size={13} />, path: '/tenant/dashboard/finance/payroll', badge: null },
   { name: 'TDS Summary', icon: <Shield size={13} />, path: '/tenant/dashboard/finance/tds', badge: null },
   { name: 'Advances', icon: <Globe size={13} />, path: '/tenant/dashboard/finance/advances', badge: null },
+  { name: 'Reports', icon: <BarChart2 size={13} />, path: '/tenant/dashboard/finance/reports', badge: null },
 ];
 
 /** Orders area root (order list/detail + related operational modules). */
