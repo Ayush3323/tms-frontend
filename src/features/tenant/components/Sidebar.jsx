@@ -60,6 +60,15 @@ const orderSubItems = [
   { name: 'Deliveries', icon: <ClipboardCheck size={13} />, path: '/tenant/dashboard/orders/deliveries', badge: null },
 ];
 
+const financeSubItems = [
+  { name: 'Invoices', icon: <FileText size={13} />, path: '/tenant/dashboard/finance/invoices', badge: null },
+  { name: 'Customer Payments', icon: <Banknote size={13} />, path: '/tenant/dashboard/finance/customer-payments', badge: null },
+  { name: 'Owner Payables', icon: <Banknote size={13} />, path: '/tenant/dashboard/finance/owner-payments', badge: null },
+  { name: 'Payroll', icon: <Users size={13} />, path: '/tenant/dashboard/finance/payroll', badge: null },
+  { name: 'TDS Summary', icon: <Shield size={13} />, path: '/tenant/dashboard/finance/tds', badge: null },
+  { name: 'Advances', icon: <Globe size={13} />, path: '/tenant/dashboard/finance/advances', badge: null },
+];
+
 /** Orders area root (order list/detail + related operational modules). */
 function isOrdersNavActive(pathname) {
   if (pathname === ORDERS_ROOT) return true;
@@ -159,6 +168,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const isDriverPath = location.pathname.startsWith('/tenant/dashboard/drivers');
   const isUserPath = location.pathname.startsWith('/tenant/dashboard/users');
   const isCustomerPath = location.pathname.startsWith('/tenant/dashboard/customers');
+  const isFinancePath = location.pathname.startsWith('/tenant/dashboard/finance');
   const ordersNavActive = isOrdersNavActive(location.pathname);
   const isTripsPath = location.pathname.startsWith(`${ORDERS_ROOT}/trips`);
   const isTripManagerPath = location.pathname.startsWith(`${ORDERS_ROOT}/trip-manager`);
@@ -170,6 +180,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const [driversOpen, setDriversOpen] = useState(isDriverPath);
   const [usersOpen, setUsersOpen] = useState(isUserPath);
   const [customersOpen, setCustomersOpen] = useState(isCustomerPath);
+  const [financeOpen, setFinanceOpen] = useState(isFinancePath);
   const [ordersOpen, setOrdersOpen] = useState(isOrderPath);
 
   return (
@@ -250,6 +261,17 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                 isActive={isCustomerPath}
                 subItems={customerSubItems}
                 title="Customers Management"
+                isCollapsed={isCollapsed}
+                setIsCollapsed={setIsCollapsed}
+              />
+              <NavItem
+                icon={<Banknote />}
+                label="Finance"
+                isOpen={financeOpen}
+                setIsOpen={setFinanceOpen}
+                isActive={isFinancePath}
+                subItems={financeSubItems}
+                title="Finance Operations"
                 isCollapsed={isCollapsed}
                 setIsCollapsed={setIsCollapsed}
               />
