@@ -1,18 +1,44 @@
 import React, { useMemo, useState } from 'react'
-import { CheckCircle2, XCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, XCircle } from 'lucide-react'
 
 import FinanceListPage from './FinanceListPage'
-import { useCancelInvoice, useGenerateInvoiceFromTrip, useInvoices, usePostInvoice } from '../../queries/finance/financeQuery'
+import {
+  useCancelInvoice,
+  useGenerateInvoiceFromTrip,
+  useInvoices,
+  useMarkInvoiceOverdue,
+  usePostInvoice,
+  useTripsLookup,
+} from '../../queries/finance/financeQuery'
 
 const asList = (data) => data?.results || (Array.isArray(data) ? data : [])
 
 export default function InvoicesDashboard() {
   const [search, setSearch] = useState('')
-  const { data, isLoading, refetch } = useInvoices(search ? { search } : {})
+  const [selectedTripId, setSelectedTripId] = useState('')
+  const [status, setStatus] = useState('')
+  const queryParams = useMemo(() => {
+    const p = {}
+    if (search) p.search = search
+    if (status) p.status = status
+    return p
+  }, [search, status])
+  const { data, isLoading, refetch } = useInvoices(queryParams)
+  const { data: tripsData, isLoading: tripsLoading } = useTripsLookup({ page_size: 200 })
   const postInvoice = usePostInvoice()
   const cancelInvoice = useCancelInvoice()
+  const markOverdue = useMarkInvoiceOverdue()
   const generateFromTrip = useGenerateInvoiceFromTrip()
   const rows = asList(data)
+  const tripRows = asList(tripsData)
+  const tripOptions = useMemo(() => tripRows.map((trip) => {
+    const tripNo = trip.trip_number || String(trip.id).slice(-8).toUpperCase()
+    const route = [trip.origin_address, trip.destination_address].filter(Boolean).join(' -> ')
+    return {
+      id: trip.id,
+      label: route ? `${tripNo} (${route})` : tripNo,
+    }
+  }), [tripRows])
 
   const stats = useMemo(() => ([
     { label: 'Total', value: data?.count || rows.length, className: 'text-blue-600' },
@@ -28,6 +54,21 @@ export default function InvoicesDashboard() {
       subtitle="Manage invoice lifecycle, due amounts, and posting workflow."
       search={search}
       setSearch={setSearch}
+      secondaryFilters={(
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+          className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-700"
+        >
+          <option value="">All Statuses</option>
+          <option value="DRAFT">Draft</option>
+          <option value="SENT">Sent</option>
+          <option value="PARTIALLY_PAID">Partially Paid</option>
+          <option value="PAID">Paid</option>
+          <option value="OVERDUE">Overdue</option>
+          <option value="CANCELLED">Cancelled</option>
+        </select>
+      )}
       onRefresh={refetch}
       isLoading={isLoading}
       stats={stats}
@@ -42,16 +83,27 @@ export default function InvoicesDashboard() {
         { key: 'status', title: 'Status' },
       ]}
       actions={(
-        <button
-          type="button"
-          onClick={() => {
-            const tripId = window.prompt('Enter Trip ID to generate invoice')
-            if (tripId) generateFromTrip.mutate(tripId)
-          }}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#0052CC] rounded-xl text-xs font-bold text-white hover:bg-[#0747A6] shadow-md shadow-blue-100 transition-all"
-        >
-          Generate from Trip
-        </button>
+        <div className="flex items-center gap-2">
+          <select
+            value={selectedTripId}
+            onChange={(e) => setSelectedTripId(e.target.value)}
+            className="min-w-[280px] px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-700"
+            disabled={tripsLoading || generateFromTrip.isPending}
+          >
+            <option value="">{tripsLoading ? 'Loading trips...' : 'Select Trip'}</option>
+            {tripOptions.map((trip) => (
+              <option key={trip.id} value={trip.id}>{trip.label}</option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => selectedTripId && generateFromTrip.mutate(selectedTripId)}
+            disabled={!selectedTripId || generateFromTrip.isPending}
+            className="flex items-center gap-2 px-5 py-2.5 bg-[#0052CC] rounded-xl text-xs font-bold text-white hover:bg-[#0747A6] shadow-md shadow-blue-100 transition-all disabled:opacity-50"
+          >
+            Generate from Trip
+          </button>
+        </div>
       )}
       rowActions={(row) => (
         <>
@@ -61,8 +113,24 @@ export default function InvoicesDashboard() {
             </button>
           )}
           {['DRAFT', 'SENT', 'OVERDUE'].includes(row.status) && (
-            <button type="button" onClick={() => cancelInvoice.mutate(row.id)} className="p-2 text-gray-400 hover:text-red-600 rounded-lg">
+            <button
+              type="button"
+              disabled={cancelInvoice.isPending}
+              onClick={() => window.confirm('Cancel this invoice?') && cancelInvoice.mutate(row.id)}
+              className="p-2 text-gray-400 hover:text-red-600 rounded-lg disabled:opacity-50"
+            >
               <XCircle size={16} />
+            </button>
+          )}
+          {['SENT', 'PARTIALLY_PAID'].includes(row.status) && (
+            <button
+              type="button"
+              disabled={markOverdue.isPending}
+              onClick={() => markOverdue.mutate(row.id)}
+              className="p-2 text-gray-400 hover:text-amber-600 rounded-lg disabled:opacity-50"
+              title="Mark Overdue"
+            >
+              <AlertTriangle size={16} />
             </button>
           )}
         </>

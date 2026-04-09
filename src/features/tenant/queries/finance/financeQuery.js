@@ -9,6 +9,7 @@ import {
   ownerPaymentApi,
   payrollApi,
   reconciliationApi,
+  tripLookupApi,
   tdsApi,
 } from '../../api/finance/financeEndpoint'
 
@@ -22,6 +23,7 @@ export const financeKeys = {
   tdsReturns: (params) => ['finance', 'tdsReturns', params],
   advances: (params) => ['finance', 'advances', params],
   reports: (name, params) => ['finance', 'reports', name, params],
+  tripsLookup: (params) => ['finance', 'tripsLookup', params],
 }
 
 const onErr = (label) => (error) => {
@@ -37,6 +39,8 @@ export const usePayrollEntries = (params) => useQuery({ queryKey: financeKeys.pa
 export const useTDSEntries = (params) => useQuery({ queryKey: financeKeys.tdsEntries(params), queryFn: () => tdsApi.listEntries(params) })
 export const useTDSReturns = (params) => useQuery({ queryKey: financeKeys.tdsReturns(params), queryFn: () => tdsApi.listReturns(params) })
 export const useAdvances = (params) => useQuery({ queryKey: financeKeys.advances(params), queryFn: () => advanceApi.list(params) })
+export const useTripsLookup = (params) =>
+  useQuery({ queryKey: financeKeys.tripsLookup(params), queryFn: () => tripLookupApi.list(params) })
 export const useARAgingReport = (params) =>
   useQuery({ queryKey: financeKeys.reports('arAging', params), queryFn: () => financeReportApi.arAging(params) })
 export const useOwnerPayablesReport = (params) =>
@@ -73,6 +77,17 @@ export const useCancelInvoice = () => {
     onError: onErr('Could not cancel invoice'),
   })
 }
+export const useMarkInvoiceOverdue = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: invoiceApi.markOverdue,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'invoices'] })
+      toast.success('Invoice marked overdue')
+    },
+    onError: onErr('Could not mark overdue'),
+  })
+}
 export const useGenerateInvoiceFromTrip = () => {
   const qc = useQueryClient()
   return useMutation({
@@ -104,6 +119,18 @@ export const useBounceCustomerPayment = () => {
       toast.success('Payment marked bounced')
     },
     onError: onErr('Bounce failed'),
+  })
+}
+export const useAutoReconcilePayment = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: customerPaymentApi.autoReconcile,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'customerPayments'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'invoices'] })
+      toast.success('Payment auto-reconciled')
+    },
+    onError: onErr('Auto-reconcile failed'),
   })
 }
 export const useApproveOwnerPayment = () => {
@@ -163,6 +190,18 @@ export const useClosePayrollPeriod = () => {
     onError: onErr('Could not close period'),
   })
 }
+export const useMarkAllPayrollPaid = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: payrollApi.markAllPaid,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'payrollPeriods'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'payrollEntries'] })
+      toast.success('All payroll entries marked paid')
+    },
+    onError: onErr('Could not mark all paid'),
+  })
+}
 export const useMarkPayrollEntryPaid = () => {
   const qc = useQueryClient()
   return useMutation({
@@ -196,6 +235,28 @@ export const useFileTDSReturn = () => {
     onError: onErr('Filing failed'),
   })
 }
+export const useMarkTDSEntryPaid = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: tdsApi.markEntryPaid,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'tdsEntries'] })
+      toast.success('TDS entry marked paid')
+    },
+    onError: onErr('Could not mark TDS entry paid'),
+  })
+}
+export const useMarkTDSReturnPaid = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: tdsApi.markReturnPaid,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'tdsReturns'] })
+      toast.success('TDS return marked paid')
+    },
+    onError: onErr('Could not mark TDS return paid'),
+  })
+}
 export const useApproveAdvance = () => {
   const qc = useQueryClient()
   return useMutation({
@@ -227,5 +288,16 @@ export const useDisburseAdvance = () => {
       toast.success('Advance disbursed')
     },
     onError: onErr('Disbursement failed'),
+  })
+}
+export const useSettleAdvance = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => advanceApi.settle(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'advances'] })
+      toast.success('Advance settled')
+    },
+    onError: onErr('Advance settle failed'),
   })
 }
