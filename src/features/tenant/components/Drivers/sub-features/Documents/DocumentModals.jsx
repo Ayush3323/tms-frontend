@@ -19,8 +19,19 @@ import { DOCUMENT_TYPES, VERIFICATION_STATUS as VERIFICATION_LIST, STATUS_STYLES
 import { getExpiryColor, getInitials } from '../../common/utils';
 
 // Shared Form Fields for Documents
-const DocumentFormFields = ({ form, setForm, error, userMap = {}, onStatusChange, currentUser, isLoadingUsers }) => {
-  const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
+const DocumentFormFields = ({ form, setForm, fieldErrors, setFieldErrors, error, userMap = {}, onStatusChange, currentUser, isLoadingUsers }) => {
+  const set = (f) => (e) => {
+    setForm(p => ({ ...p, [f]: e.target.value }));
+    if (fieldErrors?.[f]) {
+      setFieldErrors(p => ({ ...p, [f]: '' }));
+    }
+  };
+
+  const renderError = (field) => {
+    const err = fieldErrors?.[field];
+    if (!err) return null;
+    return <div className="text-[10px] text-red-500 font-bold mb-1 tracking-tight">{err}</div>;
+  };
   
   const handleStatusChange = (e) => {
     if (onStatusChange) {
@@ -37,6 +48,7 @@ const DocumentFormFields = ({ form, setForm, error, userMap = {}, onStatusChange
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label required>Document Type</Label>
+          {renderError('document_type')}
           <Select value={form.document_type} onChange={set('document_type')}>
             <option value="">Select type</option>
             {DOCUMENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
@@ -44,11 +56,24 @@ const DocumentFormFields = ({ form, setForm, error, userMap = {}, onStatusChange
         </div>
         <div>
           <Label required>Document Number</Label>
+          {renderError('document_number')}
           <Input placeholder="e.g. 1234 5678 9012" value={form.document_number} onChange={set('document_number')} />
         </div>
-        <div><Label>Issue Date</Label><Input type="date" value={form.issue_date} onChange={set('issue_date')} /></div>
-        <div><Label>Expiry Date</Label><Input type="date" value={form.expiry_date} onChange={set('expiry_date')} /></div>
-        <div><Label>Issuing Authority</Label><Input placeholder="e.g. UIDAI (Optional)" value={form.issuing_authority} onChange={set('issuing_authority')} /></div>
+        <div>
+          <Label>Issue Date</Label>
+          {renderError('issue_date')}
+          <Input type="date" value={form.issue_date} onChange={set('issue_date')} />
+        </div>
+        <div>
+          <Label>Expiry Date</Label>
+          {renderError('expiry_date')}
+          <Input type="date" value={form.expiry_date} onChange={set('expiry_date')} />
+        </div>
+        <div>
+          <Label>Issuing Authority</Label>
+          {renderError('issuing_authority')}
+          <Input placeholder="e.g. UIDAI (Optional)" value={form.issuing_authority} onChange={set('issuing_authority')} />
+        </div>
         <div>
           <Label>Verification Status</Label>
           <Select value={form.verification_status} onChange={handleStatusChange}>
@@ -60,7 +85,7 @@ const DocumentFormFields = ({ form, setForm, error, userMap = {}, onStatusChange
       {form.verification_status === 'VERIFIED' && form.verified_by && (
         <div className="grid grid-cols-2 gap-4 p-3 bg-blue-50/50 border border-blue-100 rounded-lg">
           <div className="space-y-1">
-            <span className="text-[10px] font-bold text-blue-400 uppercase tracking-tight flex items-center gap-1">
+            <span className="text-[10px] font-bold text-blue-400 tracking-tight flex items-center gap-1">
               <User size={10} /> Verified By
             </span>
             <div className="text-[12px] font-semibold text-blue-700 min-h-[16px]">
@@ -75,7 +100,7 @@ const DocumentFormFields = ({ form, setForm, error, userMap = {}, onStatusChange
             </div>
           </div>
           <div className="space-y-1">
-            <span className="text-[10px] font-bold text-blue-400 uppercase tracking-tight flex items-center gap-1">
+            <span className="text-[10px] font-bold text-blue-400 tracking-tight flex items-center gap-1">
               <Clock size={10} /> Verified At
             </span>
             <div className="text-[12px] font-semibold text-blue-700 min-h-[16px]">
@@ -117,6 +142,7 @@ export const AddDocumentModal = ({ driverId, onClose }) => {
     verified_by: null,
     verified_at: null,
   });
+  const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const createDocument = useCreateDriverDocument(targetDriverId);
 
@@ -132,22 +158,25 @@ export const AddDocumentModal = ({ driverId, onClose }) => {
       }
       return { ...p, ...updates };
     });
-  };
-
-  const validate = () => {
-    if (!targetDriverId) return 'Please select a driver.';
-    if (!form.document_type) return 'Document type is required.';
-    if (!form.document_number) return 'Document number is required.';
-    if (form.issue_date && form.expiry_date && form.issue_date > form.expiry_date) {
-      return 'Expiry date cannot be before issue date.';
-    }
-    return null;
+    if (fieldErrors.verification_status) setFieldErrors(p => ({ ...p, verification_status: '' }));
   };
 
   const handleSubmit = () => {
     setError('');
-    const validationError = validate();
-    if (validationError) return setError(validationError);
+    setFieldErrors({});
+    const newErrors = {};
+    if (!targetDriverId) newErrors.driver = 'This field is required';
+    if (!form.document_type) newErrors.document_type = 'This field is required';
+    if (!form.document_number) newErrors.document_number = 'This field is required';
+    
+    if (form.issue_date && form.expiry_date && form.issue_date > form.expiry_date) {
+      newErrors.expiry_date = 'Expiry date cannot be before issue date.';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setFieldErrors(newErrors);
+      return;
+    }
 
     const payload = cleanObject(form);
     console.log('Creating Document with payload:', payload);
@@ -166,7 +195,7 @@ export const AddDocumentModal = ({ driverId, onClose }) => {
       footer={
         <>
           <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-          <button onClick={handleSubmit} disabled={!form.document_type || !form.document_number || createDocument.isPending}
+          <button onClick={handleSubmit} disabled={createDocument.isPending}
             className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed">
             {createDocument.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Plus size={14} /> Add Document</>}
           </button>
@@ -177,10 +206,14 @@ export const AddDocumentModal = ({ driverId, onClose }) => {
         {!driverId && (
           <div>
             <Label required>Driver</Label>
-            <DriverSelect value={targetDriverId} onChange={setTargetDriverId} />
+            {fieldErrors.driver && <div className="text-[10px] text-red-500 font-bold mb-1 tracking-tight">{fieldErrors.driver}</div>}
+            <DriverSelect value={targetDriverId} onChange={(val) => {
+              setTargetDriverId(val);
+              if (fieldErrors.driver) setFieldErrors(p => ({ ...p, driver: '' }));
+            }} />
           </div>
         )}
-        <DocumentFormFields form={form} setForm={setForm} error={error} onStatusChange={handleStatusChange} currentUser={currentUser} />
+        <DocumentFormFields form={form} setForm={setForm} fieldErrors={fieldErrors} setFieldErrors={setFieldErrors} error={error} onStatusChange={handleStatusChange} currentUser={currentUser} />
       </div>
     </ModalWrapper>
   );
@@ -200,6 +233,7 @@ export const EditDocumentModal = ({ doc, driverId, onClose, userMap = {}, isLoad
     verified_by: doc.verified_by ?? null,
     verified_at: doc.verified_at ?? null,
   });
+  const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const [showDelete, setShowDelete] = useState(false);
   const updateDocument = useUpdateDriverDocument(driverId, doc.id);
@@ -217,21 +251,25 @@ export const EditDocumentModal = ({ doc, driverId, onClose, userMap = {}, isLoad
       }
       return { ...p, ...updates };
     });
-  };
-
-  const validate = () => {
-    if (!form.document_type) return 'Document type is required.';
-    if (!form.document_number) return 'Document number is required.';
-    if (form.issue_date && form.expiry_date && form.issue_date > form.expiry_date) {
-      return 'Expiry date cannot be before issue date.';
-    }
-    return null;
+    if (fieldErrors.verification_status) setFieldErrors(p => ({ ...p, verification_status: '' }));
   };
 
   const handleSubmit = () => {
     setError('');
-    const validationError = validate();
-    if (validationError) return setError(validationError);
+    setFieldErrors({});
+    const newErrors = {};
+
+    if (!form.document_type) newErrors.document_type = 'This field is required';
+    if (!form.document_number) newErrors.document_number = 'This field is required';
+
+    if (form.issue_date && form.expiry_date && form.issue_date > form.expiry_date) {
+      newErrors.expiry_date = 'Expiry date cannot be before issue date.';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setFieldErrors(newErrors);
+      return;
+    }
 
     const payload = cleanObject(form);
     console.log('Updating Document with payload:', payload);
@@ -257,7 +295,7 @@ export const EditDocumentModal = ({ doc, driverId, onClose, userMap = {}, isLoad
           </button>
           <div className="flex items-center gap-2">
             <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-            <button onClick={handleSubmit} disabled={!form.document_type || !form.document_number || updateDocument.isPending}
+            <button onClick={handleSubmit} disabled={updateDocument.isPending}
               className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed">
               {updateDocument.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Edit size={14} /> Update Document</>}
             </button>
@@ -277,7 +315,9 @@ export const EditDocumentModal = ({ doc, driverId, onClose, userMap = {}, isLoad
       <DocumentFormFields 
         form={form} 
         setForm={setForm} 
-        error={error} 
+        fieldErrors={fieldErrors}
+        setFieldErrors={setFieldErrors}
+        error={error}
         userMap={userMap} 
         onStatusChange={handleStatusChange} 
         currentUser={currentUser}
@@ -353,7 +393,7 @@ export const ViewDocumentModal = ({ doc, onClose, userMap = {}, driverMap = {} }
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <h3 className="text-lg font-black text-[#172B4D] leading-none uppercase tracking-tight">{driver}</h3>
+              <h3 className="text-lg font-black text-[#172B4D] leading-none tracking-tight">{driver}</h3>
               <div className={`px-2 py-0.5 rounded-full border text-[10px] font-black uppercase flex items-center gap-1
                 ${doc.verification_status === 'VERIFIED' ? 'bg-green-50 text-green-600 border-green-100' : 
                   doc.verification_status === 'REJECTED' ? 'bg-red-50 text-red-600 border-red-100' : 
@@ -379,8 +419,8 @@ export const ViewDocumentModal = ({ doc, onClose, userMap = {}, driverMap = {} }
           <div className="flex items-center gap-3">
             <LabelValue label="Expiry Date" value={doc.expiry_date} isDate />
             {isExpiringSoon && (
-              <div className="flex items-center gap-1 mt-4 px-2 py-1 bg-amber-50 text-amber-600 rounded-md border border-amber-100 animate-pulse">
-                <AlertCircle size={12} />
+              <div className="flex items-center gap-1 mt-4 px-2 py-1 bg-red-50 text-red-600 rounded-md border border-red-100 animate-pulse">
+                <Info size={12} className="text-red-500 animate-pulse" />
                 <span className="text-[10px] font-bold uppercase whitespace-nowrap">Expires in {daysToExpiry} days</span>
               </div>
             )}

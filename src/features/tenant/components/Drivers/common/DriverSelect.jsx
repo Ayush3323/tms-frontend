@@ -52,8 +52,6 @@ const DriverSelect = ({ value, onChange, placeholder = "Select a driver", classN
         return (
           <option key={d.id} value={d.id} disabled={(disableBusy && isBusy) || hasStructure}>
             {getDriverName(d)} ({d.employee_id || 'No ID'})
-            {isBusy ? ` — [Assigned to ${busyWith}]` : ''}
-            {hasStructure ? ` — [Structure already exists]` : ''}
           </option>
         );
       })}

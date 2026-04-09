@@ -86,21 +86,26 @@ export const AddAttendanceModal = ({ driverId, onClose }) => {
 
         {!driverId && (
           <div>
-            <Label required>Driver</Label>
+            <div className="flex items-center justify-between mb-1">
+              <Label required>Driver</Label>
+              {fieldErrors.driver && <span className="text-[10px] font-bold text-red-500 tracking-tighter animate-in fade-in slide-in-from-right-2">{fieldErrors.driver}</span>}
+            </div>
             <DriverSelect value={targetDriverId} onChange={(val) => { setTargetDriverId(val); setFieldErrors(p => ({ ...p, driver: '' })); }} />
-            {fieldErrors.driver && <div className="mt-1 text-[10px] font-bold text-red-500 uppercase tracking-tighter animate-in fade-in slide-in-from-top-1">{fieldErrors.driver}</div>}
           </div>
         )}
 
         <div className="grid grid-cols-2 gap-4">
           <div>            <div className="flex items-center justify-between mb-1">
             <Label required>Date</Label>
-            {fieldErrors.date && <span className="text-[10px] font-bold text-red-500 uppercase tracking-tighter animate-in fade-in slide-in-from-right-2">{fieldErrors.date}</span>}
+            {fieldErrors.date && <span className="text-[10px] font-bold text-red-500 tracking-tighter animate-in fade-in slide-in-from-right-2">{fieldErrors.date}</span>}
           </div>
-            <Input type="date" value={form.date} onChange={(e) => { set('date')(e); setFieldErrors(p => ({ ...p, date: '' })); }} />
+            <Input type="date" value={form.date} onChange={(e) => { set('date')(e); setFieldErrors(p => ({ ...p, date: '' })); }} max={new Date().toISOString().split('T')[0]} />
           </div>
           <div>
-            <Label required>Status</Label>
+            <div className="flex items-center justify-between mb-1">
+              <Label required>Status</Label>
+              {fieldErrors.status && <span className="text-[10px] font-bold text-red-500 tracking-tighter animate-in fade-in slide-in-from-right-2">{fieldErrors.status}</span>}
+            </div>
             <Select value={form.status} onChange={(e) => {
               const newStatus = e.target.value;
               setForm(p => ({
@@ -115,17 +120,20 @@ export const AddAttendanceModal = ({ driverId, onClose }) => {
               <option value="">Select Status</option>
               {ATTENDANCE_STATUS.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
             </Select>
-            {fieldErrors.status && <div className="mt-1 text-[10px] font-bold text-red-500 uppercase tracking-tighter animate-in fade-in slide-in-from-top-1">{fieldErrors.status}</div>}
           </div>
           <div>
-            <Label>Check In</Label>
+            <div className="flex items-center justify-between mb-1">
+              <Label>Check In</Label>
+              {fieldErrors.check_in && <span className="text-[10px] font-bold text-red-500 tracking-tighter animate-in fade-in slide-in-from-right-2">{fieldErrors.check_in}</span>}
+            </div>
             <Input type="time" value={form.check_in} onChange={(e) => { set('check_in')(e); setFieldErrors(p => ({ ...p, check_in: '', check_out: '' })); }} disabled={isOffDuty} />
-            {fieldErrors.check_in && <div className="mt-1 text-[10px] font-bold text-red-500 uppercase tracking-tighter animate-in fade-in slide-in-from-top-1">{fieldErrors.check_in}</div>}
           </div>
           <div>
-            <Label>Check Out</Label>
+            <div className="flex items-center justify-between mb-1">
+              <Label>Check Out</Label>
+              {fieldErrors.check_out && <span className="text-[10px] font-bold text-red-500 tracking-tighter animate-in fade-in slide-in-from-right-2">{fieldErrors.check_out}</span>}
+            </div>
             <Input type="time" value={form.check_out} onChange={(e) => { set('check_out')(e); setFieldErrors(p => ({ ...p, check_out: '' })); }} disabled={isOffDuty} />
-            {fieldErrors.check_out && <div className="mt-1 text-[10px] font-bold text-red-500 uppercase tracking-tighter animate-in fade-in slide-in-from-top-1">{fieldErrors.check_out}</div>}
           </div>
           <div><Label>Total Hours</Label><Input type="number" placeholder="e.g. 9.0" min="0" step="0.5" value={form.total_hours} onChange={set('total_hours')} disabled={isOffDuty} /></div>
         </div>
@@ -225,12 +233,15 @@ export const EditAttendanceModal = ({ record, driverId, onClose }) => {
         <div className="grid grid-cols-2 gap-4">
           <div>            <div className="flex items-center justify-between mb-1">
             <Label required>Date</Label>
-            {fieldErrors.date && <span className="text-[10px] font-bold text-red-500 uppercase tracking-tighter animate-in fade-in slide-in-from-right-2">{fieldErrors.date}</span>}
+            {fieldErrors.date && <span className="text-[10px] font-bold text-red-500 tracking-tighter animate-in fade-in slide-in-from-right-2">{fieldErrors.date}</span>}
           </div>
-            <Input type="date" value={form.date} onChange={(e) => { set('date')(e); setFieldErrors(p => ({ ...p, date: '' })); }} />
+            <Input type="date" value={form.date} onChange={(e) => { set('date')(e); setFieldErrors(p => ({ ...p, date: '' })); }} max={new Date().toISOString().split('T')[0]} />
           </div>
           <div>
-            <Label required>Status</Label>
+            <div className="flex items-center justify-between mb-1">
+              <Label required>Status</Label>
+              {fieldErrors.status && <span className="text-[10px] font-bold text-red-500 tracking-tighter animate-in fade-in slide-in-from-right-2">{fieldErrors.status}</span>}
+            </div>
             <Select value={form.status} onChange={(e) => {
               const newStatus = e.target.value;
               setForm(p => ({
@@ -245,17 +256,20 @@ export const EditAttendanceModal = ({ record, driverId, onClose }) => {
               <option value="">Select Status</option>
               {ATTENDANCE_STATUS.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
             </Select>
-            {fieldErrors.status && <div className="mt-1 text-[10px] font-bold text-red-500 uppercase tracking-tighter animate-in fade-in slide-in-from-top-1">{fieldErrors.status}</div>}
           </div>
         <div>
-          <Label>Check In</Label>
+          <div className="flex items-center justify-between mb-1">
+            <Label>Check In</Label>
+            {fieldErrors.check_in && <span className="text-[10px] font-bold text-red-500 tracking-tighter animate-in fade-in slide-in-from-right-2">{fieldErrors.check_in}</span>}
+          </div>
           <Input type="time" value={form.check_in} onChange={(e) => { set('check_in')(e); setFieldErrors(p => ({ ...p, check_in: '', check_out: '' })); }} disabled={isOffDuty} />
-          {fieldErrors.check_in && <div className="mt-1 text-[10px] font-bold text-red-500 uppercase tracking-tighter animate-in fade-in slide-in-from-top-1">{fieldErrors.check_in}</div>}
         </div>
         <div>
-          <Label>Check Out</Label>
+          <div className="flex items-center justify-between mb-1">
+            <Label>Check Out</Label>
+            {fieldErrors.check_out && <span className="text-[10px] font-bold text-red-500 tracking-tighter animate-in fade-in slide-in-from-right-2">{fieldErrors.check_out}</span>}
+          </div>
           <Input type="time" value={form.check_out} onChange={(e) => { set('check_out')(e); setFieldErrors(p => ({ ...p, check_out: '' })); }} disabled={isOffDuty} />
-          {fieldErrors.check_out && <div className="mt-1 text-[10px] font-bold text-red-500 uppercase tracking-tighter animate-in fade-in slide-in-from-top-1">{fieldErrors.check_out}</div>}
         </div>
         <div><Label>Total Hours</Label><Input type="number" placeholder="e.g. 9.0" min="0" step="0.5" value={form.total_hours} onChange={set('total_hours')} disabled={isOffDuty} /></div>
       </div>
@@ -321,7 +335,7 @@ export const ViewAttendanceModal = ({ record, driverName, employeeId, onClose })
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-black text-[#172B4D] leading-none uppercase tracking-tight">{driverName || record.driver_name || '-'}</h3>
+                <h3 className="text-base font-black text-[#172B4D] leading-none tracking-tight">{driverName || record.driver_name || '-'}</h3>
                 <StatusBadge
                   label={record.status_display ?? record.status}
                   styles={STATUS_STYLES[record.status]}

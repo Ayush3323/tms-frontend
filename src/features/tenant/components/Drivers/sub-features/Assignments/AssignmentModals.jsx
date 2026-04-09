@@ -61,23 +61,41 @@ export const AddAssignmentModal = ({ driverId, onClose }) => {
   }, [currentUser, form.assigned_by]);
 
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const { data: assignmentsData } = useDriverVehicleAssignments(targetDriverId);
   const createAssignment = useCreateVehicleAssignment(targetDriverId);
-  const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
+  const set = (f) => (e) => {
+    setForm(p => ({ ...p, [f]: e.target.value }));
+    if (fieldErrors?.[f]) {
+      setFieldErrors(p => ({ ...p, [f]: '' }));
+    }
+  };
+
+  const renderError = (field) => {
+    const err = fieldErrors?.[field];
+    if (!err) return null;
+    return <div className="text-[10px] text-red-500 font-bold mb-1 tracking-tight">{err}</div>;
+  };
 
   const handleSubmit = () => {
     setError('');
+    const errors = {};
     const hasActive = assignmentsData?.results?.some(
       (a) => a.is_active === true || a.is_active === 'true' || a.is_active === 1 || a.is_active === '1'
     );
     if (hasActive) return setError('You cannot add more than 1 vehicle to driver at one time.');
 
-    if (!targetDriverId) return setError('Please select a driver.');
-    if (!form.vehicle) return setError('Vehicle is required.');
-    if (!form.assigned_date) return setError('Assigned date is required.');
+    if (!targetDriverId) errors.driver = 'This field is required';
+    if (!form.vehicle) errors.vehicle = 'This field is required';
+    if (!form.assigned_date) errors.assigned_date = 'This field is required';
 
-    if (form.unassigned_date && form.unassigned_date < form.assigned_date) {
-      return setError('Unassigned date cannot be before assigned date.');
+    if (form.unassigned_date && form.assigned_date && form.unassigned_date < form.assigned_date) {
+      errors.unassigned_date = 'Unassigned date cannot be before assigned date.';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
     }
 
     createAssignment.mutate(cleanObject(form), {
@@ -94,7 +112,7 @@ export const AddAssignmentModal = ({ driverId, onClose }) => {
       footer={
         <>
           <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-          <button onClick={handleSubmit} disabled={!form.vehicle || !form.assigned_date || createAssignment.isPending}
+          <button onClick={handleSubmit} disabled={createAssignment.isPending}
             className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed">
             {createAssignment.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Plus size={14} /> Assign Vehicle</>}
           </button>
@@ -107,17 +125,27 @@ export const AddAssignmentModal = ({ driverId, onClose }) => {
         {!driverId && (
           <div>
             <Label required>Driver</Label>
-            <DriverSelect value={targetDriverId} onChange={setTargetDriverId} disableBusy={true} />
+            {renderError('driver')}
+            <DriverSelect value={targetDriverId} onChange={(val) => { setTargetDriverId(val); setFieldErrors(p => ({ ...p, driver: '' })); }} disableBusy={true} />
           </div>
         )}
 
         <div>
           <Label required>vehicle</Label>
+          {renderError('vehicle')}
           <VehicleSelect value={form.vehicle} onChange={set('vehicle')} />
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <div><Label required>assigned_date</Label><Input type="date" value={form.assigned_date} onChange={set('assigned_date')} /></div>
-          <div><Label>unassigned_date</Label><Input type="date" value={form.unassigned_date} onChange={set('unassigned_date')} /></div>
+          <div>
+            <Label required>assigned_date</Label>
+            {renderError('assigned_date')}
+            <Input type="date" value={form.assigned_date} onChange={set('assigned_date')} />
+          </div>
+          <div>
+            <Label>unassigned_date</Label>
+            {renderError('unassigned_date')}
+            <Input type="date" value={form.unassigned_date} onChange={set('unassigned_date')} />
+          </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div><Label>assignment_type</Label>
@@ -164,14 +192,29 @@ export const EditAssignmentModal = ({ assignment, driverId, onClose }) => {
   }, [usersData]);
 
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const [showDelete, setShowDelete] = useState(false);
   const { data: assignmentsData } = useDriverVehicleAssignments(driverId);
   const updateAssignment = useUpdateVehicleAssignment(driverId, assignment.id);
   const deleteAssignment = useDeleteVehicleAssignment(driverId);
-  const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
+  
+  const set = (f) => (e) => {
+    setForm(p => ({ ...p, [f]: e.target.value }));
+    if (fieldErrors?.[f]) {
+      setFieldErrors(p => ({ ...p, [f]: '' }));
+    }
+  };
+
+  const renderError = (field) => {
+    const err = fieldErrors?.[field];
+    if (!err) return null;
+    return <div className="text-[10px] text-red-500 font-bold mb-1 tracking-tight">{err}</div>;
+  };
 
   const handleSubmit = () => {
     setError('');
+    setFieldErrors({});
+    const errors = {};
     
     // Check if trying to activate this one while another is already active
     if (form.is_active) {
@@ -183,11 +226,16 @@ export const EditAssignmentModal = ({ assignment, driverId, onClose }) => {
       if (otherActive) return setError('Another vehicle is already active for this driver. Please deactivate it first.');
     }
 
-    if (!form.vehicle) return setError('Vehicle is required.');
-    if (!form.assigned_date) return setError('Assigned date is required.');
+    if (!form.vehicle) errors.vehicle = 'This field is required';
+    if (!form.assigned_date) errors.assigned_date = 'This field is required';
 
-    if (form.unassigned_date && form.unassigned_date < form.assigned_date) {
-      return setError('Unassigned date cannot be before assigned date.');
+    if (form.unassigned_date && form.assigned_date && form.unassigned_date < form.assigned_date) {
+      errors.unassigned_date = 'Unassigned date cannot be before assigned date.';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
     }
 
     const clean = Object.fromEntries(
@@ -217,7 +265,7 @@ export const EditAssignmentModal = ({ assignment, driverId, onClose }) => {
           </button>
           <div className="flex items-center gap-2">
             <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-            <button onClick={handleSubmit} disabled={!form.vehicle || !form.assigned_date || updateAssignment.isPending}
+            <button onClick={handleSubmit} disabled={updateAssignment.isPending}
               className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed">
                {updateAssignment.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Edit size={14} /> Update Assignment</>}
             </button>
@@ -238,11 +286,20 @@ export const EditAssignmentModal = ({ assignment, driverId, onClose }) => {
         {error && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium">{error}</div>}
         <div>
           <Label required>vehicle</Label>
+          {renderError('vehicle')}
           <VehicleSelect value={form.vehicle} onChange={set('vehicle')} />
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <div><Label required>assigned_date</Label><Input type="date" value={form.assigned_date} onChange={set('assigned_date')} /></div>
-          <div><Label>unassigned_date</Label><Input type="date" value={form.unassigned_date} onChange={set('unassigned_date')} /></div>
+          <div>
+            <Label required>assigned_date</Label>
+            {renderError('assigned_date')}
+            <Input type="date" value={form.assigned_date} onChange={set('assigned_date')} />
+          </div>
+          <div>
+            <Label>unassigned_date</Label>
+            {renderError('unassigned_date')}
+            <Input type="date" value={form.unassigned_date} onChange={set('unassigned_date')} />
+          </div>
           <div><Label>assignment_type</Label>
             <Select value={form.assignment_type} onChange={set('assignment_type')}>
               {ASSIGNMENT_TYPES.map(t => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
@@ -322,7 +379,7 @@ export const ViewAssignmentModal = ({ record, driverName, employeeId, onClose, u
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-black text-[#172B4D] leading-none uppercase tracking-tight">{driverName || record.driver_name || '-'}</h3>
+                <h3 className="text-base font-black text-[#172B4D] leading-none tracking-tight">{driverName || record.driver_name || '-'}</h3>
                 <StatusBadge
                   label={record.is_active ? 'Active' : 'Inactive'}
                   styles={ASSIGNMENT_STATUS_STYLES[record.is_active ? 'ACTIVE' : 'INACTIVE']}
