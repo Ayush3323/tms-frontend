@@ -5,6 +5,7 @@ import {
   advanceApi,
   customerPaymentApi,
   financeReportApi,
+  invoiceLineItemApi,
   invoiceApi,
   ownerPaymentApi,
   payrollApi,
@@ -15,6 +16,9 @@ import {
 
 export const financeKeys = {
   invoices: (params) => ['finance', 'invoices', params],
+  invoiceDetail: (id) => ['finance', 'invoiceDetail', id],
+  invoiceLineItems: (params) => ['finance', 'invoiceLineItems', params],
+  creditNotes: (params) => ['finance', 'creditNotes', params],
   customerPayments: (params) => ['finance', 'customerPayments', params],
   ownerPayments: (params) => ['finance', 'ownerPayments', params],
   payrollPeriods: (params) => ['finance', 'payrollPeriods', params],
@@ -32,6 +36,15 @@ const onErr = (label) => (error) => {
 }
 
 export const useInvoices = (params) => useQuery({ queryKey: financeKeys.invoices(params), queryFn: () => invoiceApi.list(params) })
+export const useInvoiceDetail = (id) => useQuery({
+  queryKey: financeKeys.invoiceDetail(id),
+  queryFn: () => invoiceApi.get(id),
+  enabled: !!id,
+})
+export const useInvoiceLineItems = (params) =>
+  useQuery({ queryKey: financeKeys.invoiceLineItems(params), queryFn: () => invoiceLineItemApi.list(params) })
+export const useCreditNotes = (params) =>
+  useQuery({ queryKey: financeKeys.creditNotes(params), queryFn: () => creditNoteApi.list(params) })
 export const useCustomerPayments = (params) => useQuery({ queryKey: financeKeys.customerPayments(params), queryFn: () => customerPaymentApi.list(params) })
 export const useOwnerPayments = (params) => useQuery({ queryKey: financeKeys.ownerPayments(params), queryFn: () => ownerPaymentApi.list(params) })
 export const usePayrollPeriods = (params) => useQuery({ queryKey: financeKeys.payrollPeriods(params), queryFn: () => payrollApi.listPeriods(params) })
@@ -97,6 +110,19 @@ export const useGenerateInvoiceFromTrip = () => {
       toast.success('Invoice generated from trip')
     },
     onError: onErr('Could not generate invoice'),
+  })
+}
+export const useApplyCreditNoteToInvoice = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, creditNoteId }) => invoiceApi.applyCreditNote(id, creditNoteId),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['finance', 'invoices'] })
+      qc.invalidateQueries({ queryKey: financeKeys.invoiceDetail(vars.id) })
+      qc.invalidateQueries({ queryKey: ['finance', 'creditNotes'] })
+      toast.success('Credit note applied')
+    },
+    onError: onErr('Could not apply credit note'),
   })
 }
 export const useVerifyCustomerPayment = () => {
