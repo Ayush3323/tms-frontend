@@ -70,6 +70,14 @@ const financeSubItems = [
   { name: 'Reports', icon: <BarChart2 size={13} />, path: '/tenant/dashboard/finance/reports', badge: null },
 ];
 
+const EXACT_MATCH_PATHS = new Set([
+  '/tenant/dashboard/vehicles',
+  '/tenant/dashboard/drivers',
+  '/tenant/dashboard/users',
+  '/tenant/dashboard/customers',
+  '/tenant/dashboard/orders',
+]);
+
 /** Orders area root (order list/detail + related operational modules). */
 function isOrdersNavActive(pathname) {
   if (pathname === ORDERS_ROOT) return true;
@@ -87,7 +95,7 @@ const SubMenu = ({ items, onNavigate }) => (
 
         onClick={onNavigate}
 
-        end={item.path === '/tenant/dashboard/vehicles' || item.path === '/tenant/dashboard/drivers' || item.path === '/tenant/dashboard/users' || item.path === '/tenant/dashboard/customers'}
+        end={EXACT_MATCH_PATHS.has(item.path)}
 
         className={({ isActive }) =>
           `flex items-center gap-2 px-2.5 py-[6px] rounded-md text-[12.5px] transition-all border ${isActive
@@ -175,7 +183,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const isTripManagerPath = location.pathname.startsWith(`${ORDERS_ROOT}/trip-manager`);
   const isCargoPath = location.pathname.startsWith(`${ORDERS_ROOT}/cargo`);
   const isDeliveriesPath = location.pathname.startsWith(`${ORDERS_ROOT}/deliveries`);
-  const isOrderPath = ordersNavActive || isTripsPath || isTripManagerPath || isCargoPath || isDeliveriesPath;
+  const isOrderPath = location.pathname.startsWith(ORDERS_ROOT);
 
   const [vehiclesOpen, setVehiclesOpen] = useState(isVehiclePath);
   const [driversOpen, setDriversOpen] = useState(isDriverPath);
@@ -281,7 +289,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                 label="Orders"
                 isOpen={ordersOpen}
                 setIsOpen={setOrdersOpen}
-                isActive={isOrderPath}
+                isActive={ordersNavActive}
                 subItems={orderSubItems}
                 title="Orders & Operations"
                 isCollapsed={isCollapsed}

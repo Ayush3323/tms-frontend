@@ -1,19 +1,18 @@
 import React, { useMemo, useState } from 'react'
-import { AlertTriangle, CheckCircle2, XCircle } from 'lucide-react'
+import { Eye } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 
 import FinanceListPage from './FinanceListPage'
 import {
-  useCancelInvoice,
   useGenerateInvoiceFromTrip,
   useInvoices,
-  useMarkInvoiceOverdue,
-  usePostInvoice,
   useTripsLookup,
 } from '../../queries/finance/financeQuery'
 
 const asList = (data) => data?.results || (Array.isArray(data) ? data : [])
 
 export default function InvoicesDashboard() {
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [selectedTripId, setSelectedTripId] = useState('')
   const [status, setStatus] = useState('')
@@ -25,9 +24,6 @@ export default function InvoicesDashboard() {
   }, [search, status])
   const { data, isLoading, refetch } = useInvoices(queryParams)
   const { data: tripsData, isLoading: tripsLoading } = useTripsLookup({ page_size: 200 })
-  const postInvoice = usePostInvoice()
-  const cancelInvoice = useCancelInvoice()
-  const markOverdue = useMarkInvoiceOverdue()
   const generateFromTrip = useGenerateInvoiceFromTrip()
   const rows = asList(data)
   const tripRows = asList(tripsData)
@@ -106,34 +102,15 @@ export default function InvoicesDashboard() {
         </div>
       )}
       rowActions={(row) => (
-        <>
-          {row.status === 'DRAFT' && (
-            <button type="button" onClick={() => postInvoice.mutate(row.id)} className="p-2 text-gray-400 hover:text-green-600 rounded-lg">
-              <CheckCircle2 size={16} />
-            </button>
-          )}
-          {['DRAFT', 'SENT', 'OVERDUE'].includes(row.status) && (
-            <button
-              type="button"
-              disabled={cancelInvoice.isPending}
-              onClick={() => window.confirm('Cancel this invoice?') && cancelInvoice.mutate(row.id)}
-              className="p-2 text-gray-400 hover:text-red-600 rounded-lg disabled:opacity-50"
-            >
-              <XCircle size={16} />
-            </button>
-          )}
-          {['SENT', 'PARTIALLY_PAID'].includes(row.status) && (
-            <button
-              type="button"
-              disabled={markOverdue.isPending}
-              onClick={() => markOverdue.mutate(row.id)}
-              className="p-2 text-gray-400 hover:text-amber-600 rounded-lg disabled:opacity-50"
-              title="Mark Overdue"
-            >
-              <AlertTriangle size={16} />
-            </button>
-          )}
-        </>
+        <button
+          type="button"
+          onClick={() => navigate(`/tenant/dashboard/finance/invoices/${row.id}`)}
+          className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white border border-transparent transition-all inline-flex items-center gap-1"
+          title="View Invoice"
+        >
+          <Eye size={13} />
+          View
+        </button>
       )}
     />
   )

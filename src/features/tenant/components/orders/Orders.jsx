@@ -22,15 +22,18 @@ const STATUS_CONFIG = {
   CANCELLED: { color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-100', icon: <XCircle size={14} /> },
 };
 
-const TAB_CONFIG = [
-  { label: 'All Status', count: 0 },
-  { label: 'DRAFT', count: 0 },
-  { label: 'CONFIRMED', count: 0 },
-  { label: 'ASSIGNED', count: 0 },
-  { label: 'IN_TRANSIT', count: 0 },
-  { label: 'DELIVERED', count: 0 },
-  { label: 'CANCELLED', count: 0 },
+const STATUS_OPTIONS = [
+  'All Status',
+  'DRAFT',
+  'CONFIRMED',
+  'ASSIGNED',
+  'IN_TRANSIT',
+  'DELIVERED',
+  'CANCELLED',
 ];
+
+const FILTER_SELECT_CLASS =
+  'h-9 px-3 rounded-xl border border-gray-200 bg-white text-[11px] font-semibold text-gray-600 shadow-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#B3D4FF]';
 
 export default function Orders() {
   const navigate = useNavigate();
@@ -143,17 +146,19 @@ export default function Orders() {
           </div>
           
           <div className="p-4 border-b border-gray-50 flex flex-col lg:flex-row gap-4 items-center justify-between bg-gray-50/30">
-            <div className="flex overflow-x-auto w-full lg:w-auto scrollbar-hide gap-1 bg-white p-1 rounded-xl border border-gray-100">
-               {TAB_CONFIG.map(tab => (
-                 <button
-                  key={tab.label}
-                  onClick={() => setFilterStatus(tab.label)}
-                  className={`px-4 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap
-                  ${filterStatus === tab.label ? 'bg-[#0052CC] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`}
-                 >
-                   {tab.label}
-                 </button>
-               ))}
+            <div className="w-full lg:w-auto flex items-center gap-3">
+              <select
+                value={filterStatus}
+                onChange={(e) => {
+                  setFilterStatus(e.target.value)
+                  setPage(1)
+                }}
+                className={`${FILTER_SELECT_CLASS} min-w-[170px]`}
+              >
+                {STATUS_OPTIONS.map((status) => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
             </div>
           </div>
 
