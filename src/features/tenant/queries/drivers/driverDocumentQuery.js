@@ -48,7 +48,11 @@ export const useDocuments = (params = {}) => {
         const response = await driverApi.getDocuments({ ...params, ordering: 'id' });
         const data = response.data;
         if (data?.results) {
-          data.results = [...data.results].sort((a, b) => b.id.localeCompare(a.id));
+          data.results = [...data.results].sort((a, b) => {
+            const idA = String(a.id);
+            const idB = String(b.id);
+            return idB.localeCompare(idA, undefined, { numeric: true });
+          });
         }
         return data;
         // { count, next, previous, results: [...] }
@@ -72,13 +76,17 @@ export const useDriverDocuments = (driverId, params = {}) => {
     queryFn: async () => {
       try {
         const response = await driverApi.getDocuments({
-          driver: driverId, // ← filter param se driver ke documents
+          driver: driverId, 
           ordering: 'id',
           ...params,
         });
         const data = response.data;
         if (data?.results) {
-          data.results = [...data.results].sort((a, b) => b.id.localeCompare(a.id));
+          data.results = [...data.results].sort((a, b) => {
+            const idA = String(a.id);
+            const idB = String(b.id);
+            return idB.localeCompare(idA, undefined, { numeric: true });
+          });
         }
         return data;
         // { count, next, previous, results: [...] }

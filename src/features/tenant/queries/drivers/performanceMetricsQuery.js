@@ -47,7 +47,11 @@ export const usePerformanceMetrics = (params = {}) => {
         const response = await driverApi.getPerformanceMetrics({ ...params, ordering: 'id' });
         const data = response.data;
         if (data?.results) {
-          data.results = [...data.results].sort((a, b) => b.id.localeCompare(a.id));
+          data.results = [...data.results].sort((a, b) => {
+            const idA = String(a.id);
+            const idB = String(b.id);
+            return idB.localeCompare(idA, undefined, { numeric: true });
+          });
         }
         return data;
         // { count, next, previous, results: [...] }
@@ -76,7 +80,11 @@ export const useDriverPerformanceMetrics = (driverId, params = {}) => {
         });
         const data = response.data;
         if (data?.results) {
-          data.results = [...data.results].sort((a, b) => b.id.localeCompare(a.id));
+          data.results = [...data.results].sort((a, b) => {
+            const idA = String(a.id);
+            const idB = String(b.id);
+            return idB.localeCompare(idA, undefined, { numeric: true });
+          });
         }
         return data;
         // { count, next, previous, results: [...] }

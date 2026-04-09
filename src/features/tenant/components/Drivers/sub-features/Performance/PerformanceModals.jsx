@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Loader2, Plus, Edit, User, Clock, BarChart2, TrendingUp, Star, MessageSquare, BarChart3, Target } from 'lucide-react';
+import { Loader2, Plus, Edit, User, Clock, BarChart2, TrendingUp, Star, MessageSquare, BarChart3, Target, AlertTriangle } from 'lucide-react';
 import ModalWrapper from '../../common/ModalWrapper';
 import Label from '../../common/Label';
 import Input from '../../common/Input';
@@ -14,20 +14,66 @@ import {
 import DriverSelect from '../../common/DriverSelect';
 
 // Shared Form Fields for Performance
-const PerformanceFormFields = ({ form, setForm, error }) => {
-    const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
+const PerformanceFormFields = ({ form, setForm, fieldErrors, setFieldErrors }) => {
+    const set = (f) => (e) => {
+      setForm(p => ({ ...p, [f]: e.target.value }));
+      // Clear field error when user starts typing/selecting
+      if (fieldErrors?.[f]) {
+        setFieldErrors(p => ({ ...p, [f]: '' }));
+      }
+    };
+
+    const renderError = (field) => {
+      const error = fieldErrors?.[field];
+      if (!error) return null;
+      return <div className="text-[10px] text-red-500 font-bold mb-1 tracking-tight">{error}</div>;
+    };
+
+    const today = new Date().toISOString().split('T')[0];
+
     return (
       <div className="space-y-4">
-        {error && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium">{error}</div>}
       <div className="grid grid-cols-2 gap-4">
-        <div><Label required>Period Start</Label><Input type="date" value={form.period_start} onChange={set('period_start')} /></div>
-        <div><Label required>Period End</Label><Input type="date" value={form.period_end} onChange={set('period_end')} /></div>
-        <div><Label>Trips Completed</Label><Input type="number" placeholder="e.g. 0" min="0" value={form.trips_completed} onChange={set('trips_completed')} /></div>
-        <div><Label>Distance Covered (km)</Label><Input type="number" placeholder="e.g. 0.00" min="0" step="0.5" value={form.distance_covered} onChange={set('distance_covered')} /></div>
-        <div><Label>Fuel Efficiency (km/L)</Label><Input type="number" placeholder="e.g. 8.5" min="0" step="0.1" value={form.fuel_efficiency} onChange={set('fuel_efficiency')} /></div>
-        <div><Label>On-Time Delivery Rate (%)</Label><Input type="number" placeholder="e.g. 95" min="0" max="100" step="0.1" value={form.on_time_delivery_rate} onChange={set('on_time_delivery_rate')} /></div>
-        <div><Label>Safety Score (0-100)</Label><Input type="number" placeholder="e.g. 90" min="0" max="100" step="0.1" value={form.safety_score} onChange={set('safety_score')} /></div>
-        <div><Label>Customer Rating (0-5)</Label><Input type="number" placeholder="e.g. 4.5" min="0" max="5" step="0.1" value={form.customer_rating} onChange={set('customer_rating')} /></div>
+        <div>
+          <Label required>Period Start</Label>
+          {renderError('period_start')}
+          <Input type="date" value={form.period_start} onChange={set('period_start')} max={today} />
+        </div>
+        <div>
+          <Label required>Period End</Label>
+          {renderError('period_end')}
+          <Input type="date" value={form.period_end} onChange={set('period_end')} max={today} />
+        </div>
+        <div>
+          <Label>Trips Completed</Label>
+          {renderError('trips_completed')}
+          <Input type="number" placeholder="e.g. 0" min="0" value={form.trips_completed} onChange={set('trips_completed')} />
+        </div>
+        <div>
+          <Label>Distance Covered (km)</Label>
+          {renderError('distance_covered')}
+          <Input type="number" placeholder="e.g. 0.00" min="0" step="0.5" value={form.distance_covered} onChange={set('distance_covered')} />
+        </div>
+        <div>
+          <Label>Fuel Efficiency (km/L)</Label>
+          {renderError('fuel_efficiency')}
+          <Input type="number" placeholder="e.g. 8.5" min="0" step="0.1" value={form.fuel_efficiency} onChange={set('fuel_efficiency')} />
+        </div>
+        <div>
+          <Label>On-Time Delivery Rate (%)</Label>
+          {renderError('on_time_delivery_rate')}
+          <Input type="number" placeholder="e.g. 95" min="0" max="100" step="0.1" value={form.on_time_delivery_rate} onChange={set('on_time_delivery_rate')} />
+        </div>
+        <div>
+          <Label>Safety Score (0-100)</Label>
+          {renderError('safety_score')}
+          <Input type="number" placeholder="e.g. 90" min="0" max="100" step="0.1" value={form.safety_score} onChange={set('safety_score')} />
+        </div>
+        <div>
+          <Label>Customer Rating (0-5)</Label>
+          {renderError('customer_rating')}
+          <Input type="number" placeholder="e.g. 4.5" min="0" max="5" step="0.1" value={form.customer_rating} onChange={set('customer_rating')} />
+        </div>
       </div>
       <div><Label>Notes</Label>
         <textarea rows={2} placeholder="Any additional notes..." value={form.notes}
@@ -51,45 +97,136 @@ export const AddPerformanceModal = ({ driverId, onClose }) => {
     customer_rating: '',
     notes: '',
   });
+  const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const createMetric = useCreatePerformanceMetric(targetDriverId);
 
-  const validate = () => {
-    if (!targetDriverId) return 'Please select a driver.';
-    if (!form.period_start) return 'Period start date is required.';
-    if (!form.period_end) return 'Period end date is required.';
-    if (form.period_start > form.period_end) return 'Period end cannot be before start date.';
-    
-    if (form.trips_completed !== '' && Number(form.trips_completed) < 0) return 'trips_completed cannot be negative.';
-    if (form.distance_covered !== '' && Number(form.distance_covered) < 0) return 'distance_covered cannot be negative.';
-    if (form.fuel_efficiency !== '' && Number(form.fuel_efficiency) < 0) return 'fuel_efficiency cannot be negative.';
-    
-    if (form.on_time_delivery_rate !== '') {
-      const deliveryRate = Number(form.on_time_delivery_rate);
-      if (deliveryRate < 0 || deliveryRate > 100) return 'on_time_delivery_rate must be between 0 and 100.';
+  // Real-time Date Validation
+  React.useEffect(() => {
+    const today = new Date().toISOString().split('T')[0];
+    if (form.period_start && form.period_end) {
+      if (form.period_start > form.period_end) {
+        setFieldErrors(prev => ({ 
+          ...prev, 
+          period_start: 'Period start cannot be after period end',
+          period_end: 'Period end cannot be before start date' 
+        }));
+      } else if (form.period_end > today) {
+        setFieldErrors(prev => ({ 
+          ...prev, 
+          period_end: 'Period end cannot be in the future' 
+        }));
+        setFieldErrors(prev => {
+           const next = { ...prev };
+           if (next.period_start === 'Period start cannot be after period end') next.period_start = '';
+           return next;
+        });
+      } else {
+        setFieldErrors(prev => {
+          const next = { ...prev };
+          if (next.period_start === 'Period start cannot be after period end') next.period_start = '';
+          if (next.period_end === 'Period end cannot be before start date' || next.period_end === 'Period end cannot be in the future') next.period_end = '';
+          return next;
+        });
+      }
+    } else if (form.period_end && form.period_end > today) {
+      setFieldErrors(prev => ({ ...prev, period_end: 'Period end cannot be in the future' }));
+    } else if (fieldErrors.period_end === 'Period end cannot be in the future') {
+      setFieldErrors(prev => ({ ...prev, period_end: '' }));
     }
-    
-    if (form.safety_score !== '') {
-      const safety = Number(form.safety_score);
-      if (safety < 0 || safety > 100) return 'safety_score must be between 0 and 100.';
-    }
-    
-    if (form.customer_rating !== '') {
-      const rating = Number(form.customer_rating);
-      if (rating < 0 || rating > 5) return 'customer_rating must be between 0 and 5.';
-    }
-    
-    return null;
-  };
+  }, [form.period_start, form.period_end]);
+
+  // Real-time Numeric Validation
+  React.useEffect(() => {
+    setFieldErrors(prev => {
+      const next = { ...prev };
+      
+      // Trips Completed
+      if (form.trips_completed !== '' && Number(form.trips_completed) < 0) {
+        next.trips_completed = 'trips_completed cannot be negative.';
+      } else if (next.trips_completed === 'trips_completed cannot be negative.') {
+        next.trips_completed = '';
+      }
+
+      if (form.distance_covered !== '' && Number(form.distance_covered) < 0) {
+        next.distance_covered = 'distance_covered cannot be negative.';
+      } else if (next.distance_covered === 'distance_covered cannot be negative.') {
+        next.distance_covered = '';
+      }
+
+      if (form.fuel_efficiency !== '' && Number(form.fuel_efficiency) < 0) {
+        next.fuel_efficiency = 'fuel_efficiency cannot be negative.';
+      } else if (next.fuel_efficiency === 'fuel_efficiency cannot be negative.') {
+        next.fuel_efficiency = '';
+      }
+
+      if (form.on_time_delivery_rate !== '') {
+        const rate = Number(form.on_time_delivery_rate);
+        if (rate < 0 || rate > 100) next.on_time_delivery_rate = 'on_time_delivery_rate must be between 0 and 100.';
+        else if (next.on_time_delivery_rate === 'on_time_delivery_rate must be between 0 and 100.') next.on_time_delivery_rate = '';
+      }
+
+      if (form.safety_score !== '') {
+        const safety = Number(form.safety_score);
+        if (safety < 0 || safety > 100) next.safety_score = 'safety_score must be between 0 and 100.';
+        else if (next.safety_score === 'safety_score must be between 0 and 100.') next.safety_score = '';
+      }
+
+      if (form.customer_rating !== '') {
+        const rating = Number(form.customer_rating);
+        if (rating < 0 || rating > 5) next.customer_rating = 'customer_rating must be between 0 and 5.';
+        else if (next.customer_rating === 'customer_rating must be between 0 and 5.') next.customer_rating = '';
+      }
+
+      return next;
+    });
+  }, [form.trips_completed, form.distance_covered, form.fuel_efficiency, form.on_time_delivery_rate, form.safety_score, form.customer_rating]);
 
   const handleSubmit = () => {
     setError('');
-    const validationError = validate();
-    if (validationError) return setError(validationError);
+    const newErrors = {};
+    const today = new Date().toISOString().split('T')[0];
+
+    if (!targetDriverId) newErrors.driver = 'This field is required';
+    if (!form.period_start) newErrors.period_start = 'This field is required';
+    if (!form.period_end) newErrors.period_end = 'This field is required';
+
+    if (form.period_start && form.period_end && form.period_start > form.period_end) {
+      newErrors.period_start = 'Period start cannot be after period end';
+      newErrors.period_end = 'Period end cannot be before start date';
+    } else if (form.period_end && form.period_end > today) {
+      newErrors.period_end = 'Period end cannot be in the future';
+    }
+
+    if (form.trips_completed !== '' && Number(form.trips_completed) < 0) {
+      newErrors.trips_completed = 'trips_completed cannot be negative.';
+    }
+    if (form.distance_covered !== '' && Number(form.distance_covered) < 0) {
+      newErrors.distance_covered = 'distance_covered cannot be negative.';
+    }
+    if (form.fuel_efficiency !== '' && Number(form.fuel_efficiency) < 0) {
+      newErrors.fuel_efficiency = 'fuel_efficiency cannot be negative.';
+    }
+    if (form.on_time_delivery_rate !== '') {
+      const rate = Number(form.on_time_delivery_rate);
+      if (rate < 0 || rate > 100) newErrors.on_time_delivery_rate = 'on_time_delivery_rate must be between 0 and 100.';
+    }
+    if (form.safety_score !== '') {
+      const safety = Number(form.safety_score);
+      if (safety < 0 || safety > 100) newErrors.safety_score = 'safety_score must be between 0 and 100.';
+    }
+    if (form.customer_rating !== '') {
+      const rating = Number(form.customer_rating);
+      if (rating < 0 || rating > 5) newErrors.customer_rating = 'customer_rating must be between 0 and 5.';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setFieldErrors(newErrors);
+      return;
+    }
 
     const submissionData = cleanObject(form);
     
-    // For fields with backend defaults, if empty, delete them to let backend defaults kick in
     ['trips_completed', 'distance_covered', 'on_time_delivery_rate'].forEach(field => {
       if (submissionData[field] === null || submissionData[field] === '') {
         delete submissionData[field];
@@ -110,7 +247,7 @@ export const AddPerformanceModal = ({ driverId, onClose }) => {
       footer={
         <>
           <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-          <button onClick={handleSubmit} disabled={!form.period_start || !form.period_end || createMetric.isPending}
+          <button onClick={handleSubmit} disabled={createMetric.isPending}
             className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed">
             {createMetric.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Plus size={14} /> Add Metric</>}
           </button>
@@ -118,13 +255,20 @@ export const AddPerformanceModal = ({ driverId, onClose }) => {
       }
     >
       <div className="space-y-4">
+        {error && <div className="px-5 py-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600 font-bold flex items-center gap-2">
+            <AlertTriangle size={14} /> {error}
+          </div>}
         {!driverId && (
             <div>
               <Label required>Driver</Label>
-              <DriverSelect value={targetDriverId} onChange={setTargetDriverId} />
+              {fieldErrors.driver && <div className="text-[10px] text-red-500 font-bold mb-1 tracking-tight">{fieldErrors.driver}</div>}
+              <DriverSelect value={targetDriverId} onChange={(val) => {
+                setTargetDriverId(val);
+                if (fieldErrors.driver) setFieldErrors(p => ({ ...p, driver: '' }));
+              }} />
             </div>
         )}
-        <PerformanceFormFields form={form} setForm={setForm} error={error} />
+        <PerformanceFormFields form={form} setForm={setForm} fieldErrors={fieldErrors} setFieldErrors={setFieldErrors} />
       </div>
     </ModalWrapper>
   );
@@ -142,46 +286,126 @@ export const EditPerformanceModal = ({ metric, driverId, onClose }) => {
     customer_rating: metric.customer_rating ?? '',
     notes: metric.notes ?? '',
   });
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  // Real-time Date Validation
+  React.useEffect(() => {
+    const today = new Date().toISOString().split('T')[0];
+    if (form.period_start && form.period_end) {
+      if (form.period_start > form.period_end) {
+        setFieldErrors(prev => ({ 
+          ...prev, 
+          period_start: 'Period start cannot be after period end',
+          period_end: 'Period end cannot be before start date' 
+        }));
+      } else if (form.period_end > today) {
+        setFieldErrors(prev => ({ 
+          ...prev, 
+          period_end: 'Period end cannot be in the future' 
+        }));
+        setFieldErrors(prev => {
+           const next = { ...prev };
+           if (next.period_start === 'Period start cannot be after period end') next.period_start = '';
+           return next;
+        });
+      } else {
+        setFieldErrors(prev => {
+          const next = { ...prev };
+          if (next.period_start === 'Period start cannot be after period end') next.period_start = '';
+          if (next.period_end === 'Period end cannot be before start date' || next.period_end === 'Period end cannot be in the future') next.period_end = '';
+          return next;
+        });
+      }
+    } else if (form.period_end && form.period_end > today) {
+      setFieldErrors(prev => ({ ...prev, period_end: 'Period end cannot be in the future' }));
+    } else if (fieldErrors.period_end === 'Period end cannot be in the future') {
+      setFieldErrors(prev => ({ ...prev, period_end: '' }));
+    }
+  }, [form.period_start, form.period_end]);
+
+  // Real-time Numeric Validation
+  React.useEffect(() => {
+    setFieldErrors(prev => {
+      const next = { ...prev };
+      if (form.trips_completed !== '' && Number(form.trips_completed) < 0) next.trips_completed = 'trips_completed cannot be negative.';
+      else if (next.trips_completed === 'trips_completed cannot be negative.') next.trips_completed = '';
+
+      if (form.distance_covered !== '' && Number(form.distance_covered) < 0) next.distance_covered = 'distance_covered cannot be negative.';
+      else if (next.distance_covered === 'distance_covered cannot be negative.') next.distance_covered = '';
+
+      if (form.fuel_efficiency !== '' && Number(form.fuel_efficiency) < 0) next.fuel_efficiency = 'fuel_efficiency cannot be negative.';
+      else if (next.fuel_efficiency === 'fuel_efficiency cannot be negative.') next.fuel_efficiency = '';
+
+      if (form.on_time_delivery_rate !== '') {
+        const rate = Number(form.on_time_delivery_rate);
+        if (rate < 0 || rate > 100) next.on_time_delivery_rate = 'on_time_delivery_rate must be between 0 and 100.';
+        else if (next.on_time_delivery_rate === 'on_time_delivery_rate must be between 0 and 100.') next.on_time_delivery_rate = '';
+      }
+
+      if (form.safety_score !== '') {
+        const safety = Number(form.safety_score);
+        if (safety < 0 || safety > 100) next.safety_score = 'safety_score must be between 0 and 100.';
+        else if (next.safety_score === 'safety_score must be between 0 and 100.') next.safety_score = '';
+      }
+
+      if (form.customer_rating !== '') {
+        const rating = Number(form.customer_rating);
+        if (rating < 0 || rating > 5) next.customer_rating = 'customer_rating must be between 0 and 5.';
+        else if (next.customer_rating === 'customer_rating must be between 0 and 5.') next.customer_rating = '';
+      }
+      return next;
+    });
+  }, [form.trips_completed, form.distance_covered, form.fuel_efficiency, form.on_time_delivery_rate, form.safety_score, form.customer_rating]);
+
   const [error, setError] = useState('');
   const [showDelete, setShowDelete] = useState(false);
   const updateMetric = useUpdatePerformanceMetric(driverId, metric.id);
   const deleteMetric = useDeletePerformanceMetric(driverId);
 
-  const validate = () => {
-    if (!form.period_start) return 'Period start date is required.';
-    if (!form.period_end) return 'Period end date is required.';
-    if (form.period_start > form.period_end) return 'Period end cannot be before start date.';
-    
-    if (form.trips_completed !== '' && Number(form.trips_completed) < 0) return 'trips_completed cannot be negative.';
-    if (form.distance_covered !== '' && Number(form.distance_covered) < 0) return 'distance_covered cannot be negative.';
-    if (form.fuel_efficiency !== '' && Number(form.fuel_efficiency) < 0) return 'fuel_efficiency cannot be negative.';
-    
-    if (form.on_time_delivery_rate !== '') {
-      const deliveryRate = Number(form.on_time_delivery_rate);
-      if (deliveryRate < 0 || deliveryRate > 100) return 'on_time_delivery_rate must be between 0 and 100.';
-    }
-    
-    if (form.safety_score !== '') {
-      const safety = Number(form.safety_score);
-      if (safety < 0 || safety > 100) return 'safety_score must be between 0 and 100.';
-    }
-    
-    if (form.customer_rating !== '') {
-      const rating = Number(form.customer_rating);
-      if (rating < 0 || rating > 5) return 'customer_rating must be between 0 and 5.';
-    }
-    
-    return null;
-  };
-
   const handleSubmit = () => {
     setError('');
-    const validationError = validate();
-    if (validationError) return setError(validationError);
+    const newErrors = {};
+    const today = new Date().toISOString().split('T')[0];
+
+    if (!form.period_start) newErrors.period_start = 'This field is required';
+    if (!form.period_end) newErrors.period_end = 'This field is required';
+
+    if (form.period_start && form.period_end && form.period_start > form.period_end) {
+      newErrors.period_start = 'Period start cannot be after period end';
+      newErrors.period_end = 'Period end cannot be before start date';
+    } else if (form.period_end && form.period_end > today) {
+      newErrors.period_end = 'Period end cannot be in the future';
+    }
+
+    if (form.trips_completed !== '' && Number(form.trips_completed) < 0) {
+      newErrors.trips_completed = 'trips_completed cannot be negative.';
+    }
+    if (form.distance_covered !== '' && Number(form.distance_covered) < 0) {
+      newErrors.distance_covered = 'distance_covered cannot be negative.';
+    }
+    if (form.fuel_efficiency !== '' && Number(form.fuel_efficiency) < 0) {
+      newErrors.fuel_efficiency = 'fuel_efficiency cannot be negative.';
+    }
+    if (form.on_time_delivery_rate !== '') {
+      const rate = Number(form.on_time_delivery_rate);
+      if (rate < 0 || rate > 100) newErrors.on_time_delivery_rate = 'on_time_delivery_rate must be between 0 and 100.';
+    }
+    if (form.safety_score !== '') {
+      const safety = Number(form.safety_score);
+      if (safety < 0 || safety > 100) newErrors.safety_score = 'safety_score must be between 0 and 100.';
+    }
+    if (form.customer_rating !== '') {
+      const rating = Number(form.customer_rating);
+      if (rating < 0 || rating > 5) newErrors.customer_rating = 'customer_rating must be between 0 and 5.';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setFieldErrors(newErrors);
+      return;
+    }
 
     const submissionData = cleanObject(form);
     
-    // For fields with backend defaults, delete if empty to let backend defaults kick in
     ['trips_completed', 'distance_covered', 'on_time_delivery_rate'].forEach(field => {
       if (submissionData[field] === null || submissionData[field] === '') {
         delete submissionData[field];
@@ -209,7 +433,7 @@ export const EditPerformanceModal = ({ metric, driverId, onClose }) => {
           </button>
           <div className="flex items-center gap-2">
             <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-            <button onClick={handleSubmit} disabled={!form.period_start || !form.period_end || updateMetric.isPending}
+            <button onClick={handleSubmit} disabled={updateMetric.isPending}
               className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed">
               {updateMetric.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Edit size={14} /> Update Record</>}
             </button>
@@ -226,7 +450,12 @@ export const EditPerformanceModal = ({ metric, driverId, onClose }) => {
           isDeleting={deleteMetric.isPending}
         />
       )}
-      <PerformanceFormFields form={form} setForm={setForm} error={error} />
+      <div className="space-y-4">
+        {error && <div className="px-5 py-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600 font-bold flex items-center gap-2">
+            <AlertTriangle size={14} /> {error}
+          </div>}
+        <PerformanceFormFields form={form} setForm={setForm} fieldErrors={fieldErrors} setFieldErrors={setFieldErrors} />
+      </div>
     </ModalWrapper>
   );
 };
@@ -283,7 +512,7 @@ export const ViewPerformanceModal = ({ record, driverName, employeeId, onClose }
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <h3 className="text-lg font-black text-[#172B4D] leading-none uppercase tracking-tight">{driverName || record.driver_name || '-'}</h3>
+              <h3 className="text-lg font-black text-[#172B4D] leading-none tracking-tight">{driverName || record.driver_name || '-'}</h3>
             </div>
             <div className="text-gray-400 text-[10px] font-mono font-bold uppercase tracking-widest mt-1.5 flex items-center gap-1.5">
                <User size={12} /> Employee ID: {employeeId || record.employee_id || '—'}

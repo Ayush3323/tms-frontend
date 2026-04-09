@@ -56,8 +56,16 @@ export const useIncidents = (params = {}) => {
     queryKey: incidentKeys.list(params),
     queryFn: async () => {
       try {
-        const response = await driverApi.getIncidents(params);
-        return response.data;
+        const response = await driverApi.getIncidents({ ...params, ordering: 'id' });
+        const data = response.data;
+        if (data?.results) {
+          data.results = [...data.results].sort((a, b) => {
+            const idA = String(a.id);
+            const idB = String(b.id);
+            return idB.localeCompare(idA, undefined, { numeric: true });
+          });
+        }
+        return data;
         // { count, next, previous, results: [...] }
       } catch (error) {
         handleError(error);
@@ -76,8 +84,16 @@ export const useDriverIncidents = (driverId) => {
     queryKey: incidentKeys.byDriver(driverId),
     queryFn: async () => {
       try {
-        const response = await driverApi.getIncidents({ driver: driverId });
-        return response.data;
+        const response = await driverApi.getIncidents({ driver: driverId, ordering: 'id' });
+        const data = response.data;
+        if (data?.results) {
+          data.results = [...data.results].sort((a, b) => {
+            const idA = String(a.id);
+            const idB = String(b.id);
+            return idB.localeCompare(idA, undefined, { numeric: true });
+          });
+        }
+        return data;
       } catch (error) {
         handleError(error);
       }
@@ -181,8 +197,16 @@ export const useAttendance = (params = {}) => {
     queryKey: attendanceKeys.list(params),
     queryFn: async () => {
       try {
-        const response = await driverApi.getAttendance(params);
-        return response.data;
+        const response = await driverApi.getAttendance({ ...params, ordering: 'id' });
+        const data = response.data;
+        if (data?.results) {
+          data.results = [...data.results].sort((a, b) => {
+            const idA = String(a.id);
+            const idB = String(b.id);
+            return idB.localeCompare(idA, undefined, { numeric: true });
+          });
+        }
+        return data;
         // { count, next, previous, results: [...] }
       } catch (error) {
         handleError(error);
@@ -202,9 +226,18 @@ export const useDriverAttendance = (driverId, params = {}) => {
       try {
         const response = await driverApi.getAttendance({
           driver: driverId,
-          ...params, // date, status filter bhi pass kar sakte ho
+          ordering: 'id',
+          ...params,
         });
-        return response.data;
+        const data = response.data;
+        if (data?.results) {
+          data.results = [...data.results].sort((a, b) => {
+            const idA = String(a.id);
+            const idB = String(b.id);
+            return idB.localeCompare(idA, undefined, { numeric: true });
+          });
+        }
+        return data;
       } catch (error) {
         handleError(error);
       }

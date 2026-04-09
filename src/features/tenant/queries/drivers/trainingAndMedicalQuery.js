@@ -59,7 +59,11 @@ export const useTrainingRecords = (params = {}) => {
         const response = await driverApi.getTrainingRecords({ ...params, ordering: 'id' }); // ← fixed
         const data = response.data;
         if (data?.results) {
-          data.results = [...data.results].sort((a, b) => b.id.localeCompare(a.id));
+          data.results = [...data.results].sort((a, b) => {
+            const idA = String(a.id);
+            const idB = String(b.id);
+            return idB.localeCompare(idA, undefined, { numeric: true });
+          });
         }
         return data;
         // { count, next, previous, results: [...] }
@@ -84,7 +88,11 @@ export const useDriverTrainingRecords = (driverId) => {
         const response = await driverApi.getTrainingRecords({ driver: driverId, ordering: 'id' });
         const data = response.data;
         if (data?.results) {
-          data.results = [...data.results].sort((a, b) => b.id.localeCompare(a.id));
+          data.results = [...data.results].sort((a, b) => {
+            const idA = String(a.id);
+            const idB = String(b.id);
+            return idB.localeCompare(idA, undefined, { numeric: true });
+          });
         }
         return data;
         // { count, next, previous, results: [...] }
@@ -193,7 +201,11 @@ export const useMedicalRecords = (params = {}) => {
         const response = await driverApi.getMedicalRecords({ ...params, ordering: 'id' });
         const data = response.data;
         if (data?.results) {
-          data.results = [...data.results].sort((a, b) => b.id.localeCompare(a.id));
+          data.results = [...data.results].sort((a, b) => {
+            const idA = String(a.id);
+            const idB = String(b.id);
+            return idB.localeCompare(idA, undefined, { numeric: true });
+          });
         }
         return data;
         // { count, next, previous, results: [...] }
@@ -217,7 +229,11 @@ export const useDriverMedicalRecords = (driverId) => {
         const response = await driverApi.getMedicalRecords({ driver: driverId, ordering: 'id' });
         const data = response.data;
         if (data?.results) {
-          data.results = [...data.results].sort((a, b) => b.id.localeCompare(a.id));
+          data.results = [...data.results].sort((a, b) => {
+            const idA = String(a.id);
+            const idB = String(b.id);
+            return idB.localeCompare(idA, undefined, { numeric: true });
+          });
         }
         return data;
         // { count, next, previous, results: [...] }

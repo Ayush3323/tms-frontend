@@ -76,22 +76,34 @@ export const AddIncidentModal = ({ driverId, onClose }) => {
     incident_date: '',
     location: '',
     description: '',
-    severity: 'MEDIUM',
+    severity: '',
     resolution_status: 'OPEN',
     police_report_number: '',
     insurance_claim_number: '',
     resolution_notes: '',
   });
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const createIncident = useCreateIncident(targetDriverId);
+
   const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
 
   const handleSubmit = () => {
     setError('');
-    if (!targetDriverId) return setError('Please select a driver.');
-    if (!form.incident_type) return setError('Incident type is required.');
-    if (!form.incident_date) return setError('Incident date is required.');
-    if (!form.description) return setError('Description is required.');
+    const newErrors = {};
+    if (!targetDriverId) newErrors.driver = "This field is required";
+    if (!form.incident_type) newErrors.incident_type = 'Incident type is required';
+    if (!form.vehicle) newErrors.vehicle = 'Vehicle is required';
+    if (!form.trip_id) newErrors.trip_id = 'Trip number is required';
+    if (!form.severity) newErrors.severity = 'Severity is required';
+    if (!form.incident_date) newErrors.incident_date = 'Incident date is required';
+    if (!form.description) newErrors.description = 'Description is required';
+
+    if (Object.keys(newErrors).length > 0) {
+      setFieldErrors(newErrors);
+      return;
+    }
+    setFieldErrors({});
 
     createIncident.mutate(cleanObject(form), {
       onSuccess: onClose,
@@ -124,7 +136,7 @@ export const AddIncidentModal = ({ driverId, onClose }) => {
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!form.incident_type || !form.incident_date || createIncident.isPending}
+            disabled={createIncident.isPending}
             className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {createIncident.isPending
@@ -140,6 +152,7 @@ export const AddIncidentModal = ({ driverId, onClose }) => {
 
         {!driverId && (
           <div>
+            {fieldErrors.driver && <div className="text-[10px] text-red-500 font-bold mb-1 ml-1">{fieldErrors.driver}</div>}
             <Label required>Driver</Label>
             <DriverSelect value={targetDriverId} onChange={setTargetDriverId} />
           </div>
@@ -147,31 +160,29 @@ export const AddIncidentModal = ({ driverId, onClose }) => {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label required>Incident Type</Label>
-            <Select value={form.incident_type} onChange={set('incident_type')}>
-              <option value="">Select type</option>
-              {INCIDENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-            </Select>
+            {fieldErrors.vehicle && <div className="text-[10px] text-red-500 font-bold mb-1 ml-1">{fieldErrors.vehicle}</div>}
+            <Label required>Vehicle</Label>
+            <VehicleSelect value={form.vehicle} onChange={(e) => { setForm(p => ({ ...p, vehicle: e.target.value })); if(fieldErrors.vehicle) setFieldErrors(pf => ({...pf, vehicle: ''})); }} />
           </div>
           <div>
-            <Label>Vehicle</Label>
-            <VehicleSelect value={form.vehicle} onChange={(e) => setForm(p => ({ ...p, vehicle: e.target.value }))} />
-          </div>
-          <div>
-            <Label>Trip Number</Label>
+            {fieldErrors.trip_id && <div className="text-[10px] text-red-500 font-bold mb-1 ml-1">{fieldErrors.trip_id}</div>}
+            <Label required>Trip Number</Label>
             <TripSelect 
               value={form.trip_id} 
-              onChange={(e) => setForm(p => ({ ...p, trip_id: e.target.value }))} 
+              onChange={(e) => { setForm(p => ({ ...p, trip_id: e.target.value })); if(fieldErrors.trip_id) setFieldErrors(pf => ({...pf, trip_id: ''})); }} 
               onSelectTrip={handleTripSelect}
             />
           </div>
           <div>
-            <Label>Severity</Label>
-            <Select value={form.severity} onChange={set('severity')}>
+            {fieldErrors.severity && <div className="text-[10px] text-red-500 font-bold mb-1 ml-1">{fieldErrors.severity}</div>}
+            <Label required>Severity</Label>
+            <Select value={form.severity} onChange={(e) => { set('severity')(e); if(fieldErrors.severity) setFieldErrors(pf => ({...pf, severity: ''})); }}>
+              <option value="">Select severity</option>
               {SEVERITY_LIST.map(s => <option key={s} value={s}>{s}</option>)}
             </Select>
           </div>
           <div>
+            {fieldErrors.incident_date && <div className="text-[10px] text-red-500 font-bold mb-1 ml-1">{fieldErrors.incident_date}</div>}
             <Label required>Incident Date</Label>
             <Input type="datetime-local" value={form.incident_date} onChange={set('incident_date')} />
           </div>
@@ -191,6 +202,7 @@ export const AddIncidentModal = ({ driverId, onClose }) => {
           </div>
         </div>
         <div>
+          {fieldErrors.description && <div className="text-[10px] text-red-500 font-bold mb-1 ml-1">{fieldErrors.description}</div>}
           <Label required>Description</Label>
           <textarea
             rows={2} placeholder="Describe what happened..."
@@ -274,6 +286,7 @@ export const EditIncidentModal = ({ incident, driverId, onClose }) => {
   }, [currentUser?.id, form.resolution_status, form.resolved_at, form.resolved_by]);
 
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const [showDelete, setShowDelete] = useState(false);
   const updateIncident = useUpdateIncident(driverId, incident.id);
   const deleteIncident = useDeleteIncident(driverId);
@@ -281,9 +294,19 @@ export const EditIncidentModal = ({ incident, driverId, onClose }) => {
 
   const handleSubmit = () => {
     setError('');
-    if (!form.incident_type) return setError('Incident type is required.');
-    if (!form.incident_date) return setError('Incident date is required.');
-    if (!form.description) return setError('Description is required.');
+    const newErrors = {};
+    if (!form.incident_type) newErrors.incident_type = 'Incident type is required';
+    if (!form.vehicle) newErrors.vehicle = 'Vehicle is required';
+    if (!form.trip_id) newErrors.trip_id = 'Trip number is required';
+    if (!form.severity) newErrors.severity = 'Severity is required';
+    if (!form.incident_date) newErrors.incident_date = 'Incident date is required';
+    if (!form.description) newErrors.description = 'Description is required';
+
+    if (Object.keys(newErrors).length > 0) {
+      setFieldErrors(newErrors);
+      return;
+    }
+    setFieldErrors({});
 
     const clean = Object.fromEntries(
       Object.entries(form).map(([k, v]) => {
@@ -326,7 +349,7 @@ export const EditIncidentModal = ({ incident, driverId, onClose }) => {
             </button>
             <button
               onClick={handleSubmit}
-              disabled={!form.incident_type || !form.incident_date || updateIncident.isPending}
+              disabled={updateIncident.isPending}
               className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {updateIncident.isPending
@@ -351,30 +374,37 @@ export const EditIncidentModal = ({ incident, driverId, onClose }) => {
         {error && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium">{error}</div>}
         <div className="grid grid-cols-2 gap-4">
           <div>
+            {fieldErrors.incident_type && <div className="text-[10px] text-red-500 font-bold mb-1 ml-1">{fieldErrors.incident_type}</div>}
             <Label required>Incident Type</Label>
             <Select value={form.incident_type} onChange={set('incident_type')}>
               <option value="">Select type</option>
               {INCIDENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
             </Select>
           </div>
-          <div><Label>Vehicle</Label>
-            <VehicleSelect value={form.vehicle} onChange={(e) => setForm(p => ({ ...p, vehicle: e.target.value }))} />
+          <div>
+            {fieldErrors.vehicle && <div className="text-[10px] text-red-500 font-bold mb-1 ml-1">{fieldErrors.vehicle}</div>}
+            <Label required>Vehicle</Label>
+            <VehicleSelect value={form.vehicle} onChange={(e) => { setForm(p => ({ ...p, vehicle: e.target.value })); if(fieldErrors.vehicle) setFieldErrors(pf => ({...pf, vehicle: ''})); }} />
           </div>
           <div>
-            <Label>Trip Number</Label>
+            {fieldErrors.trip_id && <div className="text-[10px] text-red-500 font-bold mb-1 ml-1">{fieldErrors.trip_id}</div>}
+            <Label required>Trip Number</Label>
             <TripSelect 
               value={form.trip_id} 
-              onChange={(e) => setForm(p => ({ ...p, trip_id: e.target.value }))} 
+              onChange={(e) => { setForm(p => ({ ...p, trip_id: e.target.value })); if(fieldErrors.trip_id) setFieldErrors(pf => ({...pf, trip_id: ''})); }} 
               onSelectTrip={handleTripSelect}
             />
           </div>
           <div>
-            <Label>Severity</Label>
-            <Select value={form.severity} onChange={set('severity')}>
+             {fieldErrors.severity && <div className="text-[10px] text-red-500 font-bold mb-1 ml-1">{fieldErrors.severity}</div>}
+            <Label required>Severity</Label>
+            <Select value={form.severity} onChange={(e) => { set('severity')(e); if(fieldErrors.severity) setFieldErrors(pf => ({...pf, severity: ''})); }}>
+              <option value="">Select severity</option>
               {SEVERITY_LIST.map(s => <option key={s} value={s}>{s}</option>)}
             </Select>
           </div>
           <div>
+            {fieldErrors.incident_date && <div className="text-[10px] text-red-500 font-bold mb-1 ml-1">{fieldErrors.incident_date}</div>}
             <Label required>Incident Date</Label>
             <Input type="datetime-local" value={form.incident_date} onChange={set('incident_date')} />
           </div>
@@ -394,6 +424,7 @@ export const EditIncidentModal = ({ incident, driverId, onClose }) => {
           </div>
         </div>
         <div>
+          {fieldErrors.description && <div className="text-[10px] text-red-500 font-bold mb-1 ml-1">{fieldErrors.description}</div>}
           <Label required>Description</Label>
           <textarea
             rows={2} placeholder="Describe what happened..."
@@ -498,7 +529,7 @@ export const ViewIncidentModal = ({ incident, driverName, employeeId, vehicleNam
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <h3 className="text-lg font-black text-[#172B4D] leading-none uppercase tracking-tight">{driverName || incident.driver_name || '-'}</h3>
+              <h3 className="text-lg font-black text-[#172B4D] leading-none tracking-tight">{driverName || incident.driver_name || '-'}</h3>
               <div className={`px-2 py-0.5 rounded-full border text-[10px] font-black uppercase flex items-center gap-1
                 ${incident.resolution_status === 'RESOLVED' || incident.resolution_status === 'CLOSED' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-amber-50 text-amber-600 border-amber-100'}`}>
                 {incident.resolution_status_display || incident.resolution_status}
