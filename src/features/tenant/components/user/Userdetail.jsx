@@ -489,14 +489,11 @@ const UserDetail = () => {
                   className="px-3 py-1 bg-gray-50 border border-gray-100 rounded-lg text-s font text-[#172B4D] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all hover:border-gray-200 cursor-pointer shadow-sm"
                 >
                   <option value="">All Roles</option>
-                  <option value="SUPER_ADMIN">Super Admin</option>
                   <option value="TENANT_ADMIN">Tenant Admin</option>
                   <option value="MANAGER">Manager</option>
                   <option value="EMPLOYEE">Employee</option>
                   <option value="DRIVER">Driver</option>
                   <option value="CUSTOMER">Customer</option>
-                  <option value="PARTNER">Partner</option>
-                  <option value="SYSTEM">System</option>
                 </select>
               </div>
 
@@ -515,8 +512,6 @@ const UserDetail = () => {
                   <option value="ACTIVE">Active</option>
                   <option value="INACTIVE">Inactive</option>
                   <option value="SUSPENDED">Suspended</option>
-                  <option value="PENDING_ACTIVATION">Pending Activation</option>
-                  <option value="DEACTIVATED">Deactivated</option>
                   <option value="LOCKED">Locked</option>
                 </select>
               </div>
@@ -973,14 +968,11 @@ const UserDetail = () => {
                           onChange={handleInputChange}
                           className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0052CC]"
                         >
-                          <option value="SUPER_ADMIN">Super Admin</option>
                           <option value="TENANT_ADMIN">Tenant Admin</option>
                           <option value="MANAGER">Manager</option>
                           <option value="EMPLOYEE">Employee</option>
                           <option value="DRIVER">Driver</option>
                           <option value="CUSTOMER">Customer</option>
-                          <option value="PARTNER">Partner</option>
-                          <option value="SYSTEM">System</option>
                         </select>
                       </div>
                       <div className="space-y-1">
@@ -994,8 +986,6 @@ const UserDetail = () => {
                           <option value="ACTIVE">Active</option>
                           <option value="INACTIVE">Inactive</option>
                           <option value="SUSPENDED">Suspended</option>
-                          <option value="PENDING_ACTIVATION">Pending Activation</option>
-                          <option value="DEACTIVATED">Deactivated</option>
                           <option value="LOCKED">Locked</option>
                         </select>
                       </div>
