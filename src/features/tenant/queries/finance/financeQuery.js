@@ -4,6 +4,7 @@ import { toast } from 'react-hot-toast'
 import {
   advanceApi,
   customerPaymentApi,
+  financeReportApi,
   invoiceApi,
   ownerPaymentApi,
   payrollApi,
@@ -20,6 +21,7 @@ export const financeKeys = {
   tdsEntries: (params) => ['finance', 'tdsEntries', params],
   tdsReturns: (params) => ['finance', 'tdsReturns', params],
   advances: (params) => ['finance', 'advances', params],
+  reports: (name, params) => ['finance', 'reports', name, params],
 }
 
 const onErr = (label) => (error) => {
@@ -35,6 +37,14 @@ export const usePayrollEntries = (params) => useQuery({ queryKey: financeKeys.pa
 export const useTDSEntries = (params) => useQuery({ queryKey: financeKeys.tdsEntries(params), queryFn: () => tdsApi.listEntries(params) })
 export const useTDSReturns = (params) => useQuery({ queryKey: financeKeys.tdsReturns(params), queryFn: () => tdsApi.listReturns(params) })
 export const useAdvances = (params) => useQuery({ queryKey: financeKeys.advances(params), queryFn: () => advanceApi.list(params) })
+export const useARAgingReport = (params) =>
+  useQuery({ queryKey: financeKeys.reports('arAging', params), queryFn: () => financeReportApi.arAging(params) })
+export const useOwnerPayablesReport = (params) =>
+  useQuery({ queryKey: financeKeys.reports('ownerPayables', params), queryFn: () => financeReportApi.ownerPayables(params) })
+export const useTripProfitabilityReport = (params) =>
+  useQuery({ queryKey: financeKeys.reports('tripProfitability', params), queryFn: () => financeReportApi.tripProfitability(params) })
+export const useTDSRegisterReport = (params) =>
+  useQuery({ queryKey: financeKeys.reports('tdsRegister', params), queryFn: () => financeReportApi.tdsRegister(params) })
 export const useAdvanceDetail = (id) => useQuery({
   queryKey: ['finance', 'advanceDetail', id],
   queryFn: () => advanceApi.get(id),

@@ -71,6 +71,7 @@ import TDSSummaryDashboard from '../components/Finance/TDSSummaryDashboard';
 import AdvancesDashboard from '../components/Finance/AdvancesDashboard';
 import InvoiceDetail from '../components/Finance/InvoiceDetail';
 import AdvanceDetail from '../components/Finance/AdvanceDetail';
+import FinanceReportsDashboard from '../components/Finance/FinanceReportsDashboard';
 import GeographyDashboard from '../components/MasterData/GeographyDashboard';
 import RateCardsDashboard from '../components/MasterData/RateCardsDashboard';
 import VehicleTypesMasterDashboard from '../components/MasterData/VehicleTypesMasterDashboard';
@@ -165,6 +166,7 @@ const Routing = () => {
         <Route path="finance/tds" element={<TDSSummaryDashboard />} />
         <Route path="finance/advances" element={<AdvancesDashboard />} />
         <Route path="finance/advances/:id" element={<AdvanceDetail />} />
+        <Route path="finance/reports" element={<FinanceReportsDashboard />} />
 
         {/* Master Data */}
         <Route path="master-data/geography" element={<GeographyDashboard />} />
