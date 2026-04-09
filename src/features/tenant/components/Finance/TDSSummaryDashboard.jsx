@@ -1,17 +1,36 @@
 import React, { useMemo, useState } from 'react'
-import { CheckCircle2 } from 'lucide-react'
+import { CheckCircle2, Coins } from 'lucide-react'
 
 import FinanceListPage from './FinanceListPage'
-import { useFileTDSReturn, useIssueTDSCertificate, useTDSEntries } from '../../queries/finance/financeQuery'
+import {
+  useFileTDSReturn,
+  useIssueTDSCertificate,
+  useMarkTDSEntryPaid,
+  useMarkTDSReturnPaid,
+  useTDSReturns,
+  useTDSEntries,
+} from '../../queries/finance/financeQuery'
 
 const asList = (data) => data?.results || (Array.isArray(data) ? data : [])
 
 export default function TDSSummaryDashboard() {
   const [search, setSearch] = useState('')
-  const { data, isLoading, refetch } = useTDSEntries(search ? { search } : {})
+  const [status, setStatus] = useState('')
+  const [activeTab, setActiveTab] = useState('entries')
+  const entryQuery = useMemo(() => {
+    const p = {}
+    if (search) p.search = search
+    if (status) p.status = status
+    return p
+  }, [search, status])
+  const { data, isLoading, refetch } = useTDSEntries(entryQuery)
+  const { data: returnsData, isLoading: isReturnsLoading, refetch: refetchReturns } = useTDSReturns(entryQuery)
   const issue = useIssueTDSCertificate()
+  const markPaid = useMarkTDSEntryPaid()
+  const markReturnPaid = useMarkTDSReturnPaid()
   const fileReturn = useFileTDSReturn()
   const rows = asList(data)
+  const returnRows = asList(returnsData)
   const stats = useMemo(() => ([
     { label: 'Total', value: data?.count || rows.length, className: 'text-blue-600' },
     { label: 'Calculated', value: rows.filter((r) => r.status === 'CALCULATED').length, className: 'text-amber-600' },
@@ -25,18 +44,60 @@ export default function TDSSummaryDashboard() {
       subtitle="Track deductible tax entries and filing progress by quarter."
       search={search}
       setSearch={setSearch}
-      onRefresh={refetch}
-      isLoading={isLoading}
+      secondaryFilters={(
+        <>
+          <div className="inline-flex rounded-xl border border-gray-200 bg-white p-1">
+            <button
+              type="button"
+              onClick={() => setActiveTab('entries')}
+              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold ${activeTab === 'entries' ? 'bg-[#0052CC] text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+            >
+              Entries
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('returns')}
+              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold ${activeTab === 'returns' ? 'bg-[#0052CC] text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+            >
+              Returns
+            </button>
+          </div>
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-700"
+          >
+            <option value="">All Statuses</option>
+            <option value="CALCULATED">Calculated</option>
+            <option value="FILED">Filed</option>
+            <option value="PAID">Paid</option>
+          </select>
+        </>
+      )}
+      onRefresh={() => {
+        refetch()
+        refetchReturns()
+      }}
+      isLoading={activeTab === 'entries' ? isLoading : isReturnsLoading}
       stats={stats}
-      rows={rows}
-      columns={[
-        { key: 'owner_name', title: 'Owner' },
-        { key: 'trip_id', title: 'Trip ID' },
-        { key: 'financial_year', title: 'Financial Year' },
-        { key: 'quarter', title: 'Quarter' },
-        { key: 'tds_amount', title: 'TDS Amount' },
-        { key: 'status', title: 'Status' },
-      ]}
+      rows={activeTab === 'entries' ? rows : returnRows}
+      columns={activeTab === 'entries'
+        ? [
+          { key: 'owner_name', title: 'Owner' },
+          { key: 'trip_id', title: 'Trip ID' },
+          { key: 'financial_year', title: 'Financial Year' },
+          { key: 'quarter', title: 'Quarter' },
+          { key: 'tds_amount', title: 'TDS Amount' },
+          { key: 'status', title: 'Status' },
+        ]
+        : [
+          { key: 'financial_year', title: 'Financial Year' },
+          { key: 'quarter', title: 'Quarter' },
+          { key: 'total_tds_deducted', title: 'Total Deducted' },
+          { key: 'total_tds_paid', title: 'Total Paid' },
+          { key: 'filing_date', title: 'Filing Date' },
+          { key: 'status', title: 'Status' },
+        ]}
       actions={(
         <button
           type="button"
@@ -45,24 +106,48 @@ export default function TDSSummaryDashboard() {
             const quarter = window.prompt('Quarter (e.g. Q1)')
             if (financial_year && quarter) fileReturn.mutate({ financial_year, quarter })
           }}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#0052CC] rounded-xl text-xs font-bold text-white hover:bg-[#0747A6] shadow-md shadow-blue-100 transition-all"
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#0052CC] rounded-xl text-xs font-bold text-white hover:bg-[#0747A6] shadow-md shadow-blue-100 transition-all disabled:opacity-50"
+          disabled={fileReturn.isPending}
         >
           File Return
         </button>
       )}
       rowActions={(row) => (
         <>
-          {row.status === 'CALCULATED' && (
+          {activeTab === 'entries' && row.status === 'CALCULATED' && (
             <button
               type="button"
               onClick={() => {
                 const cert = window.prompt('TDS Certificate Number')
                 if (cert) issue.mutate({ id: row.id, tds_certificate_number: cert })
               }}
-              className="p-2 text-gray-400 hover:text-green-600 rounded-lg"
+              className="p-2 text-gray-400 hover:text-green-600 rounded-lg disabled:opacity-50"
+              disabled={issue.isPending}
               title="Issue Certificate"
             >
               <CheckCircle2 size={16} />
+            </button>
+          )}
+          {activeTab === 'entries' && row.status === 'FILED' && (
+            <button
+              type="button"
+              disabled={markPaid.isPending}
+              onClick={() => markPaid.mutate(row.id)}
+              className="p-2 text-gray-400 hover:text-blue-600 rounded-lg disabled:opacity-50"
+              title="Mark Paid"
+            >
+              <Coins size={16} />
+            </button>
+          )}
+          {activeTab === 'returns' && row.status === 'FILED' && (
+            <button
+              type="button"
+              disabled={markReturnPaid.isPending}
+              onClick={() => markReturnPaid.mutate(row.id)}
+              className="p-2 text-gray-400 hover:text-blue-600 rounded-lg disabled:opacity-50"
+              title="Mark Return Paid"
+            >
+              <Coins size={16} />
             </button>
           )}
         </>
