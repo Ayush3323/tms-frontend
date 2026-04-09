@@ -85,11 +85,8 @@ const IncidentsTab = ({ driverId }) => {
       {deleteIncident && <DeleteIncidentDialog incident={deleteIncident} driverId={driverId} onClose={() => setDeleteIncident(null)} />}
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="font-bold text-[#172B4D] text-sm">Incidents</h3>
-          <p className="text-xs text-gray-400 mt-0.5">{incidents.length} incident{incidents.length !== 1 ? 's' : ''} found</p>
-        </div>
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
+          {/* Visibility filters removed per user request */}
         <button
           onClick={() => setAddOpen(true)}
           className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-gradient-to-r from-[#2563eb] to-[#4f46e5] rounded-lg shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all"

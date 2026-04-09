@@ -3,7 +3,7 @@ import StatusBadge from '../../common/StatusBadge';
 import TableActions from '../../common/TableActions';
 import { STATUS_STYLES } from '../../common/constants';
 import { getExpiryColor, getInitials } from '../../common/utils';
-import { Edit, GraduationCap, Phone, AlertCircle } from 'lucide-react';
+import { Edit, GraduationCap, Phone, AlertCircle, Info } from 'lucide-react';
 
 const TrainingTable = ({ records, onEdit, onView, showDriver = false, driverMap = {} }) => {
   return (
@@ -59,7 +59,7 @@ const TrainingTable = ({ records, onEdit, onView, showDriver = false, driverMap 
                       {new Date(rec.expiry_date) < new Date() ? (
                         <AlertCircle size={14} className="text-red-500" />
                       ) : (new Date(rec.expiry_date) - new Date()) / (1000 * 60 * 60 * 24) <= 30 ? (
-                        <AlertCircle size={14} className="text-red-500 animate-pulse" />
+                        <Info size={14} className="text-red-500 animate-pulse" />
                       ) : null}
 
                       {((new Date(rec.expiry_date) - new Date()) / (1000 * 60 * 60 * 24) <= 30) && (

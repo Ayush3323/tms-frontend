@@ -47,7 +47,11 @@ export const useSalaryStructures = (params = {}) => {
         const response = await driverApi.getSalaryStructures({ ...params, ordering: 'id' });
         const data = response.data;
         if (data?.results) {
-          data.results = [...data.results].sort((a, b) => b.id.localeCompare(a.id));
+          data.results = [...data.results].sort((a, b) => {
+            const idA = String(a.id);
+            const idB = String(b.id);
+            return idB.localeCompare(idA, undefined, { numeric: true });
+          });
         }
         return data;
         // { count, next, previous, results: [...] }
@@ -73,7 +77,11 @@ export const useDriverSalaryStructures = (driverId) => {
         const response = await driverApi.getSalaryStructures({ driver: driverId, ordering: 'id' });
         const data = response.data;
         if (data?.results) {
-          data.results = [...data.results].sort((a, b) => b.id.localeCompare(a.id));
+          data.results = [...data.results].sort((a, b) => {
+            const idA = String(a.id);
+            const idB = String(b.id);
+            return idB.localeCompare(idA, undefined, { numeric: true });
+          });
         }
         return data;
         // { count, next, previous, results: [...] }

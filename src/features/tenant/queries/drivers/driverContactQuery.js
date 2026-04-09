@@ -47,7 +47,11 @@ export const useEmergencyContacts = (params = {}) => {
         const response = await driverApi.getEmergencyContacts({ ...params, ordering: 'id' });
         const data = response.data;
         if (data?.results) {
-          data.results = [...data.results].sort((a, b) => b.id.localeCompare(a.id));
+          data.results = [...data.results].sort((a, b) => {
+            const idA = String(a.id);
+            const idB = String(b.id);
+            return idB.localeCompare(idA, undefined, { numeric: true });
+          });
         }
         return data;
         // { count, next, previous, results: [...] }
@@ -72,7 +76,11 @@ export const useDriverContacts = (driverId) => {
         const response = await driverApi.getEmergencyContacts({ driver: driverId, ordering: 'id' });
         const data = response.data;
         if (data?.results) {
-          data.results = [...data.results].sort((a, b) => b.id.localeCompare(a.id));
+          data.results = [...data.results].sort((a, b) => {
+            const idA = String(a.id);
+            const idB = String(b.id);
+            return idB.localeCompare(idA, undefined, { numeric: true });
+          });
         }
         return data;
         // { count, next, previous, results: [...] }

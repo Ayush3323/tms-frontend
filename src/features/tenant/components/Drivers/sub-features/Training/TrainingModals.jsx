@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Loader2, Plus, Edit, User, Clock, GraduationCap, ExternalLink, ShieldCheck, MapPin, Briefcase, FileText, AlertCircle } from 'lucide-react';
+import { Loader2, Plus, Edit, User, Clock, GraduationCap, ExternalLink, ShieldCheck, MapPin, Briefcase, FileText, AlertCircle, Info } from 'lucide-react';
 import ModalWrapper from '../../common/ModalWrapper';
 import Label from '../../common/Label';
 import Input from '../../common/Input';
@@ -15,30 +15,66 @@ import DriverSelect from '../../common/DriverSelect';
 import { TRAINING_TYPES, VERIFICATION_STATUS } from '../../common/constants';
 
 // Shared Form Fields for Training
-const TrainingFormFields = ({ form, setForm, error }) => {
-  const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
+const TrainingFormFields = ({ form, setForm, fieldErrors, setFieldErrors }) => {
+  const set = (f) => (e) => {
+    setForm(p => ({ ...p, [f]: e.target.value }));
+    if (fieldErrors?.[f]) {
+      setFieldErrors(p => ({ ...p, [f]: '' }));
+    }
+  };
+
+  const renderError = (field) => {
+    const error = fieldErrors?.[field];
+    if (!error) return null;
+    return <div className="text-[10px] text-red-500 font-bold mb-1 tracking-tight">{error}</div>;
+  };
+
+  const today = new Date().toISOString().split('T')[0];
+
   return (
     <div className="space-y-4">
-      {error && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium">{error}</div>}
       <div className="grid grid-cols-2 gap-4">
         <div><Label required>Training Type</Label>
+          {renderError('training_type')}
           <Select value={form.training_type} onChange={set('training_type')}>
             <option value="">Select type</option>
             {TRAINING_TYPES.map(t => <option key={t} value={t}>{t.replaceAll('_', ' ')}</option>)}
           </Select>
         </div>
         <div><Label required>Status</Label>
+          {renderError('status')}
           <Select value={form.status} onChange={set('status')}>
             {VERIFICATION_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
           </Select>
         </div>
-        <div><Label required>Training Date</Label><Input type="date" value={form.training_date} onChange={set('training_date')} /></div>
-        <div><Label>Expiry Date</Label><Input type="date" value={form.expiry_date} onChange={set('expiry_date')} /></div>
-        <div><Label>Certificate Number</Label><Input placeholder="e.g. CERT123456" value={form.certificate_number} onChange={set('certificate_number')} /></div>
-        <div><Label>Trainer Name</Label><Input placeholder="e.g. John Trainer" value={form.trainer_name} onChange={set('trainer_name')} /></div>
+        <div><Label required>Training Date</Label>
+          {renderError('training_date')}
+          <Input type="date" value={form.training_date} onChange={set('training_date')} max={today} />
+        </div>
+        <div>
+          <Label>Expiry Date</Label>
+          {renderError('expiry_date')}
+          <Input type="date" value={form.expiry_date} onChange={set('expiry_date')} />
+        </div>
+        <div>
+          <Label>Certificate Number</Label>
+          {renderError('certificate_number')}
+          <Input placeholder="e.g. CERT123456" value={form.certificate_number} onChange={set('certificate_number')} />
+        </div>
+        <div>
+          <Label>Trainer Name</Label>
+          {renderError('trainer_name')}
+          <Input placeholder="e.g. John Trainer" value={form.trainer_name} onChange={set('trainer_name')} />
+        </div>
       </div>
-      <div><Label>Certificate URL</Label><Input placeholder="https://example.com/certs/cert.pdf" value={form.certificate_url} onChange={set('certificate_url')} /></div>
-      <div><Label>Notes</Label>
+      <div>
+        <Label>Certificate URL</Label>
+        {renderError('certificate_url')}
+        <Input placeholder="https://example.com/certs/cert.pdf" value={form.certificate_url} onChange={set('certificate_url')} />
+      </div>
+      <div>
+        <Label>Notes</Label>
+        {renderError('notes')}
         <textarea rows={2} placeholder="Any additional notes..." value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
           className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] placeholder:text-gray-300 resize-none" />
       </div>
@@ -58,24 +94,58 @@ export const AddTrainingModal = ({ driverId, onClose }) => {
     certificate_url: '',
     notes: '',
   });
+  const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const createTraining = useCreateTrainingRecord(targetDriverId);
 
-  const validate = () => {
-    if (!targetDriverId) return 'Please select a driver.';
-    if (!form.training_type) return 'Training type is required.';
-    if (!form.training_date) return 'Training date is required.';
-    if (!form.status) return 'Status is required.';
-    if (form.expiry_date && form.training_date > form.expiry_date) {
-      return 'Expiry date cannot be before training date.';
-    }
-    return null;
-  };
+  // Real-time Validation
+  React.useEffect(() => {
+    const today = new Date().toISOString().split('T')[0];
+    setFieldErrors(prev => {
+      const next = { ...prev };
+      
+      // Future Date Protection for Training Date
+      if (form.training_date && form.training_date > today) {
+        next.training_date = 'training_date cannot be in the future';
+      } else if (next.training_date === 'training_date cannot be in the future') {
+        next.training_date = '';
+      }
+
+      // Date Range Validation
+      if (form.training_date && form.expiry_date) {
+        if (form.training_date > form.expiry_date) {
+          next.training_date = 'training_date cannot be after expiry date';
+          next.expiry_date = 'expiry_date cannot be before training date';
+        } else {
+          if (next.training_date === 'training_date cannot be after expiry date') next.training_date = '';
+          if (next.expiry_date === 'expiry_date cannot be before training date') next.expiry_date = '';
+        }
+      } else {
+        // Clear range errors if either field is cleared
+        if (next.training_date === 'training_date cannot be after expiry date') next.training_date = '';
+        if (next.expiry_date === 'expiry_date cannot be before training date') next.expiry_date = '';
+      }
+
+      return next;
+    });
+  }, [form.training_date, form.expiry_date]);
 
   const handleSubmit = () => {
     setError('');
-    const validationError = validate();
-    if (validationError) return setError(validationError);
+    const newErrors = {};
+    if (!targetDriverId) newErrors.driver = 'This field is required';
+    if (!form.training_type) newErrors.training_type = 'This field is required';
+    if (!form.training_date) newErrors.training_date = 'This field is required';
+    if (!form.status) newErrors.status = 'This field is required';
+
+    if (form.training_date && form.expiry_date && form.training_date > form.expiry_date) {
+      newErrors.training_date = 'Training date cannot be after expiry date';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setFieldErrors(newErrors);
+      return;
+    }
 
     createTraining.mutate(cleanObject(form), {
       onSuccess: onClose,
@@ -91,7 +161,7 @@ export const AddTrainingModal = ({ driverId, onClose }) => {
       footer={
         <>
           <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-          <button onClick={handleSubmit} disabled={!form.training_type || !form.training_date || createTraining.isPending}
+          <button onClick={handleSubmit} disabled={createTraining.isPending}
             className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed">
             {createTraining.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Plus size={14} /> Add Record</>}
           </button>
@@ -99,13 +169,18 @@ export const AddTrainingModal = ({ driverId, onClose }) => {
       }
     >
       <div className="space-y-4">
+        {error && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium">{error}</div>}
         {!driverId && (
           <div>
             <Label required>Driver</Label>
-            <DriverSelect value={targetDriverId} onChange={setTargetDriverId} />
+            {fieldErrors.driver && <div className="text-[10px] text-red-500 font-bold mb-1 tracking-tight">{fieldErrors.driver}</div>}
+            <DriverSelect value={targetDriverId} onChange={(val) => {
+              setTargetDriverId(val);
+              if (fieldErrors.driver) setFieldErrors(p => ({ ...p, driver: '' }));
+            }} />
           </div>
         )}
-        <TrainingFormFields form={form} setForm={setForm} error={error} />
+        <TrainingFormFields form={form} setForm={setForm} fieldErrors={fieldErrors} setFieldErrors={setFieldErrors} />
       </div>
     </ModalWrapper>
   );
@@ -122,25 +197,59 @@ export const EditTrainingModal = ({ record, driverId, onClose }) => {
     certificate_url: record.certificate_url ?? '',
     notes: record.notes ?? '',
   });
+  const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const [showDelete, setShowDelete] = useState(false);
   const updateTraining = useUpdateTrainingRecord(driverId, record.id);
   const deleteTraining = useDeleteTrainingRecord(driverId);
 
-  const validate = () => {
-    if (!form.training_type) return 'Training type is required.';
-    if (!form.training_date) return 'Training date is required.';
-    if (!form.status) return 'Status is required.';
-    if (form.expiry_date && form.training_date > form.expiry_date) {
-      return 'Expiry date cannot be before training date.';
-    }
-    return null;
-  };
+  // Real-time Validation
+  React.useEffect(() => {
+    const today = new Date().toISOString().split('T')[0];
+    setFieldErrors(prev => {
+      const next = { ...prev };
+      
+      // Future Date Protection for Training Date
+      if (form.training_date && form.training_date > today) {
+        next.training_date = 'training_date cannot be in the future';
+      } else if (next.training_date === 'training_date cannot be in the future') {
+        next.training_date = '';
+      }
+
+      // Date Range Validation
+      if (form.training_date && form.expiry_date) {
+        if (form.training_date > form.expiry_date) {
+          next.training_date = 'training_date cannot be after expiry date';
+          next.expiry_date = 'expiry_date cannot be before training date';
+        } else {
+          if (next.training_date === 'training_date cannot be after expiry date') next.training_date = '';
+          if (next.expiry_date === 'expiry_date cannot be before training date') next.expiry_date = '';
+        }
+      } else {
+        // Clear range errors if either field is cleared
+        if (next.training_date === 'training_date cannot be after expiry date') next.training_date = '';
+        if (next.expiry_date === 'expiry_date cannot be before training date') next.expiry_date = '';
+      }
+
+      return next;
+    });
+  }, [form.training_date, form.expiry_date]);
 
   const handleSubmit = () => {
     setError('');
-    const validationError = validate();
-    if (validationError) return setError(validationError);
+    const newErrors = {};
+    if (!form.training_type) newErrors.training_type = 'This field is required';
+    if (!form.training_date) newErrors.training_date = 'This field is required';
+    if (!form.status) newErrors.status = 'This field is required';
+
+    if (form.training_date && form.expiry_date && form.training_date > form.expiry_date) {
+      newErrors.training_date = 'Training date cannot be after expiry date';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setFieldErrors(newErrors);
+      return;
+    }
 
     updateTraining.mutate(cleanObject(form), {
       onSuccess: onClose,
@@ -163,7 +272,7 @@ export const EditTrainingModal = ({ record, driverId, onClose }) => {
           </button>
           <div className="flex items-center gap-2">
             <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-            <button onClick={handleSubmit} disabled={!form.training_type || !form.training_date || updateTraining.isPending}
+            <button onClick={handleSubmit} disabled={updateTraining.isPending}
               className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed">
               {updateTraining.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Edit size={14} /> Update Record</>}
             </button>
@@ -180,7 +289,10 @@ export const EditTrainingModal = ({ record, driverId, onClose }) => {
           isDeleting={deleteTraining.isPending}
         />
       )}
-      <TrainingFormFields form={form} setForm={setForm} error={error} />
+      <div className="space-y-4">
+        {error && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium">{error}</div>}
+        <TrainingFormFields form={form} setForm={setForm} fieldErrors={fieldErrors} setFieldErrors={setFieldErrors} />
+      </div>
     </ModalWrapper>
   );
 };
@@ -247,7 +359,7 @@ export const ViewTrainingModal = ({ record, driverName, employeeId, onClose }) =
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <h3 className="text-lg font-black text-[#172B4D] leading-none uppercase tracking-tight">{driverName || record.driver_name || '-'}</h3>
+              <h3 className="text-lg font-black text-[#172B4D] leading-none tracking-tight">{driverName || record.driver_name || '-'}</h3>
               <div className={`px-2 py-0.5 rounded-full border text-[10px] font-black uppercase flex items-center gap-1
                 ${record.status === 'PASSED' || record.status === 'VERIFIED' ? 'bg-green-50 text-green-600 border-green-100' : 
                   record.status === 'FAILED' || record.status === 'REJECTED' ? 'bg-red-50 text-red-600 border-red-100' : 
@@ -268,16 +380,16 @@ export const ViewTrainingModal = ({ record, driverName, employeeId, onClose }) =
            <LabelValue label="Certificate No." value={record.certificate_number} color="font-mono" />
            <div className="flex items-center gap-3">
              <LabelValue label="Expiry Date" value={record.expiry_date} />
-             {isExpiringSoon && (
-               <div className="flex items-center gap-1 mt-4 px-2 py-1 bg-amber-50 text-amber-600 rounded-md border border-amber-100 animate-pulse">
-                 <AlertCircle size={12} />
-                 <span className="text-[10px] font-bold uppercase whitespace-nowrap">Expiring in {daysToExpiry} days</span>
-               </div>
-             )}
-             {isExpired && (
-               <div className="flex items-center gap-1 mt-4 px-2 py-1 bg-red-50 text-red-600 rounded-md border border-red-100 animate-pulse">
-                 <AlertCircle size={12} />
-                 <span className="text-[10px] font-bold uppercase whitespace-nowrap">Expired {Math.abs(daysToExpiry)} days ago</span>
+             {record.expiry_date && (
+               <div className="mt-4">
+                 {(new Date(record.expiry_date) - new Date()) / (1000 * 60 * 60 * 24) > 0 && (new Date(record.expiry_date) - new Date()) / (1000 * 60 * 60 * 24) <= 30 && (
+                   <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg border border-red-200 animate-pulse shadow-sm">
+                     <Info size={14} className="text-red-500 animate-pulse" />
+                     <span className="text-[11px] font-black tracking-tight">
+                       Expiring in {Math.ceil((new Date(record.expiry_date) - new Date()) / (1000 * 60 * 60 * 24))} days!
+                     </span>
+                   </div>
+                 )}
                </div>
              )}
            </div>

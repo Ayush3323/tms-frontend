@@ -29,7 +29,9 @@ const AllIncidents = () => {
     incident_date: '',
   });
 
-  const { data, isLoading, isError, error, refetch, isFetching } = useIncidents(filters);
+  const { data, isLoading, isError, error, refetch, isFetching } = useIncidents({
+    ...filters,
+  });
   const driverMap = useDriverLookup();
   const { data: vehiclesData } = useVehiclesList();
   
@@ -170,33 +172,43 @@ const AllIncidents = () => {
           </div>
 
           {/* ── Filters Bar ── */}
-          <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-50 bg-white flex-wrap">
-            <DriverSelect value={filters.driver} onChange={(val) => handleFilterChange('driver', val)}
-              className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors" />
-            <VehicleSelect value={filters.vehicle} onChange={(e) => handleFilterChange('vehicle', e.target.value)}
-              className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors" />
-            <Select value={filters.incident_type} onChange={(e) => handleFilterChange('incident_type', e.target.value)}
-              className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors">
-              <option value="">All Types</option>
-              {INCIDENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-            </Select>
-            <Select value={filters.severity} onChange={(e) => handleFilterChange('severity', e.target.value)}
-              className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors">
-              <option value="">All Severities</option>
-              {SEVERITY_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
-            </Select>
-            <Select value={filters.resolution_status} onChange={(e) => handleFilterChange('resolution_status', e.target.value)}
-              className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors">
-              <option value="">All Status</option>
-              {RESOLUTION_LIST.map(s => <option key={s} value={s}>{s}</option>)}
-            </Select>
+          <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-100 bg-white flex-wrap">
+            <div className="w-48">
+              <DriverSelect value={filters.driver} onChange={(val) => handleFilterChange('driver', val)}
+                className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors" />
+            </div>
+            <div className="w-48">
+              <VehicleSelect value={filters.vehicle} onChange={(e) => handleFilterChange('vehicle', e.target.value)}
+                className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors" />
+            </div>
+            <div className="w-40">
+              <Select value={filters.incident_type} onChange={(e) => handleFilterChange('incident_type', e.target.value)}
+                className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors">
+                <option value="">All Types</option>
+                {INCIDENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+              </Select>
+            </div>
+            <div className="w-40">
+              <Select value={filters.severity} onChange={(e) => handleFilterChange('severity', e.target.value)}
+                className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors">
+                <option value="">All Severities</option>
+                {SEVERITY_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
+              </Select>
+            </div>
+            <div className="w-40">
+              <Select value={filters.resolution_status} onChange={(e) => handleFilterChange('resolution_status', e.target.value)}
+                className="text-xs py-1.5 font-bold text-[#172B4D] rounded-lg bg-white border border-gray-200 hover:bg-[#EDF1F7] transition-colors">
+                <option value="">All Status</option>
+                {RESOLUTION_LIST.map(s => <option key={s} value={s}>{s}</option>)}
+              </Select>
+            </div>
             <div className="flex items-center gap-2 bg-white border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-[#EDF1F7] transition-colors">
               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight whitespace-nowrap">Incident:</span>
               <input type="date" value={filters.incident_date} onChange={(e) => handleFilterChange('incident_date', e.target.value)}
                 className="px-1 py-0.5 text-xs bg-transparent border-none focus:ring-0 text-[#172B4D] font-bold cursor-pointer" />
             </div>
             {(filters.driver || filters.vehicle || filters.incident_type || filters.severity || filters.resolution_status || filters.incident_date) && (
-              <button onClick={clearFilters} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Clear">
+              <button onClick={clearFilters} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Clear All Filters">
                 <RotateCcw size={14} />
               </button>
             )}
@@ -223,7 +235,7 @@ const AllIncidents = () => {
         </div>
       </div>
     </div>
-    </div>
+  </div>
   );
 };
 

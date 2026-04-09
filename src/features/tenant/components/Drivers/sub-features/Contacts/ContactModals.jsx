@@ -23,27 +23,53 @@ export const AddContactModal = ({ driverId, onClose }) => {
     address: '',
     is_primary: false,
   });
+  const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const createContact = useCreateEmergencyContact(targetDriverId);
-  const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
+  
+  const set = (f) => (e) => {
+    setForm(p => ({ ...p, [f]: e.target.value }));
+    if (fieldErrors[f]) {
+      setFieldErrors(p => ({ ...p, [f]: '' }));
+    }
+  };
+
+  const renderError = (field) => {
+    const err = fieldErrors[field];
+    if (!err) return null;
+    return <div className="text-[10px] text-red-500 font-bold mb-1 tracking-tight">{err}</div>;
+  };
 
   const handleSubmit = () => {
     setError('');
+    setFieldErrors({});
+    const newErrors = {};
     const phoneRegex = /^[6-9]\d{9}$/;
 
-    if (!targetDriverId) return setError('Please select a driver.');
-    if (!form.contact_name) return setError('Contact name is required.');
-    if (!form.relationship) return setError('Relationship is required.');
-    if (!form.phone) return setError('Phone number is required.');
+    if (!targetDriverId) newErrors.driver = 'This field is required';
+    if (!form.contact_name) newErrors.contact_name = 'This field is required';
+    if (!form.relationship) newErrors.relationship = 'This field is required';
+    if (!form.phone) newErrors.phone = 'This field is required';
+
+    if (Object.keys(newErrors).length > 0) {
+      setFieldErrors(newErrors);
+      return;
+    }
 
     let p = form.phone.replace(/\s+/g, '');
     if (p.startsWith('+91')) p = p.slice(3);
-    if (!phoneRegex.test(p)) return setError("Enter valid 10-digit phone number");
+    if (!phoneRegex.test(p)) {
+      setFieldErrors({ phone: "Enter valid 10-digit phone number" });
+      return;
+    }
 
     let ap = form.alternate_phone.replace(/\s+/g, '');
     if (ap) {
       if (ap.startsWith('+91')) ap = ap.slice(3);
-      if (!phoneRegex.test(ap)) return setError("Enter valid alternate phone number");
+      if (!phoneRegex.test(ap)) {
+        setFieldErrors({ alternate_phone: "Enter valid alternate phone number" });
+        return;
+      }
     }
 
     const payload = {
@@ -66,7 +92,7 @@ export const AddContactModal = ({ driverId, onClose }) => {
       footer={
         <>
           <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-          <button onClick={handleSubmit} disabled={!form.contact_name || !form.phone || createContact.isPending}
+          <button onClick={handleSubmit} disabled={createContact.isPending}
             className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed">
             {createContact.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Plus size={14} /> Add Contact</>}
           </button>
@@ -79,15 +105,35 @@ export const AddContactModal = ({ driverId, onClose }) => {
         {!driverId && (
           <div>
             <Label required>Driver</Label>
-            <DriverSelect value={targetDriverId} onChange={setTargetDriverId} />
+            {renderError('driver')}
+            <DriverSelect value={targetDriverId} onChange={(val) => {
+              setTargetDriverId(val);
+              if (fieldErrors.driver) setFieldErrors(p => ({ ...p, driver: '' }));
+            }} />
           </div>
         )}
 
         <div className="grid grid-cols-2 gap-4">
-          <div className="col-span-2"><Label required>Full Name</Label><Input placeholder="e.g. John Doe" value={form.contact_name} onChange={set('contact_name')} /></div>
-          <div><Label required>Relationship</Label><Input placeholder="e.g. Spouse" value={form.relationship} onChange={set('relationship')} /></div>
-          <div><Label required>Phone Number</Label><Input placeholder="e.g. +91 98765 43210" value={form.phone} onChange={set('phone')} /></div>
-          <div><Label>Alternate Phone</Label><Input placeholder="Optional" value={form.alternate_phone} onChange={set('alternate_phone')} /></div>
+          <div className="col-span-2">
+            <Label required>Full Name</Label>
+            {renderError('contact_name')}
+            <Input placeholder="e.g. John Doe" value={form.contact_name} onChange={set('contact_name')} />
+          </div>
+          <div>
+            <Label required>Relationship</Label>
+            {renderError('relationship')}
+            <Input placeholder="e.g. Spouse" value={form.relationship} onChange={set('relationship')} />
+          </div>
+          <div>
+            <Label required>Phone Number</Label>
+            {renderError('phone')}
+            <Input placeholder="e.g. +91 98765 43210" value={form.phone} onChange={set('phone')} />
+          </div>
+          <div>
+            <Label>Alternate Phone</Label>
+            {renderError('alternate_phone')}
+            <Input placeholder="Optional" value={form.alternate_phone} onChange={set('alternate_phone')} />
+          </div>
           <div className="flex items-center gap-3 mt-6">
             <input type="checkbox" id="is_primary" checked={form.is_primary} onChange={e => setForm(p => ({ ...p, is_primary: e.target.checked }))} className="w-4 h-4 text-[#0052CC] border-gray-300 rounded focus:ring-[#0052CC]" />
             <label htmlFor="is_primary" className="text-sm font-semibold text-gray-700 cursor-pointer">Set as Primary Contact</label>
@@ -111,28 +157,54 @@ export const EditContactModal = ({ contact, driverId, onClose }) => {
     address: contact.address ?? '',
     is_primary: contact.is_primary ?? false,
   });
+  const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const [showDelete, setShowDelete] = useState(false);
   const updateContact = useUpdateEmergencyContact(driverId, contact.id);
   const deleteContact = useDeleteEmergencyContact(driverId);
-  const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
+  
+  const set = (f) => (e) => {
+    setForm(p => ({ ...p, [f]: e.target.value }));
+    if (fieldErrors[f]) {
+      setFieldErrors(p => ({ ...p, [f]: '' }));
+    }
+  };
+
+  const renderError = (field) => {
+    const err = fieldErrors[field];
+    if (!err) return null;
+    return <div className="text-[10px] text-red-500 font-bold mb-1 tracking-tight">{err}</div>;
+  };
 
   const handleSubmit = () => {
     setError('');
+    setFieldErrors({});
+    const newErrors = {};
     const phoneRegex = /^[6-9]\d{9}$/;
 
-    if (!form.contact_name) return setError('Contact name is required.');
-    if (!form.relationship) return setError('Relationship is required.');
-    if (!form.phone) return setError('Phone number is required.');
+    if (!form.contact_name) newErrors.contact_name = 'This field is required';
+    if (!form.relationship) newErrors.relationship = 'This field is required';
+    if (!form.phone) newErrors.phone = 'This field is required';
+
+    if (Object.keys(newErrors).length > 0) {
+      setFieldErrors(newErrors);
+      return;
+    }
 
     let p = form.phone.replace(/\s+/g, '');
     if (p.startsWith('+91')) p = p.slice(3);
-    if (!phoneRegex.test(p)) return setError("Enter valid 10-digit phone number");
+    if (!phoneRegex.test(p)) {
+      setFieldErrors({ phone: "Enter valid 10-digit phone number" });
+      return;
+    }
 
     let ap = form.alternate_phone.replace(/\s+/g, '');
     if (ap) {
       if (ap.startsWith('+91')) ap = ap.slice(3);
-      if (!phoneRegex.test(ap)) return setError("Enter valid alternate phone number");
+      if (!phoneRegex.test(ap)) {
+        setFieldErrors({ alternate_phone: "Enter valid alternate phone number" });
+        return;
+      }
     }
 
     const payload = {
@@ -162,7 +234,7 @@ export const EditContactModal = ({ contact, driverId, onClose }) => {
           </button>
           <div className="flex items-center gap-2">
             <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-            <button onClick={handleSubmit} disabled={!form.contact_name || !form.phone || updateContact.isPending}
+            <button onClick={handleSubmit} disabled={updateContact.isPending}
               className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-[#0052CC] rounded-lg hover:bg-[#0043A8] disabled:opacity-50 disabled:cursor-not-allowed">
               {updateContact.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Edit size={14} /> Update Contact</>}
             </button>
@@ -182,10 +254,26 @@ export const EditContactModal = ({ contact, driverId, onClose }) => {
       <div className="space-y-4">
         {error && <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium">{error}</div>}
         <div className="grid grid-cols-2 gap-4">
-          <div className="col-span-2"><Label required>Full Name</Label><Input placeholder="e.g. John Doe" value={form.contact_name} onChange={set('contact_name')} /></div>
-          <div><Label required>Relationship</Label><Input placeholder="e.g. Spouse" value={form.relationship} onChange={set('relationship')} /></div>
-          <div><Label required>Phone Number</Label><Input placeholder="e.g. +91 98765 43210" value={form.phone} onChange={set('phone')} /></div>
-          <div><Label>Alternate Phone</Label><Input placeholder="Optional" value={form.alternate_phone} onChange={set('alternate_phone')} /></div>
+          <div className="col-span-2">
+            <Label required>Full Name</Label>
+            {renderError('contact_name')}
+            <Input placeholder="e.g. John Doe" value={form.contact_name} onChange={set('contact_name')} />
+          </div>
+          <div>
+            <Label required>Relationship</Label>
+            {renderError('relationship')}
+            <Input placeholder="e.g. Spouse" value={form.relationship} onChange={set('relationship')} />
+          </div>
+          <div>
+            <Label required>Phone Number</Label>
+            {renderError('phone')}
+            <Input placeholder="e.g. +91 98765 43210" value={form.phone} onChange={set('phone')} />
+          </div>
+          <div>
+            <Label>Alternate Phone</Label>
+            {renderError('alternate_phone')}
+            <Input placeholder="Optional" value={form.alternate_phone} onChange={set('alternate_phone')} />
+          </div>
           <div className="flex items-center gap-3 mt-6">
             <input type="checkbox" id="edit_is_primary" checked={form.is_primary} onChange={e => setForm(p => ({ ...p, is_primary: e.target.checked }))} className="w-4 h-4 text-[#0052CC] border-gray-300 rounded focus:ring-[#0052CC]" />
             <label htmlFor="edit_is_primary" className="text-sm font-semibold text-gray-700 cursor-pointer">Set as Primary Contact</label>
@@ -234,7 +322,7 @@ export const ViewContactModal = ({ contact, driverName, employeeId, onClose }) =
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <h3 className="text-lg font-black text-[#172B4D] leading-none uppercase tracking-tight">{driverName || '-'}</h3>
+              <h3 className="text-lg font-black text-[#172B4D] leading-none tracking-tight">{driverName || '-'}</h3>
               {contact.is_primary && (
                 <span className="text-[10px] font-black text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-100 flex items-center gap-1 uppercase">
                   <ShieldCheck size={10} /> Primary Contact
