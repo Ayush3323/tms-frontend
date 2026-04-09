@@ -177,7 +177,7 @@ const InfoCard = ({ label, value, icon: Icon, accent = false, isLoading = false 
 );
 
 // --- Tabs ---
-const OverviewTab = ({ trip, driver, vehicle, order, isLoadingNames }) => (
+const OverviewTab = ({ trip, driver, vehicle, order, isLoadingNames, navigate, originDisplay, destinationDisplay }) => (
   <div className="space-y-6">
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       <InfoCard label="status" value={trip.status} icon={Clock} accent />
@@ -190,16 +190,40 @@ const OverviewTab = ({ trip, driver, vehicle, order, isLoadingNames }) => (
       <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
         <SectionHeader icon={MapPin} title="Route Summary" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <InfoCard label="origin_address" value={trip.origin_address || trip.origin} icon={MapPin} />
-          <InfoCard label="destination_address" value={trip.destination_address || trip.destination} icon={MapPin} />
+          <InfoCard label="origin_address" value={originDisplay} icon={MapPin} />
+          <InfoCard label="destination_address" value={destinationDisplay} icon={MapPin} />
         </div>
+        <p className="mt-3 text-[11px] text-gray-500">
+          Route addresses are managed from the Stops tab.
+        </p>
       </div>
       <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
         <SectionHeader icon={Calendar} title="Reference Details" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <InfoCard label="lr_number" value={order?.lr_number || trip.lr_number} icon={FileText} />
           <InfoCard label="reference_number" value={trip.reference_number} icon={Hash} />
           <InfoCard label="created_date" value={formatDateTime(trip.created_date)} icon={Calendar} />
+          <InfoCard label="Pickup Date" value={order?.pickup_date || '—'} icon={Calendar} />
+          <InfoCard label="Delivery Date" value={order?.delivery_date || '—'} icon={CheckCircle2} />
         </div>
+        {trip.order_id && (
+          <div className="mt-3 flex items-center gap-4">
+            <button
+              type="button"
+              className="text-[11px] font-bold text-[#0052CC] hover:underline"
+              onClick={() => navigate(`/tenant/dashboard/orders/${trip.order_id}`)}
+            >
+              View Order
+            </button>
+            <button
+              type="button"
+              className="text-[11px] font-bold text-[#0052CC] hover:underline"
+              onClick={() => navigate(`/tenant/dashboard/orders/${trip.order_id}`)}
+            >
+              Edit on Order
+            </button>
+          </div>
+        )}
       </div>
     </div>
 
@@ -733,6 +757,13 @@ export default function TripDetail() {
   };
   const st = statusMap[trip.status] || statusMap.CREATED;
   const nextStatuses = TRIP_TRANSITIONS[trip.status] || [];
+  const stopRows = Array.isArray(stops) ? stops : stops?.results || [];
+  const sortedStops = [...stopRows].sort((a, b) => (a.stop_sequence || 0) - (b.stop_sequence || 0));
+  const firstPickupStop = sortedStops.find((s) => s.stop_type === 'PICKUP' && (s.location_address || '').trim());
+  const deliveryStops = sortedStops.filter((s) => s.stop_type === 'DELIVERY' && (s.location_address || '').trim());
+  const lastDeliveryStop = deliveryStops.length ? deliveryStops[deliveryStops.length - 1] : null;
+  const originDisplay = firstPickupStop?.location_address || trip.origin_address || trip.origin || 'Delhi';
+  const destinationDisplay = lastDeliveryStop?.location_address || trip.destination_address || trip.destination || 'Mumbai';
 
   const TABS = [
     { id: 'overview', label: 'Overview', icon: MapIcon },
@@ -760,7 +791,8 @@ export default function TripDetail() {
               {/* Origin */}
               <div className="text-left">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-0.5">Origin</p>
-                <h1 className="text-4xl font-black text-[#172B4D] tracking-tighter">{trip.origin_address || trip.origin || 'Delhi'}</h1>
+                <h1 className="text-4xl font-black text-[#172B4D] tracking-tighter">{originDisplay}</h1>
+                <p className="text-[11px] font-semibold text-gray-400 mt-1">Managed via Stops tab</p>
               </div>
 
               {/* Middle Line */}
@@ -775,7 +807,8 @@ export default function TripDetail() {
               {/* Destination */}
               <div className="text-left">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-0.5">Destination</p>
-                <h1 className="text-4xl font-black text-[#172B4D] tracking-tighter">{trip.destination_address || trip.destination || 'Mumbai'}</h1>
+                <h1 className="text-4xl font-black text-[#172B4D] tracking-tighter">{destinationDisplay}</h1>
+                <p className="text-[11px] font-semibold text-gray-400 mt-1">Managed via Stops tab</p>
               </div>
             </div>
 
@@ -887,7 +920,7 @@ export default function TripDetail() {
             ))}
           </div>
           <div className="p-8 lg:p-10 bg-gradient-to-b from-white to-gray-50/30 min-h-[500px]">
-            {activeTab === 'overview' && <OverviewTab trip={trip} driver={getDriverDisplay(driver, driverId, trip?.primary_driver_name)} vehicle={getVehicleDisplay(vehicle, vehicleId, trip?.vehicle_number)} order={order} isLoadingNames={loadingDriver || loadingVehicle} />}
+            {activeTab === 'overview' && <OverviewTab trip={trip} driver={getDriverDisplay(driver, driverId, trip?.primary_driver_name)} vehicle={getVehicleDisplay(vehicle, vehicleId, trip?.vehicle_number)} order={order} isLoadingNames={loadingDriver || loadingVehicle} navigate={navigate} originDisplay={originDisplay} destinationDisplay={destinationDisplay} />}
             {activeTab === 'journey' && (
                 <JourneyTab 
                     trip={trip} 

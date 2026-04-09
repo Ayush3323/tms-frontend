@@ -200,22 +200,14 @@ export const useTripDetail = (id) => {
 export const useCreateTrip = () => {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (data) => {
-      const trip = await tripsApi.create(data);
-      if (data.order_id) {
-        try {
-          await ordersApi.update(data.order_id, { status: 'ASSIGNED' });
-        } catch (err) {
-          console.error("Order status update failed:", err);
-          // We don't fail the whole trip creation if order update fails, 
-          // but we log it.
-        }
-      }
-      return trip;
-    },
-    onSuccess: () => {
+    mutationFn: (data) => tripsApi.create(data),
+    onSuccess: (trip, variables) => {
+      const orderId = trip?.order_id || variables?.order_id;
       queryClient.invalidateQueries({ queryKey: orderKeys.trips() })
       queryClient.invalidateQueries({ queryKey: orderKeys.all })
+      if (orderId) {
+        queryClient.invalidateQueries({ queryKey: orderKeys.detail(orderId) })
+      }
       toast.success('Trip created successfully')
     },
     onError: (err) => handleApiError(err, 'Trip creation failed'),
@@ -226,31 +218,16 @@ export const useUpdateTrip = () => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, data, fullReplace = false }) => {
-      const currentTrip = queryClient.getQueryData(orderKeys.tripDetail(id));
-      const response = fullReplace ? await tripsApi.replace(id, data) : await tripsApi.update(id, data);
-      
-      const orderId = data.order_id || currentTrip?.order_id;
-      if (orderId && data.status && data.status !== currentTrip?.status) {
-        let orderStatus = null;
-        if (data.status === 'IN_TRANSIT') orderStatus = 'IN_TRANSIT';
-        else if (['DELIVERED', 'COMPLETED'].includes(data.status)) orderStatus = 'DELIVERED';
-        else if (data.status === 'CANCELLED') orderStatus = 'CANCELLED';
-        else if (data.status === 'ASSIGNED' || data.status === 'CREATED') orderStatus = 'ASSIGNED';
-
-        if (orderStatus) {
-          try {
-            await ordersApi.update(orderId, { status: orderStatus });
-          } catch (err) {
-            console.error("Order status update failed (on trip update):", err);
-          }
-        }
-      }
-      return response;
+      return fullReplace ? tripsApi.replace(id, data) : tripsApi.update(id, data)
     },
-    onSuccess: (_, { id }) => {
+    onSuccess: (trip, { id, data }) => {
+      const orderId = trip?.order_id || data?.order_id
       queryClient.invalidateQueries({ queryKey: orderKeys.trips() })
       queryClient.invalidateQueries({ queryKey: orderKeys.tripDetail(id) })
       queryClient.invalidateQueries({ queryKey: orderKeys.all })
+      if (orderId) {
+        queryClient.invalidateQueries({ queryKey: orderKeys.detail(orderId) })
+      }
       toast.success('Trip updated successfully')
     },
     onError: (err) => handleApiError(err, 'Update failed'),
