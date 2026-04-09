@@ -38,7 +38,7 @@ const validateOrderForm = (formData, { requireBillingCustomer = true } = {}) => 
   const receiving = formData.lr_receiving_date || '';
 
   if (requireBillingCustomer && !formData.billing_customer_id) {
-    errors.billing_customer_id = 'Billing customer is required.';
+    errors.billing_customer_id = 'Please select a billing customer.';
   }
   if (reference.length > 100) {
     errors.reference_number = 'Reference number cannot exceed 100 characters.';
@@ -148,7 +148,6 @@ export function CreateOrderModal({ isOpen, onClose }) {
               Billing Customer <span className="text-red-500">*</span>
             </label>
             <select
-              required
               className={`w-full p-2 border rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none ${formErrors.billing_customer_id ? 'border-red-400' : 'border-gray-300'}`}
               value={formData.billing_customer_id}
               onChange={e => {
