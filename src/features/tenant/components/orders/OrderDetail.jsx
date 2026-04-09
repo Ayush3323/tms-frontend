@@ -9,11 +9,9 @@ import {
 } from 'lucide-react';
 import { 
   useOrderDetail, 
-  useUpdateOrder, 
   useDeleteOrder, 
   useTrips,
   useCargoItems,
-  useAssignTrip,
   useCancelOrder
 } from '../../queries/orders/ordersQuery';
 import { useCustomer } from '../../queries/customers/customersQuery';
@@ -72,7 +70,19 @@ const Section = ({ title, children, icon: Icon }) => (
 );
 
 const StatusStepper = ({ currentStatus }) => {
-  const currentIndex = STATUS_STEPS.findIndex(s => s.id === currentStatus);
+  const STATUS_TO_STEP = {
+    DRAFT: 'DRAFT',
+    CONFIRMED: 'CONFIRMED',
+    ASSIGNED: 'ASSIGNED',
+    IN_TRANSIT: 'IN_TRANSIT',
+    DELAYED: 'IN_TRANSIT',
+    ARRIVED: 'IN_TRANSIT',
+    DISPATCHED: 'IN_TRANSIT',
+    DELIVERED: 'DELIVERED',
+    COMPLETED: 'DELIVERED',
+  };
+  const normalizedStatus = STATUS_TO_STEP[currentStatus] || 'DRAFT';
+  const currentIndex = STATUS_STEPS.findIndex((s) => s.id === normalizedStatus);
   const isCancelled = currentStatus === 'CANCELLED';
 
   if (isCancelled) {
@@ -118,7 +128,16 @@ const StatusStepper = ({ currentStatus }) => {
   );
 };
 
-const OverviewTab = ({ order, getCustomerName, st, consignor, consignee, billingCustomer }) => (
+const OverviewTab = ({ order, getCustomerName, st, consignor, consignee, billingCustomer, navigate }) => {
+  const { data: tripsData } = useTrips({ order_id: order?.id, page_size: 50 });
+  const trips = tripsData?.results || (Array.isArray(tripsData) ? tripsData : []);
+  const executionTrips = [...trips].sort((a, b) => {
+    const dateA = new Date(a.scheduled_pickup_date || a.created_at || 0);
+    const dateB = new Date(b.scheduled_pickup_date || b.created_at || 0);
+    return dateA - dateB;
+  });
+
+  return (
   <div className="space-y-6">
     {/* Grid with Identity and Timeline */}
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -139,6 +158,31 @@ const OverviewTab = ({ order, getCustomerName, st, consignor, consignee, billing
             </div>
         </Section>
     </div>
+
+    <Section title="Execution Dates (Read-Only)" icon={Truck}>
+      {executionTrips.length ? (
+        <div className="space-y-3">
+          {executionTrips.map((trip) => (
+            <div key={trip.id} className="rounded-xl border border-gray-100 bg-white p-3 flex items-center justify-between gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1">
+                <DataField label="Trip" value={trip.trip_number || trip.id?.slice(0, 8)} mono />
+                <DataField label="Scheduled Pickup" value={trip.scheduled_pickup_date || 'Not Set'} />
+                <DataField label="Scheduled Delivery" value={trip.scheduled_delivery_date || 'Not Set'} />
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate(`/tenant/dashboard/orders/trips/${trip.id}`)}
+                className="text-xs font-bold text-[#0052CC] hover:underline whitespace-nowrap"
+              >
+                Edit on Trip
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-gray-500">No execution trip linked yet.</p>
+      )}
+    </Section>
 
     {/* Participants Details */}
     <Section title="Participants" icon={User}>
@@ -226,16 +270,17 @@ const OverviewTab = ({ order, getCustomerName, st, consignor, consignee, billing
         </div>
     </Section>
   </div>
-);
+  );
+};
 
 const TripsTab = ({ orderId, navigate }) => {
   const { data: tripsData, isLoading } = useTrips({ order_id: orderId });
   const trips = tripsData?.results || (Array.isArray(tripsData) ? tripsData : []);
 
-  // Sort trips chronologically by pickup_date, scheduled_date or created_at
+  // Sort trips chronologically by scheduled pickup or created time
   const sortedTrips = [...trips].sort((a, b) => {
-    const dateA = new Date(a.pickup_date || a.scheduled_date || a.created_at);
-    const dateB = new Date(b.pickup_date || b.scheduled_date || b.created_at);
+    const dateA = new Date(a.scheduled_pickup_date || a.created_at || 0);
+    const dateB = new Date(b.scheduled_pickup_date || b.created_at || 0);
     return dateA - dateB;
   });
 
@@ -263,7 +308,7 @@ const TripsTab = ({ orderId, navigate }) => {
         {sortedTrips.length > 0 ? (
           sortedTrips.map(trip => {
             const isActive = trip.status === 'IN_TRANSIT';
-            const isAssigned = trip.status === 'ASSIGNED' || trip.status === 'SCHEDULED';
+            const isAssigned = trip.status === 'ASSIGNED' || trip.status === 'DISPATCHED';
             const isRecent = (new Date() - new Date(trip.updated_at || trip.created_at || Date.now())) < 120000; // 2 minutes
 
             return (
@@ -394,9 +439,10 @@ export default function OrderDetail() {
   const [isAssignOpen, setIsAssignOpen] = useState(false);
 
    const { data: order, isLoading, isError, error } = useOrderDetail(id);
-  const updateOrderMutation = useUpdateOrder();
+  const { data: orderTripsData } = useTrips({ order_id: id, page_size: 1, ordering: '-created_at' });
   const deleteOrderMutation = useDeleteOrder();
   const cancelOrderMutation = useCancelOrder();
+  const linkedTrips = orderTripsData?.results || (Array.isArray(orderTripsData) ? orderTripsData : []);
 
   // Fetch expanded customer data if not present in order object
   const { data: consignor } = useCustomer(typeof order?.consignor_id === 'string' ? order.consignor_id : null);
@@ -410,15 +456,6 @@ export default function OrderDetail() {
   };
 
   const handleBack = () => navigate('/tenant/dashboard/orders');
-
-  const handleConfirm = () => {
-    if (window.confirm("Move this order to CONFIRMED status?")) {
-        updateOrderMutation.mutate({ 
-            id: order.id, 
-            data: { status: 'CONFIRMED' } 
-        });
-    }
-  };
 
   const handleDeleteClick = () => {
     if (window.confirm("Are you sure you want to permanently delete this order? This action cannot be undone.")) {
@@ -476,24 +513,19 @@ export default function OrderDetail() {
             </div>
 
             <div className="flex items-center gap-3">
-                {order.status === 'DRAFT' && (
-                    <button 
-                        onClick={handleConfirm}
-                        disabled={updateOrderMutation.isPending}
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-all shadow-md shadow-blue-100 disabled:opacity-50"
-                    >
-                        <CheckCircle2 size={16} /> Confirm Order
-                    </button>
-                )}
-
-                {order.status === 'CONFIRMED' && (
-                    <button 
-                        onClick={() => navigate(`/tenant/dashboard/orders/trips/new?order_id=${order.id}`)}
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-[#0052CC] rounded-xl hover:bg-[#0041a3] transition-all shadow-md shadow-blue-100"
-                    >
-                        <Truck size={16} /> Assign Trip
-                    </button>
-                )}
+                <button
+                    onClick={() => {
+                      const firstTrip = linkedTrips[0];
+                      if (firstTrip?.id) {
+                        navigate(`/tenant/dashboard/orders/trips/${firstTrip.id}`);
+                        return;
+                      }
+                      navigate(`/tenant/dashboard/orders/trips/new?order_id=${order.id}`);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-[#0052CC] rounded-xl hover:bg-[#0041a3] transition-all shadow-md shadow-blue-100"
+                >
+                    <Truck size={16} /> Open Trip Planner
+                </button>
 
 
 
@@ -529,6 +561,9 @@ export default function OrderDetail() {
         {/* Dynamic Status Stepper */}
         <div className="bg-white rounded-3xl border border-gray-200 pt-10 pb-10 shadow-sm overflow-hidden">
             <StatusStepper currentStatus={order.status} />
+            <p className="text-center text-xs text-gray-500 font-semibold">
+              Status is derived from trip execution. Update status from the Trip module.
+            </p>
         </div>
 
         {/* Main Content Tabs (Full Width) */}
@@ -558,6 +593,7 @@ export default function OrderDetail() {
                         consignor={consignor}
                         consignee={consignee}
                         billingCustomer={billingCustomer}
+                        navigate={navigate}
                     />
                 )}
                 {activeTab === 'trips' && <TripsTab orderId={id} navigate={navigate} />}

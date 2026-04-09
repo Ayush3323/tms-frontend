@@ -1,17 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Plus, Search, Download, Edit2, Truck, XCircle,
+  Plus, Search, Download, XCircle, Truck,
   Package, CheckCircle2, Clock, RefreshCcw, Eye
 } from 'lucide-react';
 import { 
-  useOrders, useCancelOrder, useOrderDetail, useUpdateOrder
+  useOrders
 } from '../../queries/orders/ordersQuery';
 import { useCustomers } from '../../queries/customers/customersQuery';
 import { 
-  CreateOrderModal, 
-  EditOrderModal, 
-  AssignTripModal 
+  CreateOrderModal
 } from './OrderModals';
 
 // --- Configuration & Helpers ---
@@ -31,6 +29,7 @@ const TAB_CONFIG = [
   { label: 'ASSIGNED', count: 0 },
   { label: 'IN_TRANSIT', count: 0 },
   { label: 'DELIVERED', count: 0 },
+  { label: 'CANCELLED', count: 0 },
 ];
 
 export default function Orders() {
@@ -41,10 +40,6 @@ export default function Orders() {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('All Status');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isAssignOpen, setIsAssignOpen] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState(null);
-  const updateOrderMutation = useUpdateOrder();
   const [searchInput, setSearchInput] = useState('');
 
   // Data for dropdowns
@@ -75,17 +70,8 @@ export default function Orders() {
     delivered: orders.filter(o => o.status === 'DELIVERED').length,
   };
 
-  const handleEdit = (order) => {
-    setSelectedOrder(order);
-    setIsEditOpen(true);
-  };
-
   const handleView = (orderId) => {
     navigate(`/tenant/dashboard/orders/${orderId}`);
-  };
-
-  const handleAssignTrip = (order) => {
-    navigate(`/tenant/dashboard/orders/trips/new?order_id=${order.id}`);
   };
 
   const handleSearchSubmit = (e) => {
@@ -238,13 +224,16 @@ export default function Orders() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex justify-center">
-                          <span className={`px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 border shadow-sm ${st.color} ${st.bg} ${st.border}`}>
-                            <span className="relative flex h-1.5 w-1.5">
-                              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${st.color.replace('text', 'bg')}`}></span>
-                              <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${st.color.replace('text', 'bg')}`}></span>
+                          <div className="text-center">
+                            <span className={`px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 border shadow-sm ${st.color} ${st.bg} ${st.border}`}>
+                              <span className="relative flex h-1.5 w-1.5">
+                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${st.color.replace('text', 'bg')}`}></span>
+                                <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${st.color.replace('text', 'bg')}`}></span>
+                              </span>
+                              {order.status}
                             </span>
-                            {order.status}
-                          </span>
+                            <p className="mt-1 text-[9px] font-semibold text-gray-400">Derived from trips</p>
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -255,33 +244,6 @@ export default function Orders() {
                             title="Quick View Record"
                           >
                             <Eye size={16} />
-                          </button>
-                          
-                          {order.status === 'CONFIRMED' && (
-                            <button 
-                              onClick={() => handleAssignTrip(order)}
-                              className="p-2 text-gray-400 hover:text-amber-600 hover:bg-white rounded-lg border border-transparent hover:border-amber-100 shadow-sm transition-all"
-                              title="Assign to Vehicle"
-                            >
-                              <Truck size={16} />
-                            </button>
-                          )}
-                          {order.status === 'DRAFT' && (
-                            <button
-                              onClick={() => updateOrderMutation.mutate({ id: order.id, data: { status: 'CONFIRMED' } })}
-                              className="p-2 text-gray-400 hover:text-green-600 hover:bg-white rounded-lg border border-transparent hover:border-green-100 shadow-sm transition-all"
-                              title="Confirm Order"
-                            >
-                              <CheckCircle2 size={16} />
-                            </button>
-                          )}
-
-                          <button 
-                            onClick={() => handleEdit(order)}
-                            className="p-2 text-gray-400 hover:text-[#0052CC] hover:bg-white rounded-lg border border-transparent hover:border-blue-100 shadow-sm transition-all"
-                            title="Operational Edit"
-                          >
-                            <Edit2 size={16} />
                           </button>
                         </div>
                       </td>
@@ -334,30 +296,6 @@ export default function Orders() {
         isOpen={isCreateOpen} 
         onClose={() => setIsCreateOpen(false)} 
       />
-      
-      {selectedOrder && (
-        <EditOrderModal 
-          isOpen={isEditOpen} 
-          onClose={() => {
-            setIsEditOpen(false);
-            setSelectedOrder(null);
-          }} 
-          order={selectedOrder}
-        />
-      )}
-
-      {selectedOrder && (
-        <AssignTripModal
-          isOpen={isAssignOpen}
-          onClose={() => {
-            setIsAssignOpen(false);
-            setSelectedOrder(null);
-          }}
-          order={selectedOrder}
-          consignor={customers.find(c => c.id === selectedOrder.consignor_id)}
-          consignee={customers.find(c => c.id === selectedOrder.consignee_id)}
-        />
-      )}
     </div>
   );
 }

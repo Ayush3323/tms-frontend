@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { X, Truck, User, MapPin, Calendar, FileText, Hash, Receipt, ArrowRight, Activity, DollarSign, Gauge, Clock, ShieldCheck, AlertCircle, Info, ChevronRight, Search, CheckCircle2, ChevronLeft, Save, Circle, GripVertical, Trash2 } from 'lucide-react';
 import {
   useCreateTrip,
@@ -83,10 +84,13 @@ const StatusBadge = ({ status }) => {
   const configs = {
     CREATED: 'bg-blue-50 text-blue-700 border-blue-100',
     ASSIGNED: 'bg-indigo-50 text-indigo-700 border-indigo-100',
-    STARTED: 'bg-amber-50 text-amber-700 border-amber-100',
+    DISPATCHED: 'bg-amber-50 text-amber-700 border-amber-100',
     IN_TRANSIT: 'bg-teal-50 text-teal-700 border-teal-100',
+    DELAYED: 'bg-orange-50 text-orange-700 border-orange-100',
+    ARRIVED: 'bg-cyan-50 text-cyan-700 border-cyan-100',
     COMPLETED: 'bg-green-50 text-green-700 border-green-100',
     DELIVERED: 'bg-green-50 text-green-700 border-green-100',
+    CANCELLED: 'bg-red-50 text-red-700 border-red-100',
   };
   const config = configs[status] || 'bg-gray-50 text-gray-700 border-gray-100';
   return (
@@ -121,7 +125,7 @@ export function CreateTripModal({ isOpen, onClose, orderId, orderNumber }) {
   const { data: ordersData } = useOrders({ page_size: 100 });
   const ordersDataResults = ordersData?.results || [];
   const orders = useMemo(() => ordersDataResults.filter(o => 
-    ['DRAFT', 'CONFIRMED'].includes(o.status)
+    ['DRAFT', 'CONFIRMED', 'ASSIGNED', 'IN_TRANSIT'].includes(o.status)
   ), [ordersDataResults]);
 
   const [formData, setFormData] = useState({
@@ -140,7 +144,8 @@ export function CreateTripModal({ isOpen, onClose, orderId, orderNumber }) {
     setFormData(prev => ({
       ...prev,
       order_id: id,
-      lr_number: order ? order.lr_number : ""
+      lr_number: order ? order.lr_number : "",
+      status: order ? 'ASSIGNED' : (prev.status || 'CREATED'),
     }));
   };
 
@@ -309,6 +314,7 @@ export function CreateTripModal({ isOpen, onClose, orderId, orderNumber }) {
 }
 
 export function EditTripModal({ isOpen, onClose, trip }) {
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [isDirty, setIsDirty] = useState(false);
   const updateTripMutation = useUpdateTrip();
@@ -354,7 +360,7 @@ export function EditTripModal({ isOpen, onClose, trip }) {
   const { data: ordersData } = useOrders({ page_size: 100 });
   const ordersDataResults = ordersData?.results || [];
   const orders = useMemo(() => ordersDataResults.filter(o => 
-    ['DRAFT', 'CONFIRMED'].includes(o.status) || String(o.id) === String(trip?.order_id)
+    ['DRAFT', 'CONFIRMED', 'ASSIGNED', 'IN_TRANSIT'].includes(o.status) || String(o.id) === String(trip?.order_id)
   ), [ordersDataResults, trip?.order_id]);
   const { data: driversData } = useDrivers({ page_size: 100 });
   const drivers = driversData?.results || [];
@@ -641,10 +647,34 @@ export function EditTripModal({ isOpen, onClose, trip }) {
                 </div>
                 <div className="grid grid-cols-3 gap-6">
                   <FieldGroup label="lr_number">
-                    <input type="text" name="lr_number" className={inputClass} value={formData.lr_number || ""} onChange={handleInputChange} placeholder="Auto-filled" disabled readOnly />
+                    <div className="space-y-1.5">
+                      <input type="text" name="lr_number" className={inputClass} value={formData.lr_number || ""} placeholder="Auto-filled" disabled readOnly />
+                      {formData.order_id && (
+                        <button
+                          type="button"
+                          className="text-[11px] font-bold text-[#0052CC] hover:underline"
+                          onClick={() => navigate(`/tenant/dashboard/orders/${formData.order_id}`)}
+                        >
+                          View Order
+                        </button>
+                      )}
+                    </div>
                   </FieldGroup>
                   <FieldGroup label="reference_number">
-                    <input type="text" name="reference_number" className={inputClass} value={formData.reference_number || ""} onChange={handleInputChange} placeholder="PO-12345" />
+                    {formData.order_id ? (
+                      <div className="space-y-1.5">
+                        <input type="text" name="reference_number" className={inputClass} value={formData.reference_number || ""} placeholder="PO-12345" disabled readOnly />
+                        <button
+                          type="button"
+                          className="text-[11px] font-bold text-[#0052CC] hover:underline"
+                          onClick={() => navigate(`/tenant/dashboard/orders/${formData.order_id}`)}
+                        >
+                          Edit on Order
+                        </button>
+                      </div>
+                    ) : (
+                      <input type="text" name="reference_number" className={inputClass} value={formData.reference_number || ""} onChange={handleInputChange} placeholder="PO-12345" />
+                    )}
                   </FieldGroup>
                   <FieldGroup label="trip_type">
                     <select name="trip_type" className={inputClass} value={formData.trip_type || ""} onChange={handleInputChange}>

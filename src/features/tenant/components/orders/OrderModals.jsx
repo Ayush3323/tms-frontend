@@ -103,7 +103,6 @@ export function CreateOrderModal({ isOpen, onClose }) {
     consignee_id: "",
     broker_id: "",
     order_type: "FTL",
-    status: "DRAFT",
     reference_number: "",
     pickup_date: "",
     delivery_date: "",
@@ -126,7 +125,7 @@ export function CreateOrderModal({ isOpen, onClose }) {
       onSuccess: () => {
         setFormData({
           billing_customer_id: "", consignor_id: "", consignee_id: "", broker_id: "",
-          order_type: "FTL", status: "DRAFT", reference_number: "", pickup_date: "", delivery_date: "", notes: "",
+          order_type: "FTL", reference_number: "", pickup_date: "", delivery_date: "", notes: "",
           created_at: new Date().toISOString(),
           lr_receiving_date: "",
           billing_company_name: ""
@@ -173,7 +172,7 @@ export function CreateOrderModal({ isOpen, onClose }) {
             {formErrors.billing_customer_id && <p className="mt-1 text-xs text-red-600">{formErrors.billing_customer_id}</p>}
           </div>
           <div>
-            <label className="block text-gray-700 font-medium mb-1">Order Type</label>
+            <label className="block text-gray-700 font-medium mb-1">Order Type (Contract)</label>
             <select
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
               value={formData.order_type}
@@ -288,21 +287,7 @@ export function CreateOrderModal({ isOpen, onClose }) {
               ))}
             </select>
           </div>
-          <div>
-            <label className="block text-gray-700 font-medium mb-1">Status</label>
-            <select
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
-              value={formData.status}
-              onChange={e => setFormData({ ...formData, status: e.target.value })}
-            >
-              <option value="DRAFT">DRAFT</option>
-              <option value="CONFIRMED">CONFIRMED</option>
-              <option value="ASSIGNED">ASSIGNED</option>
-              <option value="IN_TRANSIT">IN_TRANSIT</option>
-              <option value="DELIVERED">DELIVERED</option>
-              <option value="CANCELLED">CANCELLED</option>
-            </select>
-          </div>
+          <div />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -405,7 +390,6 @@ export function EditOrderModal({ isOpen, onClose, order }) {
   const [formData, setFormData] = useState({
     billing_customer_id: order?.billing_customer_id || "",
     order_type: order?.order_type || "FTL",
-    status: order?.status || 'DRAFT',
     consignor_id: order?.consignor_id || "",
     consignee_id: order?.consignee_id || "",
     broker_id: order?.broker_id || "",
@@ -424,7 +408,6 @@ export function EditOrderModal({ isOpen, onClose, order }) {
       setFormData({
         billing_customer_id: order.billing_customer_id || "",
         order_type: order.order_type || "FTL",
-        status: order.status,
         consignor_id: order.consignor_id || "",
         consignee_id: order.consignee_id || "",
         broker_id: order.broker_id || "",
@@ -510,21 +493,6 @@ export function EditOrderModal({ isOpen, onClose, order }) {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-gray-700 font-medium mb-1">Status</label>
-            <select
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
-              value={formData.status}
-              onChange={e => setFormData({ ...formData, status: e.target.value })}
-            >
-              <option value="DRAFT">DRAFT</option>
-              <option value="CONFIRMED">CONFIRMED</option>
-              <option value="ASSIGNED">ASSIGNED</option>
-              <option value="IN_TRANSIT">IN_TRANSIT</option>
-              <option value="DELIVERED">DELIVERED</option>
-              <option value="CANCELLED">CANCELLED</option>
-            </select>
-          </div>
-          <div>
             <label className="block text-gray-700 font-medium mb-1">Reference Number</label>
             <input
               type="text"
@@ -539,6 +507,7 @@ export function EditOrderModal({ isOpen, onClose, order }) {
             />
             {formErrors.reference_number && <p className="mt-1 text-xs text-red-600">{formErrors.reference_number}</p>}
           </div>
+          <div />
         </div>
 
         <details className="rounded-lg border border-gray-200 bg-gray-50/70 p-3" open>
@@ -779,7 +748,7 @@ export function AssignTripModal({ isOpen, onClose, order, consignor, consignee }
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-gray-700 font-bold mb-1 uppercase text-[10px] tracking-widest">Origin Point</label>
+            <label className="block text-gray-700 font-bold mb-1 uppercase text-[10px] tracking-widest">Trip Origin (editable on Trip)</label>
             <input
               type="text"
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
@@ -789,7 +758,7 @@ export function AssignTripModal({ isOpen, onClose, order, consignor, consignee }
             />
           </div>
           <div>
-            <label className="block text-gray-700 font-bold mb-1 uppercase text-[10px] tracking-widest">Destination Point</label>
+            <label className="block text-gray-700 font-bold mb-1 uppercase text-[10px] tracking-widest">Trip Destination (editable on Trip)</label>
             <input
               type="text"
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
@@ -802,7 +771,7 @@ export function AssignTripModal({ isOpen, onClose, order, consignor, consignee }
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-gray-700 font-bold mb-1 uppercase text-[10px] tracking-widest">Scheduled Pickup</label>
+            <label className="block text-gray-700 font-bold mb-1 uppercase text-[10px] tracking-widest">Scheduled Pickup (pre-filled from order)</label>
             <input
               type="date"
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
@@ -811,7 +780,7 @@ export function AssignTripModal({ isOpen, onClose, order, consignor, consignee }
             />
           </div>
           <div>
-            <label className="block text-gray-700 font-bold mb-1 uppercase text-[10px] tracking-widest">Scheduled Delivery</label>
+            <label className="block text-gray-700 font-bold mb-1 uppercase text-[10px] tracking-widest">Scheduled Delivery (pre-filled from order)</label>
             <input
               type="date"
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
@@ -823,7 +792,8 @@ export function AssignTripModal({ isOpen, onClose, order, consignor, consignee }
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-gray-700 font-bold mb-1 uppercase text-[10px] tracking-widest">Trip Type</label>
+            <label className="block text-gray-700 font-bold mb-1 uppercase text-[10px] tracking-widest">Trip Type (Operational)</label>
+            <p className="mb-1 text-[10px] text-gray-500">Defaulted from order type; change only if this trip uses a different load type.</p>
             <select
               className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
               value={formData.trip_type}
