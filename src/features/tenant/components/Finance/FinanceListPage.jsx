@@ -22,6 +22,8 @@ export default function FinanceListPage({
   actions,
   rowActions,
   keyField = 'id',
+  secondaryFilters = null,
+  emptyMessage = 'No records found',
 }) {
   return (
     <div className="min-h-screen bg-[#F8FAFC] p-6 lg:p-8">
@@ -40,6 +42,7 @@ export default function FinanceListPage({
               className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm font-medium"
             />
           </div>
+          {secondaryFilters && <div className="flex items-center gap-2">{secondaryFilters}</div>}
           <div className="flex items-center justify-end gap-2 ml-auto">
             <button
               type="button"
@@ -106,6 +109,7 @@ export default function FinanceListPage({
                   <tr>
                     <td colSpan={columns.length + (rowActions ? 1 : 0)} className="px-6 py-20 text-center">
                       <p className="text-sm font-black uppercase tracking-[0.2em] opacity-30">No records found</p>
+                      <p className="text-xs font-semibold text-gray-400 mt-2">{emptyMessage}</p>
                     </td>
                   </tr>
                 )}

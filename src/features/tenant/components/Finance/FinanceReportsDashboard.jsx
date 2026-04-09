@@ -86,12 +86,23 @@ export default function FinanceReportsDashboard() {
               onChange={(e) => setQuarter(e.target.value)}
               className="w-44 px-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm font-medium"
             />
+            <button
+              type="button"
+              onClick={() => {
+                setFinancialYear('')
+                setQuarter('')
+              }}
+              className="px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs font-bold text-gray-600 hover:bg-gray-50"
+            >
+              Clear
+            </button>
           </div>
           <div className="flex items-center justify-end gap-2 ml-auto">
             <button
               type="button"
               onClick={refreshAll}
-              className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm"
+              className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm disabled:opacity-50"
+              disabled={loading}
             >
               <RefreshCcw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
             </button>
