@@ -97,6 +97,60 @@ const SubMenu = ({ items, onNavigate }) => (
   </div>
 );
 
+const NavItem = ({ icon, label, isOpen, setIsOpen, isActive, subItems, title, onClick, isCollapsed, setIsCollapsed }) => (
+  <div className="relative group">
+    <button
+      onClick={() => {
+        if (onClick) {
+          onClick();
+          if (isCollapsed && setIsCollapsed) setIsCollapsed(false);
+        } else if (!isCollapsed) {
+          setIsOpen((o) => !o);
+        } else if (isCollapsed) {
+          if (setIsCollapsed) setIsCollapsed(false);
+          setIsOpen(true);
+        }
+      }}
+      className={`w-full flex ${isCollapsed ? 'flex-col items-center justify-center py-3' : 'items-center gap-3 px-3 py-2.5'} rounded-lg transition-all border ${isActive
+        ? 'bg-[#EBF3FF] text-[#0052CC] border-[#D0E2FF]'
+        : 'text-gray-600 hover:bg-gray-100 border-transparent'
+        }`}
+      title={isCollapsed ? "" : title}
+    >
+      <div className={`${isActive ? 'text-[#0052CC]' : 'text-gray-400'} ${isCollapsed ? 'mb-1.5' : ''} flex items-center justify-center`}>
+        {React.cloneElement(icon, { size: isCollapsed ? 24 : 18 })}
+      </div>
+      {!isCollapsed ? (
+        <>
+          <span className="text-sm font-semibold flex-1 text-left animate-in fade-in duration-500">{label}</span>
+          {subItems.length > 0 && (
+            <ChevronDown size={15} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : 'rotate-0'} ${isActive ? 'text-[#0052CC]' : 'text-gray-400'}`} />
+          )}
+        </>
+      ) : (
+        <span className="text-[10px] font-bold text-gray-500 text-center leading-none">{label}</span>
+      )}
+    </button>
+
+    {/* Expanded Submenu (for desktop/expanded state) */}
+    {!isCollapsed && (
+      <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
+        <SubMenu items={subItems} onNavigate={() => setIsCollapsed?.(false)} />
+      </div>
+    )}
+
+    {/* Floating Submenu for Collapsed State */}
+    {isCollapsed && (
+      <div className="absolute left-[calc(100%+8px)] top-0 w-48 bg-white border border-gray-200 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[999] py-2 animate-in fade-in slide-in-from-left-2 duration-200">
+        <div className="px-3 py-2 border-b border-gray-100 mb-1">
+          <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{label}</span>
+        </div>
+        <SubMenu items={subItems} onNavigate={() => setIsCollapsed?.(false)} />
+      </div>
+    )}
+  </div>
+);
+
 const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -118,60 +172,6 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const [customersOpen, setCustomersOpen] = useState(isCustomerPath);
   const [ordersOpen, setOrdersOpen] = useState(isOrderPath);
 
-  const NavItem = ({ icon, label, isOpen, setIsOpen, isActive, subItems, title, onClick }) => (
-    <div className="relative group">
-      <button
-        onClick={() => {
-          if (onClick) {
-            onClick();
-            if (isCollapsed && setIsCollapsed) setIsCollapsed(false);
-          } else if (!isCollapsed) {
-            setIsOpen((o) => !o);
-          } else if (isCollapsed) {
-            if (setIsCollapsed) setIsCollapsed(false);
-            setIsOpen(true);
-          }
-        }}
-        className={`w-full flex ${isCollapsed ? 'flex-col items-center justify-center py-3' : 'items-center gap-3 px-3 py-2.5'} rounded-lg transition-all border ${isActive
-          ? 'bg-[#EBF3FF] text-[#0052CC] border-[#D0E2FF]'
-          : 'text-gray-600 hover:bg-gray-100 border-transparent'
-          }`}
-        title={isCollapsed ? "" : title}
-      >
-        <div className={`${isActive ? 'text-[#0052CC]' : 'text-gray-400'} ${isCollapsed ? 'mb-1.5' : ''} flex items-center justify-center`}>
-          {React.cloneElement(icon, { size: isCollapsed ? 24 : 18 })}
-        </div>
-        {!isCollapsed ? (
-          <>
-            <span className="text-sm font-semibold flex-1 text-left animate-in fade-in duration-500">{label}</span>
-            {subItems.length > 0 && (
-              <ChevronDown size={15} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : 'rotate-0'} ${isActive ? 'text-[#0052CC]' : 'text-gray-400'}`} />
-            )}
-          </>
-        ) : (
-          <span className="text-[10px] font-bold text-gray-500 text-center leading-none">{label}</span>
-        )}
-      </button>
-
-      {/* Expanded Submenu (for desktop/expanded state) */}
-      {!isCollapsed && (
-        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
-          <SubMenu items={subItems} onNavigate={() => setIsCollapsed?.(false)} />
-        </div>
-      )}
-
-      {/* Floating Submenu for Collapsed State */}
-      {isCollapsed && (
-        <div className="absolute left-[calc(100%+8px)] top-0 w-48 bg-white border border-gray-200 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[999] py-2 animate-in fade-in slide-in-from-left-2 duration-200">
-          <div className="px-3 py-2 border-b border-gray-100 mb-1">
-            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{label}</span>
-          </div>
-          <SubMenu items={subItems} onNavigate={() => setIsCollapsed?.(false)} />
-        </div>
-      )}
-    </div>
-  );
-
   return (
     <aside className={`${isCollapsed ? 'w-24' : 'w-64'} h-screen bg-[#F8FAFC] border-r border-gray-200 flex flex-col p-4 sticky top-0 z-50 transition-all duration-300 ease-in-out`}>
       <div className="flex-1 overflow-y-auto scrollbar-hide flex flex-col">
@@ -191,7 +191,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
         </div>
 
         {/* Navigation Area */}
-        <div className={`flex-1 ${isCollapsed ? '' : 'overflow-y-auto scrollbar-hide'} -mx-2 px-2`}>
+        <div className="flex-1 -mx-2 px-2">
           <div className="mb-4">
             {!isCollapsed && <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-2 mb-2 animate-in fade-in duration-500">Main</p>}
             <nav className="space-y-1 mt-2">
@@ -206,6 +206,8 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                 onClick={() => {
                   navigate('/tenant/dashboard/overview');
                 }}
+                isCollapsed={isCollapsed}
+                setIsCollapsed={setIsCollapsed}
               />
               <NavItem
                 icon={<Users />}
@@ -215,6 +217,8 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                 isActive={isUserPath}
                 subItems={userSubItems}
                 title="Users Management"
+                isCollapsed={isCollapsed}
+                setIsCollapsed={setIsCollapsed}
               />
               <NavItem
                 icon={<Truck />}
@@ -224,6 +228,8 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                 isActive={isVehiclePath}
                 subItems={vehicleSubItems}
                 title="Vehicles Management"
+                isCollapsed={isCollapsed}
+                setIsCollapsed={setIsCollapsed}
               />
               <NavItem
                 icon={<Users />}
@@ -233,6 +239,8 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                 isActive={isDriverPath}
                 subItems={driverSubItems}
                 title="Drivers Management"
+                isCollapsed={isCollapsed}
+                setIsCollapsed={setIsCollapsed}
               />
               <NavItem
                 icon={<Building2 />}
@@ -242,6 +250,8 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                 isActive={isCustomerPath}
                 subItems={customerSubItems}
                 title="Customers Management"
+                isCollapsed={isCollapsed}
+                setIsCollapsed={setIsCollapsed}
               />
               <NavItem
                 icon={<FileText />}
@@ -251,6 +261,8 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                 isActive={isOrderPath}
                 subItems={orderSubItems}
                 title="Orders & Operations"
+                isCollapsed={isCollapsed}
+                setIsCollapsed={setIsCollapsed}
               />
             </nav>
           </div>
