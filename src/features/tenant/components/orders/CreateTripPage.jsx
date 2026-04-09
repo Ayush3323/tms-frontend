@@ -49,6 +49,17 @@ const MetricsRow = ({ label, children, suffix, helpText }) => (
 );
 
 const inputClass = "w-full p-2.5 border border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-50 focus:border-[#4a6cf7] outline-none transition-all text-sm font-bold text-slate-600 placeholder:text-gray-300 shadow-sm";
+const TRIP_STATUS_OPTIONS = [
+  { value: 'CREATED', label: 'Created' },
+  { value: 'ASSIGNED', label: 'Assigned' },
+  { value: 'DISPATCHED', label: 'Dispatched' },
+  { value: 'IN_TRANSIT', label: 'In Transit' },
+  { value: 'DELAYED', label: 'Delayed' },
+  { value: 'ARRIVED', label: 'Arrived' },
+  { value: 'DELIVERED', label: 'Delivered' },
+  { value: 'COMPLETED', label: 'Completed' },
+  { value: 'CANCELLED', label: 'Cancelled' },
+];
 
 export default function CreateTripPage() {
   const navigate = useNavigate();
@@ -59,7 +70,7 @@ export default function CreateTripPage() {
   const { data: ordersData } = useOrders({ page_size: 100 });
   const ordersDataResults = ordersData?.results || [];
   const orders = useMemo(() => ordersDataResults.filter(o => 
-    ['DRAFT', 'CONFIRMED'].includes(o.status)
+    ['DRAFT', 'CONFIRMED', 'ASSIGNED', 'IN_TRANSIT'].includes(o.status)
   ), [ordersDataResults]);
   const { data: driversData } = useDrivers({ page_size: 100 });
   const drivers = driversData?.results || [];
@@ -69,7 +80,7 @@ export default function CreateTripPage() {
   const vehicleTypes = vehicleTypesData?.results || [];
 
   const [formData, setFormData] = useState({
-    order_id: "", lr_number: "", reference_number: "", trip_type: "FTL", status: "CREATED",
+    order_id: "", reference_number: "", trip_type: "FTL", status: "CREATED",
     primary_vehicle_id: null, vehicle_number: "", vehicle_type_code: "", vehicle_owner_name: "",
     primary_driver_id: null, alternate_vehicle_id: null, alternate_driver_id: null,
     origin_address: "", destination_address: "",
@@ -88,6 +99,11 @@ export default function CreateTripPage() {
     remarks: "", version: 1
   });
   const [fieldErrors, setFieldErrors] = useState({});
+  const selectedOrder = useMemo(
+    () => orders.find((o) => String(o.id) === String(formData.order_id)),
+    [orders, formData.order_id]
+  );
+
   const hasErrors = Object.values(fieldErrors).some(err => err && err !== '');
   const [stopErrors, setStopErrors] = useState([]);
   const [searchParams] = useSearchParams();
@@ -144,11 +160,13 @@ export default function CreateTripPage() {
     if (name === 'actual_pickup_date' || name === 'actual_delivery_date') {
       const pickup = currentData.actual_pickup_date;
       const delivery = currentData.actual_delivery_date;
-      const today = new Date().toISOString().split('T')[0];
-      
-      if (pickup && pickup > today) return 'Actual pickup cannot be in the future';
-      if (delivery && delivery > today) return 'Actual delivery cannot be in the future';
-      if (pickup && delivery && delivery < pickup) return 'Actual delivery cannot be before actual pickup';
+      // Use local date instead of UTC date to avoid false "future" errors near timezone boundaries.
+      const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
+      if (name === 'actual_pickup_date' && pickup && pickup > today) return 'Actual pickup cannot be in the future';
+      if (name === 'actual_delivery_date') {
+        if (delivery && delivery > today) return 'Actual delivery cannot be in the future';
+        if (pickup && delivery && delivery < pickup) return 'Actual delivery cannot be before actual pickup';
+      }
     }
     if (name === 'alternate_vehicle_id' || name === 'primary_vehicle_id') {
       if (
@@ -179,6 +197,7 @@ export default function CreateTripPage() {
       const driverPairErr = validateField('alternate_driver_id', next.alternate_driver_id, next);
       const scheduledDateErr = validateField('scheduled_delivery_date', next.scheduled_delivery_date, next);
       const actualDateErr = validateField('actual_delivery_date', next.actual_delivery_date, next);
+      const actualPickupErr = validateField('actual_pickup_date', next.actual_pickup_date, next);
       const startTimeErr = validateField('start_time', next.start_time, next);
       const endTimeErr = validateField('end_time', next.end_time, next);
       setFieldErrors((p) => ({
@@ -189,6 +208,7 @@ export default function CreateTripPage() {
         primary_driver_id: driverPairErr,
         alternate_driver_id: driverPairErr,
         scheduled_delivery_date: scheduledDateErr,
+        actual_pickup_date: actualPickupErr,
         actual_delivery_date: actualDateErr,
         start_time: startTimeErr,
         end_time: endTimeErr,
@@ -202,7 +222,9 @@ export default function CreateTripPage() {
     setFormData(prev => ({
       ...prev,
       order_id: id,
-      lr_number: order ? order.lr_number : ""
+      reference_number: order ? (order.reference_number || "") : "",
+      trip_type: order ? (order.order_type || prev.trip_type || "FTL") : prev.trip_type,
+      status: order ? 'ASSIGNED' : (prev.status || 'CREATED'),
     }));
   };
 
@@ -237,10 +259,11 @@ export default function CreateTripPage() {
     const driverPairErr = validateField('alternate_driver_id', formData.alternate_driver_id, formData);
     const scheduledDateErr = validateField('scheduled_delivery_date', formData.scheduled_delivery_date, formData);
     const actualDateErr = validateField('actual_delivery_date', formData.actual_delivery_date, formData);
+    const actualPickupErr = validateField('actual_pickup_date', formData.actual_pickup_date, formData);
     const startTimeErr = validateField('start_time', formData.start_time, formData);
     const endTimeErr = validateField('end_time', formData.end_time, formData);
 
-    if (vehiclePairErr || driverPairErr || scheduledDateErr || actualDateErr || startTimeErr || endTimeErr) {
+    if (vehiclePairErr || driverPairErr || scheduledDateErr || actualPickupErr || actualDateErr || startTimeErr || endTimeErr) {
       setFieldErrors((p) => ({
         ...p,
         primary_vehicle_id: vehiclePairErr,
@@ -248,6 +271,7 @@ export default function CreateTripPage() {
         primary_driver_id: driverPairErr,
         alternate_driver_id: driverPairErr,
         scheduled_delivery_date: scheduledDateErr,
+        actual_pickup_date: actualPickupErr,
         actual_delivery_date: actualDateErr,
         start_time: startTimeErr,
         end_time: endTimeErr,
@@ -274,6 +298,10 @@ export default function CreateTripPage() {
       estimated_fuel_liters: formData.estimated_fuel_liters === '' ? null : formData.estimated_fuel_liters,
       actual_fuel_liters: formData.actual_fuel_liters === '' ? null : formData.actual_fuel_liters,
       fuel_rate_per_liter: formData.fuel_rate_per_liter === '' ? null : formData.fuel_rate_per_liter,
+      damage_count:
+        formData.damage_count === '' || formData.damage_count === null || Number.isNaN(Number.parseInt(formData.damage_count, 10))
+          ? 0
+          : Number.parseInt(formData.damage_count, 10),
       booked_price: formData.booked_price === '' ? null : formData.booked_price,
       payment_received_date: formData.payment_received_date || null,
       pod_received_date: formData.pod_received_date || null,
@@ -420,12 +448,28 @@ export default function CreateTripPage() {
                   </div>
                   <div className="grid grid-cols-3 gap-8">
                     <FieldGroup label="lr_number">
-                      <input type="text" name="lr_number" className={inputClass} value={formData.lr_number} onChange={handleInputChange} placeholder="Auto-filled from order" />
+                      <input
+                        type="text"
+                        className={inputClass}
+                        value={selectedOrder?.lr_number || ""}
+                        placeholder="Auto-filled from selected order"
+                        disabled
+                        readOnly
+                      />
                     </FieldGroup>
                     <FieldGroup label="reference_number">
-                      <input type="text" name="reference_number" className={inputClass} value={formData.reference_number} onChange={handleInputChange} placeholder="PO-12345" />
+                      <input
+                        type="text"
+                        name="reference_number"
+                        className={inputClass}
+                        value={formData.reference_number}
+                        onChange={handleInputChange}
+                        placeholder="PO-12345"
+                        disabled={Boolean(formData.order_id)}
+                        readOnly={Boolean(formData.order_id)}
+                      />
                     </FieldGroup>
-                    <FieldGroup label="trip_type">
+                    <FieldGroup label="trip_type (operational)">
                       <select name="trip_type" className={inputClass} value={formData.trip_type} onChange={handleInputChange}>
                         <option value="FTL">Full Truck Load (FTL)</option>
                         <option value="LTL">Less than Truck Load (LTL)</option>
@@ -436,15 +480,11 @@ export default function CreateTripPage() {
                   </div>
                   <FieldGroup label="status">
                     <select name="status" className={inputClass} value={formData.status} onChange={handleInputChange}>
-                      <option value="CREATED">CREATED</option>
-                      <option value="ASSIGNED">ASSIGNED</option>
-                                <option value="DISPATCHED">DISPATCHED</option>
-                      <option value="IN_TRANSIT">IN_TRANSIT</option>
-                                <option value="DELAYED">DELAYED</option>
-                                <option value="ARRIVED">ARRIVED</option>
-                      <option value="DELIVERED">DELIVERED</option>
-                      <option value="COMPLETED">COMPLETED</option>
-                                <option value="CANCELLED">CANCELLED</option>
+                      {TRIP_STATUS_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
                     </select>
                   </FieldGroup>
                 </div>
