@@ -159,8 +159,8 @@ const OverviewTab = ({ order, getCustomerName, st, consignor, consignee, billing
         </Section>
     </div>
 
-    <Section title="Execution Dates (Read-Only)" icon={Truck}>
-      {executionTrips.length ? (
+    {executionTrips.length > 0 && (
+      <Section title="Execution Dates (Read-Only)" icon={Truck}>
         <div className="space-y-3">
           {executionTrips.map((trip) => (
             <div key={trip.id} className="rounded-xl border border-gray-100 bg-white p-3 flex items-center justify-between gap-4">
@@ -179,10 +179,8 @@ const OverviewTab = ({ order, getCustomerName, st, consignor, consignee, billing
             </div>
           ))}
         </div>
-      ) : (
-        <p className="text-xs text-gray-500">No execution trip linked yet.</p>
-      )}
-    </Section>
+      </Section>
+    )}
 
     {/* Participants Details */}
     <Section title="Participants" icon={User}>

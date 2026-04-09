@@ -14,22 +14,31 @@ import { EditTripModal } from './TripModals';
 const TRIP_STATUS_CONFIG = {
   CREATED: { color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100', icon: <Clock size={14} /> },
   ASSIGNED: { color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', icon: <Truck size={14} /> },
+  DISPATCHED: { color: 'text-cyan-600', bg: 'bg-cyan-50', border: 'border-cyan-100', icon: <Truck size={14} /> },
   IN_TRANSIT: { color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100', icon: <RefreshCcw size={14} /> },
+  DELAYED: { color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-100', icon: <AlertTriangle size={14} /> },
+  ARRIVED: { color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-100', icon: <MapPin size={14} /> },
   DELIVERED: { color: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-100', icon: <CheckCircle2 size={14} /> },
   CANCELLED: { color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-100', icon: <XCircle size={14} /> },
   COMPLETED: { color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100', icon: <CheckCircle2 size={14} /> },
   STARTED: { color: 'text-amber-500', bg: 'bg-amber-50', border: 'border-amber-100', icon: <Clock size={14} /> },
-  DELAYED: { color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-100', icon: <AlertTriangle size={14} /> },
 };
 
-const TAB_CONFIG = [
-  { label: 'All Status' },
-  { label: 'CREATED' },
-  { label: 'ASSIGNED' },
-  { label: 'IN_TRANSIT' },
-  { label: 'DELIVERED' },
-  { label: 'CANCELLED' },
+const STATUS_OPTIONS = [
+  'All Status',
+  'CREATED',
+  'ASSIGNED',
+  'DISPATCHED',
+  'IN_TRANSIT',
+  'DELAYED',
+  'ARRIVED',
+  'DELIVERED',
+  'COMPLETED',
+  'CANCELLED',
 ];
+
+const FILTER_SELECT_CLASS =
+  'h-9 px-3 rounded-xl border border-gray-200 bg-white text-[11px] font-semibold text-gray-600 shadow-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#B3D4FF]';
 
 const StatusBadge = ({ status }) => {
   const config = TRIP_STATUS_CONFIG[status] || TRIP_STATUS_CONFIG.CREATED;
@@ -92,10 +101,7 @@ export default function TripsMainBody() {
   let trips = tripsData?.results || [];
 
   if (filterStatus !== 'All Status' && trips.length > 0) {
-    trips = trips.filter((t) => {
-      if (filterStatus === 'DELIVERED') return t.status === 'DELIVERED' || t.status === 'COMPLETED';
-      return t.status === filterStatus;
-    });
+    trips = trips.filter((t) => t.status === filterStatus);
   }
   const totalCount = tripsData?.count || 0;
 
@@ -219,30 +225,26 @@ export default function TripsMainBody() {
             </div>
 
             <div className="p-4 border-b border-gray-50 flex flex-col lg:flex-row gap-4 items-center justify-between bg-gray-50/30">
-              <div className="flex overflow-x-auto w-full lg:w-auto scrollbar-hide gap-1 bg-white p-1 rounded-xl border border-gray-100">
-                {TAB_CONFIG.map((tab) => (
-                  <button
-                    key={tab.label}
-                    type="button"
-                    onClick={() => {
-                      setFilterStatus(tab.label);
-                      setPage(1);
-                    }}
-                    className={`px-4 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap
-                    ${filterStatus === tab.label ? 'bg-[#0052CC] text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-              <div className="w-full lg:w-auto">
+              <div className="w-full lg:w-auto flex items-center gap-3">
+                <select
+                  value={filterStatus}
+                  onChange={(e) => {
+                    setFilterStatus(e.target.value);
+                    setPage(1);
+                  }}
+                  className={`${FILTER_SELECT_CLASS} min-w-[170px]`}
+                >
+                  {STATUS_OPTIONS.map((status) => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
                 <select
                   value={sortByCreated}
                   onChange={(e) => {
                     setSortByCreated(e.target.value);
                     setPage(1);
                   }}
-                  className="px-3 py-2 rounded-lg border border-gray-200 text-[11px] font-bold uppercase tracking-wider text-gray-600 bg-white"
+                  className={`${FILTER_SELECT_CLASS} min-w-[180px]`}
                 >
                   <option value="newest">Created: Newest First</option>
                   <option value="oldest">Created: Oldest First</option>

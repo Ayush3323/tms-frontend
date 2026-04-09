@@ -15,7 +15,12 @@ export const invoiceApi = {
   post: (id) => axiosInstance.post(`${INV_BASE}/invoices/${id}/post-invoice/`).then(r => r.data),
   cancel: (id) => axiosInstance.post(`${INV_BASE}/invoices/${id}/cancel/`).then(r => r.data),
   markOverdue: (id) => axiosInstance.post(`${INV_BASE}/invoices/${id}/mark-overdue/`).then(r => r.data),
+  applyCreditNote: (id, credit_note_id) => axiosInstance.post(`${INV_BASE}/invoices/${id}/apply-credit-note/`, { credit_note_id }).then(r => r.data),
   generateFromTrip: (tripId) => axiosInstance.post(`${INV_BASE}/invoices/generate-from-trip/`, { trip_id: tripId }).then(r => r.data),
+}
+
+export const invoiceLineItemApi = {
+  list: (params) => axiosInstance.get(`${INV_BASE}/invoice-line-items/`, { params }).then(r => r.data),
 }
 
 export const creditNoteApi = {
