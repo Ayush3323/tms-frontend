@@ -26,13 +26,43 @@ const UserDetail = () => {
 
   const { data: usersData, isLoading, isError, error, refetch } = useUsers({
     page: currentPage,
-    page_size: 10,
+    page_size: 20,
     search: debouncedSearch,
     account_type: filterAccountType || undefined,
     status: filterStatus || undefined,
     ...(visibilityFilter === 'deleted' && { deleted_only: true }),
     ...(visibilityFilter === 'all' && { include_deleted: true }),
   });
+
+  const totalPages = Math.ceil((usersData?.count || 0) / 20) || 1;
+
+  const getPaginationRange = () => {
+    const range = [];
+    
+    // Always show first page
+    range.push(1);
+    
+    if (currentPage > 2) {
+      range.push('...');
+    }
+    
+    // Show current page if not the first page
+    if (currentPage !== 1) {
+      range.push(currentPage);
+    }
+    
+    // Show ellipsis if there's a gap before the last page
+    if (totalPages > currentPage + 1) {
+      range.push('...');
+    }
+    
+    // Show last page if it's not the first or current page
+    if (totalPages > currentPage && totalPages !== 1) {
+      range.push(totalPages);
+    }
+    
+    return range;
+  };
   const { data: statsData } = useUserStats();
   const updateMutation = useUpdateUser();
   const createMutation = useCreateUser();
@@ -534,23 +564,40 @@ const UserDetail = () => {
 
             <div className="justify-between h-10 w-px bg-gray-100 hidden sm:block " />
 
-            <div className="flex items-center justify-between gap-3 px-5">
+            <div className="flex items-center gap-2 px-5">
               <button
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1 || isLoading}
-                className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+                className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-1.5"
               >
-                Previous
+                Prev
               </button>
 
-              <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
-                {currentPage}
+              <div className="flex items-center gap-1.5">
+                {getPaginationRange().map((page, index) => (
+                  <React.Fragment key={index}>
+                    {page === '...' ? (
+                      <span className="px-1 text-gray-400 font-bold select-none text-xs">...</span>
+                    ) : (
+                      <button
+                        onClick={() => setCurrentPage(page)}
+                        className={`min-w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${
+                          currentPage === page
+                            ? 'bg-[#0052CC] text-white shadow-md shadow-blue-100'
+                            : 'bg-white border border-gray-100 text-[#172B4D] hover:bg-gray-50'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    )}
+                  </React.Fragment>
+                ))}
               </div>
 
               <button
-                onClick={() => setCurrentPage(prev => prev + 1)}
-                disabled={!usersData?.next || isLoading}
-                className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages || !usersData?.next || isLoading}
+                className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-1.5"
               >
                 Next
               </button>
@@ -673,7 +720,7 @@ const UserDetail = () => {
       {/* Modal Overlay */}
       {
         isModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm transition-all">
+          <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm transition-all">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
               {/* Modal Header */}
               <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0">

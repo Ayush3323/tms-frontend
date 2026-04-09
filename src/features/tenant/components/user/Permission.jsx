@@ -7,7 +7,7 @@ import {
   useUserPermissions,
 } from '../../queries/users/rolesPermissionsQuery';
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 20;
 
 const normalizePermission = (permission, source = 'all') => ({
   ...permission,
@@ -94,6 +94,16 @@ const Permission = () => {
   const visiblePermissions = isShowingMine ? paginatedMyPermissions : allPermissions;
   const totalPermissionsCount = isShowingMine ? filteredMyPermissions.length : permissionsData?.count || 0;
   const totalPages = Math.max(1, Math.ceil(totalPermissionsCount / PAGE_SIZE));
+
+  const getPaginationRange = () => {
+    const range = [];
+    range.push(1);
+    if (currentPage > 2) range.push('...');
+    if (currentPage !== 1) range.push(currentPage);
+    if (totalPages > currentPage + 1) range.push('...');
+    if (totalPages > currentPage && totalPages !== 1) range.push(totalPages);
+    return range;
+  };
   const resourceSource = isShowingMine ? filteredMyPermissions : allPermissions;
 
   const isLoading = isShowingMine
@@ -248,21 +258,40 @@ const Permission = () => {
 
             <div className="justify-between h-10 w-px bg-gray-100 hidden sm:block " />
 
-            <div className="flex items-center justify-between gap-3 px-5 py-2">
+            <div className="flex items-center gap-2 px-5 py-2">
               <button
                 onClick={() => setCurrentPage((previousPage) => Math.max(1, previousPage - 1))}
                 disabled={currentPage === 1 || isLoading}
-                className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+                className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-1.5"
               >
-                Previous
+                Prev
               </button>
-              <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
-                {currentPage}
+
+              <div className="flex items-center gap-1.5">
+                {getPaginationRange().map((page, index) => (
+                  <React.Fragment key={index}>
+                    {page === '...' ? (
+                      <span className="px-1 text-gray-400 font-bold select-none text-xs">...</span>
+                    ) : (
+                      <button
+                        onClick={() => setCurrentPage(page)}
+                        className={`min-w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${
+                          currentPage === page
+                            ? 'bg-[#0052CC] text-white shadow-md shadow-blue-100'
+                            : 'bg-white border border-gray-100 text-[#172B4D] hover:bg-gray-50'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    )}
+                  </React.Fragment>
+                ))}
               </div>
+
               <button
-                onClick={() => setCurrentPage((previousPage) => previousPage + 1)}
+                onClick={() => setCurrentPage((previousPage) => Math.min(totalPages, previousPage + 1))}
                 disabled={isShowingMine ? currentPage >= totalPages || isLoading : !permissionsData?.next || isLoading}
-                className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+                className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-1.5"
               >
                 Next
               </button>
