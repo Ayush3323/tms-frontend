@@ -19,9 +19,21 @@ const Roles = () => {
 
   const { data: rolesData, isLoading, isError, error } = useRoles({
     page: currentPage,
-    page_size: 10,
+    page_size: 20,
     search: debouncedSearch
   });
+
+  const totalPages = Math.ceil((rolesData?.count || 0) / 20) || 1;
+
+  const getPaginationRange = () => {
+    const range = [];
+    range.push(1);
+    if (currentPage > 2) range.push('...');
+    if (currentPage !== 1) range.push(currentPage);
+    if (totalPages > currentPage + 1) range.push('...');
+    if (totalPages > currentPage && totalPages !== 1) range.push(totalPages);
+    return range;
+  };
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRoleId, setSelectedRoleId] = useState(null);
@@ -303,21 +315,40 @@ const Roles = () => {
 
             <div className="justify-between h-10 w-px bg-gray-100 hidden sm:block " />
 
-            <div className="flex items-center justify-between gap-3 px-5 py-2">
+            <div className="flex items-center gap-2 px-5 py-2">
               <button
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1 || isLoading}
-                className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+                className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-1.5"
               >
-                Previous
+                Prev
               </button>
-              <div className="flex items-center justify-center min-w-8 h-8 bg-[#0052CC] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-100">
-                {currentPage}
+
+              <div className="flex items-center gap-1.5">
+                {getPaginationRange().map((page, index) => (
+                  <React.Fragment key={index}>
+                    {page === '...' ? (
+                      <span className="px-1 text-gray-400 font-bold select-none text-xs">...</span>
+                    ) : (
+                      <button
+                        onClick={() => setCurrentPage(page)}
+                        className={`min-w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${
+                          currentPage === page
+                            ? 'bg-[#0052CC] text-white shadow-md shadow-blue-100'
+                            : 'bg-white border border-gray-100 text-[#172B4D] hover:bg-gray-50'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    )}
+                  </React.Fragment>
+                ))}
               </div>
+
               <button
-                onClick={() => setCurrentPage(prev => prev + 1)}
-                disabled={!rolesData?.next || isLoading}
-                className="px-4 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages || !rolesData?.next || isLoading}
+                className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-200 rounded-lg text-[#172B4D] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-1.5"
               >
                 Next
               </button>
