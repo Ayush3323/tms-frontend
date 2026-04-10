@@ -32,6 +32,14 @@ const STATUS_OPTIONS = [
   'CANCELLED',
 ];
 
+const ORDER_TYPE_OPTIONS = ['All Types', 'FTL', 'LTL', 'CONTAINER', 'COURIER', 'MULTI_DROP'];
+
+const ORDERING_OPTIONS = [
+  { label: 'Newest First', value: '-created_at' },
+  { label: 'Pickup (Soonest)', value: 'pickup_date' },
+  { label: 'Pickup (Latest)', value: '-pickup_date' },
+];
+
 const FILTER_SELECT_CLASS =
   'h-9 px-3 rounded-xl border border-gray-200 bg-white text-[11px] font-semibold text-gray-600 shadow-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#B3D4FF]';
 
@@ -42,6 +50,10 @@ export default function Orders() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('All Status');
+  const [filterCustomer, setFilterCustomer] = useState('');
+  const [filterOrderType, setFilterOrderType] = useState('All Types');
+  const [filterPickupDate, setFilterPickupDate] = useState('');
+  const [ordering, setOrdering] = useState('-created_at');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [searchInput, setSearchInput] = useState('');
 
@@ -57,9 +69,12 @@ export default function Orders() {
   };
 
   // Queries
-  const queryParams = { page, ordering: '-created_at' };
+  const queryParams = { page, ordering };
   if (search) queryParams.search = search;
   if (filterStatus !== 'All Status') queryParams.status = filterStatus;
+  if (filterCustomer) queryParams.billing_customer_id = filterCustomer;
+  if (filterOrderType !== 'All Types') queryParams.order_type = filterOrderType;
+  if (filterPickupDate) queryParams.pickup_date = filterPickupDate;
 
   const { data: ordersData, isLoading, refetch } = useOrders(queryParams);
   const orders = ordersData?.results || [];
@@ -145,20 +160,85 @@ export default function Orders() {
             </div>
           </div>
           
-          <div className="p-4 border-b border-gray-50 flex flex-col lg:flex-row gap-4 items-center justify-between bg-gray-50/30">
-            <div className="w-full lg:w-auto flex items-center gap-3">
+          <div className="p-4 border-b border-gray-50 flex flex-col lg:flex-row gap-4 items-center justify-between bg-gray-50/20">
+            <div className="w-full lg:w-auto flex flex-wrap items-center gap-3">
+              {/* Status Filter */}
               <select
                 value={filterStatus}
                 onChange={(e) => {
                   setFilterStatus(e.target.value)
                   setPage(1)
                 }}
-                className={`${FILTER_SELECT_CLASS} min-w-[170px]`}
+                className={`${FILTER_SELECT_CLASS} min-w-[140px]`}
               >
                 {STATUS_OPTIONS.map((status) => (
                   <option key={status} value={status}>{status}</option>
                 ))}
               </select>
+
+              {/* Billing Customer Filter */}
+              <select
+                value={filterCustomer}
+                onChange={(e) => {
+                  setFilterCustomer(e.target.value)
+                  setPage(1)
+                }}
+                className={`${FILTER_SELECT_CLASS} min-w-[220px] max-w-[300px]`}
+              >
+                <option value="">All Billing Customers</option>
+                {customers.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.legal_name || c.trading_name} {c.customer_code ? `(${c.customer_code})` : ''} - {c.customer_type || 'N/A'}
+                  </option>
+                ))}
+              </select>
+
+              {/* Order Type Filter */}
+              <select
+                value={filterOrderType}
+                onChange={(e) => {
+                  setFilterOrderType(e.target.value)
+                  setPage(1)
+                }}
+                className={`${FILTER_SELECT_CLASS} min-w-[130px]`}
+              >
+                {ORDER_TYPE_OPTIONS.map((type) => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
+
+              {/* Pickup Date Filter */}
+              <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-sm">
+                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Pickup Date:</span>
+                <input
+                  type="date"
+                  value={filterPickupDate}
+                  onChange={(e) => {
+                    setFilterPickupDate(e.target.value)
+                    setPage(1)
+                  }}
+                  className="bg-transparent border-none outline-none text-[11px] font-semibold text-gray-600 focus:ring-0 p-0 h-auto"
+                  title="Filter by Pickup Date"
+                />
+              </div>
+            </div>
+            
+            <div className="hidden lg:block">
+               <button 
+                 onClick={() => {
+                   setFilterStatus('All Status');
+                   setFilterCustomer('');
+                   setFilterOrderType('All Types');
+                   setFilterPickupDate('');
+                   setOrdering('-created_at');
+                   setSearch('');
+                   setSearchInput('');
+                   setPage(1);
+                 }}
+                 className="text-[10px] font-black text-blue-600 hover:text-blue-700 uppercase tracking-widest px-3 py-1 hover:bg-blue-50 rounded-lg transition-all"
+               >
+                 Clear All
+               </button>
             </div>
           </div>
 

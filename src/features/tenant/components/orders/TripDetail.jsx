@@ -176,6 +176,30 @@ const InfoCard = ({ label, value, icon: Icon, accent = false, isLoading = false 
   </div>
 );
 
+const DataRow = ({ label, value, icon: Icon, labelSize = "text-[10px]", accent = null, boxWidth = "w-full" }) => {
+  const accentStyles = {
+    blue: 'bg-blue-50/50 border-blue-100 text-blue-700',
+    green: 'bg-emerald-50/50 border-emerald-100 text-emerald-700',
+  };
+  const currentAccent = accent ? accentStyles[accent] : 'bg-white border-gray-100 text-[#172B4D]';
+
+  return (
+    <div className="flex items-center gap-10 py-3 border-b border-gray-100/30 last:border-0 px-1">
+      <div className="flex items-center gap-3 w-28 md:w-36 shrink-0">
+        {Icon && (
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${accent ? (accent === 'blue' ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600') : 'bg-gray-50 text-gray-400'}`}>
+            <Icon size={14} strokeWidth={2.5} />
+          </div>
+        )}
+        <span className={`${labelSize} font-black text-gray-400 uppercase tracking-widest leading-none`}>{LABEL_MAP[label] || label}</span>
+      </div>
+      <div className={`border rounded-xl px-5 py-3.5 shadow-sm min-w-0 ${currentAccent} ${boxWidth}`}>
+        <p className="text-[13px] font-black tracking-tight break-all md:break-words leading-tight">{value || '—'}</p>
+      </div>
+    </div>
+  );
+};
+
 // --- Tabs ---
 const OverviewTab = ({ trip, driver, vehicle, order, isLoadingNames, navigate, originDisplay, destinationDisplay }) => (
   <div className="space-y-6">
@@ -187,37 +211,43 @@ const OverviewTab = ({ trip, driver, vehicle, order, isLoadingNames, navigate, o
     </div>
 
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+      <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm flex flex-col min-h-[320px]">
         <SectionHeader icon={MapPin} title="Route Summary" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <InfoCard label="origin_address" value={originDisplay} icon={MapPin} />
-          <InfoCard label="destination_address" value={destinationDisplay} icon={MapPin} />
+        <div className="space-y-4">
+          <DataRow label="origin_address" value={originDisplay} icon={MapPin} accent="blue" boxWidth="md:w-[480px]" />
+          <DataRow label="destination_address" value={destinationDisplay} icon={MapPin} accent="green" boxWidth="md:w-[480px]" />
         </div>
-        <p className="mt-3 text-[11px] text-gray-500">
-          Route addresses are managed from the Stops tab.
-        </p>
+        <div className="mt-auto pt-6 border-t border-gray-50 flex items-center">
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">
+            Addresses are managed from Stops tab
+          </p>
+        </div>
       </div>
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+      <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm flex flex-col min-h-[320px]">
         <SectionHeader icon={Calendar} title="Reference Details" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <InfoCard label="lr_number" value={order?.lr_number || trip.lr_number} icon={FileText} />
-          <InfoCard label="reference_number" value={trip.reference_number} icon={Hash} />
-          <InfoCard label="created_date" value={formatDateTime(trip.created_date)} icon={Calendar} />
-          <InfoCard label="Pickup Date" value={order?.pickup_date || '—'} icon={Calendar} />
-          <InfoCard label="Delivery Date" value={order?.delivery_date || '—'} icon={CheckCircle2} />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 flex-1">
+           <div className="space-y-0.5">
+              <DataRow label="lr_number" value={order?.lr_number || trip.lr_number} icon={FileText} />
+              <DataRow label="reference_number" value={trip.reference_number} icon={Hash} />
+              <DataRow label="created_date" value={formatDateTime(trip.created_date)} icon={Calendar} />
+           </div>
+           <div className="space-y-0.5">
+              <DataRow label="Pickup Date" value={order?.pickup_date || '—'} icon={Calendar} labelSize="text-[10px]" />
+              <DataRow label="Delivery Date" value={order?.delivery_date || '—'} icon={CheckCircle2} labelSize="text-[10px]" />
+           </div>
         </div>
         {trip.order_id && (
-          <div className="mt-3 flex items-center gap-4">
+          <div className="mt-auto pt-6 border-t border-gray-50 flex items-center justify-end gap-3">
             <button
               type="button"
-              className="text-[11px] font-bold text-[#0052CC] hover:underline"
+              className="px-5 py-2.5 text-[11px] font-black text-[#0052CC] bg-blue-50 border border-blue-100 rounded-xl hover:bg-blue-100 transition-all uppercase tracking-widest shadow-sm"
               onClick={() => navigate(`/tenant/dashboard/orders/${trip.order_id}`)}
             >
               View Order
             </button>
             <button
               type="button"
-              className="text-[11px] font-bold text-[#0052CC] hover:underline"
+              className="px-5 py-2.5 text-[11px] font-black text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 uppercase tracking-widest"
               onClick={() => navigate(`/tenant/dashboard/orders/${trip.order_id}`)}
             >
               Edit on Order
@@ -288,22 +318,26 @@ const JourneyTab = ({ trip, driver, vehicle, isLoadingNames, altDriver, altVehic
 
 const StopsTab = ({ tripId, stops, isLoading, onCreateStop, onUpdateStopStatus, onDeleteStop }) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [newStop, setNewStop] = useState({
-    stop_sequence: 1,
-    stop_type: 'PICKUP',
+  const [stopFilters, setStopFilters] = useState({
+    stop_sequence: '',
+    stop_type: 'ALL',
     location_address: '',
-    stop_status: 'PENDING',
-    instructions: '',
   });
   const [editingStopId, setEditingStopId] = useState(null);
   const [editingStop, setEditingStop] = useState({ location_address: '', instructions: '' });
 
-  const sortedStops = [...(stops || [])].sort((a, b) => (a.stop_sequence || 0) - (b.stop_sequence || 0));
-  const nextSeq = sortedStops.length > 0 ? Math.max(...sortedStops.map(s => s.stop_sequence || 0)) + 1 : 1;
+  const stopRows = [...(stops || [])];
   
-  useEffect(() => {
-    setNewStop(prev => ({ ...prev, stop_sequence: nextSeq }));
-  }, [nextSeq]);
+  const filteredStops = stopRows.filter(stop => {
+    const matchSeq = !stopFilters.stop_sequence || String(stop.stop_sequence) === String(stopFilters.stop_sequence);
+    const matchType = stopFilters.stop_type === 'ALL' || stop.stop_type === stopFilters.stop_type;
+    const matchLoc = !stopFilters.location_address || 
+      (stop.location_address || '').toLowerCase().includes(stopFilters.location_address.toLowerCase());
+    return matchSeq && matchType && matchLoc;
+  });
+
+  const sortedStops = filteredStops.sort((a, b) => (a.stop_sequence || 0) - (b.stop_sequence || 0));
+  const nextSeq = stopRows.length > 0 ? Math.max(...stopRows.map(s => s.stop_sequence || 0)) + 1 : 1;
 
   const startEditStop = (stop) => {
     setEditingStopId(stop.id);
@@ -336,17 +370,22 @@ const StopsTab = ({ tripId, stops, isLoading, onCreateStop, onUpdateStopStatus, 
               type="number" 
               min="1"
               className="w-full p-2 bg-gray-100/50 border border-gray-100 rounded-xl text-[11px] font-bold text-slate-600 outline-none focus:border-blue-400"
-              value={newStop.stop_sequence} 
-              onChange={e => setNewStop({...newStop, stop_sequence: e.target.value})} 
+              value={stopFilters.stop_sequence} 
+              onChange={e => {
+                const val = e.target.value;
+                if (val !== '' && parseInt(val) < 1) return;
+                setStopFilters({...stopFilters, stop_sequence: val});
+              }} 
               placeholder="Seq"
             />
          </div>
          <div className="w-28">
             <select 
               className="w-full p-2 bg-gray-100/50 border border-gray-100 rounded-xl text-[11px] font-bold text-slate-600 outline-none focus:border-blue-400"
-              value={newStop.stop_type} 
-              onChange={e => setNewStop({...newStop, stop_type: e.target.value})}
+              value={stopFilters.stop_type} 
+              onChange={e => setStopFilters({...stopFilters, stop_type: e.target.value})}
             >
+               <option value="ALL">ALL TYPES</option>
                <option value="PICKUP">PICKUP</option>
                <option value="DELIVERY">DELIVERY</option>
                <option value="TRANSIT">TRANSIT</option>
@@ -358,11 +397,19 @@ const StopsTab = ({ tripId, stops, isLoading, onCreateStop, onUpdateStopStatus, 
          <div className="w-64">
             <input 
               className="w-full p-2 bg-gray-100/50 border border-gray-100 rounded-xl text-[11px] font-bold text-slate-600 outline-none focus:border-blue-400"
-              value={newStop.location_address} 
-              onChange={e => setNewStop({...newStop, location_address: e.target.value})} 
-              placeholder="Location"
+              value={stopFilters.location_address} 
+              onChange={e => setStopFilters({...stopFilters, location_address: e.target.value})} 
+              placeholder="Filter by Location"
             />
          </div>
+         {(stopFilters.stop_sequence || stopFilters.stop_type !== 'ALL' || stopFilters.location_address) && (
+            <button 
+              onClick={() => setStopFilters({ stop_sequence: '', stop_type: 'ALL', location_address: '' })}
+              className="px-3 py-2 text-[10px] font-black text-blue-600 hover:text-blue-700 hover:bg-blue-50 uppercase tracking-widest transition-all rounded-xl border border-transparent hover:border-blue-100 shadow-sm"
+            >
+              Clear
+            </button>
+         )}
          <div className="ml-auto flex items-center gap-2">
            <button 
              onClick={() => setIsAddModalOpen(true)}
