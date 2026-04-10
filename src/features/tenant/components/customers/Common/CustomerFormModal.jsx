@@ -383,7 +383,7 @@ export const CustomerFormModal = ({ initial, onClose, onSuccess }) => {
           <Input value={form.industry_sector} onChange={e => setField('industry_sector', e.target.value)}
             placeholder="e.g. Logistics" />
         </Field>
-        <Field label="Document URL" className="col-span-2">
+        <Field label="Website" className="col-span-2">
           <div className="flex gap-2">
             <Sel className="w-1/3" value={form.document_type || ''} onChange={e => setField('document_type', e.target.value)}>
               <option value="">Select Document Type</option>
@@ -398,7 +398,7 @@ export const CustomerFormModal = ({ initial, onClose, onSuccess }) => {
               <option value="OTHER">Other</option>
             </Sel>
             <Input className="flex-1" value={form.website} onChange={e => setField('website', e.target.value)}
-              placeholder="Document URL (https://...)" />
+              placeholder="Website URL (https://...)" />
           </div>
         </Field>
 

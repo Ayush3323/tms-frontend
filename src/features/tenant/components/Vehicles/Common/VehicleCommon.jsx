@@ -83,14 +83,14 @@ export const StatCard = ({ label, value, icon: Icon, color, loading, className =
 };
 
 // ── Info Card (for details view) ──────────────────────────────────────
-export const InfoCard = ({ label, value, icon: Icon, accent }) => (
+export const InfoCard = ({ label, value, icon: Icon, accent, noTruncate }) => (
   <div className={`rounded-xl border p-4 flex flex-col gap-1.5 transition-all hover:shadow-sm
     ${accent ? 'bg-[#0052CC]/5 border-[#0052CC]/20' : 'bg-white border-gray-100 hover:border-[#0052CC]/20'}`}>
     <div className="flex items-center justify-between">
       <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{label}</span>
       {Icon && <Icon size={13} className={accent ? 'text-[#0052CC]/40' : 'text-gray-200'} />}
     </div>
-    <span className={`text-sm font-bold truncate ${accent ? 'text-[#0052CC]' : 'text-[#172B4D]'}`}>
+    <span className={`text-sm font-bold ${accent ? 'text-[#0052CC]' : 'text-[#172B4D]'} ${noTruncate ? '' : 'truncate'}`}>
       {value ?? <span className="text-gray-300 font-normal">—</span>}
     </span>
   </div>
