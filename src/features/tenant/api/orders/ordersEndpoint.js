@@ -97,6 +97,8 @@ export const tripsApi = {
     axiosInstance.patch(`${BASE_TRIPS}/${tripId}/charges/${chargeId}/`, data).then(r => r.data),
   deleteCharge: (tripId, chargeId) =>
     axiosInstance.delete(`${BASE_TRIPS}/${tripId}/charges/${chargeId}/`).then(r => r.data),
+  listCargo: (tripId, params) =>
+    axiosInstance.get(`${BASE_TRIPS}/${tripId}/cargo/`, { params }).then(r => r.data),
 
   update: (id, data) =>
     axiosInstance.patch(`${BASE_TRIPS}/${id}/`, data).then(r => r.data),
@@ -124,8 +126,17 @@ export const cargoApi = {
     axiosInstance.patch(`${BASE_CARGO}/${id}/`, data).then(r => r.data),
   replace: (id, data) =>
     axiosInstance.put(`${BASE_CARGO}/${id}/`, data).then(r => r.data),
+  transitionStatus: (id, new_status) =>
+    axiosInstance.post(`${BASE_CARGO}/${id}/transition-status/`, { new_status }).then(r => r.data),
   delete: (id) =>
     axiosInstance.delete(`${BASE_CARGO}/${id}/`).then(r => r.data),
+}
+
+export const cargoMovementsApi = {
+  list: (cargoId, params) =>
+    axiosInstance.get(`${BASE_CARGO}/${cargoId}/movements/`, { params }).then(r => r.data),
+  create: (cargoId, data) =>
+    axiosInstance.post(`${BASE_CARGO}/${cargoId}/movements/`, data).then(r => r.data),
 }
 
 // ─── 5. DELIVERIES (POD) ────────────────────────────────────────────────────

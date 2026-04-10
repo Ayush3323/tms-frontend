@@ -6,7 +6,15 @@ import {
   Hash, Scale, Maximize, Shield, 
   MapPin, Clock, Edit2, AlertTriangle, Thermometer
 } from 'lucide-react';
-import { useCargoDetail, useTripDetail, useOrderDetail } from '../../queries/orders/ordersQuery';
+import {
+  useCargoDetail,
+  useTripDetail,
+  useOrderDetail,
+  useTransitionCargoStatus,
+  useCargoMovements,
+  useCreateCargoMovement,
+  useTripStops,
+} from '../../queries/orders/ordersQuery';
 import { EditCargoModal } from './CargoModals';
 
 // --- Shared Components ---
@@ -45,9 +53,14 @@ export default function CargoDetail() {
   const navigate = useNavigate();
   const [isEditOpen, setIsEditOpen] = useState(false);
 
-  const { data: item, isLoading, isError, error } = useCargoDetail(id);
+  const { data: item, isLoading, isError } = useCargoDetail(id);
   const { data: trip } = useTripDetail(item?.trip || item?.trip_id);
   const { data: order } = useOrderDetail(trip?.order || trip?.order_id);
+  const { data: movementsData } = useCargoMovements(id);
+  const { data: tripStopsData } = useTripStops(item?.trip || item?.trip_id);
+  const transitionCargo = useTransitionCargoStatus();
+  const createMovement = useCreateCargoMovement(id);
+  const [movementForm, setMovementForm] = useState({ stop: '', action: 'LOADED', quantity: '', notes: '' });
 
   const handleBack = () => navigate('/tenant/dashboard/orders/cargo');
 
@@ -61,11 +74,24 @@ export default function CargoDetail() {
   );
 
   const TYPE_COLORS = {
-    HAZMAT: 'bg-red-50 text-red-600 border-red-100',
+    HAZARDOUS: 'bg-red-50 text-red-600 border-red-100',
     PERISHABLE: 'bg-teal-50 text-teal-600 border-teal-100',
     FRAGILE: 'bg-amber-50 text-amber-600 border-amber-100',
+    HIGH_VALUE: 'bg-purple-50 text-purple-600 border-purple-100',
+    OTHER: 'bg-slate-50 text-slate-600 border-slate-100',
     GENERAL: 'bg-blue-50 text-blue-600 border-blue-100',
   };
+  const CARGO_TRANSITIONS = {
+    PENDING: ['LOADED'],
+    LOADED: ['UNLOADED', 'DAMAGED', 'SHORT'],
+    UNLOADED: ['DAMAGED'],
+    DAMAGED: [],
+    SHORT: [],
+  };
+  const nextStatuses = CARGO_TRANSITIONS[item.status] || [];
+  const movements = movementsData?.results || (Array.isArray(movementsData) ? movementsData : []);
+  const tripStops = tripStopsData?.results || (Array.isArray(tripStopsData) ? tripStopsData : []);
+  const canSubmitMovement = movementForm.stop && movementForm.quantity;
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] p-4">
@@ -95,13 +121,13 @@ export default function CargoDetail() {
                     Commodity: {item.commodity_type || 'General Goods'} · Quantity: {item.quantity || 1}
                   </p>
                   <div className="flex flex-wrap items-center gap-2 mt-4">
-                    <Badge className={TYPE_COLORS[item.cargo_type] || TYPE_COLORS.GENERAL}>
+                    <Badge className={TYPE_COLORS[item.commodity_type] || TYPE_COLORS.GENERAL}>
                       <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                      {item.cargo_type || 'General'}
+                      {item.commodity_type || 'General'}
                     </Badge>
                     <Badge className="bg-blue-50 text-blue-600 border-blue-100">
                       <Package size={10} />
-                      {item.cargo_type || 'GENERAL'}
+                      {item.commodity_type || 'GENERAL'}
                     </Badge>
                     {item.is_fragile && <Badge className="bg-amber-50 text-amber-600 border-amber-100">Fragile</Badge>}
                     {item.is_perishable && <Badge className="bg-teal-50 text-teal-600 border-teal-100">Perishable</Badge>}
@@ -123,6 +149,19 @@ export default function CargoDetail() {
                 <InfoCard label="Volume" value={`${item.volume_cbm || '—'} m³`} icon={Layers} />
                 <InfoCard label="Status" value={item.status} icon={Clock} />
                 <InfoCard label="Stock Code" value={item.item_code} icon={Hash} />
+              </div>
+              <div className="flex flex-wrap gap-2 mt-4">
+                {nextStatuses.map((status) => (
+                  <button
+                    key={status}
+                    type="button"
+                    onClick={() => transitionCargo.mutate({ id: item.id, newStatus: status })}
+                    disabled={transitionCargo.isPending}
+                    className="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border border-blue-100 bg-blue-50 text-blue-600 hover:bg-blue-100 disabled:opacity-50"
+                  >
+                    Move to {status}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
@@ -197,6 +236,59 @@ export default function CargoDetail() {
                    </div>
                 )}
              </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white rounded-3xl border border-gray-200 p-8 shadow-sm">
+            <SectionHeader icon={Clock} title="Movement History" />
+            <div className="space-y-3">
+              {movements.length === 0 ? (
+                <p className="text-sm text-gray-400">No movement entries yet.</p>
+              ) : (
+                movements.map((m) => (
+                  <div key={m.id} className="p-3 border border-gray-100 rounded-xl">
+                    <p className="text-xs font-bold text-[#172B4D]">{m.action} - Qty {m.quantity}</p>
+                    <p className="text-[11px] text-gray-500">Stop: {m.stop}</p>
+                    <p className="text-[11px] text-gray-500">Notes: {m.notes || '-'}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+          <div className="bg-white rounded-3xl border border-gray-200 p-8 shadow-sm">
+            <SectionHeader icon={Edit2} title="Record Movement" />
+            <form
+              className="space-y-3"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!canSubmitMovement) return;
+                createMovement.mutate(
+                  { ...movementForm, quantity: Number(movementForm.quantity) },
+                  { onSuccess: () => setMovementForm({ stop: '', action: 'LOADED', quantity: '', notes: '' }) }
+                );
+              }}
+            >
+              <select className="w-full p-2 border border-gray-200 rounded-lg" value={movementForm.stop} onChange={(e) => setMovementForm((p) => ({ ...p, stop: e.target.value }))}>
+                <option value="">Select stop</option>
+                {tripStops.map((stop) => (
+                  <option key={stop.id} value={stop.id}>
+                    #{stop.stop_sequence} {stop.stop_type} - {stop.location_address || 'No location'}
+                  </option>
+                ))}
+              </select>
+              <select className="w-full p-2 border border-gray-200 rounded-lg" value={movementForm.action} onChange={(e) => setMovementForm((p) => ({ ...p, action: e.target.value }))}>
+                <option value="LOADED">LOADED</option>
+                <option value="UNLOADED">UNLOADED</option>
+                <option value="SHORT">SHORT</option>
+                <option value="DAMAGED">DAMAGED</option>
+              </select>
+              <input type="number" min="1" className="w-full p-2 border border-gray-200 rounded-lg" placeholder="Quantity" value={movementForm.quantity} onChange={(e) => setMovementForm((p) => ({ ...p, quantity: e.target.value }))} />
+              <textarea rows="2" className="w-full p-2 border border-gray-200 rounded-lg" placeholder="Notes" value={movementForm.notes} onChange={(e) => setMovementForm((p) => ({ ...p, notes: e.target.value }))} />
+              <button type="submit" disabled={createMovement.isPending || !canSubmitMovement} className="px-4 py-2 rounded-lg bg-[#4a6cf7] text-white font-bold disabled:opacity-50">
+                {createMovement.isPending ? 'Saving...' : 'Record Movement'}
+              </button>
+            </form>
           </div>
         </div>
 
