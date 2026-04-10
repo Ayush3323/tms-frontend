@@ -78,7 +78,12 @@ export function CreateCargoModal({ isOpen, onClose, presetTripId }) {
     temperature_range: "",
     stackable: true,
     orientation: "NA",
-    status: "PENDING"
+    status: "PENDING",
+    total_loaded: 0,
+    total_unloaded: 0,
+    total_short: 0,
+    total_damaged: 0,
+    remaining_quantity: 0
   });
   const { data: tripStopsData } = useTripStops(formData.trip || null);
   const tripStops = Array.isArray(tripStopsData?.results) ? tripStopsData.results : (Array.isArray(tripStopsData) ? tripStopsData : []);
@@ -280,19 +285,58 @@ export function CreateCargoModal({ isOpen, onClose, presetTripId }) {
                </select>
              </div>
           </div>
-          {formData.commodity_type === 'HAZARDOUS' && (
-            <div>
-              <label className="block text-gray-700 font-medium mb-1">Hazardous Class *</label>
-              <input
-                type="text"
-                required
-                placeholder="e.g. Class-3"
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
-                value={formData.hazardous_class}
-                onChange={e => setFormData({ ...formData, hazardous_class: e.target.value })}
-              />
-            </div>
-          )}
+          <div className="grid grid-cols-2 gap-4">
+            {formData.commodity_type === 'HAZARDOUS' && (
+              <div>
+                <label className="block text-gray-700 font-medium mb-1 text-xs">Hazardous Class</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Class 3, Class 8"
+                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none text-xs"
+                  value={formData.hazardous_class}
+                  onChange={e => setFormData({ ...formData, hazardous_class: e.target.value })}
+                />
+              </div>
+            )}
+            {formData.is_perishable && (
+              <div>
+                <label className="block text-gray-700 font-medium mb-1 text-xs">Temperature Range</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 2°C to 8°C"
+                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none text-xs"
+                  value={formData.temperature_range}
+                  onChange={e => setFormData({ ...formData, temperature_range: e.target.value })}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-4 pt-2">
+          <h3 className="font-bold text-gray-800 text-xs uppercase tracking-widest border-b pb-1">Movement & Reconciliation Stats</h3>
+          <div className="grid grid-cols-5 gap-3">
+             <div>
+               <label className="block text-gray-500 font-[10px] uppercase tracking-tighter mb-1">Loaded</label>
+               <input type="number" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.total_loaded} onChange={e => setFormData({...formData, total_loaded: e.target.value})} />
+             </div>
+             <div>
+               <label className="block text-gray-500 font-[10px] uppercase tracking-tighter mb-1">Unloaded</label>
+               <input type="number" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.total_unloaded} onChange={e => setFormData({...formData, total_unloaded: e.target.value})} />
+             </div>
+             <div>
+               <label className="block text-gray-500 font-[10px] uppercase tracking-tighter mb-1">Short</label>
+               <input type="number" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.total_short} onChange={e => setFormData({...formData, total_short: e.target.value})} />
+             </div>
+             <div>
+               <label className="block text-gray-500 font-[10px] uppercase tracking-tighter mb-1">Damaged</label>
+               <input type="number" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.total_damaged} onChange={e => setFormData({...formData, total_damaged: e.target.value})} />
+             </div>
+             <div>
+               <label className="block text-blue-600 font-[10px] uppercase tracking-tighter mb-1 font-black">Remaining</label>
+               <input type="number" className="w-full p-2 border border-blue-200 bg-blue-50 text-blue-700 rounded text-xs font-bold" value={formData.remaining_quantity} onChange={e => setFormData({...formData, remaining_quantity: e.target.value})} />
+             </div>
+          </div>
         </div>
 
         <div className="space-y-4 pt-2">
@@ -315,19 +359,7 @@ export function CreateCargoModal({ isOpen, onClose, presetTripId }) {
                 <span className="text-gray-700 font-medium group-hover:text-blue-600 transition-colors">Insurance Required</span>
              </label>
           </div>
-          {formData.is_perishable && (
-            <div>
-              <label className="block text-gray-700 font-medium mb-1">Temperature Range *</label>
-              <input
-                type="text"
-                required
-                placeholder="e.g. 2-8 C"
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
-                value={formData.temperature_range}
-                onChange={e => setFormData({ ...formData, temperature_range: e.target.value })}
-              />
-            </div>
-          )}
+          {/* Handled by the persistent Special Handling section above */}
         </div>
 
         <div className="flex justify-end gap-3 pt-6 border-t border-gray-100">
@@ -402,7 +434,12 @@ export function EditCargoModal({ isOpen, onClose, item }) {
         is_fragile: item.is_fragile || false,
         is_perishable: item.is_perishable || false,
         stackable: item.stackable ?? true,
-        insurance_required: item.insurance_required || false
+        insurance_required: item.insurance_required || false,
+        total_loaded: item.total_loaded || 0,
+        total_unloaded: item.total_unloaded || 0,
+        total_short: item.total_short || 0,
+        total_damaged: item.total_damaged || 0,
+        remaining_quantity: item.remaining_quantity || 0
       });
     }
   }, [item, isOpen]);
@@ -574,12 +611,46 @@ export function EditCargoModal({ isOpen, onClose, item }) {
                </select>
              </div>
           </div>
-          {formData.commodity_type === 'HAZARDOUS' && (
-            <div>
-              <label className="block text-gray-700 font-medium mb-1 text-xs">Hazardous Class *</label>
-              <input type="text" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.hazardous_class} onChange={e => setFormData({...formData, hazardous_class: e.target.value})} />
-            </div>
-          )}
+          <div className="grid grid-cols-2 gap-4">
+             {formData.commodity_type === 'HAZARDOUS' && (
+               <div>
+                 <label className="block text-gray-700 font-medium mb-1 text-xs uppercase tracking-tight">Hazardous Class</label>
+                 <input type="text" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.hazardous_class} onChange={e => setFormData({...formData, hazardous_class: e.target.value})} />
+               </div>
+             )}
+             {formData.is_perishable && (
+               <div>
+                 <label className="block text-gray-700 font-medium mb-1 text-xs uppercase tracking-tight">Temperature Range</label>
+                 <input type="text" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.temperature_range} onChange={e => setFormData({...formData, temperature_range: e.target.value})} />
+               </div>
+             )}
+          </div>
+        </div>
+
+        <div className="space-y-4 pt-2">
+          <h3 className="font-bold text-gray-800 text-xs uppercase tracking-widest border-b pb-1">Movement & Reconciliation Stats</h3>
+          <div className="grid grid-cols-5 gap-3">
+             <div>
+               <label className="block text-gray-500 font-[10px] uppercase tracking-tighter mb-1">Loaded</label>
+               <input type="number" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.total_loaded} onChange={e => setFormData({...formData, total_loaded: e.target.value})} />
+             </div>
+             <div>
+               <label className="block text-gray-500 font-[10px] uppercase tracking-tighter mb-1">Unloaded</label>
+               <input type="number" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.total_unloaded} onChange={e => setFormData({...formData, total_unloaded: e.target.value})} />
+             </div>
+             <div>
+               <label className="block text-gray-500 font-[10px] uppercase tracking-tighter mb-1">Short</label>
+               <input type="number" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.total_short} onChange={e => setFormData({...formData, total_short: e.target.value})} />
+             </div>
+             <div>
+               <label className="block text-gray-500 font-[10px] uppercase tracking-tighter mb-1">Damaged</label>
+               <input type="number" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.total_damaged} onChange={e => setFormData({...formData, total_damaged: e.target.value})} />
+             </div>
+             <div>
+               <label className="block text-blue-600 font-[10px] uppercase tracking-tighter mb-1 font-black">Remaining</label>
+               <input type="number" className="w-full p-2 border border-blue-200 bg-blue-50 text-blue-700 rounded text-xs font-bold" value={formData.remaining_quantity} onChange={e => setFormData({...formData, remaining_quantity: e.target.value})} />
+             </div>
+          </div>
         </div>
 
         <div className="space-y-4 pt-2">
@@ -602,12 +673,7 @@ export function EditCargoModal({ isOpen, onClose, item }) {
                 <span className="text-gray-700 font-medium group-hover:text-blue-600 transition-colors">Insurance Required</span>
              </label>
           </div>
-          {formData.is_perishable && (
-            <div>
-              <label className="block text-gray-700 font-medium mb-1">Temperature Range *</label>
-              <input type="text" className="w-full p-2 border border-gray-300 rounded" value={formData.temperature_range} onChange={e => setFormData({ ...formData, temperature_range: e.target.value })} />
-            </div>
-          )}
+          {/* Handled by the persistent Special Handling section above */}
         </div>
 
         <div className="pt-4 border-t border-gray-100 grid grid-cols-2 gap-4">
@@ -702,6 +768,14 @@ export function ViewCargoModal({ isOpen, onClose, item }) {
             <p className="font-semibold text-gray-800">{item.description || 'N/A'}</p>
           </div>
           <div>
+            <p className="text-gray-500 font-bold mb-1 text-[10px] uppercase tracking-wider">Package Type</p>
+            <p className="font-semibold text-gray-800">{item.package_type || 'N/A'}</p>
+          </div>
+          <div>
+            <p className="text-gray-500 font-bold mb-1 text-[10px] uppercase tracking-wider">Quantity</p>
+            <p className="font-semibold text-gray-800">{item.quantity || 1}</p>
+          </div>
+          <div>
             <p className="text-gray-500 font-bold mb-1 text-[10px] uppercase tracking-wider">Weight (kg)</p>
             <p className="font-semibold text-gray-900">{item.weight_kg ? `${item.weight_kg} kg` : 'N/A'}</p>
           </div>
@@ -713,8 +787,47 @@ export function ViewCargoModal({ isOpen, onClose, item }) {
             <p className="text-gray-500 font-bold mb-1 text-[10px] uppercase tracking-wider">Dimensions</p>
             <p className="font-semibold text-gray-900">{item.length_cm ? `${item.length_cm}x${item.width_cm}x${item.height_cm} cm` : 'N/A'}</p>
           </div>
+          <div>
+            <p className="text-gray-500 font-bold mb-1 text-[10px] uppercase tracking-wider">Declared Value</p>
+            <p className="font-semibold text-gray-900">{item.declared_value ? `₹${item.declared_value}` : 'N/A'}</p>
+          </div>
+          <div>
+            <p className="text-gray-500 font-bold mb-1 text-[10px] uppercase tracking-wider">Orientation</p>
+            <p className="font-semibold text-gray-900">{item.orientation || 'NA'}</p>
+          </div>
+          {item.commodity_type === 'HAZARDOUS' && (
+            <div>
+              <p className="text-red-500 font-bold mb-1 text-[10px] uppercase tracking-wider">Hzrd. Class</p>
+              <p className="font-bold text-red-600">{item.hazardous_class || 'N/A'}</p>
+            </div>
+          )}
+          {item.is_perishable && (
+            <div>
+              <p className="text-teal-500 font-bold mb-1 text-[10px] uppercase tracking-wider">Temp Range</p>
+              <p className="font-bold text-teal-600">{item.temperature_range || 'N/A'}</p>
+            </div>
+          )}
         </div>
         
+        <div className="grid grid-cols-2 gap-4 bg-blue-50/30 p-3 rounded-xl border border-blue-100/50 text-center">
+           <div>
+             <p className="text-[9px] text-blue-400 font-bold uppercase tracking-tight">Remaining</p>
+             <p className="text-xs font-black text-blue-700">{item.remaining_quantity ?? '—'}</p>
+           </div>
+           <div>
+             <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tight">Loaded</p>
+             <p className="text-xs font-black text-gray-600">{item.total_loaded ?? 0}</p>
+           </div>
+           <div>
+             <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tight">Unloaded</p>
+             <p className="text-xs font-black text-gray-600">{item.total_unloaded ?? 0}</p>
+           </div>
+           <div>
+             <p className="text-[9px] text-amber-500 font-bold uppercase tracking-tight">Short/Damaged</p>
+             <p className="text-xs font-black text-amber-700">{(item.total_short ?? 0) + (item.total_damaged ?? 0)}</p>
+           </div>
+        </div>
+
         <div className="flex flex-wrap gap-2">
             {item.is_fragile && <span className="px-2 py-1 bg-amber-50 text-amber-700 text-[10px] font-bold rounded border border-amber-100 uppercase">FRAGILE ⚠️</span>}
             {item.is_perishable && <span className="px-2 py-1 bg-teal-50 text-teal-700 text-[10px] font-bold rounded border border-teal-100 uppercase">PERISHABLE 🧊</span>}

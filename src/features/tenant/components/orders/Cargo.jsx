@@ -23,6 +23,14 @@ const CARGO_TYPE_COLORS = {
   GENERAL: 'bg-blue-100 text-blue-700 border-blue-200',
 };
 
+const CARGO_STATUS_COLORS = {
+  PENDING: 'bg-slate-50 text-slate-600 border-slate-200',
+  LOADED: 'bg-green-50 text-green-700 border-green-200',
+  UNLOADED: 'bg-blue-50 text-blue-700 border-blue-200',
+  DAMAGED: 'bg-red-50 text-red-700 border-red-200',
+  SHORT: 'bg-amber-50 text-amber-700 border-amber-200',
+};
+
 
 
 // --- Modal Component moved to CargoModals.jsx ---
@@ -199,6 +207,7 @@ export default function CargoMainBody() {
                     <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Specifications</th>
                     <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Trip Link</th>
                     <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Category</th>
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Status</th>
                     <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest text-right">Actions</th>
                   </tr>
                 </thead>
@@ -247,6 +256,11 @@ export default function CargoMainBody() {
                       <td className="px-6 py-5">
                         <span className={`px-2.5 py-1 rounded border text-[10px] font-bold uppercase tracking-wider ${CARGO_TYPE_COLORS[item.commodity_type] || CARGO_TYPE_COLORS['GENERAL']}`}>
                           {item.commodity_type || 'GENERAL'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5">
+                        <span className={`px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-tight ${CARGO_STATUS_COLORS[item.status] || CARGO_STATUS_COLORS.PENDING}`}>
+                          {item.status || 'PENDING'}
                         </span>
                       </td>
                       <td className="px-6 py-5 text-right">
