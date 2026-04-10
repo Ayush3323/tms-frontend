@@ -284,7 +284,7 @@ export default function Orders() {
               </button>
               <span className="px-3 py-1 bg-[#0052CC] text-white rounded-lg text-xs font-black font-mono">{page}</span>
               <button 
-                disabled={orders.length < 10}
+                disabled={!ordersData?.next}
                 onClick={() => setPage(p => p + 1)}
                 className="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-all font-mono"
               >

@@ -16,6 +16,7 @@ import {
 } from '../../queries/orders/ordersQuery';
 import { useCustomer } from '../../queries/customers/customersQuery';
 import { EditOrderModal, AssignTripModal } from './OrderModals';
+import { toast } from 'react-hot-toast';
 
 // --- Configuration & Helpers ---
 const STATUS_STEPS = [
@@ -385,18 +386,14 @@ const TripsTab = ({ orderId, navigate }) => {
 };
 
 const CargoTab = ({ orderId, navigate }) => {
-  const { data: tripsData, isLoading: loadingTrips } = useTrips({ order_id: orderId, page_size: 200 });
-  const { data: cargoData, isLoading: loadingCargo } = useCargoItems({ page_size: 500 });
-  const trips = tripsData?.results || [];
+  const { data: cargoData, isLoading: loadingCargo } = useCargoItems({ order_id: orderId, ordering: '-created_at' });
   const cargoItems = cargoData?.results || [];
-  const tripIds = new Set(trips.map((t) => String(t.id)));
-  const filteredCargo = cargoItems.filter((c) => tripIds.has(String(c.trip)));
 
-  if (loadingTrips || loadingCargo) {
+  if (loadingCargo) {
     return <div className="p-10 text-center"><Loader2 className="animate-spin inline-block mr-2 text-[#0052CC]" /> Loading cargo...</div>;
   }
 
-  if (!filteredCargo.length) {
+  if (!cargoItems.length) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-gray-300">
         <div className="p-6 bg-white rounded-full border border-gray-100 shadow-sm mb-4">
@@ -409,7 +406,7 @@ const CargoTab = ({ orderId, navigate }) => {
 
   return (
     <div className="space-y-3">
-      {filteredCargo.map((item) => (
+      {cargoItems.map((item) => (
         <div key={item.id} className="bg-white border border-gray-100 rounded-xl p-4 flex items-center justify-between">
           <div>
             <p className="text-sm font-black text-[#172B4D]">{item.description || 'Cargo Item'}</p>
