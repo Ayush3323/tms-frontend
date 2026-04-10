@@ -234,7 +234,7 @@ export const DeleteConfirm = ({ title, label, message, onClose, onConfirm, delet
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-4 text-left">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-4 text-left border border-gray-100">
         <div className="w-12 h-12 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center">
           <Trash2 size={20} className="text-red-500" />
         </div>
@@ -248,6 +248,46 @@ export const DeleteConfirm = ({ title, label, message, onClose, onConfirm, delet
             className="flex-1 px-4 py-2 text-sm font-bold text-white bg-red-500 rounded-xl hover:bg-red-600 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
             {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
             Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Generic Confirmation Modal ───────────────────────────────────────
+export const ConfirmModal = ({ title, message, onClose, onConfirm, loading, confirmLabel = "Confirm", variant = "primary", icon: Icon = AlertCircle }) => {
+  const variants = {
+    primary: "bg-[#0052CC] hover:bg-[#0043A8] text-white shadow-blue-200",
+    danger: "bg-red-500 hover:bg-red-600 text-white shadow-red-200",
+    warning: "bg-orange-500 hover:bg-orange-600 text-white shadow-orange-200",
+  };
+
+  const iconColors = {
+    primary: "bg-blue-50 border-blue-100 text-[#0052CC]",
+    danger: "bg-red-50 border-red-100 text-red-500",
+    warning: "bg-orange-50 border-orange-100 text-orange-500",
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-[#172B4D]/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-5 text-left border border-white/20 animate-in zoom-in-95 fade-in duration-200">
+        <div className={`w-12 h-12 rounded-xl border flex items-center justify-center ${iconColors[variant] || iconColors.primary}`}>
+          <Icon size={22} className="shrink-0" />
+        </div>
+        <div>
+          <h2 className="text-lg font-black text-[#172B4D] leading-tight">{title}</h2>
+          <p className="text-[13px] text-gray-500 mt-1.5 font-medium">{message}</p>
+        </div>
+        <div className="flex gap-3 mt-1">
+          <button onClick={onClose} className="flex-1 px-4 py-2.5 text-[13px] font-bold text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all active:scale-95">
+            Cancel
+          </button>
+          <button onClick={onConfirm} disabled={loading}
+            className={`flex-1 px-4 py-2.5 text-[13px] font-bold rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg active:scale-95 ${variants[variant] || variants.primary}`}>
+            {loading ? <Loader2 size={14} className="animate-spin" /> : null}
+            {confirmLabel}
           </button>
         </div>
       </div>
