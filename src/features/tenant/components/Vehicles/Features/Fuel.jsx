@@ -13,7 +13,7 @@ import {
   useDeleteFuelLog,
 } from '../../../queries/vehicles/vehicleInfoQuery';
 import { useVehicles, useVehicle } from '../../../queries/vehicles/vehicleQuery';
-import { useTrips } from '../../../queries/orders/ordersQuery';
+import { useTrips, useTripDetail } from '../../../queries/orders/ordersQuery';
 import {
   Badge, InfoCard, SectionHeader, EmptyState, Modal, DeleteConfirm, ItemActions,
   Label, Input, Sel, Field, StatCard, Textarea, VehicleSelect,
@@ -54,13 +54,24 @@ const FormSec = ({ title }) => (
 
 // ─── Components ───────────────────────────────────────────────────────────────
 const ViewDetail = ({ data, onClose }) => {
-  const { data: tripData } = useTrips({ page_size: 1000 });
-  const trips = tripData?.results || [];
-  const trip = trips.find(t => t.id === data.trip_id);
+  const { data: trip, isLoading: tripLoading } = useTripDetail(data.trip_id);
 
-  const tripDisplay = trip
-    ? `${trip.trip_number} | ${trip.origin} → ${trip.destination} (${trip.status})`
-    : data.trip_id || '—';
+  const tripDisplay = tripLoading ? (
+    <span className="flex items-center gap-2 text-gray-400">
+      <Loader2 size={12} className="animate-spin" /> Fetching trip...
+    </span>
+  ) : trip ? (
+    <span className="text-blue-700 font-bold">
+      {trip.trip_number || 'TRIP-REF'} | {trip.origin ?? '—'} → {trip.destination ?? '—'} 
+      <Badge className="ml-2 scale-90 origin-left border-blue-200 bg-blue-50 text-blue-600 uppercase">
+        {trip.status}
+      </Badge>
+    </span>
+  ) : (
+    <span className="text-gray-400 font-mono text-[11px]" title={data.trip_id}>
+      {data.trip_id || '—'}
+    </span>
+  );
 
   return (
     <div className="space-y-6">
@@ -78,8 +89,8 @@ const ViewDetail = ({ data, onClose }) => {
         <InfoCard label="Odometer" value={fmtKm(data.odometer_reading)} icon={Gauge} />
       </div>
 
-      <div className="grid grid-cols-2 gap-6 pt-4 border-t border-gray-100">
-        <InfoCard label="Trip" value={tripDisplay} />
+      <div className="pt-4 border-t border-gray-100">
+        <InfoCard label="Trip" value={tripDisplay} noTruncate />
       </div>
 
       <div className="pt-4 border-t border-gray-100">
