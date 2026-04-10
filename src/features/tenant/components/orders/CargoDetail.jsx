@@ -118,16 +118,12 @@ export default function CargoDetail() {
                     <span className="text-xs font-mono bg-gray-100 text-gray-500 px-2 py-1 rounded-md border border-gray-200 uppercase tracking-wider">{item.item_code || item.id.slice(-6)}</span>
                   </h1>
                   <p className="text-sm text-gray-400 font-medium mt-1 uppercase tracking-wider">
-                    Commodity: {item.commodity_type || 'General Goods'} · Quantity: {item.quantity || 1}
+                    {item.package_type || 'General Goods'} · Commodity: {item.commodity_type || 'General'} · Quantity: {item.quantity || 1}
                   </p>
                   <div className="flex flex-wrap items-center gap-2 mt-4">
                     <Badge className={TYPE_COLORS[item.commodity_type] || TYPE_COLORS.GENERAL}>
                       <span className="w-1.5 h-1.5 rounded-full bg-current" />
                       {item.commodity_type || 'General'}
-                    </Badge>
-                    <Badge className="bg-blue-50 text-blue-600 border-blue-100">
-                      <Package size={10} />
-                      {item.commodity_type || 'GENERAL'}
                     </Badge>
                     {item.is_fragile && <Badge className="bg-amber-50 text-amber-600 border-amber-100">Fragile</Badge>}
                     {item.is_perishable && <Badge className="bg-teal-50 text-teal-600 border-teal-100">Perishable</Badge>}
@@ -163,6 +159,32 @@ export default function CargoDetail() {
                   </button>
                 ))}
               </div>
+
+              <div className="mt-8 border-t border-gray-100 pt-6">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-4">Movement Reconciliation</p>
+                <div className="grid grid-cols-5 gap-3">
+                   <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100 text-center">
+                     <p className="text-[9px] font-black text-blue-400 uppercase tracking-tight mb-1">Remaining</p>
+                     <p className="text-sm font-bold text-blue-700">{item.remaining_quantity ?? '—'}</p>
+                   </div>
+                   <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 text-center">
+                     <p className="text-[9px] font-black text-gray-400 uppercase tracking-tight mb-1">Loaded</p>
+                     <p className="text-sm font-bold text-gray-700">{item.total_loaded ?? 0}</p>
+                   </div>
+                   <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 text-center">
+                     <p className="text-[9px] font-black text-gray-400 uppercase tracking-tight mb-1">Unloaded</p>
+                     <p className="text-sm font-bold text-gray-700">{item.total_unloaded ?? 0}</p>
+                   </div>
+                   <div className="p-3 bg-amber-50/50 rounded-xl border border-amber-100 text-center">
+                     <p className="text-[9px] font-black text-amber-500 uppercase tracking-tight mb-1">Short</p>
+                     <p className="text-sm font-bold text-amber-700">{item.total_short ?? 0}</p>
+                   </div>
+                   <div className="p-3 bg-red-50/50 rounded-xl border border-red-100 text-center">
+                     <p className="text-[9px] font-black text-red-500 uppercase tracking-tight mb-1">Damaged</p>
+                     <p className="text-sm font-bold text-red-700">{item.total_damaged ?? 0}</p>
+                   </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -196,46 +218,38 @@ export default function CargoDetail() {
           <div className="bg-white rounded-3xl border border-gray-200 p-8 shadow-sm">
              <SectionHeader icon={Shield} title="Shipping Context" />
              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
-                  <div className="flex items-center gap-3">
-                    <Truck size={20} className="text-blue-600" />
-                    <div className="text-left">
-                       <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Linked Trip</p>
-                       <p className="text-sm font-bold text-blue-700">{trip?.trip_number || 'Unlinked'}</p>
+                 <div className="grid grid-cols-3 gap-3">
+                    <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100 flex flex-col justify-center">
+                       <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest leading-none mb-1">Linked Trip</p>
+                       <p className="text-sm font-bold text-blue-700 truncate">{trip?.trip_number || 'Unlinked'}</p>
                     </div>
-                  </div>
-                  {trip && <button onClick={() => navigate(`/tenant/dashboard/orders/trips/${trip.id}`)} className="p-2 bg-white rounded-lg text-blue-600 hover:bg-blue-600 hover:text-white transition-all"><ArrowLeft className="rotate-180" size={16} /></button>}
-                </div>
 
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                  <div className="flex items-center gap-3">
-                    <Hash size={20} className="text-gray-400" />
-                    <div className="text-left">
-                       <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Lorry Receipt (LR)</p>
-                       <p className="text-sm font-bold text-gray-700">{order?.lr_number || 'N/A'}</p>
+                    <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex flex-col justify-center">
+                       <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">LR Number</p>
+                       <p className="text-sm font-bold text-gray-700 truncate">{order?.lr_number || 'N/A'}</p>
                     </div>
-                  </div>
-                </div>
 
-                {item.hazardous_class && (
-                  <div className="p-4 bg-red-50 rounded-2xl border border-red-100 flex items-center gap-3">
-                    <AlertTriangle size={20} className="text-red-600" />
-                    <div className="text-left">
-                      <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">Hazardous Classification</p>
-                      <p className="text-sm font-bold text-red-700">Class {item.hazardous_class}</p>
+                    <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex flex-col justify-center text-left">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Package Type</p>
+                      <p className="text-sm font-bold text-gray-700 truncate">{item.package_type || '—'}</p>
                     </div>
-                  </div>
-                )}
+                    <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex flex-col justify-center text-left">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Quantity</p>
+                      <p className="text-sm font-bold text-gray-700">{item.quantity || 1}</p>
+                    </div>
+                    <div className="col-span-2 p-3 bg-teal-50/30 rounded-xl border border-teal-100/50 flex flex-col justify-center text-left">
+                       <p className="text-[10px] font-black text-teal-400 uppercase tracking-widest leading-none mb-1">Temp Requirement</p>
+                       <p className={`text-sm font-bold ${item.temperature_range ? 'text-teal-700' : 'text-gray-400'}`}>{item.temperature_range || 'Standard Ambient'}</p>
+                    </div>
+                 </div>
 
-                {item.is_perishable && (
-                   <div className="p-4 bg-teal-50 rounded-2xl border border-teal-100 flex items-center gap-3 text-left">
-                      <Thermometer size={20} className="text-teal-600" />
-                      <div>
-                        <p className="text-[10px] font-black text-teal-400 uppercase tracking-widest">Temp Requirement</p>
-                        <p className="text-sm font-bold text-teal-700">{item.temperature_range || 'Not Specified'}</p>
-                      </div>
-                   </div>
-                )}
+                 <div className="p-4 bg-red-50/30 rounded-2xl border border-red-100/50 flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-black text-red-400 uppercase tracking-widest leading-none mb-1.5">Hazardous Classification</p>
+                      <p className={`text-sm font-bold ${item.hazardous_class ? 'text-red-700' : 'text-gray-400'}`}>{item.hazardous_class ? `Class ${item.hazardous_class}` : 'Not Hazardous'}</p>
+                    </div>
+                    {item.hazardous_class && <AlertTriangle size={18} className="text-red-600" />}
+                 </div>
              </div>
           </div>
         </div>
