@@ -64,12 +64,13 @@ export default function DeliveryDetail() {
   );
 
   const statusMap = {
-    PENDING: { bg: 'bg-amber-50', color: 'text-amber-600', dot: 'bg-amber-600' },
-    SUBMITTED: { bg: 'bg-blue-50', color: 'text-blue-600', dot: 'bg-blue-600' },
-    VERIFIED: { bg: 'bg-green-50', color: 'text-green-600', dot: 'bg-green-600' },
-    REJECTED: { bg: 'bg-red-50', color: 'text-red-600', dot: 'bg-red-600' },
+    DELIVERED: { bg: 'bg-green-50', color: 'text-green-600', dot: 'bg-green-600' },
+    PARTIAL: { bg: 'bg-amber-50', color: 'text-amber-600', dot: 'bg-amber-600' },
+    DAMAGED: { bg: 'bg-red-50', color: 'text-red-600', dot: 'bg-red-600' },
+    REFUSED: { bg: 'bg-orange-50', color: 'text-orange-600', dot: 'bg-orange-600' },
+    RETURNED: { bg: 'bg-slate-50', color: 'text-slate-600', dot: 'bg-slate-600' },
   };
-  const st = statusMap[pod.status] || statusMap.PENDING;
+  const st = statusMap[pod.delivery_status] || statusMap.DELIVERED;
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] p-4">
@@ -96,12 +97,12 @@ export default function DeliveryDetail() {
                     <span className="text-xs font-mono bg-gray-100 text-gray-500 px-2 py-1 rounded-md border border-gray-200 uppercase tracking-wider">{pod.pod_number || 'TR-' + pod.id.slice(-6)}</span>
                   </h1>
                   <p className="text-sm text-gray-500 font-medium mt-1 uppercase tracking-wider">
-                    Relation: {pod.received_by_relation || 'Self'} · Delivery City: {pod.location || 'N/A'}
+                    Relation: {pod.received_by_relation || 'Self'} · Stop: {pod.trip_stop?.location_address || 'N/A'}
                   </p>
                   <div className="flex flex-wrap items-center gap-2 mt-4">
                     <Badge className={`${st.bg} ${st.color} border-current/20`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
-                      {pod.status}
+                      {pod.delivery_status}
                     </Badge>
                     <Badge className="bg-blue-50 text-blue-600 border-blue-100">
                       <FileCheck size={10} />
@@ -124,7 +125,7 @@ export default function DeliveryDetail() {
                     onClick={() => {
                       updateDeliveryMutation.mutate({
                         id: pod.id,
-                        data: { status: 'VERIFIED', verified_at: new Date().toISOString() }
+                        data: { delivery_status: 'DELIVERED' }
                       });
                     }}
                     className="px-5 py-2.5 text-sm font-black text-white bg-green-600 rounded-xl hover:bg-green-700 shadow-lg shadow-green-100 transition-all flex items-center gap-2"
@@ -147,7 +148,7 @@ export default function DeliveryDetail() {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
                 <InfoCard label="Delivery Time" value={pod.delivery_date ? new Date(pod.delivery_date).toLocaleTimeString() : '—'} icon={Clock} accent />
                 <InfoCard label="Trip Number" value={trip?.trip_number} icon={Hash} />
-                <InfoCard label="Location" value={pod.location} icon={MapPin} />
+                <InfoCard label="Location" value={pod.trip_stop?.location_address || '—'} icon={MapPin} />
                 <InfoCard label="Record ID" value={pod.id.slice(-8)} icon={Layers} />
               </div>
             </div>
