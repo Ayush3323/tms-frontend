@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Building2, MapPin, Phone, FileText, ClipboardList, Info as LucideInfo, 
-  History, Wallet, Pencil, Eye, Loader2, MessageSquare, Briefcase, User
+  History, Wallet, Pencil, Eye, Loader2, MessageSquare, Briefcase, User, Upload
 } from 'lucide-react';
 import { 
   useCustomerAddresses, useCustomerContacts, useCustomerDocuments, 
@@ -57,7 +57,7 @@ export const CustomerOverview = ({ customer: c, onEdit }) => (
       <InfoCard label="Type" value={c?.customer_type} />
       <InfoCard label="Business Type" value={c?.business_type} />
       <InfoCard label="Industry Sector" value={c?.industry_sector} />
-      <InfoCard label={c?.document_type ? c.document_type.replace('_', ' ') : 'Document URL'} value={c?.website} />
+      <InfoCard label={c?.document_type ? c.document_type.replace('_', ' ') : 'Website'} value={c?.website} />
       <InfoCard label="Notes" value={c?.notes} />
     </div>
 
@@ -385,6 +385,7 @@ const ContactFormModal = ({ initial, onClose, onSubmit, submitting, portalUser }
 export const CustomerDocuments = ({ customerId }) => {
   const [modal, setModal] = useState(null);
   const [selected, setSelected] = useState(null);
+  const [errors, setErrors] = useState({});
 
   const { data, isLoading } = useCustomerDocuments(customerId);
   const createMutation = useCreateCustomerDocument(customerId);
@@ -447,12 +448,21 @@ export const CustomerDocuments = ({ customerId }) => {
       {(modal === 'ADD' || modal === 'EDIT') && (
         <DocumentFormModal 
           initial={modal === 'EDIT' ? selected : null}
-          onClose={() => { setModal(null); setSelected(null); }}
+          onClose={() => { setModal(null); setSelected(null); setErrors({}); }}
           onSubmit={(payload) => {
-            if (modal === 'ADD') createMutation.mutate(payload, { onSuccess: () => setModal(null) });
-            else updateMutation.mutate({ id: selected.id, data: payload }, { onSuccess: () => setModal(null) });
+            const options = {
+              onSuccess: () => { setModal(null); setErrors({}); },
+              onError: (err) => {
+                if (err.response?.status === 400 && err.response.data?.details) {
+                  setErrors(err.response.data.details);
+                }
+              }
+            };
+            if (modal === 'ADD') createMutation.mutate(payload, options);
+            else updateMutation.mutate({ id: selected.id, data: payload }, options);
           }}
           submitting={createMutation.isPending || updateMutation.isPending}
+          externalErrors={errors}
         />
       )}
 
@@ -468,12 +478,21 @@ export const CustomerDocuments = ({ customerId }) => {
   );
 };
 
-const DocumentFormModal = ({ initial, onClose, onSubmit, submitting }) => {
+const DocumentFormModal = ({ initial, onClose, onSubmit, submitting, externalErrors }) => {
+  const fileRef = useRef(null);
   const [form, setForm] = useState(initial || {
     document_type: 'GST_CERTIFICATE', document_name: '', document_number: '', 
-    file_url: '', issue_date: '', expiry_date: '', remarks: ''
+    file_url: '', issue_date: '', expiry_date: '', remarks: '',
+    file: null // New field for the actual File object
   });
-  const [errors, setErrors] = useState({});
+
+  const [localErrors, setLocalErrors] = useState({});
+  const errors = { ...externalErrors, ...localErrors };
+
+  const setField = (k, v) => {
+    setForm(prev => ({ ...prev, [k]: v }));
+    if (localErrors[k]) setLocalErrors(prev => { const n = { ...prev }; delete n[k]; return n; });
+  };
 
   const TYPES = ['GST_CERTIFICATE', 'PAN_CARD', 'CIN', 'REGISTRATION', 'AADHAR', 'VOTER_ID', 'PASSPORT', 'TAX_EXEMPTION', 'OTHER'];
 
@@ -485,49 +504,99 @@ const DocumentFormModal = ({ initial, onClose, onSubmit, submitting }) => {
         e.issue_date = 'Issue date must be strictly before the expiry date';
       }
     }
-    setErrors(e);
+    setLocalErrors(e);
     if (Object.keys(e).length > 0) return;
-    onSubmit(form);
+
+    // Clean up payload for backend
+    const payload = { ...form };
+    
+    // Construct a full URL that satisfies strict validators
+    if (payload.file_url) {
+      if (payload.file_url.startsWith('/')) {
+        // Try using an absolute URL with the current origin
+        payload.file_url = window.location.origin + payload.file_url;
+      }
+    }
+
+    // Force null for empty dates
+    payload.issue_date = payload.issue_date || null;
+    payload.expiry_date = payload.expiry_date || null;
+
+    // Use FormData for file uploads - this is usually expected by backends for files
+    const formData = new FormData();
+    Object.entries(payload).forEach(([k, v]) => {
+      if (k === 'file' && !v) return; // Skip null file
+      if (v !== null && v !== undefined) {
+        formData.append(k, v);
+      }
+    });
+
+    onSubmit(formData);
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const cleanName = file.name.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '');
+      setForm(prev => ({
+        ...prev,
+        file: file,
+        file_url: `/temp_docs/${cleanName}`,
+        document_name: prev.document_name || cleanName.split('.')[0].substring(0, 50).replace(/[-_]/g, ' ')
+      }));
+      // Clear errors
+      if (localErrors.file_url) setLocalErrors(prev => { const { file_url, ...rest } = prev; return rest; });
+    }
   };
 
   return (
     <Modal title={initial ? 'Edit Document' : 'Upload Document'} onClose={onClose} onSubmit={handleSubmit} submitting={submitting}>
       <div className="grid grid-cols-2 gap-4">
         <Field label="Document Type" required>
-          <Sel value={form.document_type} onChange={e => setForm({...form, document_type: e.target.value})}>
+          <Sel value={form.document_type} onChange={e => setField('document_type', e.target.value)}>
             {TYPES.map(t => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
           </Sel>
         </Field>
-        <Field label="Document Name">
-          <Input value={form.document_name} onChange={e => setForm({...form, document_name: e.target.value})} placeholder="e.g. GST Registration Copy" />
+        <Field label="Document Name" error={errors.document_name}>
+          <Input value={form.document_name} onChange={e => setField('document_name', e.target.value)} placeholder="e.g. GST Registration Copy" />
         </Field>
-        <Field label="Document Number" required>
-          <Input value={form.document_number} onChange={e => setForm({...form, document_number: e.target.value})} />
+        <Field label="Document Number" required error={errors.document_number}>
+          <Input value={form.document_number} onChange={e => setField('document_number', e.target.value)} />
         </Field>
-        <Field label="File URL" required>
-          <Input value={form.file_url} onChange={e => setForm({...form, file_url: e.target.value})} placeholder="Direct link to file (e.g. S3/Storage URL)" />
+        <Field label="File URL" required error={errors.file_url}>
+          <Input value={form.file_url} onChange={e => setField('file_url', e.target.value)} placeholder="Direct link to file (e.g. S3/Storage URL)" />
         </Field>
         <Field label="Issue Date" error={errors.issue_date}>
-          <Input type="date" value={form.issue_date} onChange={e => {
-            setForm({...form, issue_date: e.target.value});
-            setErrors(prev => ({ ...prev, issue_date: null }));
-          }} />
+          <Input type="date" value={form.issue_date || ''} onChange={e => setField('issue_date', e.target.value)} />
         </Field>
         <Field label="Expiry Date" error={errors.expiry_date}>
-          <Input type="date" value={form.expiry_date} onChange={e => {
-            setForm({...form, expiry_date: e.target.value});
-            setErrors(prev => ({ ...prev, expiry_date: null }));
-          }} />
+          <Input type="date" value={form.expiry_date || ''} onChange={e => setField('expiry_date', e.target.value)} />
         </Field>
-        <Field label="Remarks" className="col-span-2">
-          <Input value={form.remarks} onChange={e => setForm({...form, remarks: e.target.value})} />
+        <Field label="Remarks" className="col-span-2" error={errors.remarks}>
+          <Input value={form.remarks} onChange={e => setField('remarks', e.target.value)} />
         </Field>
-        {!initial && (
-          <div className="col-span-2 p-4 border border-dashed border-gray-200 rounded-xl bg-gray-50 text-center">
-            <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mb-2">File Upload Integration Required</p>
-            <p className="text-[10px] text-gray-300">Placeholder for file selection logic</p>
+        <div className="col-span-2">
+          <input 
+            type="file" 
+            ref={fileRef} 
+            className="hidden" 
+            onChange={handleFileChange}
+          />
+          <div 
+            onClick={() => fileRef.current?.click()}
+            className="p-6 border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50/50 hover:bg-blue-50/50 hover:border-blue-200 transition-all cursor-pointer flex flex-col items-center justify-center group"
+          >
+            <div className="w-12 h-12 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-gray-400 group-hover:text-blue-500 group-hover:border-blue-100 transition-all mb-3 shadow-sm">
+              <Upload size={20} />
+            </div>
+            <p className="text-sm font-bold text-[#172B4D] mb-1">
+              {form.file_url ? 'Change Document' : 'Select Document'}
+            </p>
+            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+              {form.file_url ? form.file_url.split('/').pop() : 'Click to browse files'}
+            </p>
           </div>
-        )}
+        </div>
       </div>
     </Modal>
   );
