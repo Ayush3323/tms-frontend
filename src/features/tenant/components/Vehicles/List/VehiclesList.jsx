@@ -13,7 +13,7 @@ import {
   VehicleFormModal
 } from '../Common/VehicleFormModal';
 import {
-  StatCard, FUEL_COLORS, STATUS_STYLES, OWNERSHIP_COLORS, fmtKm
+  StatCard, FUEL_COLORS, STATUS_STYLES, OWNERSHIP_COLORS, fmtKm, ConfirmModal
 } from '../Common/VehicleCommon';
 import { TableShimmer, CardShimmer, ErrorState } from '../Common/StateFeedback';
 
@@ -52,6 +52,7 @@ const Vehicles = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [formModal, setFormModal] = useState(null);
   const [viewModal, setViewModal] = useState(null);
+  const [suspendConfirm, setSuspendConfirm] = useState(null);
   const navigate = useNavigate();
 
   // Search Debouncing
@@ -87,8 +88,21 @@ const Vehicles = () => {
   const deleted = statsData?.deleted ?? vehicles.filter(v => v.is_deleted).length;
   const statsLoading = !statsData;
 
-  const handleStatusToggle = (v) =>
-    updateVehicle.mutate({ id: v.id, data: { status: v.status === 'ACTIVE' ? 'MAINTENANCE' : 'ACTIVE' } });
+  const handleStatusToggle = (v) => {
+    if (v.status === 'ACTIVE') {
+      setSuspendConfirm(v);
+    } else {
+      updateVehicle.mutate({ id: v.id, data: { status: 'ACTIVE' } });
+    }
+  };
+
+  const confirmSuspend = () => {
+    if (!suspendConfirm) return;
+    updateVehicle.mutate(
+      { id: suspendConfirm.id, data: { status: 'MAINTENANCE' } },
+      { onSuccess: () => setSuspendConfirm(null) }
+    );
+  };
 
   const resetFilters = () => {
     setSearchTerm('');
@@ -240,6 +254,19 @@ const Vehicles = () => {
           initial={viewModal}
           isView
           onClose={() => setViewModal(null)}
+        />
+      )}
+
+      {suspendConfirm && (
+        <ConfirmModal
+          title="Suspend Vehicle"
+          message={`Are you sure you want to suspend vehicle ${suspendConfirm.registration_number}? This will change its status to Maintenance.`}
+          confirmLabel="Suspend Vehicle"
+          variant="danger"
+          icon={PauseCircle}
+          loading={updateVehicle.isPending}
+          onClose={() => setSuspendConfirm(null)}
+          onConfirm={confirmSuspend}
         />
       )}
 
