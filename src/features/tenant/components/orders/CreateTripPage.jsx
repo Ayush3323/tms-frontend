@@ -70,7 +70,7 @@ export default function CreateTripPage() {
   const { data: ordersData } = useOrders({ page_size: 100 });
   const ordersDataResults = ordersData?.results || [];
   const orders = useMemo(() => ordersDataResults.filter(o => 
-    ['DRAFT', 'CONFIRMED', 'ASSIGNED', 'IN_TRANSIT'].includes(o.status)
+    ['DRAFT', 'CONFIRMED'].includes(o.status)
   ), [ordersDataResults]);
   const { data: driversData } = useDrivers({ page_size: 100 });
   const drivers = driversData?.results || [];
@@ -193,6 +193,26 @@ export default function CreateTripPage() {
         ...prev,
         [name]: type === 'checkbox' ? checked : value
       };
+
+      // Sync with plannedStops
+      if (name === 'origin_address') {
+        setPlannedStops(stops => {
+          const nextStops = [...stops];
+          if (nextStops.length > 0) {
+            nextStops[0] = { ...nextStops[0], location_address: value, stop_type: 'PICKUP' };
+          }
+          return nextStops;
+        });
+      } else if (name === 'destination_address') {
+        setPlannedStops(stops => {
+          const nextStops = [...stops];
+          if (nextStops.length > 1) {
+            nextStops[nextStops.length - 1] = { ...nextStops[nextStops.length - 1], location_address: value, stop_type: 'DELIVERY' };
+          }
+          return nextStops;
+        });
+      }
+
       const err = validateField(name, next[name], next);
       const vehiclePairErr = validateField('alternate_vehicle_id', next.alternate_vehicle_id, next);
       const driverPairErr = validateField('alternate_driver_id', next.alternate_driver_id, next);
@@ -337,10 +357,10 @@ export default function CreateTripPage() {
 
   const addStopRow = () => {
     setPlannedStops((prev) => {
-      const next = [
-      ...prev,
-      { stop_type: 'DELIVERY', location_address: '', instructions: '', scheduled_arrival: '', scheduled_departure: '' },
-      ];
+      const next = [...prev];
+      // Insert before the last element (the terminal delivery stop)
+      const lastIdx = Math.max(0, next.length - 1);
+      next.splice(lastIdx, 0, { stop_type: 'PICKUP', location_address: '', instructions: '', scheduled_arrival: '', scheduled_departure: '' });
       validateStops(next);
       return next;
     });
@@ -649,7 +669,18 @@ export default function CreateTripPage() {
                             <input className={`${inputClass} bg-gray-50`} value={idx + 1} readOnly />
                           </div>
                           <div className="col-span-1">
-                            <button type="button" onClick={() => removeStopRow(idx)} className="w-full text-xs font-bold text-red-600 border border-red-200 rounded-lg py-2">Del</button>
+                            <button 
+                              type="button" 
+                              onClick={() => removeStopRow(idx)} 
+                              disabled={idx === 0 || idx === plannedStops.length - 1}
+                              className={`w-full text-xs font-bold rounded-lg py-2 border transition-all ${
+                                (idx === 0 || idx === plannedStops.length - 1)
+                                  ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed'
+                                  : 'text-red-600 border-red-200 hover:bg-red-50'
+                              }`}
+                            >
+                              Del
+                            </button>
                           </div>
                           <div className="col-span-12">
                             <input className={inputClass} value={stop.instructions} onChange={(e) => updateStopRow(idx, 'instructions', e.target.value)} placeholder="Instructions (optional)" />
