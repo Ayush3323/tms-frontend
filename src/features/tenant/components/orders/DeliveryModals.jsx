@@ -17,7 +17,8 @@ import {
   useCreateTripExpense,
   useCreateTripCharge,
   useTripDetail,
-  useDeliveryDetail
+  useDeliveryDetail,
+  useTrips,
 } from '../../queries/orders/ordersQuery';
 
 // --- Configuration & Status ---
@@ -60,6 +61,11 @@ const Modal = ({ isOpen, onClose, title, children }) => {
 
 export function CreatePODModal({ isOpen, onClose }) {
   const createPODMutation = useCreatePOD();
+  const { data: tripsData } = useTrips({ ordering: '-updated_at', page_size: 200, status_in: 'DELIVERED,COMPLETED' });
+  const [selectedTripId, setSelectedTripId] = useState('');
+  const doneTrips = tripsData?.results || [];
+  const { data: tripStopsData } = useTripStops(selectedTripId);
+  const deliveryStops = (tripStopsData || []).filter((s) => s.stop_type === 'DELIVERY');
 
   const [formData, setFormData] = useState({
     trip_stop: "",
@@ -95,6 +101,7 @@ export function CreatePODModal({ isOpen, onClose }) {
 
     createPODMutation.mutate(payload, {
       onSuccess: () => {
+        setSelectedTripId("");
         setFormData({
           trip_stop: "", delivery_date: new Date().toISOString().slice(0, 16),
           received_by_name: "", received_by_relation: "", delivery_status: "DELIVERED",
@@ -114,14 +121,43 @@ export function CreatePODModal({ isOpen, onClose }) {
           <h3 className="font-bold text-gray-800 text-xs uppercase tracking-widest border-b pb-1">Essential Information</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-gray-700 font-medium mb-1 uppercase text-[10px]">Trip Stop UUID (Required) *</label>
-              <input
-                type="text" required
+              <label className="block text-gray-700 font-medium mb-1 uppercase text-[10px]">Trip (Delivered/Completed) *</label>
+              <select
+                required
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC]"
+                value={selectedTripId}
+                onChange={e => {
+                  setSelectedTripId(e.target.value);
+                  setFormData((prev) => ({ ...prev, trip_stop: "" }));
+                }}
+              >
+                <option value="">Select trip</option>
+                {doneTrips.map((trip) => (
+                  <option key={trip.id} value={trip.id}>
+                    {trip.trip_number || trip.id.slice(-8)} - {trip.status}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-gray-700 font-medium mb-1 uppercase text-[10px]">Delivery Stop *</label>
+              <select
+                required
                 className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC]"
                 value={formData.trip_stop}
                 onChange={e => setFormData({ ...formData, trip_stop: e.target.value })}
-              />
+                disabled={!selectedTripId}
+              >
+                <option value="">{selectedTripId ? 'Select delivery stop' : 'Select trip first'}</option>
+                {deliveryStops.map((stop) => (
+                  <option key={stop.id} value={stop.id}>
+                    #{stop.stop_sequence} - {stop.location_address || 'Delivery stop'}
+                  </option>
+                ))}
+              </select>
             </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-gray-700 font-medium mb-1 uppercase text-[10px]">Delivery Date & Time *</label>
               <input
@@ -204,7 +240,6 @@ export function EditDeliveryModal({ isOpen, onClose, delivery }) {
     received_by_name: delivery?.received_by_name || "",
     received_by_relation: delivery?.received_by_relation || "",
     delivery_status: delivery?.delivery_status || "DELIVERED",
-    status: delivery?.status || "PENDING",
     remarks: delivery?.remarks || "",
     damage_notes: delivery?.damage_notes || "",
     shortage_notes: delivery?.shortage_notes || "",
@@ -213,8 +248,6 @@ export function EditDeliveryModal({ isOpen, onClose, delivery }) {
     delivery_latitude: delivery?.delivery_latitude || "",
     delivery_longitude: delivery?.delivery_longitude || "",
     location_accuracy_meters: delivery?.location_accuracy_meters || "",
-    verified_by: delivery?.verified_by || "",
-    verified_at: delivery?.verified_at || "",
   });
 
   useEffect(() => {
@@ -223,7 +256,6 @@ export function EditDeliveryModal({ isOpen, onClose, delivery }) {
         received_by_name: delivery.received_by_name || "",
         received_by_relation: delivery.received_by_relation || "",
         delivery_status: delivery.delivery_status || "DELIVERED",
-        status: delivery.status || "PENDING",
         remarks: delivery.remarks || "",
         damage_notes: delivery.damage_notes || "",
         shortage_notes: delivery.shortage_notes || "",
@@ -232,8 +264,6 @@ export function EditDeliveryModal({ isOpen, onClose, delivery }) {
         delivery_latitude: delivery.delivery_latitude || "",
         delivery_longitude: delivery.delivery_longitude || "",
         location_accuracy_meters: delivery.location_accuracy_meters || "",
-        verified_by: delivery.verified_by || "",
-        verified_at: delivery.verified_at || "",
       });
     }
   }, [delivery, isOpen]);
@@ -270,19 +300,6 @@ export function EditDeliveryModal({ isOpen, onClose, delivery }) {
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-gray-700 font-medium mb-1">System Status</label>
-            <select
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC]"
-              value={formData.status}
-              onChange={e => setFormData({ ...formData, status: e.target.value })}
-            >
-              <option value="PENDING">PENDING</option>
-              <option value="SUBMITTED">SUBMITTED</option>
-              <option value="VERIFIED">VERIFIED</option>
-              <option value="REJECTED">REJECTED</option>
-            </select>
-          </div>
-          <div>
             <label className="block text-gray-700 font-medium mb-1">Delivery Status</label>
             <select className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC]" value={formData.delivery_status} onChange={e => setFormData({ ...formData, delivery_status: e.target.value })}>
               <option value="DELIVERED">DELIVERED</option>
@@ -307,10 +324,6 @@ export function EditDeliveryModal({ isOpen, onClose, delivery }) {
           <textarea className="w-full p-2 border border-gray-300 rounded" rows="2" placeholder="Shortage notes" value={formData.shortage_notes} onChange={e => setFormData({ ...formData, shortage_notes: e.target.value })} />
         </div>
         <textarea className="w-full p-2 border border-gray-300 rounded" rows="2" placeholder="Remarks" value={formData.remarks} onChange={e => setFormData({ ...formData, remarks: e.target.value })} />
-        <div className="grid grid-cols-2 gap-4">
-          <input type="text" placeholder="Verified by (UUID)" className="w-full p-2 border border-gray-300 rounded" value={formData.verified_by} onChange={e => setFormData({ ...formData, verified_by: e.target.value })} />
-          <input type="datetime-local" placeholder="Verified at" className="w-full p-2 border border-gray-300 rounded" value={formData.verified_at ? new Date(formData.verified_at).toISOString().slice(0,16) : ''} onChange={e => setFormData({ ...formData, verified_at: e.target.value ? new Date(e.target.value).toISOString() : '' })} />
-        </div>
         <div className="flex justify-end gap-3 pt-6 border-t">
           <button type="button" onClick={onClose} className="px-5 py-2.5 text-gray-600 bg-gray-100 rounded-lg">Cancel</button>
           <button type="submit" disabled={updateDeliveryMutation.isPending} className="px-6 py-2.5 text-white bg-[#0052CC] rounded-lg shadow-md disabled:opacity-50">
