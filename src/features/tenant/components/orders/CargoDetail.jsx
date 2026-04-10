@@ -185,9 +185,10 @@ export default function CargoDetail() {
                   <p className="text-lg font-black text-[#172B4D]">{item.height_cm} <span className="text-[10px] text-gray-400">cm</span></p>
                 </div>
              </div>
-             <div className="grid grid-cols-2 gap-4">
+             <div className="grid grid-cols-3 gap-4">
                 <InfoCard label="Stackable" value={item.stackable ? 'Yes' : 'No'} icon={Layers} />
                 <InfoCard label="Orientation" value={item.orientation} icon={MapPin} />
+                <InfoCard label="Declared Value" value={item.declared_value ? `${item.declared_value}` : '—'} icon={Shield} />
              </div>
           </div>
 
@@ -290,6 +291,17 @@ export default function CargoDetail() {
               </button>
             </form>
           </div>
+        </div>
+
+        <div className="pt-8 pb-10 border-t border-gray-200 flex flex-col md:flex-row justify-center items-center gap-12 text-center text-gray-500">
+           <div>
+             <p className="text-[10px] font-black uppercase tracking-widest mb-1 text-gray-400">System Created At</p>
+             <p className="text-xs font-bold text-gray-600">{item.created_at ? new Date(item.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'N/A'}</p>
+           </div>
+           <div>
+             <p className="text-[10px] font-black uppercase tracking-widest mb-1 text-gray-400">Last System Update</p>
+             <p className="text-xs font-bold text-gray-600">{item.updated_at ? new Date(item.updated_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'N/A'}</p>
+           </div>
         </div>
 
       </div>

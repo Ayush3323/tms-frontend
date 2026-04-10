@@ -3,6 +3,7 @@ import { X, Package, Hash, Layers, Scale, Maximize, Move } from 'lucide-react';
 import { 
   useCreateCargo, 
   useUpdateCargo,
+  useCargoItems,
   useTrips,
   useTripStops,
   useTripDetail,
@@ -52,7 +53,9 @@ const Modal = ({ isOpen, onClose, title, children }) => {
 export function CreateCargoModal({ isOpen, onClose, presetTripId }) {
   const createCargoMutation = useCreateCargo();
   const { data: tripsData } = useTrips({ page_size: 100 });
+  const { data: allCargoData } = useCargoItems({ page_size: 200 });
   const trips = tripsData?.results || [];
+  const assignedTripIds = new Set((allCargoData?.results || []).map(c => String(c.trip)));
 
   const [formData, setFormData] = useState({
     trip: presetTripId || "",
@@ -128,9 +131,18 @@ export function CreateCargoModal({ isOpen, onClose, presetTripId }) {
                 onChange={e => setFormData({ ...formData, trip: e.target.value })}
               >
                 <option value="">Select a trip</option>
-                {trips.map(trip => (
-                  <option key={trip.id} value={trip.id}>{trip.trip_number || trip.id?.slice(-8)}</option>
-                ))}
+                {trips.map(trip => {
+                  const isAssigned = assignedTripIds.has(String(trip.id));
+                  return (
+                    <option 
+                      key={trip.id} 
+                      value={trip.id} 
+                      disabled={isAssigned && String(trip.id) !== String(presetTripId)}
+                    >
+                      {trip.trip_number || trip.id?.slice(-8)} {isAssigned ? '(Cargo Assigned)' : ''}
+                    </option>
+                  );
+                })}
               </select>
             </div>
             <div>
@@ -231,10 +243,14 @@ export function CreateCargoModal({ isOpen, onClose, presetTripId }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-5 gap-3">
              <div>
                <label className="block text-gray-700 font-[11px] mb-1 uppercase tracking-tight">Weight (kg)</label>
                <input type="number" step="0.01" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.weight_kg} onChange={e => setFormData({...formData, weight_kg: e.target.value})} />
+             </div>
+             <div>
+               <label className="block text-gray-700 font-[11px] mb-1 uppercase tracking-tight">Volume (cbm)</label>
+               <input type="number" step="0.001" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.volume_cbm} onChange={e => setFormData({...formData, volume_cbm: e.target.value})} />
              </div>
              <div>
                <label className="block text-gray-700 font-[11px] mb-1 uppercase tracking-tight">Length (cm)</label>
@@ -247,6 +263,21 @@ export function CreateCargoModal({ isOpen, onClose, presetTripId }) {
              <div>
                <label className="block text-gray-700 font-[11px] mb-1 uppercase tracking-tight">Height (cm)</label>
                <input type="number" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.height_cm} onChange={e => setFormData({...formData, height_cm: e.target.value})} />
+             </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+             <div>
+               <label className="block text-gray-700 font-medium mb-1">Declared Value (INR/USD)</label>
+               <input type="number" step="0.01" className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none" value={formData.declared_value} onChange={e => setFormData({...formData, declared_value: e.target.value})} />
+             </div>
+             <div>
+               <label className="block text-gray-700 font-medium mb-1">Placement Orientation</label>
+               <select className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none" value={formData.orientation} onChange={e => setFormData({...formData, orientation: e.target.value})}>
+                 <option value="NA">NA (No Specific Direction)</option>
+                 <option value="UP">UP (Upright/Vertical)</option>
+                 <option value="DOWN">DOWN (Lying Flat)</option>
+                 <option value="SIDE">SIDE (On its Side)</option>
+               </select>
              </div>
           </div>
           {formData.commodity_type === 'HAZARDOUS' && (
@@ -395,12 +426,15 @@ export function EditCargoModal({ isOpen, onClose, item }) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Edit Cargo: ${item?.item_code || item?.id?.slice(-8)}`}>
       <form onSubmit={handleSubmit} className="space-y-6 text-sm">
-        <div className="grid grid-cols-2 gap-4">
-           <div>
-              <label className="block text-gray-700 font-medium mb-1">Trip *</label>
+        <div className="space-y-4">
+          <h3 className="font-bold text-gray-800 text-xs uppercase tracking-widest border-b pb-1">Essential Information</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-gray-700 font-medium mb-1 truncate">Trip (Locked for Tracking)</label>
               <select
                 required
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+                disabled
+                className="w-full p-2 border border-gray-200 bg-gray-50 rounded text-gray-500 cursor-not-allowed outline-none"
                 value={formData.trip}
                 onChange={e => setFormData({ ...formData, trip: e.target.value })}
               >
@@ -409,8 +443,8 @@ export function EditCargoModal({ isOpen, onClose, item }) {
                   <option key={t.id} value={t.id}>{t.trip_number || t.id?.slice(-8)}</option>
                 ))}
               </select>
-           </div>
-           <div>
+            </div>
+            <div>
               <label className="block text-gray-700 font-medium mb-1">Trip Stop</label>
               <select
                 className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
@@ -425,70 +459,166 @@ export function EditCargoModal({ isOpen, onClose, item }) {
                   </option>
                 ))}
               </select>
-           </div>
-           <div>
+            </div>
+            <div className="col-span-2">
               <label className="block text-gray-700 font-medium mb-1">Description *</label>
               <input 
-                type="text" required
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7]"
+                type="text" 
+                required
+                placeholder="e.g. Steel Coils"
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
                 value={formData.description}
                 onChange={e => setFormData({ ...formData, description: e.target.value })}
               />
-           </div>
-        </div>
+            </div>
+          </div>
 
-        <div className="grid grid-cols-3 gap-4">
-           <div>
-              <label className="block text-gray-700 font-medium mb-1">Quantity</label>
-              <input type="number" required className="w-full p-2 border border-gray-300 rounded" value={formData.quantity} onChange={e => setFormData({...formData, quantity: e.target.value})} />
-           </div>
-           <div>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-gray-700 font-medium mb-1">Quantity *</label>
+              <input 
+                type="number" 
+                required
+                min="1"
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+                value={formData.quantity}
+                onChange={e => setFormData({ ...formData, quantity: e.target.value })}
+              />
+            </div>
+            <div>
               <label className="block text-gray-700 font-medium mb-1">Item Code</label>
-              <input type="text" className="w-full p-2 border border-gray-300 rounded" value={formData.item_code} onChange={e => setFormData({...formData, item_code: e.target.value})} />
-           </div>
-           <div>
+              <input 
+                type="text" 
+                placeholder="ITEM-001"
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+                value={formData.item_code}
+                onChange={e => setFormData({ ...formData, item_code: e.target.value })}
+              />
+            </div>
+            <div>
               <label className="block text-gray-700 font-medium mb-1">Status</label>
-              <select className="w-full p-2 border border-gray-300 rounded" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
+              <select
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+                value={formData.status}
+                onChange={e => setFormData({ ...formData, status: e.target.value })}
+              >
                 {statusOptions.map((status, idx) => (
                   <option key={status} value={status} disabled={idx === 0}>{status}</option>
                 ))}
               </select>
-           </div>
-        </div>
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label className="block text-gray-700 font-medium mb-1">Commodity</label>
-            <select className="w-full p-2 border border-gray-300 rounded" value={formData.commodity_type} onChange={e => setFormData({...formData, commodity_type: e.target.value})}>
-              {COMMODITY_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-gray-700 font-medium mb-1">Package Type</label>
-            <input type="text" className="w-full p-2 border border-gray-300 rounded" value={formData.package_type} onChange={e => setFormData({...formData, package_type: e.target.value})} />
-          </div>
-          <div>
-            <label className="block text-gray-700 font-medium mb-1">Hazardous Class</label>
-            <input type="text" className="w-full p-2 border border-gray-300 rounded" value={formData.hazardous_class} onChange={e => setFormData({...formData, hazardous_class: e.target.value})} disabled={formData.commodity_type !== 'HAZARDOUS'} />
+            </div>
           </div>
         </div>
-        <div className="grid grid-cols-4 gap-3">
-          <input type="number" step="0.01" placeholder="Weight kg" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.weight_kg} onChange={e => setFormData({...formData, weight_kg: e.target.value})} />
-          <input type="number" step="0.01" placeholder="Volume cbm" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.volume_cbm} onChange={e => setFormData({...formData, volume_cbm: e.target.value})} />
-          <input type="number" placeholder="Length cm" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.length_cm} onChange={e => setFormData({...formData, length_cm: e.target.value})} />
-          <input type="number" placeholder="Width cm" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.width_cm} onChange={e => setFormData({...formData, width_cm: e.target.value})} />
+
+        <div className="space-y-4 pt-2">
+          <h3 className="font-bold text-gray-800 text-xs uppercase tracking-widest border-b pb-1">Specifications & Classification</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-gray-700 font-medium mb-1">Commodity Type</label>
+              <select
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+                value={formData.commodity_type}
+                onChange={e => setFormData({ ...formData, commodity_type: e.target.value })}
+              >
+                {COMMODITY_OPTIONS.map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-gray-700 font-medium mb-1">Package Type</label>
+              <input 
+                type="text" 
+                placeholder="e.g. Bales, Boxes"
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+                value={formData.package_type}
+                onChange={e => setFormData({ ...formData, package_type: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-5 gap-3">
+             <div>
+               <label className="block text-gray-700 font-[11px] mb-1 uppercase tracking-tight">Weight (kg)</label>
+               <input type="number" step="0.01" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.weight_kg} onChange={e => setFormData({...formData, weight_kg: e.target.value})} />
+             </div>
+             <div>
+               <label className="block text-gray-700 font-[11px] mb-1 uppercase tracking-tight">Volume (cbm)</label>
+               <input type="number" step="0.001" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.volume_cbm} onChange={e => setFormData({...formData, volume_cbm: e.target.value})} />
+             </div>
+             <div>
+               <label className="block text-gray-700 font-[11px] mb-1 uppercase tracking-tight">Length (cm)</label>
+               <input type="number" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.length_cm} onChange={e => setFormData({...formData, length_cm: e.target.value})} />
+             </div>
+             <div>
+               <label className="block text-gray-700 font-[11px] mb-1 uppercase tracking-tight">Width (cm)</label>
+               <input type="number" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.width_cm} onChange={e => setFormData({...formData, width_cm: e.target.value})} />
+             </div>
+             <div>
+               <label className="block text-gray-700 font-[11px] mb-1 uppercase tracking-tight">Height (cm)</label>
+               <input type="number" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.height_cm} onChange={e => setFormData({...formData, height_cm: e.target.value})} />
+             </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+             <div>
+               <label className="block text-gray-700 font-medium mb-1">Declared Value (INR/USD)</label>
+               <input type="number" step="0.01" className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none" value={formData.declared_value} onChange={e => setFormData({...formData, declared_value: e.target.value})} />
+             </div>
+             <div>
+               <label className="block text-gray-700 font-medium mb-1">Placement Orientation</label>
+               <select className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none" value={formData.orientation} onChange={e => setFormData({...formData, orientation: e.target.value})}>
+                 <option value="NA">NA (No Specific Direction)</option>
+                 <option value="UP">UP (Upright/Vertical)</option>
+                 <option value="DOWN">DOWN (Lying Flat)</option>
+                 <option value="SIDE">SIDE (On its Side)</option>
+               </select>
+             </div>
+          </div>
+          {formData.commodity_type === 'HAZARDOUS' && (
+            <div>
+              <label className="block text-gray-700 font-medium mb-1 text-xs">Hazardous Class *</label>
+              <input type="text" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.hazardous_class} onChange={e => setFormData({...formData, hazardous_class: e.target.value})} />
+            </div>
+          )}
         </div>
-        <div className="grid grid-cols-4 gap-3">
-          <input type="number" placeholder="Height cm" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.height_cm} onChange={e => setFormData({...formData, height_cm: e.target.value})} />
-          <input type="number" step="0.01" placeholder="Declared value" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.declared_value} onChange={e => setFormData({...formData, declared_value: e.target.value})} />
-          <input type="text" placeholder="Temp range" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.temperature_range} onChange={e => setFormData({...formData, temperature_range: e.target.value})} />
-          <select className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.orientation} onChange={e => setFormData({...formData, orientation: e.target.value})}>
-            <option value="NA">NA</option>
-            <option value="UP">UP</option>
-            <option value="DOWN">DOWN</option>
-            <option value="SIDE">SIDE</option>
-          </select>
+
+        <div className="space-y-4 pt-2">
+          <h3 className="font-bold text-gray-800 text-xs uppercase tracking-widest border-b pb-1">Handling & Care</h3>
+          <div className="flex flex-wrap gap-x-6 gap-y-3">
+             <label className="flex items-center gap-2 cursor-pointer group">
+                <input type="checkbox" className="w-4 h-4 rounded text-[#4a6cf7] focus:ring-[#4a6cf7]" checked={formData.is_fragile} onChange={e => setFormData({...formData, is_fragile: e.target.checked})} />
+                <span className="text-gray-700 font-medium group-hover:text-blue-600 transition-colors">Is Fragile</span>
+             </label>
+             <label className="flex items-center gap-2 cursor-pointer group">
+                <input type="checkbox" className="w-4 h-4 rounded text-[#4a6cf7] focus:ring-[#4a6cf7]" checked={formData.is_perishable} onChange={e => setFormData({...formData, is_perishable: e.target.checked})} />
+                <span className="text-gray-700 font-medium group-hover:text-blue-600 transition-colors">Is Perishable</span>
+             </label>
+             <label className="flex items-center gap-2 cursor-pointer group">
+                <input type="checkbox" className="w-4 h-4 rounded text-[#4a6cf7] focus:ring-[#4a6cf7]" checked={formData.stackable} onChange={e => setFormData({...formData, stackable: e.target.checked})} />
+                <span className="text-gray-700 font-medium group-hover:text-blue-600 transition-colors">Stackable</span>
+             </label>
+             <label className="flex items-center gap-2 cursor-pointer group">
+                <input type="checkbox" className="w-4 h-4 rounded text-[#4a6cf7] focus:ring-[#4a6cf7]" checked={formData.insurance_required} onChange={e => setFormData({...formData, insurance_required: e.target.checked})} />
+                <span className="text-gray-700 font-medium group-hover:text-blue-600 transition-colors">Insurance Required</span>
+             </label>
+          </div>
+          {formData.is_perishable && (
+            <div>
+              <label className="block text-gray-700 font-medium mb-1">Temperature Range *</label>
+              <input type="text" className="w-full p-2 border border-gray-300 rounded" value={formData.temperature_range} onChange={e => setFormData({ ...formData, temperature_range: e.target.value })} />
+            </div>
+          )}
+        </div>
+
+        <div className="pt-4 border-t border-gray-100 grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Created At</p>
+              <p className="text-[11px] text-gray-500 italic">{item?.created_at ? new Date(item.created_at).toLocaleString() : 'N/A'}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Last Updated</p>
+              <p className="text-[11px] text-gray-500 italic">{item?.updated_at ? new Date(item.updated_at).toLocaleString() : 'N/A'}</p>
+            </div>
         </div>
 
         <div className="flex justify-end gap-3 pt-6 border-t border-gray-100">
@@ -590,6 +720,17 @@ export function ViewCargoModal({ isOpen, onClose, item }) {
             {item.is_perishable && <span className="px-2 py-1 bg-teal-50 text-teal-700 text-[10px] font-bold rounded border border-teal-100 uppercase">PERISHABLE 🧊</span>}
             {item.stackable && <span className="px-2 py-1 bg-blue-50 text-blue-700 text-[10px] font-bold rounded border border-blue-100 uppercase">STACKABLE ↕</span>}
             {item.insurance_required && <span className="px-2 py-1 bg-purple-50 text-purple-700 text-[10px] font-bold rounded border border-purple-100 uppercase">INSURED 🛡️</span>}
+        </div>
+
+        <div className="pt-4 border-t border-gray-100 grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Created At</p>
+              <p className="text-[11px] text-gray-600 italic">{item.created_at ? new Date(item.created_at).toLocaleString() : 'N/A'}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Last Updated</p>
+              <p className="text-[11px] text-gray-600 italic">{item.updated_at ? new Date(item.updated_at).toLocaleString() : 'N/A'}</p>
+            </div>
         </div>
 
         <div className="flex justify-end pt-4 border-t border-gray-100">
