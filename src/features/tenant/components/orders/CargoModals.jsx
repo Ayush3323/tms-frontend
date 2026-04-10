@@ -12,10 +12,21 @@ import { useCustomers } from '../../queries/customers/customersQuery';
 
 // --- Configuration & Helpers ---
 const CARGO_TYPE_COLORS = {
-  HAZMAT: 'bg-red-100 text-red-700 border-red-200',
+  HAZARDOUS: 'bg-red-100 text-red-700 border-red-200',
   PERISHABLE: 'bg-teal-100 text-teal-700 border-teal-200',
   FRAGILE: 'bg-amber-100 text-amber-700 border-amber-200',
+  HIGH_VALUE: 'bg-purple-100 text-purple-700 border-purple-200',
+  OTHER: 'bg-slate-100 text-slate-700 border-slate-200',
   GENERAL: 'bg-blue-100 text-blue-700 border-blue-200',
+};
+
+const COMMODITY_OPTIONS = ['GENERAL', 'HAZARDOUS', 'PERISHABLE', 'FRAGILE', 'HIGH_VALUE', 'OTHER'];
+const CARGO_TRANSITIONS = {
+  PENDING: ['LOADED'],
+  LOADED: ['UNLOADED', 'DAMAGED', 'SHORT'],
+  UNLOADED: ['DAMAGED'],
+  DAMAGED: [],
+  SHORT: [],
 };
 
 // --- Base Modal Component ---
@@ -38,13 +49,13 @@ const Modal = ({ isOpen, onClose, title, children }) => {
   );
 };
 
-export function CreateCargoModal({ isOpen, onClose }) {
+export function CreateCargoModal({ isOpen, onClose, presetTripId }) {
   const createCargoMutation = useCreateCargo();
   const { data: tripsData } = useTrips({ page_size: 100 });
   const trips = tripsData?.results || [];
 
   const [formData, setFormData] = useState({
-    trip: "",
+    trip: presetTripId || "",
     trip_stop: "",
     item_code: "",
     description: "",
@@ -68,6 +79,11 @@ export function CreateCargoModal({ isOpen, onClose }) {
   });
   const { data: tripStopsData } = useTripStops(formData.trip || null);
   const tripStops = Array.isArray(tripStopsData?.results) ? tripStopsData.results : (Array.isArray(tripStopsData) ? tripStopsData : []);
+  useEffect(() => {
+    if (isOpen && presetTripId) {
+      setFormData((prev) => ({ ...prev, trip: presetTripId }));
+    }
+  }, [isOpen, presetTripId]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -86,7 +102,7 @@ export function CreateCargoModal({ isOpen, onClose }) {
     createCargoMutation.mutate(payload, {
       onSuccess: () => {
         setFormData({
-          trip: "", trip_stop: "", item_code: "", description: "", commodity_type: "GENERAL",
+          trip: presetTripId || "", trip_stop: "", item_code: "", description: "", commodity_type: "GENERAL",
           hazardous_class: "", quantity: "1", package_type: "", weight_kg: "", volume_cbm: "",
           length_cm: "", width_cm: "", height_cm: "", declared_value: "", insurance_required: false,
           is_fragile: false, is_perishable: false, temperature_range: "", stackable: true,
@@ -196,10 +212,11 @@ export function CreateCargoModal({ isOpen, onClose }) {
                 onChange={e => setFormData({ ...formData, commodity_type: e.target.value })}
               >
                 <option value="GENERAL">GENERAL</option>
-                <option value="ELECTRONICS">ELECTRONICS</option>
-                <option value="FURNITURE">FURNITURE</option>
-                <option value="FOOD">FOOD</option>
-                <option value="PHARMA">PHARMA</option>
+                <option value="HAZARDOUS">HAZARDOUS</option>
+                <option value="PERISHABLE">PERISHABLE</option>
+                <option value="FRAGILE">FRAGILE</option>
+                <option value="HIGH_VALUE">HIGH_VALUE</option>
+                <option value="OTHER">OTHER</option>
               </select>
             </div>
             <div>
@@ -232,6 +249,19 @@ export function CreateCargoModal({ isOpen, onClose }) {
                <input type="number" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.height_cm} onChange={e => setFormData({...formData, height_cm: e.target.value})} />
              </div>
           </div>
+          {formData.commodity_type === 'HAZARDOUS' && (
+            <div>
+              <label className="block text-gray-700 font-medium mb-1">Hazardous Class *</label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. Class-3"
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+                value={formData.hazardous_class}
+                onChange={e => setFormData({ ...formData, hazardous_class: e.target.value })}
+              />
+            </div>
+          )}
         </div>
 
         <div className="space-y-4 pt-2">
@@ -254,6 +284,19 @@ export function CreateCargoModal({ isOpen, onClose }) {
                 <span className="text-gray-700 font-medium group-hover:text-blue-600 transition-colors">Insurance Required</span>
              </label>
           </div>
+          {formData.is_perishable && (
+            <div>
+              <label className="block text-gray-700 font-medium mb-1">Temperature Range *</label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. 2-8 C"
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
+                value={formData.temperature_range}
+                onChange={e => setFormData({ ...formData, temperature_range: e.target.value })}
+              />
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end gap-3 pt-6 border-t border-gray-100">
@@ -301,6 +344,9 @@ export function EditCargoModal({ isOpen, onClose, item }) {
   });
   const { data: tripStopsData } = useTripStops(formData.trip || null);
   const tripStops = Array.isArray(tripStopsData?.results) ? tripStopsData.results : (Array.isArray(tripStopsData) ? tripStopsData : []);
+  const currentStatus = item?.status || 'PENDING';
+  const nextStatuses = CARGO_TRANSITIONS[currentStatus] || [];
+  const statusOptions = [currentStatus, ...nextStatuses];
 
   useEffect(() => {
     if (item && isOpen) {
@@ -403,17 +449,20 @@ export function EditCargoModal({ isOpen, onClose, item }) {
            <div>
               <label className="block text-gray-700 font-medium mb-1">Status</label>
               <select className="w-full p-2 border border-gray-300 rounded" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
-                <option value="PENDING">PENDING</option>
-                <option value="LOADED">LOADED</option>
-                <option value="UNLOADED">UNLOADED</option>
-                <option value="DAMAGED">DAMAGED</option>
+                {statusOptions.map((status, idx) => (
+                  <option key={status} value={status} disabled={idx === 0}>{status}</option>
+                ))}
               </select>
            </div>
         </div>
         <div className="grid grid-cols-3 gap-4">
           <div>
             <label className="block text-gray-700 font-medium mb-1">Commodity</label>
-            <input type="text" className="w-full p-2 border border-gray-300 rounded" value={formData.commodity_type} onChange={e => setFormData({...formData, commodity_type: e.target.value})} />
+            <select className="w-full p-2 border border-gray-300 rounded" value={formData.commodity_type} onChange={e => setFormData({...formData, commodity_type: e.target.value})}>
+              {COMMODITY_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="block text-gray-700 font-medium mb-1">Package Type</label>
@@ -421,7 +470,7 @@ export function EditCargoModal({ isOpen, onClose, item }) {
           </div>
           <div>
             <label className="block text-gray-700 font-medium mb-1">Hazardous Class</label>
-            <input type="text" className="w-full p-2 border border-gray-300 rounded" value={formData.hazardous_class} onChange={e => setFormData({...formData, hazardous_class: e.target.value})} />
+            <input type="text" className="w-full p-2 border border-gray-300 rounded" value={formData.hazardous_class} onChange={e => setFormData({...formData, hazardous_class: e.target.value})} disabled={formData.commodity_type !== 'HAZARDOUS'} />
           </div>
         </div>
         <div className="grid grid-cols-4 gap-3">
@@ -514,7 +563,7 @@ export function ViewCargoModal({ isOpen, onClose, item }) {
           </div>
           <div>
             <p className="text-gray-400 font-bold mb-1 text-[10px] uppercase tracking-wider">Commodity</p>
-            <span className={`px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider ${CARGO_TYPE_COLORS[item.cargo_type] || CARGO_TYPE_COLORS['GENERAL']}`}>
+            <span className={`px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider ${CARGO_TYPE_COLORS[item.commodity_type] || CARGO_TYPE_COLORS['GENERAL']}`}>
               {item.commodity_type || 'GENERAL'}
             </span>
           </div>
