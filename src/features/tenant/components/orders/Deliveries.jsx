@@ -13,16 +13,17 @@ import {
 
 // --- Configuration & Status Badges ---
 const POD_STATUS_CONFIG = {
-  PENDING: { color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', icon: <Clock size={14} /> },
-  SUBMITTED: { color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100', icon: <FileCheck size={14} /> },
-  VERIFIED: { color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100', icon: <CheckCircle2 size={14} /> },
-  REJECTED: { color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-100', icon: <AlertCircle size={14} /> },
+  DELIVERED: { color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100', icon: <CheckCircle2 size={14} /> },
+  PARTIAL: { color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', icon: <Clock size={14} /> },
+  DAMAGED: { color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-100', icon: <AlertCircle size={14} /> },
+  REFUSED: { color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-100', icon: <AlertCircle size={14} /> },
+  RETURNED: { color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-100', icon: <FileCheck size={14} /> },
 };
 
 
 
 const StatusBadge = ({ status }) => {
-  const config = POD_STATUS_CONFIG[status] || POD_STATUS_CONFIG.PENDING;
+  const config = POD_STATUS_CONFIG[status] || POD_STATUS_CONFIG.DELIVERED;
   return (
     <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border ${config.bg} ${config.color} ${config.border}`}>
       {config.icon}
@@ -44,9 +45,9 @@ export default function DeliveryMainBody() {
   const [selectedPod, setSelectedPod] = useState(null);
   const deleteDeliveryMutation = useDeleteDelivery();
 
-  const queryParams = { page, ordering: '-created_at' };
+  const queryParams = { page, ordering: '-delivery_date' };
   if (search) queryParams.search = search;
-  if (filterStatus !== 'All Status') queryParams.status = filterStatus;
+  if (filterStatus !== 'All Status') queryParams.delivery_status = filterStatus;
 
   const { data: deliveriesData, isLoading, refetch } = useDeliveries(queryParams);
   const deliveries = deliveriesData?.results || [];
@@ -55,9 +56,9 @@ export default function DeliveryMainBody() {
   // Global counts for stats 
   const stats = {
     total: totalCount,
-    verified: deliveries.filter(d => d.status === 'VERIFIED').length,
-    pending: deliveries.filter(d => d.status === 'PENDING').length,
-    rejected: deliveries.filter(d => d.status === 'REJECTED').length,
+    verified: deliveries.filter(d => d.delivery_status === 'DELIVERED').length,
+    pending: deliveries.filter(d => d.delivery_status === 'PARTIAL').length,
+    rejected: deliveries.filter(d => d.delivery_status === 'DAMAGED').length,
   };
 
   return (
@@ -123,7 +124,7 @@ export default function DeliveryMainBody() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <input
                 type="text"
-                placeholder="Search POD Number, Recipient or Stop ID..."
+                placeholder="Search POD, recipient, trip, stop location..."
                 className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-[#0052CC] transition-all"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -139,10 +140,11 @@ export default function DeliveryMainBody() {
                 }}
               >
                 <option>All Status</option>
-                <option>PENDING</option>
-                <option>SUBMITTED</option>
-                <option>VERIFIED</option>
-                <option>REJECTED</option>
+                <option>DELIVERED</option>
+                <option>PARTIAL</option>
+                <option>DAMAGED</option>
+                <option>REFUSED</option>
+                <option>RETURNED</option>
               </select>
             </div>
             <div className="flex items-center gap-3">
@@ -197,17 +199,17 @@ export default function DeliveryMainBody() {
                             <Hash size={14} className="text-gray-400" /> {pod.pod_number || pod.id?.slice(-8)}
                           </span>
                           <span className="text-[10px] text-gray-500 font-bold mt-1 uppercase" title={pod.trip_stop}>
-                            Stop: {pod.trip_stop || 'N/A'}
+                            Stop: {pod.stop_sequence ? `#${pod.stop_sequence}` : 'N/A'}
                           </span>
                         </div>
                       </td>
                       <td className="px-6 py-5">
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-2 text-[13px] font-bold text-gray-700">
-                            <User size={14} className="text-[#0052CC]" /> {pod.received_by || 'Unknown'}
+                            <User size={14} className="text-[#0052CC]" /> {pod.received_by_name || 'Unknown'}
                           </div>
                           <div className="flex items-center gap-2 text-[11px] font-medium text-gray-500">
-                            <MapPin size={12} /> {pod.location || 'N/A'}
+                            <MapPin size={12} /> {pod.stop_location || 'N/A'}
                           </div>
                         </div>
                       </td>
@@ -218,8 +220,8 @@ export default function DeliveryMainBody() {
                       </td>
                       <td className="px-6 py-5">
                         <div className="flex flex-col gap-2 items-start">
-                          <StatusBadge status={pod.status} />
-                          {pod.has_images && (
+                          <StatusBadge status={pod.delivery_status} />
+                          {Array.isArray(pod.photo_urls) && pod.photo_urls.length > 0 && (
                             <span className="flex items-center gap-1 text-[10px] font-bold text-blue-500 uppercase">
                               <ImageIcon size={12} /> Photo Attached
                             </span>
