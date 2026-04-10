@@ -176,7 +176,7 @@ export const CustomerAddresses = ({ customerId }) => {
 const AddressFormModal = ({ initial, onClose, onSubmit, submitting }) => {
   const [form, setForm] = useState(initial || {
     address_line1: '', address_line2: '', city: '', state: '', 
-    country: 'India', postal_code: '', address_type: 'HEADQUARTERS', is_default: false
+    country: 'India', postal_code: '', address_type: 'REGISTERED', is_default: false
   });
 
   return (
