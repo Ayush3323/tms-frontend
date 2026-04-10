@@ -13,11 +13,13 @@ import {
   useTripExpenses, useTripCharges, useTripStatusHistory,
   useOrderDetail, useDeleteTrip, useCreateTripStop,
   useUpdateTripStop, useDeleteTripStop, useTripDeliveries, useCreatePOD,
-  useUpdateTripExpense, useDeleteTripExpense, useUpdateTripCharge, useDeleteTripCharge, useUpdateTrip
+  useUpdateTripExpense, useDeleteTripExpense, useUpdateTripCharge, useDeleteTripCharge, useUpdateTrip,
+  useTripCargoItems, useTransitionCargoStatus,
 } from '../../queries/orders/ordersQuery';
 import { useDriverDetail } from '../../queries/drivers/driverCoreQuery';
 import { useVehicle } from '../../queries/vehicles/vehicleQuery';
 import { EditTripModal, AddStopsModal } from './TripModals';
+import { CreateCargoModal } from './CargoModals';
 import { useCurrentUser } from '../../queries/users/rolesPermissionsQuery';
 
 // --- Shared Components ---
@@ -628,6 +630,64 @@ const FinanceTab = ({ trip, expenses, charges, isLoadingExp, isLoadingChg, onEdi
   </div>
 );
 
+const CargoTab = ({ tripId, onOpenCreate }) => {
+  const { data, isLoading } = useTripCargoItems(tripId, { ordering: '-created_at' });
+  const transitionCargo = useTransitionCargoStatus();
+  const rows = data?.results || (Array.isArray(data) ? data : []);
+  const transitions = {
+    PENDING: ['LOADED'],
+    LOADED: ['UNLOADED', 'DAMAGED', 'SHORT'],
+    UNLOADED: ['DAMAGED'],
+    DAMAGED: [],
+    SHORT: [],
+  };
+
+  return (
+    <div className="space-y-4">
+      <SectionHeader
+        icon={PackageIcon}
+        title="Trip Cargo"
+        action={
+          <button type="button" onClick={onOpenCreate} className="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold">
+            Add Cargo Item
+          </button>
+        }
+      />
+      {isLoading ? (
+        <div className="flex justify-center p-8"><Loader2 className="animate-spin text-blue-600" /></div>
+      ) : rows.length === 0 ? (
+        <div className="text-center p-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+          <p className="text-gray-400 text-sm">No cargo linked to this trip.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {rows.map((item) => (
+            <div key={item.id} className="p-3 border border-gray-100 rounded-xl flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-[#172B4D]">{item.item_code || item.id.slice(-8)} - {item.description}</p>
+                <p className="text-xs text-gray-500">{item.commodity_type || 'GENERAL'} | Qty {item.quantity} | {item.status}</p>
+              </div>
+              <div className="flex gap-2">
+                <a href={`/tenant/dashboard/orders/cargo/${item.id}`} className="px-2 py-1 text-xs rounded bg-slate-100 text-slate-700">View</a>
+                {(transitions[item.status] || []).map((status) => (
+                  <button
+                    key={status}
+                    type="button"
+                    onClick={() => transitionCargo.mutate({ id: item.id, newStatus: status })}
+                    className="px-2 py-1 text-xs rounded bg-blue-50 text-blue-700"
+                  >
+                    Move to {status}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const HistoryTab = ({ history, isLoading }) => {
     const { data: currentUser } = useCurrentUser();
     
@@ -700,6 +760,7 @@ export default function TripDetail() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isCreateCargoOpen, setIsCreateCargoOpen] = useState(false);
   const [editFinanceItem, setEditFinanceItem] = useState(null);
   const [editFinanceForm, setEditFinanceForm] = useState({ amount: '', description: '' });
   const deleteTripMutation = useDeleteTrip();
@@ -829,6 +890,7 @@ export default function TripDetail() {
     { id: 'overview', label: 'Overview', icon: MapIcon },
     { id: 'journey', label: 'Journey & Fleet', icon: Truck },
     { id: 'finance', label: 'Financials', icon: Receipt },
+    { id: 'cargo', label: 'Cargo', icon: PackageIcon },
     { id: 'stops', label: 'Stops', icon: MapPin, count: (Array.isArray(stops) ? stops : stops?.results)?.length },
     { id: 'history', label: 'Status History', icon: History, count: (Array.isArray(history) ? history : history?.results)?.length },
     { id: 'deliveries', label: 'Deliveries', icon: FileText, count: (Array.isArray(tripDeliveries) ? tripDeliveries : tripDeliveries?.results)?.length },
@@ -992,6 +1054,7 @@ export default function TripDetail() {
                 />
             )}
             {activeTab === 'finance' && <FinanceTab trip={trip} expenses={expenses} charges={charges} isLoadingExp={loadingExp} isLoadingChg={loadingChg} onEditFinance={handleEditFinance} onDeleteFinance={handleDeleteFinance} />}
+            {activeTab === 'cargo' && <CargoTab tripId={id} onOpenCreate={() => setIsCreateCargoOpen(true)} />}
             {activeTab === 'stops' && (
               <StopsTab
                 tripId={id}
@@ -1043,6 +1106,11 @@ export default function TripDetail() {
         onSubmit={handleSaveFinance}
         isPending={updateExpenseMutation.isPending || updateChargeMutation.isPending}
         title={editFinanceItem?.res_type === 'EXPENSE' ? 'Edit Expense' : 'Edit Charge'}
+      />
+      <CreateCargoModal
+        isOpen={isCreateCargoOpen}
+        onClose={() => setIsCreateCargoOpen(false)}
+        presetTripId={id}
       />
     </div>
   );

@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   ChevronLeft, ChevronRight, Save, X, FileText, Truck, 
-  MapPin, Gauge, DollarSign, CheckCircle2, AlertCircle, GripVertical, Circle
+  MapPin, Gauge, DollarSign, CheckCircle2, AlertCircle, GripVertical, Circle, Package
 } from 'lucide-react';
 import { useCreateTrip, useOrders } from '../../queries/orders/ordersQuery';
 import { useDrivers } from '../../queries/drivers/driverCoreQuery';
@@ -128,7 +128,8 @@ export default function CreateTripPage() {
     { id: 3, name: 'Route & Schedule', icon: MapPin },
     { id: 4, name: 'Metrics', icon: Gauge },
     { id: 5, name: 'Financials', icon: DollarSign },
-    { id: 6, name: 'Review', icon: CheckCircle2 }
+    { id: 6, name: 'Cargo', icon: Package },
+    { id: 7, name: 'Review', icon: CheckCircle2 }
   ];
 
   const validateField = (name, value, currentData) => {
@@ -811,6 +812,23 @@ export default function CreateTripPage() {
               )}
 
               {currentStep === 6 && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 text-sm">
+                  <div className="flex items-center gap-3 mb-8 border-b border-gray-50 pb-4">
+                    <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><Package size={20} /></div>
+                    <h2 className="text-lg font-bold text-gray-800 tracking-tight">Cargo Planning</h2>
+                  </div>
+                  <div className="bg-gray-50 p-6 rounded-2xl border border-dashed border-gray-200 space-y-3">
+                    <p className="text-sm font-semibold text-[#172B4D]">
+                      Cargo is trip-scoped and will be added right after trip creation.
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      Best practice for a single trip: create the trip first, then add only its own cargo items from the Trip Cargo tab or Cargo module with this trip preselected.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {currentStep === 7 && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 text-sm">
                    <div className="flex items-center gap-3 mb-8 border-b border-gray-50 pb-4">
                     <div className="p-2 bg-purple-50 text-purple-600 rounded-lg"><CheckCircle2 size={20} /></div>

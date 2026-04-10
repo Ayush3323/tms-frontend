@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Package, Plus, Search, Filter, Download, 
-  MoreHorizontal, Eye, Edit2, Trash2, 
-  Layers, Scale, Maximize, Move,
-  Hash, RefreshCcw, AlertCircle, CheckCircle2, X
+  Package, Plus, Search, Eye, Edit2, Trash2,
+  Scale, Maximize, Move, Hash, RefreshCcw
 } from 'lucide-react';
 import { 
   useCargoItems, useDeleteCargo
@@ -17,9 +15,11 @@ import {
 
 // --- Configuration & Helpers ---
 const CARGO_TYPE_COLORS = {
-  HAZMAT: 'bg-red-100 text-red-700 border-red-200',
+  HAZARDOUS: 'bg-red-100 text-red-700 border-red-200',
   PERISHABLE: 'bg-teal-100 text-teal-700 border-teal-200',
   FRAGILE: 'bg-amber-100 text-amber-700 border-amber-200',
+  HIGH_VALUE: 'bg-purple-100 text-purple-700 border-purple-200',
+  OTHER: 'bg-slate-100 text-slate-700 border-slate-200',
   GENERAL: 'bg-blue-100 text-blue-700 border-blue-200',
 };
 
@@ -30,6 +30,7 @@ const CARGO_TYPE_COLORS = {
 export default function CargoMainBody() {
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("All Types");
+  const [filterStatus, setFilterStatus] = useState("All Status");
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -40,7 +41,8 @@ export default function CargoMainBody() {
   // Queries
   const queryParams = { page, ordering: '-created_at' };
   if (search) queryParams.search = search;
-  if (filterType !== 'All Types') queryParams.cargo_type = filterType;
+  if (filterType !== 'All Types') queryParams.commodity_type = filterType;
+  if (filterStatus !== 'All Status') queryParams.status = filterStatus;
 
   const { data: cargoData, isLoading, refetch } = useCargoItems(queryParams);
   const cargoItems = cargoData?.results || [];
@@ -49,8 +51,9 @@ export default function CargoMainBody() {
   // Global counts for stats (using API length for demo, until backend supports aggregation)
   const stats = {
     total: totalCount,
-    hazmat: cargoItems.filter(c => c.cargo_type === 'HAZMAT').length,
-    fragile: cargoItems.filter(c => c.cargo_type === 'FRAGILE').length,
+    hazardous: cargoItems.filter(c => c.commodity_type === 'HAZARDOUS').length,
+    fragile: cargoItems.filter(c => c.commodity_type === 'FRAGILE').length,
+    loaded: cargoItems.filter(c => c.status === 'LOADED').length,
   };
 
   return (
@@ -97,7 +100,7 @@ export default function CargoMainBody() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Hazmat Alerts:</span>
-                  <span className="text-[18px] font-black text-red-600">{stats.hazmat}</span>
+                  <span className="text-[18px] font-black text-red-600">{stats.hazardous}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Fragile Goods:</span>
@@ -105,7 +108,7 @@ export default function CargoMainBody() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Loaded Items:</span>
-                  <span className="text-[18px] font-black text-green-600">—</span>
+                  <span className="text-[18px] font-black text-green-600">{stats.loaded}</span>
                 </div>
               </>
             )}
@@ -133,9 +136,26 @@ export default function CargoMainBody() {
                >
                  <option>All Types</option>
                  <option>GENERAL</option>
+                 <option>HAZARDOUS</option>
                  <option>FRAGILE</option>
                  <option>PERISHABLE</option>
-                 <option>HAZMAT</option>
+                 <option>HIGH_VALUE</option>
+                 <option>OTHER</option>
+               </select>
+               <select
+                 className="flex-1 md:w-40 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 outline-none focus:border-[#4a6cf7]"
+                 value={filterStatus}
+                 onChange={(e) => {
+                   setFilterStatus(e.target.value);
+                   setPage(1);
+                 }}
+               >
+                 <option>All Status</option>
+                 <option>PENDING</option>
+                 <option>LOADED</option>
+                 <option>UNLOADED</option>
+                 <option>DAMAGED</option>
+                 <option>SHORT</option>
                </select>
             </div>
             <div className="flex items-center gap-3">
@@ -201,21 +221,32 @@ export default function CargoMainBody() {
                       <td className="px-6 py-5">
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-2 text-[12px] font-bold text-gray-600">
-                            <Scale size={14} className="text-gray-400" /> {item.weight || 'N/A'} kg
+                            <Scale size={14} className="text-gray-400" /> {item.weight_kg || 'N/A'} kg
                           </div>
                           <div className="flex items-center gap-2 text-[12px] font-bold text-gray-600">
-                            <Maximize size={14} className="text-gray-400" /> {item.dimensions || 'N/A'}
+                            <Maximize size={14} className="text-gray-400" /> {item.length_cm ? `${item.length_cm}x${item.width_cm || 0}x${item.height_cm || 0} cm` : 'N/A'}
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-5">
-                        <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-gray-100 rounded-md text-[11px] font-bold text-gray-600 uppercase tracking-tight" title={item.trip_id}>
-                          <Move size={12} /> {item.trip_id ? "Linked to Trip" : "Unassigned"}
-                        </div>
+                        {item.trip ? (
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/tenant/dashboard/orders/trips/${item.trip}`)}
+                            className="inline-flex items-center gap-2 px-2.5 py-1 bg-gray-100 rounded-md text-[11px] font-bold text-gray-600 uppercase tracking-tight hover:bg-blue-50 hover:text-blue-700"
+                            title={item.trip}
+                          >
+                            <Move size={12} /> {item.trip_number || String(item.trip).slice(-8)}
+                          </button>
+                        ) : (
+                          <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-gray-100 rounded-md text-[11px] font-bold text-gray-600 uppercase tracking-tight">
+                            <Move size={12} /> Unassigned
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-5">
-                        <span className={`px-2.5 py-1 rounded border text-[10px] font-bold uppercase tracking-wider ${CARGO_TYPE_COLORS[item.cargo_type] || CARGO_TYPE_COLORS['GENERAL']}`}>
-                          {item.cargo_type || 'GENERAL'}
+                        <span className={`px-2.5 py-1 rounded border text-[10px] font-bold uppercase tracking-wider ${CARGO_TYPE_COLORS[item.commodity_type] || CARGO_TYPE_COLORS['GENERAL']}`}>
+                          {item.commodity_type || 'GENERAL'}
                         </span>
                       </td>
                       <td className="px-6 py-5 text-right">
