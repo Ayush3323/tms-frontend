@@ -124,7 +124,7 @@ const Vehicles = () => {
     {
       header: 'Registration',
       render: v => (
-        <div className="text-left">
+        <div className="text-left whitespace-nowrap">
           <button onClick={() => setViewModal(v)}
             className="font-bold text-[#172B4D] font-mono text-[14px] hover:text-[#0052CC] transition-all text-left block hover:underline decoration-blue-400/30 underline-offset-4">
             {v.registration_number ?? '—'}
@@ -159,7 +159,7 @@ const Vehicles = () => {
     {
       header: 'Odometer',
       render: v => (
-        <span className="text-gray-600 font-mono text-[12px]">
+        <span className="text-gray-600 font-mono text-[12px] whitespace-nowrap">
           {fmtKm(v.current_odometer)}
         </span>
       ),
@@ -199,13 +199,13 @@ const Vehicles = () => {
           return (
             <div className="flex items-center gap-2">
               <button onClick={() => navigate(`/tenant/dashboard/vehicles/${v.id}`)}
-                className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all">
+                className="flex items-center gap-1 px-2 py-1 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all font-sans">
                 <Eye size={12} /> View
               </button>
               <button
                 onClick={() => restoreVehicle.mutate(v.id)}
                 disabled={restoreVehicle.isPending}
-                className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-all disabled:opacity-50"
+                className="flex items-center gap-1 px-2 py-1 text-[12px] font-semibold text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-all disabled:opacity-50 font-sans"
               >
                 {restoreVehicle.isPending ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />}
                 Restore
@@ -219,18 +219,18 @@ const Vehicles = () => {
         return (
           <div className="flex items-center gap-2">
             <button onClick={() => navigate(`/tenant/dashboard/vehicles/${v.id}`)}
-              className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all">
+              className="flex items-center gap-1 px-2 py-1 text-[12px] font-semibold text-[#0052CC] bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all font-sans">
               <Eye size={12} /> View
             </button>
             {isActive && (
               <button onClick={() => handleStatusToggle(v)} disabled={updateVehicle.isPending}
-                className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-all disabled:opacity-50">
+                className="flex items-center gap-1 px-2 py-1 text-[12px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-all disabled:opacity-50 font-sans">
                 <PauseCircle size={12} /> Suspend
               </button>
             )}
             {isMaint && (
               <button onClick={() => handleStatusToggle(v)} disabled={updateVehicle.isPending}
-                className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-all disabled:opacity-50">
+                className="flex items-center gap-1 px-2 py-1 text-[12px] font-semibold text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-all disabled:opacity-50 font-sans">
                 <PlayCircle size={12} /> Activate
               </button>
             )}
@@ -479,7 +479,7 @@ const Vehicles = () => {
               <thead className="bg-[#F8FAFC] border-b border-gray-100 sticky top-0 z-10">
                 <tr className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
                   {COLUMNS.map(c => (
-                    <th key={c.header} className="px-4 py-4">{c.header}</th>
+                    <th key={c.header} className="px-3 py-4">{c.header}</th>
                   ))}
                 </tr>
               </thead>
@@ -487,7 +487,7 @@ const Vehicles = () => {
                 {vehicles.map(v => (
                   <tr key={v.id} className="hover:bg-gray-50 transition-colors group">
                     {COLUMNS.map(c => (
-                      <td key={c.header} className="px-6 py-4 whitespace-nowrap align-middle">{c.render(v)}</td>
+                      <td key={c.header} className="px-3 py-4 align-middle">{c.render(v)}</td>
                     ))}
                   </tr>
                 ))}
