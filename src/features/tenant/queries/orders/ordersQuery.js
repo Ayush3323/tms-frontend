@@ -4,6 +4,7 @@ import {
   ordersApi, 
   tripsApi, 
   cargoApi, 
+  cargoMovementsApi,
   deliveriesApi,
 } from '../../api/orders/ordersEndpoint'
 
@@ -27,6 +28,7 @@ export const orderKeys = {
   cargo: () => ['cargo'],
   cargoList: (params) => [...orderKeys.cargo(), 'list', { params }],
   cargoDetail: (id) => [...orderKeys.cargo(), 'detail', id],
+  cargoMovements: (cargoId, params) => [...orderKeys.cargo(), 'movements', cargoId, { params }],
 
   deliveries: () => ['deliveries'],
   deliveryList: (params) => [...orderKeys.deliveries(), 'list', { params }],
@@ -448,7 +450,17 @@ export const useCargoItems = (params) => {
   return useQuery({
     queryKey: orderKeys.cargoList(params),
     queryFn: () => cargoApi.list(params),
+    enabled: params !== undefined,
     onError: (err) => handleApiError(err, 'Failed to fetch cargo items'),
+  })
+}
+
+export const useTripCargoItems = (tripId, params) => {
+  return useQuery({
+    queryKey: [...orderKeys.trips(), 'cargo', tripId, { params }],
+    queryFn: () => tripsApi.listCargo(tripId, params),
+    enabled: !!tripId,
+    onError: (err) => handleApiError(err, 'Failed to fetch trip cargo items'),
   })
 }
 
@@ -496,6 +508,41 @@ export const useDeleteCargo = () => {
       toast.success('Cargo item deleted')
     },
     onError: (err) => handleApiError(err, 'Failed to delete cargo'),
+  })
+}
+
+export const useTransitionCargoStatus = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, newStatus }) => cargoApi.transitionStatus(id, newStatus),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.cargo() })
+      queryClient.invalidateQueries({ queryKey: orderKeys.cargoDetail(id) })
+      toast.success('Cargo status updated')
+    },
+    onError: (err) => handleApiError(err, 'Failed to transition cargo status'),
+  })
+}
+
+export const useCargoMovements = (cargoId, params) => {
+  return useQuery({
+    queryKey: orderKeys.cargoMovements(cargoId, params),
+    queryFn: () => cargoMovementsApi.list(cargoId, params),
+    enabled: !!cargoId,
+    onError: (err) => handleApiError(err, 'Failed to fetch cargo movements'),
+  })
+}
+
+export const useCreateCargoMovement = (cargoId) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data) => cargoMovementsApi.create(cargoId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...orderKeys.cargo(), 'movements', cargoId] })
+      queryClient.invalidateQueries({ queryKey: orderKeys.cargo() })
+      toast.success('Cargo movement recorded')
+    },
+    onError: (err) => handleApiError(err, 'Failed to record cargo movement'),
   })
 }
 

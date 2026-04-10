@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, Truck, User, MapPin, Calendar, FileText, Hash, Receipt, ArrowRight, Activity, DollarSign, Gauge, Clock, ShieldCheck, AlertCircle, Info, ChevronRight, Search, CheckCircle2, ChevronLeft, Save, Circle, GripVertical, Trash2 } from 'lucide-react';
+import { X, Truck, User, MapPin, Calendar, FileText, Hash, Receipt, ArrowRight, Activity, DollarSign, Gauge, Clock, ShieldCheck, AlertCircle, Info, ChevronRight, Search, CheckCircle2, ChevronLeft, Save, Circle, GripVertical, Trash2, Package } from 'lucide-react';
 import {
   useCreateTrip,
   useUpdateTrip,
   useTripDetail,
-  useOrders
+  useOrders,
+  useTripCargoItems,
 } from '../../queries/orders/ordersQuery';
 import { useDrivers } from '../../queries/drivers/driverCoreQuery';
 import { useVehicles } from '../../queries/vehicles/vehicleQuery';
@@ -354,7 +355,8 @@ export function EditTripModal({ isOpen, onClose, trip }) {
     { id: 3, name: 'Route', icon: MapPin },
     { id: 4, name: 'Metrics', icon: Gauge },
     { id: 5, name: 'Finance', icon: DollarSign },
-    { id: 6, name: 'Review', icon: CheckCircle2 }
+    { id: 6, name: 'Cargo', icon: Package },
+    { id: 7, name: 'Review', icon: CheckCircle2 }
   ];
 
   // Queries for lookups
@@ -369,6 +371,11 @@ export function EditTripModal({ isOpen, onClose, trip }) {
   const vehicles = vehiclesData?.results || [];
   const { data: vehicleTypesData } = useVehicleTypes({ page_size: 200 });
   const vehicleTypes = vehicleTypesData?.results || [];
+  const { data: cargoData, isLoading: cargoLoading } = useTripCargoItems(
+    trip?.id,
+    { ordering: '-created_at' }
+  );
+  const cargoItems = cargoData?.results || [];
   const currentStatus = formData.status || trip?.status || 'CREATED';
   const statusOptions = [currentStatus, ...(TRIP_TRANSITIONS[currentStatus] || [])];
 
@@ -1028,6 +1035,45 @@ export function EditTripModal({ isOpen, onClose, trip }) {
             )}
 
             {currentStep === 6 && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
+                  <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl shadow-sm border border-blue-100/50"><Package size={24} /></div>
+                  <div>
+                    <h2 className="text-xl font-black text-[#172B4D] tracking-tight">Cargo</h2>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Linked cargo items for this trip</p>
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-gray-100 bg-white p-4">
+                  {cargoLoading ? (
+                    <p className="text-sm text-gray-500">Loading cargo...</p>
+                  ) : cargoItems.length === 0 ? (
+                    <p className="text-sm text-gray-500">No cargo linked. Use the Cargo module or Trip detail Cargo tab to add items.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {cargoItems.map((item) => (
+                        <div key={item.id} className="p-3 rounded-xl border border-gray-100 flex items-center justify-between">
+                          <div>
+                            <p className="text-xs font-bold text-[#172B4D]">{item.item_code || String(item.id).slice(-8)} - {item.description}</p>
+                            <p className="text-xs text-gray-500">{item.commodity_type || 'GENERAL'} | Qty {item.quantity} | {item.status}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {trip?.id && (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/tenant/dashboard/orders/trips/${trip.id}`)}
+                    className="px-4 py-2 rounded-xl bg-blue-50 text-blue-700 text-xs font-black uppercase tracking-widest border border-blue-100"
+                  >
+                    Open Full Trip View (Cargo Tab)
+                  </button>
+                )}
+              </div>
+            )}
+
+            {currentStep === 7 && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="grid grid-cols-2 gap-8">
                    <FieldGroup label="POD Received Date"><input type="date" name="pod_received_date" className={inputClass} value={formData.pod_received_date || ""} onChange={handleInputChange} /></FieldGroup>
