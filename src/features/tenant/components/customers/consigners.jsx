@@ -218,12 +218,13 @@ const Consignors = () => {
       status: cust.status ?? 'ACTIVE',
     });
     setErrors({});
-    setModal({ type: 'edit', id: consi.id || consi.customer_id, consignor: cl });
+    // URL is /api/v1/consignors/<customer_id>/ — same as consignees & delete (customer_id first)
+    setModal({ type: 'edit', id: consi.customer_id || consi.id, consignor: cl });
   };
 
   const openView = (c) => {
     openEdit(c);
-    setModal({ type: 'view', id: c.id, consignor: c });
+    setModal({ type: 'view', id: c.customer_id || c.id, consignor: c });
   };
 
   const closeModal = () => { setModal(null); setErrors({}); };
@@ -330,16 +331,24 @@ const Consignors = () => {
         }
       });
     } else {
-      updateMutation.mutate({ id: modal.id, data: payload }, {
-        onSuccess: () => closeModal(),
-        onError: (err) => {
-          if (err.response?.status === 400 && err.response.data?.details) {
-            setErrors(err.response.data.details);
-          } else {
-            setErrors(prev => ({ ...prev, _generic: `Update Failed: ${err.response?.data?.detail || err.message}` }));
-          }
+      const customerId =
+        form.customer_id ||
+        modal.consignor?.customer_id ||
+        modal.consignor?.customer?.id ||
+        modal.id;
+      updateMutation.mutate(
+        { id: modal.id, customerId, data: payload },
+        {
+          onSuccess: () => closeModal(),
+          onError: (err) => {
+            if (err.response?.status === 400 && err.response.data?.details) {
+              setErrors(err.response.data.details);
+            } else {
+              setErrors(prev => ({ ...prev, _generic: `Update Failed: ${err.response?.data?.detail || err.message}` }));
+            }
+          },
         }
-      });
+      );
     }
   };
 

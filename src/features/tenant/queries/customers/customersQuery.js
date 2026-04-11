@@ -360,9 +360,24 @@ export const useCreateConsignor = () => {
 export const useUpdateConsignor = () => {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, data }) => consignorsApi.update(id, data),
-    onSuccess: () => {
+    // List UI reads `customer.status`; consignor PATCH often does not persist it — update customer too.
+    mutationFn: async ({ id, customerId, data }) => {
+      const { status, ...consignorPayload } = data
+      const result = await consignorsApi.update(id, consignorPayload)
+      const cid = customerId ?? id
+      if (status !== undefined && cid != null && cid !== '') {
+        await customersApi.update(cid, { status })
+      }
+      return result
+    },
+    onSuccess: (_, { id, customerId }) => {
       queryClient.invalidateQueries({ queryKey: customerKeys.consignors() })
+      queryClient.invalidateQueries({ queryKey: customerKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: customerKeys.stats() })
+      const cid = customerId ?? id
+      if (cid != null && cid !== '') {
+        queryClient.invalidateQueries({ queryKey: customerKeys.detail(cid) })
+      }
       toast.success('Consignor updated')
     },
     onError: (err) => handleApiError(err, 'Failed to update consignor'),
