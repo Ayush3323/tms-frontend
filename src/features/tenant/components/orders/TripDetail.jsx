@@ -847,12 +847,12 @@ export default function TripDetail() {
   const { data: altVehicle } = useVehicle(altVehicleId);
 
   const getDriverDisplay = (d, id, fallback) => {
-    if (!id) return fallback || 'Unassigned';
+    if (!id || id === 'null') return 'Unassigned';
     return d ? `${d.user?.first_name || 'Driver'} ${d.user?.last_name || ''}`.trim() : (fallback || 'Unassigned');
   };
 
   const getVehicleDisplay = (v, id, fallback) => {
-    if (!id) return fallback || 'Unassigned';
+    if (!id || id === 'null') return 'Unassigned';
     return v ? (v.registration_number || v.registration) : (fallback || 'Unassigned');
   };
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 import { X, Truck, User, MapPin, Calendar, FileText, Hash, Receipt, ArrowRight, Activity, DollarSign, Gauge, Clock, ShieldCheck, AlertCircle, Info, ChevronRight, Search, CheckCircle2, ChevronLeft, Save, Circle, GripVertical, Trash2, Package } from 'lucide-react';
 import {
   useCreateTrip,
@@ -7,6 +8,9 @@ import {
   useTripDetail,
   useOrders,
   useTripCargoItems,
+  useTripStops,
+  useCreateTripStop,
+  useTrips,
 } from '../../queries/orders/ordersQuery';
 import { useDrivers } from '../../queries/drivers/driverCoreQuery';
 import { useVehicles } from '../../queries/vehicles/vehicleQuery';
@@ -15,7 +19,9 @@ import { tripsApi } from '../../api/orders/ordersEndpoint';
 
 const formatLabel = (str) => {
   if (!str) return "";
-  return str
+  // Remove _id or _code suffix for cleaner labels
+  const cleanStr = str.replace(/_id$/i, '').replace(/_code$/i, '');
+  return cleanStr
     .split('_')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ');
@@ -130,6 +136,32 @@ export function CreateTripModal({ isOpen, onClose, orderId, orderNumber }) {
     ['DRAFT', 'CONFIRMED', 'ASSIGNED', 'IN_TRANSIT'].includes(o.status)
   ), [ordersDataResults]);
 
+  // Availability tracking for drivers and vehicles
+  const { data: allTripsData } = useTrips({ page_size: 1000 });
+  const allTrips = allTripsData?.results || [];
+  const activeTrips = useMemo(() => 
+    allTrips.filter(t => !['COMPLETED', 'DELIVERED', 'CANCELLED'].includes(t.status)),
+    [allTrips]
+  );
+
+  const busyDrivers = useMemo(() => {
+    const map = {};
+    activeTrips.forEach(t => {
+      if (t.primary_driver_id) map[String(t.primary_driver_id)] = t.trip_number;
+      if (t.alternate_driver_id) map[String(t.alternate_driver_id)] = t.trip_number;
+    });
+    return map;
+  }, [activeTrips]);
+
+  const busyVehicles = useMemo(() => {
+    const map = {};
+    activeTrips.forEach(t => {
+      if (t.primary_vehicle_id) map[String(t.primary_vehicle_id)] = t.trip_number;
+      if (t.alternate_vehicle_id) map[String(t.alternate_vehicle_id)] = t.trip_number;
+    });
+    return map;
+  }, [activeTrips]);
+
   const [formData, setFormData] = useState({
     order_id: orderId || "", primary_driver_id: null, primary_vehicle_id: null, 
     alternate_driver_id: null, alternate_vehicle_id: null,
@@ -226,25 +258,67 @@ export function CreateTripModal({ isOpen, onClose, orderId, orderNumber }) {
               <FieldGroup label="Primary driver">
                  <select className={inputClass} value={formData.primary_driver_id || ""} onChange={e => setFormData({ ...formData, primary_driver_id: e.target.value })}>
                     <option value="">Select Driver</option>
-                    {drivers.map(d => <option key={d.id} value={d.id} disabled={String(formData.alternate_driver_id) === String(d.id)}>{d.user?.first_name} {d.user?.last_name} — {d.employee_id || 'DRV'}</option>)}
+                    {drivers.map(d => {
+                       const tripNum = busyDrivers[String(d.id)];
+                       const isDisabled = String(formData.alternate_driver_id) === String(d.id) || !!tripNum;
+                       return (
+                         <option key={d.id} value={d.id} disabled={isDisabled}>
+                           {d.user?.first_name} {d.user?.last_name} {tripNum ? `(On Trip: ${tripNum})` : ''}
+                         </option>
+                       );
+                    })}
                  </select>
               </FieldGroup>
               <FieldGroup label="Primary vehicle">
-                 <select className={inputClass} value={formData.primary_vehicle_id || ""} onChange={e => setFormData({ ...formData, primary_vehicle_id: e.target.value })}>
+                  <select className={inputClass} value={formData.primary_vehicle_id || ""} onChange={e => {
+                    const val = e.target.value;
+                    const selectedVehicle = vehicles.find(v => String(v.id) === String(val));
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      primary_vehicle_id: val,
+                      vehicle_number: selectedVehicle?.registration_number || prev.vehicle_number,
+                      vehicle_type_code: selectedVehicle?.vehicle_type?.type_code || selectedVehicle?.vehicle_type_code || prev.vehicle_type_code,
+                      vehicle_owner_name: selectedVehicle?.owner_name || prev.vehicle_owner_name
+                    }));
+                  }}>
                     <option value="">Select Vehicle</option>
-                    {vehicles.map(v => <option key={v.id} value={v.id} disabled={String(formData.alternate_vehicle_id) === String(v.id)}>{v.registration_number}</option>)}
+                    {vehicles.map(v => {
+                       const tripNum = busyVehicles[String(v.id)];
+                       const isDisabled = String(formData.alternate_vehicle_id) === String(v.id) || !!tripNum;
+                       return (
+                         <option key={v.id} value={v.id} disabled={isDisabled}>
+                           {v.registration_number} {tripNum ? `(On Trip: ${tripNum})` : ''}
+                         </option>
+                       );
+                    })}
                  </select>
               </FieldGroup>
               <FieldGroup label="Alternate driver">
                  <select className={inputClass} value={formData.alternate_driver_id || ""} onChange={e => setFormData({ ...formData, alternate_driver_id: e.target.value })}>
                     <option value="">No alternate driver</option>
-                    {drivers.map(d => <option key={d.id} value={d.id} disabled={String(formData.primary_driver_id) === String(d.id)}>{d.user?.first_name} {d.user?.last_name}</option>)}
+                    {drivers.map(d => {
+                       const tripNum = busyDrivers[String(d.id)];
+                       const isDisabled = String(formData.primary_driver_id) === String(d.id) || !!tripNum;
+                       return (
+                         <option key={d.id} value={d.id} disabled={isDisabled}>
+                           {d.user?.first_name} {d.user?.last_name} {tripNum ? `(On Trip: ${tripNum})` : ''}
+                         </option>
+                       );
+                    })}
                  </select>
               </FieldGroup>
               <FieldGroup label="Alternate vehicle">
                  <select className={inputClass} value={formData.alternate_vehicle_id || ""} onChange={e => setFormData({ ...formData, alternate_vehicle_id: e.target.value })}>
                     <option value="">No alternate vehicle</option>
-                    {vehicles.map(v => <option key={v.id} value={v.id} disabled={String(formData.primary_vehicle_id) === String(v.id)}>{v.registration_number}</option>)}
+                    {vehicles.map(v => {
+                       const tripNum = busyVehicles[String(v.id)];
+                       const isDisabled = String(formData.primary_vehicle_id) === String(v.id) || !!tripNum;
+                       return (
+                         <option key={v.id} value={v.id} disabled={isDisabled}>
+                           {v.registration_number} {tripNum ? `(On Trip: ${tripNum})` : ''}
+                         </option>
+                       );
+                    })}
                  </select>
               </FieldGroup>
            </div>
@@ -320,6 +394,7 @@ export function EditTripModal({ isOpen, onClose, trip }) {
   const [currentStep, setCurrentStep] = useState(1);
   const [isDirty, setIsDirty] = useState(false);
   const updateTripMutation = useUpdateTrip();
+  const createStopMutation = useCreateTripStop(trip?.id);
 
   const [formData, setFormData] = useState({
     order_id: "", trip_number: "", lr_number: "", reference_number: "", trip_type: "FTL", status: "CREATED",
@@ -348,6 +423,7 @@ export function EditTripModal({ isOpen, onClose, trip }) {
   const [dragOverIdx, setDragOverIdx] = useState(null);
 
   const [initialFormData, setInitialFormData] = useState(null);
+  const [initialPlannedStops, setInitialPlannedStops] = useState([]);
 
   const steps = [
     { id: 1, name: 'General', icon: FileText },
@@ -376,6 +452,33 @@ export function EditTripModal({ isOpen, onClose, trip }) {
     { ordering: '-created_at' }
   );
   const cargoItems = cargoData?.results || [];
+  const { data: tripStops, isLoading: stopsLoading } = useTripStops(trip?.id);
+
+  // Availability tracking for drivers and vehicles
+  const { data: allTripsData } = useTrips({ page_size: 1000 });
+  const allTrips = allTripsData?.results || [];
+  const activeTrips = useMemo(() => 
+    allTrips.filter(t => !['COMPLETED', 'DELIVERED', 'CANCELLED'].includes(t.status) && String(t.id) !== String(trip?.id)),
+    [allTrips, trip?.id]
+  );
+
+  const busyDrivers = useMemo(() => {
+    const map = {};
+    activeTrips.forEach(t => {
+      if (t.primary_driver_id) map[String(t.primary_driver_id)] = t.trip_number;
+      if (t.alternate_driver_id) map[String(t.alternate_driver_id)] = t.trip_number;
+    });
+    return map;
+  }, [activeTrips]);
+
+  const busyVehicles = useMemo(() => {
+    const map = {};
+    activeTrips.forEach(t => {
+      if (t.primary_vehicle_id) map[String(t.primary_vehicle_id)] = t.trip_number;
+      if (t.alternate_vehicle_id) map[String(t.alternate_vehicle_id)] = t.trip_number;
+    });
+    return map;
+  }, [activeTrips]);
   const currentStatus = formData.status || trip?.status || 'CREATED';
   const statusOptions = [currentStatus, ...(TRIP_TRANSITIONS[currentStatus] || [])];
 
@@ -395,16 +498,22 @@ export function EditTripModal({ isOpen, onClose, trip }) {
       };
       setFormData(data);
       setInitialFormData(data);
-      setPlannedStops(trip.planned_stops || []);
+      
+      // For simplification, we start with an empty planner in the EditTripModal.
+      // Existing stops are managed via the external "STOPS" tab.
+      setPlannedStops([]);
+      setInitialPlannedStops([]);
       setCurrentStep(1);
       setIsDirty(false);
     }
-  }, [trip, isOpen]); // REMOVED 'orders' from deps to prevent infinite reset
+  }, [trip, isOpen, tripStops]); 
 
   useEffect(() => {
     if (!initialFormData) return;
+    
+    // Check formData changes
     const keys = Object.keys(formData);
-    const changed = keys.some(key => {
+    const formChanged = keys.some(key => {
       const initialValue = initialFormData[key];
       const currentValue = formData[key];
       if (initialValue === currentValue) return false;
@@ -416,8 +525,12 @@ export function EditTripModal({ isOpen, onClose, trip }) {
       }
       return true;
     });
-    setIsDirty(changed);
-  }, [formData, initialFormData]);
+
+    // Check plannedStops changes
+    const stopsChanged = JSON.stringify(plannedStops) !== JSON.stringify(initialPlannedStops);
+
+    setIsDirty(formChanged || stopsChanged);
+  }, [formData, initialFormData, plannedStops, initialPlannedStops]);
 
   const validateField = (name, value, currentData) => {
     if (!name) return '';
@@ -457,14 +570,20 @@ export function EditTripModal({ isOpen, onClose, trip }) {
   };
 
   const validateStops = (stops = plannedStops) => {
-    const normalized = stops
-      .map((s, idx) => ({ ...s, idx }))
-      .filter((s) => (s.location_address || '').trim());
-    const pickupIndices = normalized.filter((s) => s.stop_type === 'PICKUP').map((s) => s.idx);
-    const deliveryIndices = normalized.filter((s) => s.stop_type === 'DELIVERY').map((s) => s.idx);
+    // Collect all potential stops: Origin (PICKUP), then multi-stops, then Destination (DELIVERY)
+    const allStops = [
+      ...(formData.origin_address?.trim() ? [{ stop_type: 'PICKUP', location_address: formData.origin_address }] : []),
+      ...stops.filter(s => s.location_address?.trim()),
+      ...(formData.destination_address?.trim() ? [{ stop_type: 'DELIVERY', location_address: formData.destination_address }] : [])
+    ].map((s, idx) => ({ ...s, idx }));
+
+    const pickupIndices = allStops.filter((s) => s.stop_type === 'PICKUP').map((s) => s.idx);
+    const deliveryIndices = allStops.filter((s) => s.stop_type === 'DELIVERY').map((s) => s.idx);
+    
     const errors = [];
-    if (!pickupIndices.length) errors.push('Need at least one pickup.');
-    if (!deliveryIndices.length) errors.push('Need at least one delivery.');
+    if (!pickupIndices.length) errors.push('Need at least one pickup (Origin or stop).');
+    if (!deliveryIndices.length) errors.push('Need at least one delivery (Destination or stop).');
+    
     if (pickupIndices.length && deliveryIndices.length) {
       if (Math.max(...pickupIndices) > Math.min(...deliveryIndices)) {
         errors.push('Last pickup cannot be after first delivery.');
@@ -473,6 +592,10 @@ export function EditTripModal({ isOpen, onClose, trip }) {
     setStopErrors(errors);
     return errors.length === 0;
   };
+
+  useEffect(() => {
+    validateStops(plannedStops);
+  }, [formData.origin_address, formData.destination_address, plannedStops]);
 
   const addStopRow = () => {
     setPlannedStops((prev) => {
@@ -496,6 +619,16 @@ export function EditTripModal({ isOpen, onClose, trip }) {
   const updateStopRow = (index, key, value) => {
     setPlannedStops((prev) => {
       const next = prev.map((s, i) => (i === index ? { ...s, [key]: value } : s));
+      
+      // Bi-directional sync back to formData if origin (0) or destination (last) is updated
+      if (key === 'location_address') {
+        if (index === 0) {
+          setFormData(f => ({ ...f, origin_address: value }));
+        } else if (index === next.length - 1) {
+          setFormData(f => ({ ...f, destination_address: value }));
+        }
+      }
+      
       validateStops(next);
       return next;
     });
@@ -531,6 +664,43 @@ export function EditTripModal({ isOpen, onClose, trip }) {
         [name]: type === 'checkbox' ? checked : value
       };
       
+      // Auto-fill vehicle details when primary_vehicle_id changes
+      if (name === 'primary_vehicle_id' && value) {
+        const selectedVehicle = vehicles.find(v => String(v.id) === String(value));
+        if (selectedVehicle) {
+          next.vehicle_number = selectedVehicle.registration_number || "";
+          next.vehicle_type_code = selectedVehicle.vehicle_type?.type_code || selectedVehicle.vehicle_type_code || "";
+          next.vehicle_owner_name = selectedVehicle.owner_name || "";
+        }
+      }
+
+      // Sync address fields with plannedStops (Multi-stop Planner)
+      if (name === 'origin_address') {
+        setPlannedStops(stops => {
+          const nextStops = [...stops];
+          if (nextStops.length > 0) {
+            nextStops[0] = { ...nextStops[0], location_address: value, stop_type: 'PICKUP' };
+          } else {
+            nextStops.push({ stop_type: 'PICKUP', location_address: value, instructions: '', scheduled_arrival: '', scheduled_departure: '' });
+          }
+          return nextStops;
+        });
+      } else if (name === 'destination_address') {
+        setPlannedStops(stops => {
+          const nextStops = [...stops];
+          if (nextStops.length > 1) {
+            nextStops[nextStops.length - 1] = { ...nextStops[nextStops.length - 1], location_address: value, stop_type: 'DELIVERY' };
+          } else if (nextStops.length === 1) {
+            nextStops.push({ stop_type: 'DELIVERY', location_address: value, instructions: '', scheduled_arrival: '', scheduled_departure: '' });
+          } else {
+             // If both are being added, destination should be second. But handled by origin first usually.
+             nextStops.push({ stop_type: 'PICKUP', location_address: prev.origin_address || '', instructions: '', scheduled_arrival: '', scheduled_departure: '' });
+             nextStops.push({ stop_type: 'DELIVERY', location_address: value, instructions: '', scheduled_arrival: '', scheduled_departure: '' });
+          }
+          return nextStops;
+        });
+      }
+
       const err = validateField(name, next[name], next);
       const startTimeErr = validateField('start_time', next.start_time, next);
       const endTimeErr = validateField('end_time', next.end_time, next);
@@ -572,18 +742,48 @@ export function EditTripModal({ isOpen, onClose, trip }) {
   };
   const handlePrev = () => setCurrentStep(prev => Math.max(prev - 1, 1));
 
-  const handleUpdate = (e) => {
+  const handleUpdate = async (e) => {
     if (e) e.preventDefault();
     if (hasErrors) return;
     if (currentStep === 3 && !validateStops()) return;
     
     const payload = {
-      ...formData,
-      planned_stops: plannedStops
+      ...formData
     };
     
+    // 1. Update the Trip itself
     updateTripMutation.mutate({ id: trip.id, data: payload }, {
-      onSuccess: onClose
+      onSuccess: async () => {
+        try {
+          // 2. Only handle NEWLY ADDED stops in the planner
+          const promises = [];
+
+          const currentStopsCount = tripStops?.length || 0;
+
+          plannedStops.forEach((stop, idx) => {
+            const stopData = {
+              ...stop,
+              stop_sequence: currentStopsCount + idx + 1,
+              trip_id: trip.id
+            };
+            
+            // Remove temp id if present
+            const finalStopData = { ...stopData };
+            delete finalStopData.id;
+
+            promises.push(createStopMutation.mutateAsync(finalStopData));
+          });
+
+          if (promises.length > 0) {
+            await Promise.all(promises);
+          }
+          
+          onClose();
+        } catch (error) {
+          console.error("Error creating new stops:", error);
+          toast.error("Trip updated, but some new stops failed to save.");
+        }
+      }
     });
   };
 
@@ -717,16 +917,42 @@ export function EditTripModal({ isOpen, onClose, trip }) {
                   <h2 className="text-xl font-bold text-gray-800 tracking-tight">Fleet & Team Allocation</h2>
                 </div>
                 <div className="grid grid-cols-2 gap-6">
-                  <FieldGroup label="primary_vehicle_id">
-                    <select name="primary_vehicle_id" className={inputClass} value={formData.primary_vehicle_id || ""} onChange={handleInputChange}>
-                      <option value="">Select Primary Vehicle</option>
-                      {vehicles.map(v => <option key={v.id} value={v.id} disabled={String(formData.alternate_vehicle_id) === String(v.id)}>{v.registration_number}</option>)}
+                  <FieldGroup label="Primary vehicle">
+                    <select className={inputClass} value={formData.primary_vehicle_id || ""} onChange={e => {
+                      const val = e.target.value;
+                      const selectedVehicle = vehicles.find(v => String(v.id) === String(val));
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        primary_vehicle_id: val,
+                        vehicle_number: selectedVehicle?.registration_number || prev.vehicle_number,
+                        vehicle_type_code: selectedVehicle?.vehicle_type?.type_code || selectedVehicle?.vehicle_type_code || prev.vehicle_type_code,
+                        vehicle_owner_name: selectedVehicle?.owner_name || prev.vehicle_owner_name
+                      }));
+                    }}>
+                       <option value="">Select Vehicle</option>
+                       {vehicles.map(v => {
+                          const tripNum = busyVehicles[String(v.id)];
+                          const isDisabled = String(formData.alternate_vehicle_id) === String(v.id) || !!tripNum;
+                          return (
+                            <option key={v.id} value={v.id} disabled={isDisabled}>
+                              {v.registration_number} {tripNum ? `(On Trip: ${tripNum})` : ''}
+                            </option>
+                          );
+                       })}
                     </select>
                   </FieldGroup>
                   <FieldGroup label="primary_driver_id">
                     <select name="primary_driver_id" className={inputClass} value={formData.primary_driver_id || ""} onChange={handleInputChange}>
                       <option value="">Select Primary Driver</option>
-                      {drivers.map(d => <option key={d.id} value={d.id} disabled={String(formData.alternate_driver_id) === String(d.id)}>{d.user?.first_name} {d.user?.last_name}</option>)}
+                      {drivers.map(d => {
+                        const tripNum = busyDrivers[String(d.id)];
+                        const isDisabled = String(formData.alternate_driver_id) === String(d.id) || !!tripNum;
+                        return (
+                          <option key={d.id} value={d.id} disabled={isDisabled}>
+                            {d.user?.first_name} {d.user?.last_name} {tripNum ? `(On Trip: ${tripNum})` : ''}
+                          </option>
+                        );
+                      })}
                     </select>
                   </FieldGroup>
                 </div>
@@ -734,13 +960,31 @@ export function EditTripModal({ isOpen, onClose, trip }) {
                   <FieldGroup label="alternate_vehicle_id">
                     <select name="alternate_vehicle_id" className={inputClass} value={formData.alternate_vehicle_id || ""} onChange={handleInputChange}>
                       <option value="">None</option>
-                      {vehicles.map(v => <option key={v.id} value={v.id} disabled={String(formData.primary_vehicle_id) === String(v.id)}>{v.registration_number}</option>)}
+                      {vehicles
+                        .filter(v => String(formData.primary_vehicle_id) !== String(v.id))
+                        .map(v => {
+                          const tripNum = busyVehicles[String(v.id)];
+                          return (
+                            <option key={v.id} value={v.id} disabled={!!tripNum}>
+                              {v.registration_number} {tripNum ? `(On Trip: ${tripNum})` : ''}
+                            </option>
+                          );
+                        })}
                     </select>
                   </FieldGroup>
                   <FieldGroup label="alternate_driver_id">
                     <select name="alternate_driver_id" className={inputClass} value={formData.alternate_driver_id || ""} onChange={handleInputChange}>
                       <option value="">None</option>
-                      {drivers.map(d => <option key={d.id} value={d.id} disabled={String(formData.primary_driver_id) === String(d.id)}>{d.user?.first_name} {d.user?.last_name}</option>)}
+                      {drivers
+                        .filter(d => String(formData.primary_driver_id) !== String(d.id))
+                        .map(d => {
+                          const tripNum = busyDrivers[String(d.id)];
+                          return (
+                            <option key={d.id} value={d.id} disabled={!!tripNum}>
+                              {d.user?.first_name} {d.user?.last_name} {tripNum ? `(On Trip: ${tripNum})` : ''}
+                            </option>
+                          );
+                        })}
                     </select>
                   </FieldGroup>
                 </div>
@@ -1419,7 +1663,9 @@ export function AddStopsModal({ isOpen, onClose, tripId, nextSequenceNumber, onS
                   </div>
                   <div className="col-span-2">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block ml-1">Type</label>
-                    <select className={inputClass} value={stop.stop_type} onChange={(e) => updateStopRow(idx, 'stop_type', e.target.value)}>
+                    <select className={inputClass} value={stop.stop_type} onChange={(e) => {
+                      updateStopRow(idx, 'stop_type', e.target.value);
+                    }}>
                       <option value="PICKUP">PICKUP</option>
                       <option value="DELIVERY">DELIVERY</option>
                       <option value="TRANSIT">TRANSIT</option>

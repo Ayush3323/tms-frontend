@@ -4,7 +4,7 @@ import {
   ChevronLeft, ChevronRight, Save, X, FileText, Truck, 
   MapPin, Gauge, DollarSign, CheckCircle2, AlertCircle, GripVertical, Circle, Package
 } from 'lucide-react';
-import { useCreateTrip, useOrders } from '../../queries/orders/ordersQuery';
+import { useCreateTrip, useOrders, useTrips } from '../../queries/orders/ordersQuery';
 import { useDrivers } from '../../queries/drivers/driverCoreQuery';
 import { useVehicles } from '../../queries/vehicles/vehicleQuery';
 import { useVehicleTypes } from '../../queries/vehicles/vehicletypeQuery';
@@ -13,7 +13,9 @@ import { tripsApi } from '../../api/orders/ordersEndpoint';
 // --- Reusable UI Components (matching previous standardization) ---
 const formatLabel = (str) => {
   if (!str) return "";
-  return str
+  // Remove _id or _code suffix for cleaner labels
+  const cleanStr = str.replace(/_id$/i, '').replace(/_code$/i, '');
+  return cleanStr
     .split('_')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ');
@@ -78,6 +80,32 @@ export default function CreateTripPage() {
   const vehicles = vehiclesData?.results || [];
   const { data: vehicleTypesData } = useVehicleTypes({ page_size: 200 });
   const vehicleTypes = vehicleTypesData?.results || [];
+
+  // Fetch all active trips to determine driver/vehicle availability
+  const { data: allTripsData } = useTrips({ page_size: 1000 });
+  const allTrips = allTripsData?.results || [];
+  const activeTrips = useMemo(() => 
+    allTrips.filter(t => !['COMPLETED', 'DELIVERED', 'CANCELLED'].includes(t.status)),
+    [allTrips]
+  );
+
+  const busyDrivers = useMemo(() => {
+    const map = {};
+    activeTrips.forEach(t => {
+      if (t.primary_driver_id) map[String(t.primary_driver_id)] = t.trip_number;
+      if (t.alternate_driver_id) map[String(t.alternate_driver_id)] = t.trip_number;
+    });
+    return map;
+  }, [activeTrips]);
+
+  const busyVehicles = useMemo(() => {
+    const map = {};
+    activeTrips.forEach(t => {
+      if (t.primary_vehicle_id) map[String(t.primary_vehicle_id)] = t.trip_number;
+      if (t.alternate_vehicle_id) map[String(t.alternate_vehicle_id)] = t.trip_number;
+    });
+    return map;
+  }, [activeTrips]);
 
   const [formData, setFormData] = useState({
     order_id: "", reference_number: "", trip_type: "FTL", status: "CREATED",
@@ -200,6 +228,8 @@ export default function CreateTripPage() {
           const nextStops = [...stops];
           if (nextStops.length > 0) {
             nextStops[0] = { ...nextStops[0], location_address: value, stop_type: 'PICKUP' };
+          } else {
+            nextStops.push({ stop_type: 'PICKUP', location_address: value, instructions: '', scheduled_arrival: '', scheduled_departure: '' });
           }
           return nextStops;
         });
@@ -208,9 +238,24 @@ export default function CreateTripPage() {
           const nextStops = [...stops];
           if (nextStops.length > 1) {
             nextStops[nextStops.length - 1] = { ...nextStops[nextStops.length - 1], location_address: value, stop_type: 'DELIVERY' };
+          } else if (nextStops.length === 1) {
+            nextStops.push({ stop_type: 'DELIVERY', location_address: value, instructions: '', scheduled_arrival: '', scheduled_departure: '' });
+          } else {
+            nextStops.push({ stop_type: 'PICKUP', location_address: prev.origin_address || '', instructions: '', scheduled_arrival: '', scheduled_departure: '' });
+            nextStops.push({ stop_type: 'DELIVERY', location_address: value, instructions: '', scheduled_arrival: '', scheduled_departure: '' });
           }
           return nextStops;
         });
+      }
+
+      // Auto-fill vehicle details when primary_vehicle_id changes
+      if (name === 'primary_vehicle_id' && value) {
+        const selectedVehicle = vehicles.find(v => String(v.id) === String(value));
+        if (selectedVehicle) {
+          next.vehicle_number = selectedVehicle.registration_number || "";
+          next.vehicle_type_code = selectedVehicle.vehicle_type?.type_code || selectedVehicle.vehicle_type_code || "";
+          next.vehicle_owner_name = selectedVehicle.owner_name || "";
+        }
       }
 
       const err = validateField(name, next[name], next);
@@ -240,24 +285,42 @@ export default function CreateTripPage() {
 
   const handleOrderChange = (id) => {
     const order = orders.find(o => String(o.id) === String(id));
+    const newOrigin = order?.origin_address || "";
+    const newDest = order?.destination_address || "";
+    
     setFormData(prev => ({
       ...prev,
       order_id: id,
       reference_number: order ? (order.reference_number || "") : "",
       trip_type: order ? (order.order_type || prev.trip_type || "FTL") : prev.trip_type,
       status: order ? 'ASSIGNED' : (prev.status || 'CREATED'),
+      origin_address: newOrigin,
+      destination_address: newDest,
     }));
+
+    if (newOrigin || newDest) {
+      setPlannedStops([
+        { stop_type: 'PICKUP', location_address: newOrigin, instructions: '', scheduled_arrival: '', scheduled_departure: '' },
+        { stop_type: 'DELIVERY', location_address: newDest, instructions: '', scheduled_arrival: '', scheduled_departure: '' },
+      ]);
+    }
   };
 
   const validateStops = (stops = plannedStops) => {
-    const normalized = stops
-      .map((s, idx) => ({ ...s, idx }))
-      .filter((s) => (s.location_address || '').trim());
-    const pickupIndices = normalized.filter((s) => s.stop_type === 'PICKUP').map((s) => s.idx);
-    const deliveryIndices = normalized.filter((s) => s.stop_type === 'DELIVERY').map((s) => s.idx);
+    // Collect all potential stops: Origin (PICKUP), then multi-stops, then Destination (DELIVERY)
+    const allStops = [
+      ...(formData.origin_address?.trim() ? [{ stop_type: 'PICKUP', location_address: formData.origin_address }] : []),
+      ...stops.filter(s => s.location_address?.trim()),
+      ...(formData.destination_address?.trim() ? [{ stop_type: 'DELIVERY', location_address: formData.destination_address }] : [])
+    ].map((s, idx) => ({ ...s, idx }));
+
+    const pickupIndices = allStops.filter((s) => s.stop_type === 'PICKUP').map((s) => s.idx);
+    const deliveryIndices = allStops.filter((s) => s.stop_type === 'DELIVERY').map((s) => s.idx);
+    
     const errors = [];
-    if (pickupIndices.length === 0) errors.push('Add at least one pickup stop with location.');
-    if (deliveryIndices.length === 0) errors.push('Add at least one delivery stop with location.');
+    if (pickupIndices.length === 0) errors.push('Add at least one pickup stop (Origin or stop).');
+    if (deliveryIndices.length === 0) errors.push('Add at least one delivery stop (Destination or stop).');
+    
     if (pickupIndices.length > 0 && deliveryIndices.length > 0) {
       const lastPickupIdx = Math.max(...pickupIndices);
       const invalidDelivery = deliveryIndices.some((i) => i <= lastPickupIdx);
@@ -266,6 +329,10 @@ export default function CreateTripPage() {
     setStopErrors(errors);
     return errors.length === 0;
   };
+
+  useEffect(() => {
+    validateStops(plannedStops);
+  }, [formData.origin_address, formData.destination_address, plannedStops]);
 
   const handleNext = () => {
     if (hasErrors) return;
@@ -377,6 +444,16 @@ export default function CreateTripPage() {
   const updateStopRow = (index, key, value) => {
     setPlannedStops((prev) => {
       const next = prev.map((s, i) => (i === index ? { ...s, [key]: value } : s));
+
+      // Bi-directional sync back to formData if origin (0) or destination (last) is updated
+      if (key === 'location_address') {
+        if (index === 0) {
+          setFormData(f => ({ ...f, origin_address: value }));
+        } else if (index === next.length - 1) {
+          setFormData(f => ({ ...f, destination_address: value }));
+        }
+      }
+
       validateStops(next);
       return next;
     });
@@ -521,13 +598,29 @@ export default function CreateTripPage() {
                     <FieldGroup label="primary_vehicle_id">
                       <select name="primary_vehicle_id" className={inputClass} value={formData.primary_vehicle_id || ""} onChange={handleInputChange}>
                         <option value="">Select Vehicle</option>
-                        {vehicles.map(v => <option key={v.id} value={v.id} disabled={String(formData.alternate_vehicle_id) === String(v.id)}>{v.registration_number}</option>)}
+                        {vehicles.map(v => {
+                          const tripNum = busyVehicles[String(v.id)];
+                          const isDisabled = String(formData.alternate_vehicle_id) === String(v.id) || !!tripNum;
+                          return (
+                            <option key={v.id} value={v.id} disabled={isDisabled}>
+                              {v.registration_number} {tripNum ? `(On Trip: ${tripNum})` : ''}
+                            </option>
+                          );
+                        })}
                       </select>
                     </FieldGroup>
                     <FieldGroup label="primary_driver_id">
                       <select name="primary_driver_id" className={inputClass} value={formData.primary_driver_id || ""} onChange={handleInputChange}>
                         <option value="">Select Driver</option>
-                        {drivers.map(d => <option key={d.id} value={d.id} disabled={String(formData.alternate_driver_id) === String(d.id)}>{d.user?.first_name} {d.user?.last_name}</option>)}
+                        {drivers.map(d => {
+                          const tripNum = busyDrivers[String(d.id)];
+                          const isDisabled = String(formData.alternate_driver_id) === String(d.id) || !!tripNum;
+                          return (
+                            <option key={d.id} value={d.id} disabled={isDisabled}>
+                              {d.user?.first_name} {d.user?.last_name} {tripNum ? `(On Trip: ${tripNum})` : ''}
+                            </option>
+                          );
+                        })}
                       </select>
                     </FieldGroup>
                   </div>
@@ -535,13 +628,31 @@ export default function CreateTripPage() {
                     <FieldGroup label="alternate_vehicle_id">
                       <select name="alternate_vehicle_id" className={inputClass} value={formData.alternate_vehicle_id || ""} onChange={handleInputChange}>
                         <option value="">None</option>
-                        {vehicles.map(v => <option key={v.id} value={v.id} disabled={String(formData.primary_vehicle_id) === String(v.id)}>{v.registration_number}</option>)}
+                        {vehicles
+                          .filter(v => String(formData.primary_vehicle_id) !== String(v.id))
+                          .map(v => {
+                            const tripNum = busyVehicles[String(v.id)];
+                            return (
+                              <option key={v.id} value={v.id} disabled={!!tripNum}>
+                                {v.registration_number} {tripNum ? `(On Trip: ${tripNum})` : ''}
+                              </option>
+                            );
+                          })}
                       </select>
                     </FieldGroup>
                     <FieldGroup label="alternate_driver_id">
                       <select name="alternate_driver_id" className={inputClass} value={formData.alternate_driver_id || ""} onChange={handleInputChange}>
                         <option value="">None</option>
-                        {drivers.map(d => <option key={d.id} value={d.id} disabled={String(formData.primary_driver_id) === String(d.id)}>{d.user?.first_name} {d.user?.last_name}</option>)}
+                        {drivers
+                          .filter(d => String(formData.primary_driver_id) !== String(d.id))
+                          .map(d => {
+                            const tripNum = busyDrivers[String(d.id)];
+                            return (
+                              <option key={d.id} value={d.id} disabled={!!tripNum}>
+                                {d.user?.first_name} {d.user?.last_name} {tripNum ? `(On Trip: ${tripNum})` : ''}
+                              </option>
+                            );
+                          })}
                       </select>
                     </FieldGroup>
                   </div>
