@@ -9,6 +9,7 @@ import {
   useMarkTDSReturnPaid,
   useTDSReturns,
   useTDSEntries,
+  useTripsLookup,
 } from '../../queries/finance/financeQuery'
 
 const asList = (data) => data?.results || (Array.isArray(data) ? data : [])
@@ -27,6 +28,8 @@ export default function TDSSummaryDashboard() {
   }, [search, status])
   const { data, isLoading, refetch } = useTDSEntries(entryQuery)
   const { data: returnsData, isLoading: isReturnsLoading, refetch: refetchReturns } = useTDSReturns(entryQuery)
+  const { data: tripsData } = useTripsLookup({ page_size: 500 })
+  const trips = asList(tripsData)
   const issue = useIssueTDSCertificate()
   const markPaid = useMarkTDSEntryPaid()
   const markReturnPaid = useMarkTDSReturnPaid()
@@ -43,9 +46,9 @@ export default function TDSSummaryDashboard() {
     }
     return [
       { label: 'Total', value: data?.count || rows.length, className: 'text-blue-600' },
-      { label: 'Calculated', value: rows.filter((r) => r.status === 'CALCULATED').length, className: 'text-amber-600' },
-      { label: 'Filed', value: rows.filter((r) => r.status === 'FILED').length, className: 'text-indigo-600' },
-      { label: 'Paid', value: rows.filter((r) => r.status === 'PAID').length, className: 'text-green-600' },
+      { label: 'Pending', value: rows.filter((r) => r.status === 'PENDING').length, className: 'text-amber-600' },
+      { label: 'Paid', value: rows.filter((r) => r.status === 'PAID').length, className: 'text-indigo-600' },
+      { label: 'Cert. Issued', value: rows.filter((r) => r.status === 'CERTIFICATE_ISSUED').length, className: 'text-green-600' },
     ]
   }, [activeTab, data?.count, rows, returnsData?.count, returnRows])
 
@@ -80,9 +83,9 @@ export default function TDSSummaryDashboard() {
             className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-700"
           >
             <option value="">All Statuses</option>
-            <option value="CALCULATED">Calculated</option>
-            <option value="FILED">Filed</option>
+            <option value="PENDING">Pending</option>
             <option value="PAID">Paid</option>
+            <option value="CERTIFICATE_ISSUED">Certificate Issued</option>
           </select>
         </>
       )}
@@ -96,10 +99,18 @@ export default function TDSSummaryDashboard() {
       columns={activeTab === 'entries'
         ? [
           { key: 'owner_name', title: 'Owner' },
-          { key: 'trip_id', title: 'Trip ID' },
-          { key: 'financial_year', title: 'Financial Year' },
+          { 
+            key: 'trip_id', 
+            title: 'Trip',
+            render: (tid) => {
+              if (!tid) return '-'
+              const t = trips.find(tr => tr.id === tid)
+              return t ? (t.trip_number || tid.slice(-8).toUpperCase()) : tid.slice(-8).toUpperCase()
+            }
+          },
+          { key: 'financial_year', title: 'FY' },
           { key: 'quarter', title: 'Quarter' },
-          { key: 'tds_amount', title: 'TDS Amount' },
+          { key: 'tds_amount', title: 'TDS Amount', render: (v) => Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2 }) },
           { key: 'status', title: 'Status' },
         ]
         : [
@@ -122,7 +133,18 @@ export default function TDSSummaryDashboard() {
       )}
       rowActions={(row) => (
         <>
-          {activeTab === 'entries' && row.status === 'CALCULATED' && (
+          {activeTab === 'entries' && row.status === 'PENDING' && (
+            <button
+              type="button"
+              disabled={markPaid.isPending}
+              onClick={() => markPaid.mutate(row.id)}
+              className="p-2 text-gray-400 hover:text-blue-600 rounded-lg disabled:opacity-50"
+              title="Mark Paid"
+            >
+              <Coins size={16} />
+            </button>
+          )}
+          {activeTab === 'entries' && row.status === 'PAID' && (
             <button
               type="button"
               onClick={() => {
@@ -134,17 +156,6 @@ export default function TDSSummaryDashboard() {
               title="Issue Certificate"
             >
               <CheckCircle2 size={16} />
-            </button>
-          )}
-          {activeTab === 'entries' && row.status === 'FILED' && (
-            <button
-              type="button"
-              disabled={markPaid.isPending}
-              onClick={() => markPaid.mutate(row.id)}
-              className="p-2 text-gray-400 hover:text-blue-600 rounded-lg disabled:opacity-50"
-              title="Mark Paid"
-            >
-              <Coins size={16} />
             </button>
           )}
           {activeTab === 'returns' && row.status === 'FILED' && (

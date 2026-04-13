@@ -73,7 +73,7 @@ import InvoiceDetail from '../components/Finance/InvoiceDetail';
 import AdvanceDetail from '../components/Finance/AdvanceDetail';
 import FinanceReportsDashboard from '../components/Finance/FinanceReportsDashboard';
 import FinancePeriodsPage from '../components/Finance/FinancePeriodsPage';
-import LRSettlementPage from '../components/Finance/LRSettlementPage';
+import LRRecordsPage from '../components/orders/LRRecordsPage';
 import FinanceLedgerPage from '../components/Finance/FinanceLedgerPage';
 import ReconciliationsPage from '../components/Finance/ReconciliationsPage';
 import PayrollEntriesPage from '../components/Finance/PayrollEntriesPage';
@@ -147,6 +147,7 @@ const Routing = () => {
 
         {/* Dynamic Detail Routes */}
         <Route path="orders" element={<ErrorBoundary><OrdersDashboard /></ErrorBoundary>} />
+        <Route path="orders/lr-records" element={<LRRecordsPage />} />
 
         <Route path="orders/trips" element={<ErrorBoundary><TripsDashboard /></ErrorBoundary>} />
         <Route path="orders/trips/new" element={<ErrorBoundary><CreateTripPage /></ErrorBoundary>} />
@@ -166,7 +167,7 @@ const Routing = () => {
         <Route path="finance/invoices" element={<InvoicesDashboard />} />
         <Route path="finance/invoices/:id" element={<InvoiceDetail />} />
         <Route path="finance/periods" element={<FinancePeriodsPage />} />
-        <Route path="finance/settlement" element={<LRSettlementPage />} />
+
         <Route path="finance/ledger" element={<FinanceLedgerPage />} />
         <Route path="finance/reconciliations" element={<ReconciliationsPage />} />
         <Route path="finance/customer-payments" element={<CustomerPaymentsDashboard />} />
