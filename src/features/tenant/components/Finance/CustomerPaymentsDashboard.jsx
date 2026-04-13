@@ -10,6 +10,7 @@ import {
   useReconcilePayment,
   useVerifyCustomerPayment,
 } from '../../queries/finance/financeQuery'
+import { useCustomers } from '../../queries/customers/customersQuery'
 
 const asList = (data) => data?.results || (Array.isArray(data) ? data : [])
 
@@ -18,6 +19,8 @@ export default function CustomerPaymentsDashboard() {
   const [status, setStatus] = useState('')
   const [showCreate, setShowCreate] = useState(false)
   const [showReconcile, setShowReconcile] = useState(false)
+  const { data: allCustomersData } = useCustomers({ page_size: 1000 })
+  const allCustomers = asList(allCustomersData)
   const [payForm, setPayForm] = useState({
     payment_number: `CP-${Date.now()}`,
     customer_id: '',
@@ -126,7 +129,16 @@ export default function CustomerPaymentsDashboard() {
           <div className="bg-white rounded-xl p-6 max-w-md w-full space-y-2 shadow-xl">
             <h3 className="font-bold text-[#172B4D]">Record customer payment</h3>
             <input className="w-full border rounded px-2 py-1 text-xs" placeholder="Payment #" value={payForm.payment_number} onChange={(e) => setPayForm({ ...payForm, payment_number: e.target.value })} />
-            <input className="w-full border rounded px-2 py-1 text-xs" placeholder="Customer UUID" value={payForm.customer_id} onChange={(e) => setPayForm({ ...payForm, customer_id: e.target.value })} />
+            <select
+              className="w-full border rounded px-2 py-1 text-xs"
+              value={payForm.customer_id}
+              onChange={(e) => setPayForm({ ...payForm, customer_id: e.target.value })}
+            >
+              <option value="">Select Customer</option>
+              {allCustomers.map(c => (
+                <option key={c.id} value={c.id}>{c.legal_name || c.customer_code || c.id.slice(-6)}</option>
+              ))}
+            </select>
             <input type="date" className="w-full border rounded px-2 py-1 text-xs" value={payForm.payment_date} onChange={(e) => setPayForm({ ...payForm, payment_date: e.target.value })} />
             <input className="w-full border rounded px-2 py-1 text-xs" type="number" placeholder="Amount" value={payForm.amount} onChange={(e) => setPayForm({ ...payForm, amount: e.target.value })} />
             <select className="w-full border rounded px-2 py-1 text-xs" value={payForm.payment_mode} onChange={(e) => setPayForm({ ...payForm, payment_mode: e.target.value })}>
