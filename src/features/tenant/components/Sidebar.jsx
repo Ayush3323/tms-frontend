@@ -4,7 +4,7 @@ import {
   Wrench, Search, Fuel, Settings, Plug, Tag, ScrollText,
   ChevronDown, ChevronsRight, ChevronsLeft, UserCheck, Phone, GraduationCap,
   HeartPulse, BarChart2, AlertTriangle, CalendarClock, Car, Banknote, UserPlus, UserMinus, Briefcase, Building2,
-  Package, MapPinned, ClipboardCheck,
+  Package, MapPinned, ClipboardCheck, GitMerge,
 } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 
@@ -62,6 +62,10 @@ const orderSubItems = [
 
 const financeSubItems = [
   { name: 'Invoices', icon: <FileText size={13} />, path: '/tenant/dashboard/finance/invoices', badge: null },
+  { name: 'Finance Periods', icon: <FileText size={13} />, path: '/tenant/dashboard/finance/periods', badge: null },
+  { name: 'LR Settlement', icon: <FileText size={13} />, path: '/tenant/dashboard/finance/settlement', badge: null },
+  { name: 'Ledger', icon: <BarChart2 size={13} />, path: '/tenant/dashboard/finance/ledger', badge: null },
+  { name: 'Reconciliations', icon: <GitMerge size={13} />, path: '/tenant/dashboard/finance/reconciliations', badge: null },
   { name: 'Customer Payments', icon: <Banknote size={13} />, path: '/tenant/dashboard/finance/customer-payments', badge: null },
   { name: 'Owner Payables', icon: <Banknote size={13} />, path: '/tenant/dashboard/finance/owner-payments', badge: null },
   { name: 'Payroll', icon: <Users size={13} />, path: '/tenant/dashboard/finance/payroll', badge: null },
