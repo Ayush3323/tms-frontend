@@ -118,17 +118,17 @@ export default function TripsMainBody() {
   const deliveredCount = trips.filter((t) => t.status === 'DELIVERED' || t.status === 'COMPLETED').length;
 
   const getDriverDisplay = (id, fallbackName) => {
-    if (!id) return fallbackName || 'Unassigned';
+    if (!id || id === 'null') return 'Unassigned';
     const d = drivers.find((dr) => dr.id === id);
-    if (!d) return fallbackName || id.slice(-6);
-    return `${d.user?.first_name || 'Driver'} ${d.user?.last_name || ''}`.trim() || d.employee_id || id.slice(-6);
+    if (!d) return fallbackName || 'Unassigned';
+    return `${d.user?.first_name || 'Driver'} ${d.user?.last_name || ''}`.trim() || d.employee_id || 'Unassigned';
   };
 
   const getVehicleDisplay = (id, fallbackNumber) => {
-    if (!id) return fallbackNumber || 'Unassigned';
+    if (!id || id === 'null') return 'Unassigned';
     const v = vehicles.find((vh) => vh.id === id);
-    if (!v) return fallbackNumber || id.slice(-6);
-    return v.registration_number || v.registration || fallbackNumber || id.slice(-6);
+    if (!v) return fallbackNumber || 'Unassigned';
+    return v.registration_number || v.registration || fallbackNumber || 'Unassigned';
   };
 
   const handleEditClick = (trip) => {
