@@ -3,13 +3,17 @@ import { toast } from 'react-hot-toast'
 
 import {
   advanceApi,
+  creditNoteApi,
   customerPaymentApi,
+  financePeriodApi,
   financeReportApi,
   invoiceLineItemApi,
   invoiceApi,
+  ledgerApi,
   ownerPaymentApi,
   payrollApi,
   reconciliationApi,
+  settlementApi,
   tripLookupApi,
   tdsApi,
 } from '../../api/finance/financeEndpoint'
@@ -28,6 +32,13 @@ export const financeKeys = {
   advances: (params) => ['finance', 'advances', params],
   reports: (name, params) => ['finance', 'reports', name, params],
   tripsLookup: (params) => ['finance', 'tripsLookup', params],
+  invoiceEligibleTrips: (params) => ['finance', 'invoiceEligibleTrips', params],
+  financePeriods: (params) => ['finance', 'financePeriods', params],
+  ledgerAccounts: (params) => ['finance', 'ledgerAccounts', params],
+  journalEntries: (params) => ['finance', 'journalEntries', params],
+  journalEntryDetail: (id) => ['finance', 'journalEntryDetail', id],
+  lrSettlement: (tripId) => ['finance', 'lrSettlement', tripId],
+  reconciliations: (params) => ['finance', 'reconciliations', params],
 }
 
 const onErr = (label) => (error) => {
@@ -54,6 +65,8 @@ export const useTDSReturns = (params) => useQuery({ queryKey: financeKeys.tdsRet
 export const useAdvances = (params) => useQuery({ queryKey: financeKeys.advances(params), queryFn: () => advanceApi.list(params) })
 export const useTripsLookup = (params) =>
   useQuery({ queryKey: financeKeys.tripsLookup(params), queryFn: () => tripLookupApi.list(params) })
+export const useInvoiceEligibleTrips = (params) =>
+  useQuery({ queryKey: financeKeys.invoiceEligibleTrips(params), queryFn: () => invoiceApi.eligibleTrips(params) })
 export const useARAgingReport = (params) =>
   useQuery({ queryKey: financeKeys.reports('arAging', params), queryFn: () => financeReportApi.arAging(params) })
 export const useOwnerPayablesReport = (params) =>
@@ -67,6 +80,128 @@ export const useAdvanceDetail = (id) => useQuery({
   queryFn: () => advanceApi.get(id),
   enabled: !!id,
 })
+export const useAdvanceCategories = () =>
+  useQuery({ queryKey: ['finance', 'advanceCategories'], queryFn: () => advanceApi.listCategories({ page_size: 200 }) })
+export const useAdvanceDisbursements = (params) =>
+  useQuery({ queryKey: ['finance', 'advanceDisbursements', params], queryFn: () => advanceApi.listDisbursements(params) })
+export const useAdvanceRepayments = (params) =>
+  useQuery({ queryKey: ['finance', 'advanceRepayments', params], queryFn: () => advanceApi.listRepayments(params) })
+export const useAdvanceApprovals = (params) =>
+  useQuery({ queryKey: ['finance', 'advanceApprovals', params], queryFn: () => advanceApi.listApprovals(params) })
+
+export const useFinancePeriods = (params) =>
+  useQuery({ queryKey: financeKeys.financePeriods(params), queryFn: () => financePeriodApi.list(params) })
+export const useLedgerAccounts = (params) =>
+  useQuery({ queryKey: financeKeys.ledgerAccounts(params), queryFn: () => ledgerApi.listAccounts(params) })
+export const useJournalEntries = (params) =>
+  useQuery({ queryKey: financeKeys.journalEntries(params), queryFn: () => ledgerApi.listJournalEntries(params) })
+export const useJournalEntryDetail = (id) =>
+  useQuery({
+    queryKey: financeKeys.journalEntryDetail(id),
+    queryFn: () => ledgerApi.getJournalEntry(id),
+    enabled: !!id,
+  })
+export const useLRSettlement = (tripId) =>
+  useQuery({
+    queryKey: financeKeys.lrSettlement(tripId),
+    queryFn: () => settlementApi.getLrSettlement(tripId),
+    enabled: !!tripId,
+  })
+export const useReconciliations = (params) =>
+  useQuery({ queryKey: financeKeys.reconciliations(params), queryFn: () => reconciliationApi.list(params) })
+
+export const useCreateInvoice = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: invoiceApi.create,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'invoices'] })
+      toast.success('Invoice created')
+    },
+    onError: onErr('Could not create invoice'),
+  })
+}
+export const useUpdateInvoice = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => invoiceApi.update(id, data),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['finance', 'invoices'] })
+      qc.invalidateQueries({ queryKey: financeKeys.invoiceDetail(vars.id) })
+      toast.success('Invoice updated')
+    },
+    onError: onErr('Could not update invoice'),
+  })
+}
+export const useCreateCreditNote = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: creditNoteApi.create,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'creditNotes'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'invoices'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'invoiceDetail'] })
+      toast.success('Credit note created')
+    },
+    onError: onErr('Could not create credit note'),
+  })
+}
+export const useCreateCustomerPayment = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: customerPaymentApi.create,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'customerPayments'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'reconciliations'] })
+      toast.success('Payment recorded')
+    },
+    onError: onErr('Could not create payment'),
+  })
+}
+export const useCreateOwnerPayment = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ownerPaymentApi.create,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'ownerPayments'] })
+      toast.success('Owner payment created')
+    },
+    onError: onErr('Could not create owner payment'),
+  })
+}
+export const useCreateAdvanceRequest = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: advanceApi.create,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'advances'] })
+      toast.success('Advance request created')
+    },
+    onError: onErr('Could not create advance'),
+  })
+}
+export const useCreateFinancePeriod = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: financePeriodApi.create,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'financePeriods'] })
+      toast.success('Finance period created')
+    },
+    onError: onErr('Could not create period'),
+  })
+}
+export const useCloseFinancePeriod = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: financePeriodApi.close,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'financePeriods'] })
+      toast.success('Period closed')
+    },
+    onError: onErr('Could not close period'),
+  })
+}
 
 export const usePostInvoice = () => {
   const qc = useQueryClient()
@@ -110,6 +245,18 @@ export const useGenerateInvoiceFromTrip = () => {
       toast.success('Invoice generated from trip')
     },
     onError: onErr('Could not generate invoice'),
+  })
+}
+export const useGenerateConsolidatedInvoice = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: invoiceApi.generateConsolidated,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'invoices'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'invoiceEligibleTrips'] })
+      toast.success('Consolidated invoice generated')
+    },
+    onError: onErr('Could not generate consolidated invoice'),
   })
 }
 export const useApplyCreditNoteToInvoice = () => {
@@ -188,6 +335,7 @@ export const useReconcilePayment = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['finance', 'customerPayments'] })
       qc.invalidateQueries({ queryKey: ['finance', 'invoices'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'reconciliations'] })
       toast.success('Payment reconciled')
     },
     onError: onErr('Reconciliation failed'),
@@ -237,6 +385,17 @@ export const useMarkPayrollEntryPaid = () => {
       toast.success('Payroll entry marked paid')
     },
     onError: onErr('Could not mark entry paid'),
+  })
+}
+export const useCreatePayrollPeriod = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: payrollApi.createPeriod,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'payrollPeriods'] })
+      toast.success('Payroll period created')
+    },
+    onError: onErr('Could not create payroll period'),
   })
 }
 export const useIssueTDSCertificate = () => {

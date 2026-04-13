@@ -4,9 +4,11 @@ import { useNavigate } from 'react-router-dom'
 
 import FinanceListPage from './FinanceListPage'
 import {
+  useCreateInvoice,
+  useGenerateConsolidatedInvoice,
   useGenerateInvoiceFromTrip,
+  useInvoiceEligibleTrips,
   useInvoices,
-  useTripsLookup,
 } from '../../queries/finance/financeQuery'
 
 const asList = (data) => data?.results || (Array.isArray(data) ? data : [])
@@ -15,7 +17,18 @@ export default function InvoicesDashboard() {
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [selectedTripId, setSelectedTripId] = useState('')
+  const [mode, setMode] = useState('trip')
+  const [selectedCustomerId, setSelectedCustomerId] = useState('')
+  const [selectedTripIds, setSelectedTripIds] = useState([])
   const [status, setStatus] = useState('')
+  const [showCreate, setShowCreate] = useState(false)
+  const [manualForm, setManualForm] = useState({
+    invoice_number: '',
+    invoice_date: new Date().toISOString().slice(0, 10),
+    due_date: '',
+    billing_customer_id: '',
+    billing_company_name: '',
+  })
   const queryParams = useMemo(() => {
     const p = {}
     if (search) p.search = search
@@ -23,10 +36,29 @@ export default function InvoicesDashboard() {
     return p
   }, [search, status])
   const { data, isLoading, refetch } = useInvoices(queryParams)
-  const { data: tripsData, isLoading: tripsLoading } = useTripsLookup({ page_size: 200 })
+  const { data: tripsData, isLoading: tripsLoading } = useInvoiceEligibleTrips({ page_size: 200 })
+  const { data: customerTripsData, isLoading: customerTripsLoading } = useInvoiceEligibleTrips({
+    billing_customer_id: selectedCustomerId || undefined,
+    page_size: 200,
+  })
   const generateFromTrip = useGenerateInvoiceFromTrip()
+  const generateConsolidated = useGenerateConsolidatedInvoice()
+  const createInvoice = useCreateInvoice()
   const rows = asList(data)
   const tripRows = asList(tripsData)
+  const customerTripRows = asList(customerTripsData)
+  const customerOptions = useMemo(() => {
+    const seen = new Set()
+    const opts = []
+    for (const trip of tripRows) {
+      const customerId = trip.billing_customer_id
+      if (!customerId || seen.has(String(customerId))) continue
+      seen.add(String(customerId))
+      const name = trip.billing_company_name || String(customerId).slice(-8).toUpperCase()
+      opts.push({ id: customerId, label: name })
+    }
+    return opts
+  }, [tripRows])
   const tripOptions = useMemo(() => tripRows.map((trip) => {
     const tripNo = trip.trip_number || String(trip.id).slice(-8).toUpperCase()
     const route = [trip.origin_address, trip.destination_address].filter(Boolean).join(' -> ')
@@ -35,6 +67,10 @@ export default function InvoicesDashboard() {
       label: route ? `${tripNo} (${route})` : tripNo,
     }
   }), [tripRows])
+  const selectedTripPreviewTotal = useMemo(() => {
+    const selected = customerTripRows.filter((trip) => selectedTripIds.includes(String(trip.id)))
+    return selected.reduce((sum, trip) => sum + Number(trip.total_bill_amount || trip.booked_price || 0), 0)
+  }, [customerTripRows, selectedTripIds])
 
   const stats = useMemo(() => ([
     { label: 'Total', value: data?.count || rows.length, className: 'text-blue-600' },
@@ -45,6 +81,7 @@ export default function InvoicesDashboard() {
   ]), [data?.count, rows])
 
   return (
+    <>
     <FinanceListPage
       title="Invoices"
       subtitle="Manage invoice lifecycle, due amounts, and posting workflow."
@@ -79,26 +116,95 @@ export default function InvoicesDashboard() {
         { key: 'status', title: 'Status' },
       ]}
       actions={(
-        <div className="flex items-center gap-2">
-          <select
-            value={selectedTripId}
-            onChange={(e) => setSelectedTripId(e.target.value)}
-            className="min-w-[280px] px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-700"
-            disabled={tripsLoading || generateFromTrip.isPending}
-          >
-            <option value="">{tripsLoading ? 'Loading trips...' : 'Select Trip'}</option>
-            {tripOptions.map((trip) => (
-              <option key={trip.id} value={trip.id}>{trip.label}</option>
-            ))}
-          </select>
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
-            onClick={() => selectedTripId && generateFromTrip.mutate(selectedTripId)}
-            disabled={!selectedTripId || generateFromTrip.isPending}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#0052CC] rounded-xl text-xs font-bold text-white hover:bg-[#0747A6] shadow-md shadow-blue-100 transition-all disabled:opacity-50"
+            onClick={() => setShowCreate(true)}
+            className="px-4 py-2 rounded-xl border border-[#0052CC] text-[#0052CC] text-xs font-bold hover:bg-[#EBF3FF]"
           >
-            Generate from Trip
+            Manual Invoice
           </button>
+          <select
+            value={mode}
+            onChange={(e) => {
+              setMode(e.target.value)
+              setSelectedTripIds([])
+              setSelectedCustomerId('')
+            }}
+            className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-700"
+          >
+            <option value="trip">Trip Invoice</option>
+            <option value="consolidated">Consolidated Invoice</option>
+          </select>
+          {mode === 'trip' ? (
+            <>
+              <select
+                value={selectedTripId}
+                onChange={(e) => setSelectedTripId(e.target.value)}
+                className="min-w-[280px] px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-700"
+                disabled={tripsLoading || generateFromTrip.isPending}
+              >
+                <option value="">{tripsLoading ? 'Loading eligible trips...' : 'Select Eligible Trip'}</option>
+                {tripOptions.map((trip) => (
+                  <option key={trip.id} value={trip.id}>{trip.label}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => selectedTripId && generateFromTrip.mutate(selectedTripId)}
+                disabled={!selectedTripId || generateFromTrip.isPending}
+                className="flex items-center gap-2 px-5 py-2.5 bg-[#0052CC] rounded-xl text-xs font-bold text-white hover:bg-[#0747A6] shadow-md shadow-blue-100 transition-all disabled:opacity-50"
+              >
+                Generate from Trip
+              </button>
+            </>
+          ) : (
+            <>
+              <select
+                value={selectedCustomerId}
+                onChange={(e) => setSelectedCustomerId(e.target.value)}
+                className="min-w-[220px] px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-700"
+              >
+                <option value="">Select Billing Customer</option>
+                {customerOptions.map((customer) => (
+                  <option key={customer.id} value={customer.id}>{customer.label}</option>
+                ))}
+              </select>
+              <select
+                multiple
+                value={selectedTripIds}
+                onChange={(e) => {
+                  const values = Array.from(e.target.selectedOptions).map((o) => o.value)
+                  setSelectedTripIds(values)
+                }}
+                className="min-w-[320px] h-20 px-2 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-700"
+                disabled={!selectedCustomerId || customerTripsLoading}
+              >
+                {customerTripRows.map((trip) => (
+                  <option key={trip.id} value={trip.id}>
+                    {(trip.trip_number || String(trip.id).slice(-8).toUpperCase())} - {trip.total_bill_amount || 0}
+                  </option>
+                ))}
+              </select>
+              <div className="text-[11px] font-semibold text-gray-600 min-w-[120px]">
+                Preview Total: {selectedTripPreviewTotal.toFixed(2)}
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!selectedCustomerId || selectedTripIds.length === 0) return
+                  generateConsolidated.mutate({
+                    billing_customer_id: selectedCustomerId,
+                    trip_ids: selectedTripIds,
+                  })
+                }}
+                disabled={!selectedCustomerId || selectedTripIds.length === 0 || generateConsolidated.isPending}
+                className="flex items-center gap-2 px-5 py-2.5 bg-[#0052CC] rounded-xl text-xs font-bold text-white hover:bg-[#0747A6] shadow-md shadow-blue-100 transition-all disabled:opacity-50"
+              >
+                Generate Consolidated
+              </button>
+            </>
+          )}
         </div>
       )}
       rowActions={(row) => (
@@ -113,5 +219,43 @@ export default function InvoicesDashboard() {
         </button>
       )}
     />
+    {showCreate && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="bg-white rounded-xl p-6 max-w-lg w-full shadow-xl space-y-3">
+          <h3 className="text-lg font-bold text-[#172B4D]">Create draft invoice</h3>
+          <input className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Invoice #" value={manualForm.invoice_number} onChange={(e) => setManualForm({ ...manualForm, invoice_number: e.target.value })} />
+          <div className="flex gap-2">
+            <input type="date" className="flex-1 border rounded-lg px-3 py-2 text-sm" value={manualForm.invoice_date} onChange={(e) => setManualForm({ ...manualForm, invoice_date: e.target.value })} />
+            <input type="date" className="flex-1 border rounded-lg px-3 py-2 text-sm" value={manualForm.due_date} onChange={(e) => setManualForm({ ...manualForm, due_date: e.target.value })} />
+          </div>
+          <input className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Billing customer UUID" value={manualForm.billing_customer_id} onChange={(e) => setManualForm({ ...manualForm, billing_customer_id: e.target.value })} />
+          <input className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Company name (display)" value={manualForm.billing_company_name} onChange={(e) => setManualForm({ ...manualForm, billing_company_name: e.target.value })} />
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" className="px-4 py-2 text-sm" onClick={() => setShowCreate(false)}>Cancel</button>
+            <button
+              type="button"
+              className="px-4 py-2 rounded-lg bg-[#0052CC] text-white text-sm font-bold"
+              disabled={!manualForm.invoice_number || !manualForm.billing_customer_id || createInvoice.isPending}
+              onClick={() => {
+                createInvoice.mutate(
+                  {
+                    invoice_number: manualForm.invoice_number,
+                    invoice_date: manualForm.invoice_date,
+                    due_date: manualForm.due_date || null,
+                    billing_customer_id: manualForm.billing_customer_id,
+                    billing_company_name: manualForm.billing_company_name,
+                    status: 'DRAFT',
+                  },
+                  { onSuccess: () => { setShowCreate(false); refetch() } },
+                )
+              }}
+            >
+              Create
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }

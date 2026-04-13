@@ -24,29 +24,37 @@ export default function FinanceListPage({
   keyField = 'id',
   secondaryFilters = null,
   emptyMessage = 'No records found',
+  /** When true, omit outer page shell (parent provides background / padding). */
+  embedded = false,
+  /** When false, search box is hidden (e.g. payroll entries drill-down). */
+  showSearch = true,
 }) {
+  const shellClass = embedded ? 'space-y-8' : 'min-h-screen bg-[#F8FAFC] p-6 lg:p-8'
+
   return (
-    <div className="min-h-screen bg-[#F8FAFC] p-6 lg:p-8">
+    <div className={shellClass}>
       <div className="max-w-[1600px] mx-auto space-y-8">
-        <div className="flex items-center">
-          <div className="w-1/4">
+        <div className="flex flex-wrap items-start gap-4">
+          <div className="min-w-0 flex-1 basis-full sm:basis-[min(280px,100%)]">
             <h1 className="text-2xl font-bold text-[#172B4D]">{title}</h1>
             <p className="text-gray-500 text-sm tracking-tight">{subtitle}</p>
           </div>
-          <div className="flex-1 max-w-2xl px-8">
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search..."
-              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm font-medium"
-            />
-          </div>
-          {secondaryFilters && <div className="flex items-center gap-2">{secondaryFilters}</div>}
-          <div className="flex items-center justify-end gap-2 ml-auto">
+          {showSearch && setSearch != null && (
+            <div className="flex-1 min-w-[200px] max-w-xl">
+              <input
+                type="text"
+                value={search ?? ''}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search..."
+                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm font-medium"
+              />
+            </div>
+          )}
+          {secondaryFilters && <div className="flex flex-wrap items-center gap-2">{secondaryFilters}</div>}
+          <div className="flex flex-wrap items-center justify-end gap-2 sm:ml-auto shrink-0">
             <button
               type="button"
-              onClick={onRefresh}
+              onClick={() => onRefresh?.()}
               className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm"
             >
               <RefreshCcw size={14} className={isLoading ? 'animate-spin' : ''} /> Refresh

@@ -1,10 +1,12 @@
 import React, { useMemo } from 'react'
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { AlertTriangle, ArrowLeft, CheckCircle2, ReceiptText, XCircle } from 'lucide-react'
 
 import {
   useApplyCreditNoteToInvoice,
   useCancelInvoice,
+  useCreateCreditNote,
   useCreditNotes,
   useInvoiceDetail,
   useInvoiceLineItems,
@@ -31,6 +33,9 @@ export default function InvoiceDetail() {
     () => creditNotes.filter((note) => String(note.status).toUpperCase() !== 'APPLIED'),
     [creditNotes],
   )
+  const [selectedCreditNoteId, setSelectedCreditNoteId] = useState('')
+  const [cnForm, setCnForm] = useState({ credit_note_number: '', amount: '', reason: '' })
+  const createCreditNote = useCreateCreditNote()
 
   const availableActions = useMemo(() => {
     if (!invoice) return []
@@ -78,18 +83,32 @@ export default function InvoiceDetail() {
                     </button>
                   )}
                   {unappliedCreditNotes.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const options = unappliedCreditNotes.map((n) => `${n.id}:${n.credit_note_number || 'CN'}`).join('\n')
-                        const selected = window.prompt(`Enter Credit Note ID to apply:\n${options}`)
-                        if (selected) applyCreditNote.mutate({ id: invoice.id, creditNoteId: selected.trim() })
-                      }}
-                      disabled={applyCreditNote.isPending}
-                      className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold disabled:opacity-50"
-                    >
-                      <ReceiptText size={14} /> Apply Credit Note
-                    </button>
+                    <div className="inline-flex items-center gap-2">
+                      <select
+                        value={selectedCreditNoteId}
+                        onChange={(e) => setSelectedCreditNoteId(e.target.value)}
+                        className="px-2 py-2 rounded-lg border border-gray-200 text-xs font-semibold text-gray-700"
+                        disabled={applyCreditNote.isPending}
+                      >
+                        <option value="">Select Credit Note</option>
+                        {unappliedCreditNotes.map((note) => (
+                          <option key={note.id} value={note.id}>
+                            {(note.credit_note_number || String(note.id).slice(-8).toUpperCase())} ({money(note.amount)})
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!selectedCreditNoteId) return
+                          applyCreditNote.mutate({ id: invoice.id, creditNoteId: selectedCreditNoteId })
+                        }}
+                        disabled={applyCreditNote.isPending || !selectedCreditNoteId}
+                        className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold disabled:opacity-50"
+                      >
+                        <ReceiptText size={14} /> Apply Credit Note
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -124,10 +143,12 @@ export default function InvoiceDetail() {
                   ) : (
                     <div className="space-y-2">
                       {lineItems.map((item) => (
-                        <div key={item.id} className="border border-gray-100 rounded-lg p-3">
-                          <p className="text-xs font-bold text-[#172B4D]">{item.description || item.lr_number || 'Line item'}</p>
-                          <p className="text-xs text-gray-500 mt-1">Trip: {item.trip_id || '-'}</p>
-                          <p className="text-xs font-semibold text-gray-700 mt-1">Total: {money(item.line_total)}</p>
+                        <div key={item.id} className="border border-gray-100 rounded-lg p-3 text-xs space-y-1">
+                          <p className="font-bold text-[#172B4D]">{item.description || item.lr_number || 'Line item'}</p>
+                          <p className="text-gray-500">LR: {item.lr_number || '-'} | Trip: {item.trip_id || '-'}</p>
+                          <p>Freight: {money(item.freight_amount)} | Detention: {money(item.detention_amount)} | Unloading: {money(item.unloading_amount)}</p>
+                          <p>Incentive: {money(item.incentive_amount)} | Damage: {money(item.damage_deduction)} | Tax: {money(item.tax_amount)}</p>
+                          <p className="font-semibold text-gray-800">Line total: {money(item.line_total)}</p>
                         </div>
                       ))}
                     </div>
@@ -136,6 +157,28 @@ export default function InvoiceDetail() {
 
                 <div className="rounded-lg border border-gray-100 p-4">
                   <h2 className="text-sm font-bold text-[#172B4D] mb-3">Credit Notes</h2>
+                  {invoice.status === 'DRAFT' || ['SENT', 'PARTIALLY_PAID', 'OVERDUE'].includes(invoice.status) ? (
+                    <div className="mb-4 space-y-2 border-b border-gray-100 pb-4">
+                      <p className="text-[11px] font-bold text-gray-500 uppercase">New credit note</p>
+                      <input className="w-full border rounded px-2 py-1 text-xs" placeholder="Credit note #" value={cnForm.credit_note_number} onChange={(e) => setCnForm({ ...cnForm, credit_note_number: e.target.value })} />
+                      <input className="w-full border rounded px-2 py-1 text-xs" type="number" placeholder="Amount" value={cnForm.amount} onChange={(e) => setCnForm({ ...cnForm, amount: e.target.value })} />
+                      <input className="w-full border rounded px-2 py-1 text-xs" placeholder="Reason" value={cnForm.reason} onChange={(e) => setCnForm({ ...cnForm, reason: e.target.value })} />
+                      <button
+                        type="button"
+                        className="px-3 py-1.5 rounded-lg bg-[#0052CC] text-white text-[11px] font-bold"
+                        disabled={createCreditNote.isPending || !cnForm.credit_note_number || !cnForm.amount}
+                        onClick={() => createCreditNote.mutate({
+                          credit_note_number: cnForm.credit_note_number,
+                          invoice: invoice.id,
+                          amount: cnForm.amount,
+                          reason: cnForm.reason,
+                          status: 'ISSUED',
+                        })}
+                      >
+                        Create credit note
+                      </button>
+                    </div>
+                  ) : null}
                   {notesLoading ? (
                     <p className="text-xs text-gray-500">Loading credit notes...</p>
                   ) : creditNotes.length === 0 ? (

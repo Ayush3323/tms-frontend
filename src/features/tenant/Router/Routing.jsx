@@ -72,6 +72,11 @@ import AdvancesDashboard from '../components/Finance/AdvancesDashboard';
 import InvoiceDetail from '../components/Finance/InvoiceDetail';
 import AdvanceDetail from '../components/Finance/AdvanceDetail';
 import FinanceReportsDashboard from '../components/Finance/FinanceReportsDashboard';
+import FinancePeriodsPage from '../components/Finance/FinancePeriodsPage';
+import LRSettlementPage from '../components/Finance/LRSettlementPage';
+import FinanceLedgerPage from '../components/Finance/FinanceLedgerPage';
+import ReconciliationsPage from '../components/Finance/ReconciliationsPage';
+import PayrollEntriesPage from '../components/Finance/PayrollEntriesPage';
 import GeographyDashboard from '../components/MasterData/GeographyDashboard';
 import RateCardsDashboard from '../components/MasterData/RateCardsDashboard';
 import VehicleTypesMasterDashboard from '../components/MasterData/VehicleTypesMasterDashboard';
@@ -160,8 +165,13 @@ const Routing = () => {
         {/* Finance */}
         <Route path="finance/invoices" element={<InvoicesDashboard />} />
         <Route path="finance/invoices/:id" element={<InvoiceDetail />} />
+        <Route path="finance/periods" element={<FinancePeriodsPage />} />
+        <Route path="finance/settlement" element={<LRSettlementPage />} />
+        <Route path="finance/ledger" element={<FinanceLedgerPage />} />
+        <Route path="finance/reconciliations" element={<ReconciliationsPage />} />
         <Route path="finance/customer-payments" element={<CustomerPaymentsDashboard />} />
         <Route path="finance/owner-payments" element={<OwnerPaymentsDashboard />} />
+        <Route path="finance/payroll/:periodId/entries" element={<PayrollEntriesPage />} />
         <Route path="finance/payroll" element={<PayrollDashboard />} />
         <Route path="finance/tds" element={<TDSSummaryDashboard />} />
         <Route path="finance/advances" element={<AdvancesDashboard />} />
