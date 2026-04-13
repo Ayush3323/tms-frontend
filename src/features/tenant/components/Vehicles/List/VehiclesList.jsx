@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search, Plus, Download, RefreshCw, Eye, PauseCircle,
-  PlayCircle, Truck, CheckCircle, Wrench, ArchiveX,
-  ChevronDown, Loader2, AlertCircle, X, RotateCcw,
+  PlayCircle, Truck,
+  ChevronDown, Loader2, RotateCcw,
   Pencil, LayoutGrid
 } from 'lucide-react';
 import { useVehicles, useVehicle, useUpdateVehicle, useRestoreVehicle, useVehicleStats } from '../../../queries/vehicles/vehicleQuery';

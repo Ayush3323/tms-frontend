@@ -12,6 +12,7 @@ import {
   useCreateCustomerContract, useUpdateCustomerContract, useDeleteCustomerContract,
   useCreateCustomerNote, useUpdateCustomerNote, useDeleteCustomerNote
 } from '../../../queries/customers/customersQuery';
+import { useCurrentUser } from '../../../queries/users/userActionQuery';
 import { Badge, InfoCard, SectionHeader, EmptyState, Section, Modal, Field, Input, Sel, DeleteConfirm, ItemActions } from '../../Vehicles/Common/VehicleCommon';
 
 // ── Tab: Overview ────────────────────────────────────────────────────
@@ -420,8 +421,13 @@ export const CustomerDocuments = ({ customerId }) => {
                   <p className="text-sm font-bold text-[#172B4D]">{doc.document_type}</p>
                   <p className="text-[10px] font-mono text-gray-400 uppercase tracking-tight">{doc.document_number}</p>
                   <div className="flex items-center gap-3 mt-1.5">
-                    <Badge className={doc.verified_status === 'VERIFIED' ? 'bg-green-50 text-green-700' : 'bg-orange-50 text-orange-700'}>
-                      {doc.verified_status}
+                    <Badge className={
+                      doc.verified_status === 'VERIFIED' ? 'bg-green-50 text-green-700 border-green-200' :
+                      doc.verified_status === 'REJECTED' ? 'bg-red-50 text-red-700 border-red-200' :
+                      doc.verified_status === 'PENDING' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                      'bg-orange-50 text-orange-700 border-orange-200'
+                    }>
+                      {doc.verified_status || 'NOT_SET'}
                     </Badge>
                     {doc.expiry_date && (
                       <span className="text-[10px] font-bold text-gray-400">Expires: {new Date(doc.expiry_date).toLocaleDateString()}</span>
@@ -480,21 +486,61 @@ export const CustomerDocuments = ({ customerId }) => {
 
 const DocumentFormModal = ({ initial, onClose, onSubmit, submitting, externalErrors }) => {
   const fileRef = useRef(null);
-  const [form, setForm] = useState(initial || {
-    document_type: 'GST_CERTIFICATE', document_name: '', document_number: '', 
-    file_url: '', issue_date: '', expiry_date: '', remarks: '',
-    file: null // New field for the actual File object
+  const { data: currentUser } = useCurrentUser();
+  const [form, setForm] = useState({
+    document_type: 'GST_CERTIFICATE',
+    document_name: '',
+    document_number: '',
+    file_url: '',
+    issue_date: '',
+    expiry_date: '',
+    remarks: '',
+    verified_status: 'PENDING',
+    verification_status: 'PENDING',
+    status: 'VALID',
+    verified_by: null,
+    verified_date: null,
+    ...initial,
+    file: null
   });
 
   const [localErrors, setLocalErrors] = useState({});
   const errors = { ...externalErrors, ...localErrors };
 
   const setField = (k, v) => {
-    setForm(prev => ({ ...prev, [k]: v }));
+    setForm(prev => {
+      const updates = { [k]: v };
+      // Sync all status variations
+      if (k === 'verified_status' || k === 'verification_status' || k === 'status') {
+        const statusVal = v;
+        updates.verified_status = statusVal;
+        updates.verification_status = statusVal;
+        updates.status = statusVal === 'VERIFIED' ? 'VALID' : 'PENDING';
+        
+        if (statusVal === 'VERIFIED') {
+          const now = new Date().toISOString();
+          updates.verified_by = currentUser?.id || prev.verified_by;
+          updates.verified_date = now;
+          updates.verified_at = now;
+        } else if (statusVal === 'REJECTED' || statusVal === 'PENDING') {
+          updates.verified_by = null;
+          updates.verified_date = null;
+          updates.verified_at = null;
+        }
+      }
+      return { ...prev, ...updates };
+    });
     if (localErrors[k]) setLocalErrors(prev => { const n = { ...prev }; delete n[k]; return n; });
   };
 
   const TYPES = ['GST_CERTIFICATE', 'PAN_CARD', 'CIN', 'REGISTRATION', 'AADHAR', 'VOTER_ID', 'PASSPORT', 'TAX_EXEMPTION', 'OTHER'];
+  const STATUS_OPTIONS = [
+    { value: 'PENDING', label: 'Pending' },
+    { value: 'VERIFIED', label: 'Verified' },
+    { value: 'REJECTED', label: 'Rejected' },
+    { value: 'INCOMPLETE', label: 'Incomplete' },
+    { value: 'EXPIRED', label: 'Expired' },
+  ];
 
   const handleSubmit = () => {
     const e = {};
@@ -510,28 +556,28 @@ const DocumentFormModal = ({ initial, onClose, onSubmit, submitting, externalErr
     // Clean up payload for backend
     const payload = { ...form };
     
-    // Construct a full URL that satisfies strict validators
-    if (payload.file_url) {
-      if (payload.file_url.startsWith('/')) {
-        // Try using an absolute URL with the current origin
-        payload.file_url = window.location.origin + payload.file_url;
-      }
+    if (payload.file_url && payload.file_url.startsWith('/')) {
+      payload.file_url = window.location.origin + payload.file_url;
     }
 
-    // Force null for empty dates
     payload.issue_date = payload.issue_date || null;
     payload.expiry_date = payload.expiry_date || null;
 
-    // Use FormData for file uploads - this is usually expected by backends for files
-    const formData = new FormData();
-    Object.entries(payload).forEach(([k, v]) => {
-      if (k === 'file' && !v) return; // Skip null file
-      if (v !== null && v !== undefined) {
-        formData.append(k, v);
-      }
-    });
-
-    onSubmit(formData);
+    // Use FormData only if a new file is present, otherwise send JSON for better compatibility with choice fields
+    if (payload.file) {
+      const formData = new FormData();
+      Object.entries(payload).forEach(([k, v]) => {
+        if (k === 'file' && !v) return;
+        if (v !== null && v !== undefined) {
+          formData.append(k, v);
+        }
+      });
+      onSubmit(formData);
+    } else {
+      // Remove file key for JSON submission
+      const { file, ...jsonPayload } = payload;
+      onSubmit(jsonPayload);
+    }
   };
 
   const handleFileChange = (e) => {
@@ -544,7 +590,6 @@ const DocumentFormModal = ({ initial, onClose, onSubmit, submitting, externalErr
         file_url: `/temp_docs/${cleanName}`,
         document_name: prev.document_name || cleanName.split('.')[0].substring(0, 50).replace(/[-_]/g, ' ')
       }));
-      // Clear errors
       if (localErrors.file_url) setLocalErrors(prev => { const { file_url, ...rest } = prev; return rest; });
     }
   };
@@ -562,6 +607,11 @@ const DocumentFormModal = ({ initial, onClose, onSubmit, submitting, externalErr
         </Field>
         <Field label="Document Number" required error={errors.document_number}>
           <Input value={form.document_number} onChange={e => setField('document_number', e.target.value)} />
+        </Field>
+        <Field label="Status">
+          <Sel value={form.verified_status} onChange={e => setField('verified_status', e.target.value)}>
+            {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+          </Sel>
         </Field>
         <Field label="File URL" required error={errors.file_url}>
           <Input value={form.file_url} onChange={e => setField('file_url', e.target.value)} placeholder="Direct link to file (e.g. S3/Storage URL)" />
