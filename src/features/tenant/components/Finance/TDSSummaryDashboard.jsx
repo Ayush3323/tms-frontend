@@ -17,6 +17,8 @@ export default function TDSSummaryDashboard() {
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
   const [activeTab, setActiveTab] = useState('entries')
+  const [showFileModal, setShowFileModal] = useState(false)
+  const [fileForm, setFileForm] = useState({ financial_year: '', quarter: '' })
   const entryQuery = useMemo(() => {
     const p = {}
     if (search) p.search = search
@@ -31,14 +33,24 @@ export default function TDSSummaryDashboard() {
   const fileReturn = useFileTDSReturn()
   const rows = asList(data)
   const returnRows = asList(returnsData)
-  const stats = useMemo(() => ([
-    { label: 'Total', value: data?.count || rows.length, className: 'text-blue-600' },
-    { label: 'Calculated', value: rows.filter((r) => r.status === 'CALCULATED').length, className: 'text-amber-600' },
-    { label: 'Filed', value: rows.filter((r) => r.status === 'FILED').length, className: 'text-indigo-600' },
-    { label: 'Paid', value: rows.filter((r) => r.status === 'PAID').length, className: 'text-green-600' },
-  ]), [data?.count, rows])
+  const stats = useMemo(() => {
+    if (activeTab === 'returns') {
+      return [
+        { label: 'Total', value: returnsData?.count || returnRows.length, className: 'text-blue-600' },
+        { label: 'Filed', value: returnRows.filter((r) => r.status === 'FILED').length, className: 'text-indigo-600' },
+        { label: 'Paid', value: returnRows.filter((r) => r.status === 'PAID').length, className: 'text-green-600' },
+      ]
+    }
+    return [
+      { label: 'Total', value: data?.count || rows.length, className: 'text-blue-600' },
+      { label: 'Calculated', value: rows.filter((r) => r.status === 'CALCULATED').length, className: 'text-amber-600' },
+      { label: 'Filed', value: rows.filter((r) => r.status === 'FILED').length, className: 'text-indigo-600' },
+      { label: 'Paid', value: rows.filter((r) => r.status === 'PAID').length, className: 'text-green-600' },
+    ]
+  }, [activeTab, data?.count, rows, returnsData?.count, returnRows])
 
   return (
+    <>
     <FinanceListPage
       title="TDS Summary"
       subtitle="Track deductible tax entries and filing progress by quarter."
@@ -101,11 +113,7 @@ export default function TDSSummaryDashboard() {
       actions={(
         <button
           type="button"
-          onClick={() => {
-            const financial_year = window.prompt('Financial Year (e.g. 2025-26)')
-            const quarter = window.prompt('Quarter (e.g. Q1)')
-            if (financial_year && quarter) fileReturn.mutate({ financial_year, quarter })
-          }}
+          onClick={() => setShowFileModal(true)}
           className="flex items-center gap-2 px-5 py-2.5 bg-[#0052CC] rounded-xl text-xs font-bold text-white hover:bg-[#0747A6] shadow-md shadow-blue-100 transition-all disabled:opacity-50"
           disabled={fileReturn.isPending}
         >
@@ -153,5 +161,29 @@ export default function TDSSummaryDashboard() {
         </>
       )}
     />
+    {showFileModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="bg-white rounded-xl p-6 max-w-sm w-full space-y-3 shadow-xl">
+          <h3 className="font-bold text-[#172B4D]">File quarterly return</h3>
+          <input className="w-full border rounded px-3 py-2 text-sm" placeholder="Financial year (e.g. 2025-26)" value={fileForm.financial_year} onChange={(e) => setFileForm({ ...fileForm, financial_year: e.target.value })} />
+          <input className="w-full border rounded px-3 py-2 text-sm" placeholder="Quarter (Q1–Q4)" value={fileForm.quarter} onChange={(e) => setFileForm({ ...fileForm, quarter: e.target.value })} />
+          <div className="flex justify-end gap-2">
+            <button type="button" className="px-3 py-1 text-sm" onClick={() => setShowFileModal(false)}>Cancel</button>
+            <button
+              type="button"
+              className="px-3 py-1 rounded-lg bg-[#0052CC] text-white text-sm font-bold"
+              disabled={fileReturn.isPending}
+              onClick={() => {
+                if (!fileForm.financial_year || !fileForm.quarter) return
+                fileReturn.mutate({ financial_year: fileForm.financial_year, quarter: fileForm.quarter }, { onSuccess: () => setShowFileModal(false) })
+              }}
+            >
+              Submit
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }

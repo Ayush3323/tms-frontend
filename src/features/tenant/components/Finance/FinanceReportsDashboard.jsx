@@ -167,7 +167,7 @@ export default function FinanceReportsDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {(arAging || []).slice(0, 10).map((row) => (
+                  {(arAging || []).map((row) => (
                     <tr key={row.invoice_id} className="hover:bg-blue-50/20">
                       <td className="px-4 py-3 text-[13px] font-bold text-[#172B4D]">{row.invoice_number}</td>
                       <td className="px-4 py-3 text-[12px] font-semibold text-gray-600">{row.bucket}</td>
@@ -230,7 +230,7 @@ export default function FinanceReportsDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {(tripProfitability || []).slice(0, 10).map((row) => (
+                  {(tripProfitability || []).map((row) => (
                     <tr key={`${row.trip_id}-${row.revenue}`} className="hover:bg-blue-50/20">
                       <td className="px-4 py-3 text-[12px] font-semibold text-gray-700">{row.trip_id}</td>
                       <td className="px-4 py-3 text-[12px] font-bold text-right text-gray-700">{number(row.revenue)}</td>

@@ -6,6 +6,9 @@ const PRL_BASE = '/api/v1/finance/payroll'
 const TDS_BASE = '/api/v1/finance/tds'
 const ADV_BASE = '/api/v1/finance/advances'
 const REP_BASE = '/api/v1/finance/reports'
+const PER_BASE = '/api/v1/finance/periods'
+const LED_BASE = '/api/v1/finance/ledger'
+const SET_BASE = '/api/v1/finance/settlement'
 
 export const invoiceApi = {
   list: (params) => axiosInstance.get(`${INV_BASE}/invoices/`, { params }).then(r => r.data),
@@ -17,6 +20,8 @@ export const invoiceApi = {
   markOverdue: (id) => axiosInstance.post(`${INV_BASE}/invoices/${id}/mark-overdue/`).then(r => r.data),
   applyCreditNote: (id, credit_note_id) => axiosInstance.post(`${INV_BASE}/invoices/${id}/apply-credit-note/`, { credit_note_id }).then(r => r.data),
   generateFromTrip: (tripId) => axiosInstance.post(`${INV_BASE}/invoices/generate-from-trip/`, { trip_id: tripId }).then(r => r.data),
+  generateConsolidated: (data) => axiosInstance.post(`${INV_BASE}/invoices/generate-consolidated/`, data).then(r => r.data),
+  eligibleTrips: (params) => axiosInstance.get(`${INV_BASE}/invoices/eligible-trips/`, { params }).then(r => r.data),
 }
 
 export const invoiceLineItemApi = {
@@ -76,6 +81,10 @@ export const advanceApi = {
   reject: (id, rejection_reason) => axiosInstance.post(`${ADV_BASE}/requests/${id}/reject/`, { rejection_reason }).then(r => r.data),
   disburse: (id) => axiosInstance.post(`${ADV_BASE}/requests/${id}/disburse/`).then(r => r.data),
   settle: (id, data) => axiosInstance.post(`${ADV_BASE}/requests/${id}/settle/`, data || {}).then(r => r.data),
+  listCategories: (params) => axiosInstance.get(`${ADV_BASE}/categories/`, { params }).then(r => r.data),
+  listDisbursements: (params) => axiosInstance.get(`${ADV_BASE}/disbursements/`, { params }).then(r => r.data),
+  listRepayments: (params) => axiosInstance.get(`${ADV_BASE}/repayments/`, { params }).then(r => r.data),
+  listApprovals: (params) => axiosInstance.get(`${ADV_BASE}/approvals/`, { params }).then(r => r.data),
 }
 
 export const financeReportApi = {
@@ -87,4 +96,20 @@ export const financeReportApi = {
 
 export const tripLookupApi = {
   list: (params) => axiosInstance.get('/api/v1/trips/', { params }).then(r => r.data),
+}
+
+export const financePeriodApi = {
+  list: (params) => axiosInstance.get(`${PER_BASE}/`, { params }).then(r => r.data),
+  create: (data) => axiosInstance.post(`${PER_BASE}/`, data).then(r => r.data),
+  close: (id) => axiosInstance.post(`${PER_BASE}/${id}/close/`).then(r => r.data),
+}
+
+export const ledgerApi = {
+  listAccounts: (params) => axiosInstance.get(`${LED_BASE}/accounts/`, { params }).then(r => r.data),
+  listJournalEntries: (params) => axiosInstance.get(`${LED_BASE}/journal-entries/`, { params }).then(r => r.data),
+  getJournalEntry: (id) => axiosInstance.get(`${LED_BASE}/journal-entries/${id}/`).then(r => r.data),
+}
+
+export const settlementApi = {
+  getLrSettlement: (tripId) => axiosInstance.get(`${SET_BASE}/lr/${tripId}/`).then(r => r.data),
 }
