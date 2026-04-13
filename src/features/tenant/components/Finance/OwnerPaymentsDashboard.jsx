@@ -3,6 +3,8 @@ import { CheckCircle2, Plus } from 'lucide-react'
 
 import FinanceListPage from './FinanceListPage'
 import { useApproveOwnerPayment, useCreateOwnerPayment, useMarkOwnerPaymentPaid, useOwnerPayments } from '../../queries/finance/financeQuery'
+import { useTripsLookup } from '../../queries/finance/financeQuery'
+import { useVehicles } from '../../queries/vehicles/vehicleQuery'
 
 const asList = (data) => data?.results || (Array.isArray(data) ? data : [])
 
@@ -10,6 +12,21 @@ export default function OwnerPaymentsDashboard() {
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
   const [showCreate, setShowCreate] = useState(false)
+  const { data: vehiclesData } = useVehicles({ page_size: 1000 })
+  const { data: tripsData } = useTripsLookup({ page_size: 200 })
+  const vehRows = asList(vehiclesData)
+  const trips = asList(tripsData)
+  const ownerOptions = useMemo(() => {
+    const seen = new Set()
+    return vehRows.filter(v => v.owner_name).reduce((acc, v) => {
+      if (!seen.has(v.owner_name)) {
+        seen.add(v.owner_name)
+        acc.push(v.owner_name)
+      }
+      return acc
+    }, []).sort()
+  }, [vehRows])
+
   const [form, setForm] = useState({
     payment_number: `OP-${Date.now()}`,
     owner_name: '',
@@ -66,10 +83,18 @@ export default function OwnerPaymentsDashboard() {
         columns={[
           { key: 'payment_number', title: 'Payment #' },
           { key: 'owner_name', title: 'Owner' },
-          { key: 'trip_id', title: 'Trip ID' },
+          { 
+            key: 'trip_id', 
+            title: 'Trip',
+            render: (tid) => {
+              if (!tid) return '-'
+              const t = trips.find(tr => tr.id === tid)
+              return t ? (t.trip_number || tid.slice(-8).toUpperCase()) : tid.slice(-8).toUpperCase()
+            }
+          },
           { key: 'payment_date', title: 'Payment Date' },
-          { key: 'net_payable', title: 'Net Payable' },
-          { key: 'tds_amount', title: 'TDS' },
+          { key: 'net_payable', title: 'Net Payable', render: (v) => Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2 }) },
+          { key: 'tds_amount', title: 'TDS', render: (v) => Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2 }) },
           { key: 'status', title: 'Status' },
         ]}
         actions={(
@@ -97,8 +122,25 @@ export default function OwnerPaymentsDashboard() {
           <div className="bg-white rounded-xl p-6 max-w-lg w-full space-y-2 shadow-xl text-xs">
             <h3 className="text-base font-bold text-[#172B4D]">Create owner payment</h3>
             <input className="w-full border rounded px-2 py-1" placeholder="Payment #" value={form.payment_number} onChange={(e) => setForm({ ...form, payment_number: e.target.value })} />
-            <input className="w-full border rounded px-2 py-1" placeholder="Owner name" value={form.owner_name} onChange={(e) => setForm({ ...form, owner_name: e.target.value })} />
-            <input className="w-full border rounded px-2 py-1" placeholder="Trip UUID (optional)" value={form.trip_id} onChange={(e) => setForm({ ...form, trip_id: e.target.value })} />
+            <select
+              className="w-full border rounded px-2 py-1"
+              value={form.owner_name}
+              onChange={(e) => setForm({ ...form, owner_name: e.target.value })}
+            >
+              <option value="">Select Owner</option>
+              {ownerOptions.map(name => <option key={name} value={name}>{name}</option>)}
+            </select>
+            <select
+              className="w-full border rounded px-2 py-1"
+              value={form.trip_id}
+              onChange={(e) => setForm({ ...form, trip_id: e.target.value })}
+            >
+              <option value="">Link to Trip (Optional)</option>
+              {trips.map(t => {
+                const label = [t.trip_number || t.id.slice(-8).toUpperCase(), t.origin_address, t.destination_address].filter(Boolean).join(' | ')
+                return <option key={t.id} value={t.id}>{label}</option>
+              })}
+            </select>
             <input type="date" className="w-full border rounded px-2 py-1" value={form.payment_date} onChange={(e) => setForm({ ...form, payment_date: e.target.value })} />
             <input className="w-full border rounded px-2 py-1" placeholder="Booked price" value={form.booked_price} onChange={(e) => setForm({ ...form, booked_price: e.target.value })} />
             <input className="w-full border rounded px-2 py-1" placeholder="TDS %" value={form.tds_percentage} onChange={(e) => setForm({ ...form, tds_percentage: e.target.value })} />
@@ -109,6 +151,9 @@ export default function OwnerPaymentsDashboard() {
               <option value="BANK_TRANSFER">BANK_TRANSFER</option>
               <option value="CASH">CASH</option>
               <option value="UPI">UPI</option>
+              <option value="NEFT">NEFT</option>
+              <option value="RTGS">RTGS</option>
+              <option value="CHEQUE">CHEQUE</option>
             </select>
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" className="px-3 py-1" onClick={() => setShowCreate(false)}>Cancel</button>

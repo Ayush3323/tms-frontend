@@ -203,12 +203,184 @@ export const useCloseFinancePeriod = () => {
   })
 }
 
+export const useDeleteInvoice = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: invoiceApi.delete,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'invoices'] })
+      toast.success('Invoice deleted')
+    },
+    onError: onErr('Could not delete invoice'),
+  })
+}
+
+export const useInvoiceLineItemDetail = (id) => useQuery({
+  queryKey: ['finance', 'lineItemDetail', id],
+  queryFn: () => invoiceLineItemApi.get(id),
+  enabled: !!id,
+})
+
+export const useCreateInvoiceLineItem = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: invoiceLineItemApi.create,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'invoiceLineItems'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'invoiceDetail'] })
+      toast.success('Line item added')
+    },
+    onError: onErr('Could not add line item'),
+  })
+}
+
+export const useUpdateInvoiceLineItem = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => invoiceLineItemApi.update(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'invoiceLineItems'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'invoiceDetail'] })
+      toast.success('Line item updated')
+    },
+    onError: onErr('Could not update line item'),
+  })
+}
+
+export const useDeleteInvoiceLineItem = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: invoiceLineItemApi.delete,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'invoiceLineItems'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'invoiceDetail'] })
+      toast.success('Line item deleted')
+    },
+    onError: onErr('Could not delete line item'),
+  })
+}
+
+export const useCreditNoteDetail = (id) => useQuery({
+  queryKey: ['finance', 'creditNoteDetail', id],
+  queryFn: () => creditNoteApi.get(id),
+  enabled: !!id,
+})
+
+export const useUpdateCreditNote = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => creditNoteApi.update(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'creditNotes'] })
+      toast.success('Credit note updated')
+    },
+    onError: onErr('Could not update credit note'),
+  })
+}
+
+export const useDeleteCreditNote = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: creditNoteApi.delete,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'creditNotes'] })
+      toast.success('Credit note deleted')
+    },
+    onError: onErr('Could not delete credit note'),
+  })
+}
+
+export const useCustomerPaymentDetail = (id) => useQuery({
+  queryKey: ['finance', 'customerPaymentDetail', id],
+  queryFn: () => customerPaymentApi.get(id),
+  enabled: !!id,
+})
+
+export const useUpdateCustomerPayment = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => customerPaymentApi.update(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'customerPayments'] })
+      toast.success('Payment updated')
+    },
+    onError: onErr('Could not update payment'),
+  })
+}
+
+export const useDeleteCustomerPayment = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: customerPaymentApi.delete,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'customerPayments'] })
+      toast.success('Payment deleted')
+    },
+    onError: onErr('Could not delete payment'),
+  })
+}
+
+export const useOwnerPaymentDetail = (id) => useQuery({
+  queryKey: ['finance', 'ownerPaymentDetail', id],
+  queryFn: () => ownerPaymentApi.get(id),
+  enabled: !!id,
+})
+
+export const useUpdateOwnerPayment = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => ownerPaymentApi.update(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'ownerPayments'] })
+      toast.success('Owner payment updated')
+    },
+    onError: onErr('Could not update owner payment'),
+  })
+}
+
+export const useDeleteOwnerPayment = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ownerPaymentApi.delete,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'ownerPayments'] })
+      toast.success('Owner payment deleted')
+    },
+    onError: onErr('Could not delete owner payment'),
+  })
+}
+
+export const useUpdateFinancePeriod = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => financePeriodApi.update(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'financePeriods'] })
+      toast.success('Period updated')
+    },
+    onError: onErr('Could not update period'),
+  })
+}
+
+export const useDeleteFinancePeriod = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: financePeriodApi.delete,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'financePeriods'] })
+      toast.success('Period deleted')
+    },
+    onError: onErr('Could not delete period'),
+  })
+}
+
 export const usePostInvoice = () => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: invoiceApi.post,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['finance', 'invoices'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'invoiceDetail'] })
       toast.success('Invoice posted')
     },
     onError: onErr('Could not post invoice'),
@@ -220,6 +392,7 @@ export const useCancelInvoice = () => {
     mutationFn: invoiceApi.cancel,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['finance', 'invoices'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'invoiceDetail'] })
       toast.success('Invoice cancelled')
     },
     onError: onErr('Could not cancel invoice'),
@@ -231,6 +404,7 @@ export const useMarkInvoiceOverdue = () => {
     mutationFn: invoiceApi.markOverdue,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['finance', 'invoices'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'invoiceDetail'] })
       toast.success('Invoice marked overdue')
     },
     onError: onErr('Could not mark overdue'),
@@ -278,6 +452,7 @@ export const useVerifyCustomerPayment = () => {
     mutationFn: customerPaymentApi.verify,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['finance', 'customerPayments'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'customerPaymentDetail'] })
       toast.success('Customer payment verified')
     },
     onError: onErr('Verification failed'),
@@ -289,6 +464,7 @@ export const useBounceCustomerPayment = () => {
     mutationFn: customerPaymentApi.bounce,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['finance', 'customerPayments'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'customerPaymentDetail'] })
       toast.success('Payment marked bounced')
     },
     onError: onErr('Bounce failed'),
@@ -312,6 +488,7 @@ export const useApproveOwnerPayment = () => {
     mutationFn: ownerPaymentApi.approve,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['finance', 'ownerPayments'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'ownerPaymentDetail'] })
       toast.success('Owner payment approved')
     },
     onError: onErr('Approval failed'),
@@ -323,6 +500,7 @@ export const useMarkOwnerPaymentPaid = () => {
     mutationFn: ownerPaymentApi.markPaid,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['finance', 'ownerPayments'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'ownerPaymentDetail'] })
       toast.success('Owner payment marked paid')
     },
     onError: onErr('Mark paid failed'),
@@ -484,5 +662,38 @@ export const useSettleAdvance = () => {
       toast.success('Advance settled')
     },
     onError: onErr('Advance settle failed'),
+  })
+}
+export const useCreateAdvanceCategory = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: advanceApi.createCategory,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'advanceCategories'] })
+      toast.success('Category created')
+    },
+    onError: onErr('Could not create category'),
+  })
+}
+export const useUpdateAdvanceCategory = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => advanceApi.updateCategory(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'advanceCategories'] })
+      toast.success('Category updated')
+    },
+    onError: onErr('Could not update category'),
+  })
+}
+export const useDeleteAdvanceCategory = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: advanceApi.deleteCategory,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'advanceCategories'] })
+      toast.success('Category deleted')
+    },
+    onError: onErr('Could not delete category'),
   })
 }

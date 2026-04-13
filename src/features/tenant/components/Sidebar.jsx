@@ -51,19 +51,19 @@ const customerSubItems = [
 ];
 
 const ORDERS_ROOT = '/tenant/dashboard/orders';
-const ORDER_MODULE_RESERVED = new Set(['trips', 'cargo', 'deliveries', 'trip-manager']);
+const ORDER_MODULE_RESERVED = new Set(['trips', 'cargo', 'deliveries', 'trip-manager', 'lr-records']);
 const orderSubItems = [
   { name: 'Orders', icon: <FileText size={13} />, path: '/tenant/dashboard/orders', badge: null },
   { name: 'Trips', icon: <MapPinned size={13} />, path: '/tenant/dashboard/orders/trips', badge: null },
   { name: 'Trip Ops', icon: <MapPinned size={13} />, path: '/tenant/dashboard/orders/trip-manager', badge: null },
   { name: 'Cargo', icon: <Package size={13} />, path: '/tenant/dashboard/orders/cargo', badge: null },
   { name: 'Deliveries', icon: <ClipboardCheck size={13} />, path: '/tenant/dashboard/orders/deliveries', badge: null },
+  { name: 'LR Records', icon: <FileText size={13} />, path: '/tenant/dashboard/orders/lr-records', badge: null },
 ];
 
 const financeSubItems = [
   { name: 'Invoices', icon: <FileText size={13} />, path: '/tenant/dashboard/finance/invoices', badge: null },
   { name: 'Finance Periods', icon: <FileText size={13} />, path: '/tenant/dashboard/finance/periods', badge: null },
-  { name: 'LR Settlement', icon: <FileText size={13} />, path: '/tenant/dashboard/finance/settlement', badge: null },
   { name: 'Ledger', icon: <BarChart2 size={13} />, path: '/tenant/dashboard/finance/ledger', badge: null },
   { name: 'Reconciliations', icon: <GitMerge size={13} />, path: '/tenant/dashboard/finance/reconciliations', badge: null },
   { name: 'Customer Payments', icon: <Banknote size={13} />, path: '/tenant/dashboard/finance/customer-payments', badge: null },

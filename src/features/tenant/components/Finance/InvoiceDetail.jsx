@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react'
-import { useState } from 'react'
+import React, { useMemo, useState } from 'react'
+import { toast } from 'react-hot-toast'
 import { useParams, useNavigate } from 'react-router-dom'
 import { AlertTriangle, ArrowLeft, CheckCircle2, ReceiptText, XCircle } from 'lucide-react'
 
@@ -128,7 +128,19 @@ export default function InvoiceDetail() {
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Available Actions on this Invoice</p>
                 <div className="flex flex-wrap gap-2">
                   {availableActions.map((action) => (
-                    <span key={action} className="px-2 py-1 rounded-full text-[11px] font-bold bg-[#EBF3FF] text-[#0052CC]">{action}</span>
+                    <button
+                      key={action}
+                      type="button"
+                      onClick={() => {
+                        if (action === 'Post invoice') postInvoice.mutate(invoice.id)
+                        if (action === 'Cancel invoice') window.confirm('Cancel this invoice?') && cancelInvoice.mutate(invoice.id)
+                        if (action === 'Mark overdue') markOverdue.mutate(invoice.id)
+                        if (action === 'View details') toast.success('You are already viewing the invoice details.')
+                      }}
+                      className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white transition-all shadow-sm"
+                    >
+                      {action}
+                    </button>
                   ))}
                 </div>
               </div>
