@@ -206,6 +206,7 @@ export default function CargoMainBody() {
                     <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Item / Code</th>
                     <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Specifications</th>
                     <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Trip Link</th>
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Allocated Stops</th>
                     <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Category</th>
                     <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Status</th>
                     <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest text-right">Actions</th>
@@ -251,6 +252,20 @@ export default function CargoMainBody() {
                           <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-gray-100 rounded-md text-[11px] font-bold text-gray-600 uppercase tracking-tight">
                             <Move size={12} /> Unassigned
                           </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-5">
+                        {Array.isArray(item.stop_quantities) && item.stop_quantities.length > 0 ? (
+                          <div className="text-[11px] font-semibold text-gray-700">
+                            <div>{item.stop_quantities.length} stops</div>
+                            <div className="text-gray-500">
+                              L {item.stop_quantities.reduce((sum, row) => sum + (Number(row.load_quantity ?? row.quantity) || 0), 0)}
+                              {" / "}
+                              U {item.stop_quantities.reduce((sum, row) => sum + (Number(row.unload_quantity) || 0), 0)}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-[11px] text-gray-400">Not allocated</span>
                         )}
                       </td>
                       <td className="px-6 py-5">

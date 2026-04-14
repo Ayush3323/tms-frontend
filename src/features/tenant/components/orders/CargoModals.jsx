@@ -79,19 +79,32 @@ export function CreateCargoModal({ isOpen, onClose, presetTripId }) {
     stackable: true,
     orientation: "NA",
     status: "PENDING",
-    total_loaded: 0,
-    total_unloaded: 0,
-    total_short: 0,
-    total_damaged: 0,
-    remaining_quantity: 0
+    stop_quantities: [],
   });
   const { data: tripStopsData } = useTripStops(formData.trip || null);
   const tripStops = Array.isArray(tripStopsData?.results) ? tripStopsData.results : (Array.isArray(tripStopsData) ? tripStopsData : []);
+  const [stopQuantities, setStopQuantities] = useState({});
   useEffect(() => {
     if (isOpen && presetTripId) {
       setFormData((prev) => ({ ...prev, trip: presetTripId }));
     }
   }, [isOpen, presetTripId]);
+  useEffect(() => {
+    const fresh = {};
+    (tripStops || []).forEach((stop) => {
+      fresh[stop.id] = stopQuantities[stop.id] || { load_quantity: "", unload_quantity: "" };
+    });
+    setStopQuantities(fresh);
+  }, [formData.trip, tripStops.length]);
+
+  const totalLoadQty = Object.values(stopQuantities).reduce((acc, row) => {
+    const n = parseInt(row?.load_quantity || 0, 10);
+    return acc + (Number.isFinite(n) && n > 0 ? n : 0);
+  }, 0);
+  const totalUnloadQty = Object.values(stopQuantities).reduce((acc, row) => {
+    const n = parseInt(row?.unload_quantity || 0, 10);
+    return acc + (Number.isFinite(n) && n > 0 ? n : 0);
+  }, 0);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -100,6 +113,22 @@ export function CreateCargoModal({ isOpen, onClose, presetTripId }) {
     if (payload.length_cm) payload.length_cm = parseInt(payload.length_cm, 10);
     if (payload.width_cm) payload.width_cm = parseInt(payload.width_cm, 10);
     if (payload.height_cm) payload.height_cm = parseInt(payload.height_cm, 10);
+
+    const stopRows = (tripStops || [])
+      .map((stop) => ({
+        stop_id: stop.id,
+        load_quantity: parseInt(stopQuantities[stop.id]?.load_quantity || 0, 10),
+        unload_quantity: parseInt(stopQuantities[stop.id]?.unload_quantity || 0, 10),
+      }))
+      .filter(
+        (row) =>
+          (Number.isFinite(row.load_quantity) && row.load_quantity > 0) ||
+          (Number.isFinite(row.unload_quantity) && row.unload_quantity > 0)
+      );
+    if (stopRows.length > 0) {
+      payload.stop_quantities = stopRows;
+      payload.quantity = stopRows.reduce((sum, row) => sum + (row.load_quantity || 0), 0);
+    }
 
     Object.keys(payload).forEach(key => {
       if (payload[key] === "" || payload[key] === null) {
@@ -114,8 +143,9 @@ export function CreateCargoModal({ isOpen, onClose, presetTripId }) {
           hazardous_class: "", quantity: "1", package_type: "", weight_kg: "", volume_cbm: "",
           length_cm: "", width_cm: "", height_cm: "", declared_value: "", insurance_required: false,
           is_fragile: false, is_perishable: false, temperature_range: "", stackable: true,
-          orientation: "NA", status: "PENDING"
+          orientation: "NA", status: "PENDING", stop_quantities: []
         });
+        setStopQuantities({});
         onClose();
       }
     });
@@ -186,10 +216,14 @@ export function CreateCargoModal({ isOpen, onClose, presetTripId }) {
                 type="number" 
                 required
                 min="1"
+                disabled={totalLoadQty > 0}
                 className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
-                value={formData.quantity}
+                value={totalLoadQty > 0 ? totalLoadQty : formData.quantity}
                 onChange={e => setFormData({ ...formData, quantity: e.target.value })}
               />
+              {totalLoadQty > 0 && (
+                <p className="text-[11px] text-blue-600 mt-1">Auto-calculated from stop load quantities.</p>
+              )}
             </div>
             <div>
               <label className="block text-gray-700 font-medium mb-1">Item Code</label>
@@ -217,6 +251,54 @@ export function CreateCargoModal({ isOpen, onClose, presetTripId }) {
             </div>
           </div>
         </div>
+
+        {tripStops.length > 0 && (
+          <div className="space-y-4 pt-2">
+            <h3 className="font-bold text-gray-800 text-xs uppercase tracking-widest border-b pb-1">Stop-wise Quantity Allocation</h3>
+            <p className="text-[11px] text-gray-500">
+              Quantity = total Load Qty ({totalLoadQty}). Unload Qty ({totalUnloadQty}) is tracked separately.
+            </p>
+            <div className="space-y-2">
+              {tripStops.map((stop) => (
+                <div key={stop.id} className="grid grid-cols-12 gap-3 items-center">
+                  <div className="col-span-6 text-xs text-gray-700">
+                    #{stop.stop_sequence} {stop.stop_type} - {stop.location_address || 'No location'}
+                  </div>
+                  <div className="col-span-3">
+                    <input
+                      type="number"
+                      min="0"
+                      className="w-full p-2 border border-gray-300 rounded text-xs"
+                      placeholder="Load"
+                      value={stopQuantities[stop.id]?.load_quantity || ""}
+                      onChange={(e) =>
+                        setStopQuantities((prev) => ({
+                          ...prev,
+                          [stop.id]: { ...(prev[stop.id] || {}), load_quantity: e.target.value },
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="col-span-3">
+                    <input
+                      type="number"
+                      min="0"
+                      className="w-full p-2 border border-gray-300 rounded text-xs"
+                      placeholder="Unload"
+                      value={stopQuantities[stop.id]?.unload_quantity || ""}
+                      onChange={(e) =>
+                        setStopQuantities((prev) => ({
+                          ...prev,
+                          [stop.id]: { ...(prev[stop.id] || {}), unload_quantity: e.target.value },
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="space-y-4 pt-2">
           <h3 className="font-bold text-gray-800 text-xs uppercase tracking-widest border-b pb-1">Specifications & Classification</h3>
@@ -314,32 +396,6 @@ export function CreateCargoModal({ isOpen, onClose, presetTripId }) {
         </div>
 
         <div className="space-y-4 pt-2">
-          <h3 className="font-bold text-gray-800 text-xs uppercase tracking-widest border-b pb-1">Movement & Reconciliation Stats</h3>
-          <div className="grid grid-cols-5 gap-3">
-             <div>
-               <label className="block text-gray-500 font-[10px] uppercase tracking-tighter mb-1">Loaded</label>
-               <input type="number" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.total_loaded} onChange={e => setFormData({...formData, total_loaded: e.target.value})} />
-             </div>
-             <div>
-               <label className="block text-gray-500 font-[10px] uppercase tracking-tighter mb-1">Unloaded</label>
-               <input type="number" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.total_unloaded} onChange={e => setFormData({...formData, total_unloaded: e.target.value})} />
-             </div>
-             <div>
-               <label className="block text-gray-500 font-[10px] uppercase tracking-tighter mb-1">Short</label>
-               <input type="number" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.total_short} onChange={e => setFormData({...formData, total_short: e.target.value})} />
-             </div>
-             <div>
-               <label className="block text-gray-500 font-[10px] uppercase tracking-tighter mb-1">Damaged</label>
-               <input type="number" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.total_damaged} onChange={e => setFormData({...formData, total_damaged: e.target.value})} />
-             </div>
-             <div>
-               <label className="block text-blue-600 font-[10px] uppercase tracking-tighter mb-1 font-black">Remaining</label>
-               <input type="number" className="w-full p-2 border border-blue-200 bg-blue-50 text-blue-700 rounded text-xs font-bold" value={formData.remaining_quantity} onChange={e => setFormData({...formData, remaining_quantity: e.target.value})} />
-             </div>
-          </div>
-        </div>
-
-        <div className="space-y-4 pt-2">
           <h3 className="font-bold text-gray-800 text-xs uppercase tracking-widest border-b pb-1">Handling & Care</h3>
           <div className="flex flex-wrap gap-x-6 gap-y-3">
              <label className="flex items-center gap-2 cursor-pointer group">
@@ -403,10 +459,12 @@ export function EditCargoModal({ isOpen, onClose, item }) {
     is_fragile: item?.is_fragile || false,
     is_perishable: item?.is_perishable || false,
     stackable: item?.stackable ?? true,
-    insurance_required: item?.insurance_required || false
+    insurance_required: item?.insurance_required || false,
+    stop_quantities: item?.stop_quantities || [],
   });
   const { data: tripStopsData } = useTripStops(formData.trip || null);
   const tripStops = Array.isArray(tripStopsData?.results) ? tripStopsData.results : (Array.isArray(tripStopsData) ? tripStopsData : []);
+  const [stopQuantities, setStopQuantities] = useState({});
   const currentStatus = item?.status || 'PENDING';
   const nextStatuses = CARGO_TRANSITIONS[currentStatus] || [];
   const statusOptions = [currentStatus, ...nextStatuses];
@@ -435,14 +493,37 @@ export function EditCargoModal({ isOpen, onClose, item }) {
         is_perishable: item.is_perishable || false,
         stackable: item.stackable ?? true,
         insurance_required: item.insurance_required || false,
-        total_loaded: item.total_loaded || 0,
-        total_unloaded: item.total_unloaded || 0,
-        total_short: item.total_short || 0,
-        total_damaged: item.total_damaged || 0,
-        remaining_quantity: item.remaining_quantity || 0
+        stop_quantities: item.stop_quantities || [],
       });
+      const mapped = {};
+      (item.stop_quantities || []).forEach((row) => {
+        if (row?.stop_id) {
+          mapped[row.stop_id] = {
+            load_quantity: String(row.load_quantity ?? row.quantity ?? ""),
+            unload_quantity: String(row.unload_quantity ?? ""),
+          };
+        }
+      });
+      setStopQuantities(mapped);
     }
   }, [item, isOpen]);
+
+  useEffect(() => {
+    const fresh = {};
+    (tripStops || []).forEach((stop) => {
+      fresh[stop.id] = stopQuantities[stop.id] || { load_quantity: "", unload_quantity: "" };
+    });
+    setStopQuantities(fresh);
+  }, [formData.trip, tripStops.length]);
+
+  const totalLoadQty = Object.values(stopQuantities).reduce((acc, row) => {
+    const n = parseInt(row?.load_quantity || 0, 10);
+    return acc + (Number.isFinite(n) && n > 0 ? n : 0);
+  }, 0);
+  const totalUnloadQty = Object.values(stopQuantities).reduce((acc, row) => {
+    const n = parseInt(row?.unload_quantity || 0, 10);
+    return acc + (Number.isFinite(n) && n > 0 ? n : 0);
+  }, 0);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -451,6 +532,23 @@ export function EditCargoModal({ isOpen, onClose, item }) {
     if (payload.length_cm) payload.length_cm = parseInt(payload.length_cm, 10);
     if (payload.width_cm) payload.width_cm = parseInt(payload.width_cm, 10);
     if (payload.height_cm) payload.height_cm = parseInt(payload.height_cm, 10);
+    const stopRows = (tripStops || [])
+      .map((stop) => ({
+        stop_id: stop.id,
+        load_quantity: parseInt(stopQuantities[stop.id]?.load_quantity || 0, 10),
+        unload_quantity: parseInt(stopQuantities[stop.id]?.unload_quantity || 0, 10),
+      }))
+      .filter(
+        (row) =>
+          (Number.isFinite(row.load_quantity) && row.load_quantity > 0) ||
+          (Number.isFinite(row.unload_quantity) && row.unload_quantity > 0)
+      );
+    if (stopRows.length > 0) {
+      payload.stop_quantities = stopRows;
+      payload.quantity = stopRows.reduce((sum, row) => sum + (row.load_quantity || 0), 0);
+    } else {
+      payload.stop_quantities = [];
+    }
     Object.keys(payload).forEach((k) => {
       if (payload[k] === '' || payload[k] === null) delete payload[k];
     });
@@ -517,10 +615,14 @@ export function EditCargoModal({ isOpen, onClose, item }) {
                 type="number" 
                 required
                 min="1"
+                disabled={totalLoadQty > 0}
                 className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
-                value={formData.quantity}
+                value={totalLoadQty > 0 ? totalLoadQty : formData.quantity}
                 onChange={e => setFormData({ ...formData, quantity: e.target.value })}
               />
+              {totalLoadQty > 0 && (
+                <p className="text-[11px] text-blue-600 mt-1">Auto-calculated from stop load quantities.</p>
+              )}
             </div>
             <div>
               <label className="block text-gray-700 font-medium mb-1">Item Code</label>
@@ -546,6 +648,54 @@ export function EditCargoModal({ isOpen, onClose, item }) {
             </div>
           </div>
         </div>
+
+        {tripStops.length > 0 && (
+          <div className="space-y-4 pt-2">
+            <h3 className="font-bold text-gray-800 text-xs uppercase tracking-widest border-b pb-1">Stop-wise Quantity Allocation</h3>
+            <p className="text-[11px] text-gray-500">
+              Quantity = total Load Qty ({totalLoadQty}). Unload Qty ({totalUnloadQty}) is tracked separately.
+            </p>
+            <div className="space-y-2">
+              {tripStops.map((stop) => (
+                <div key={stop.id} className="grid grid-cols-12 gap-3 items-center">
+                  <div className="col-span-6 text-xs text-gray-700">
+                    #{stop.stop_sequence} {stop.stop_type} - {stop.location_address || 'No location'}
+                  </div>
+                  <div className="col-span-3">
+                    <input
+                      type="number"
+                      min="0"
+                      className="w-full p-2 border border-gray-300 rounded text-xs"
+                      placeholder="Load"
+                      value={stopQuantities[stop.id]?.load_quantity || ""}
+                      onChange={(e) =>
+                        setStopQuantities((prev) => ({
+                          ...prev,
+                          [stop.id]: { ...(prev[stop.id] || {}), load_quantity: e.target.value },
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="col-span-3">
+                    <input
+                      type="number"
+                      min="0"
+                      className="w-full p-2 border border-gray-300 rounded text-xs"
+                      placeholder="Unload"
+                      value={stopQuantities[stop.id]?.unload_quantity || ""}
+                      onChange={(e) =>
+                        setStopQuantities((prev) => ({
+                          ...prev,
+                          [stop.id]: { ...(prev[stop.id] || {}), unload_quantity: e.target.value },
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="space-y-4 pt-2">
           <h3 className="font-bold text-gray-800 text-xs uppercase tracking-widest border-b pb-1">Specifications & Classification</h3>
@@ -624,32 +774,6 @@ export function EditCargoModal({ isOpen, onClose, item }) {
                  <input type="text" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.temperature_range} onChange={e => setFormData({...formData, temperature_range: e.target.value})} />
                </div>
              )}
-          </div>
-        </div>
-
-        <div className="space-y-4 pt-2">
-          <h3 className="font-bold text-gray-800 text-xs uppercase tracking-widest border-b pb-1">Movement & Reconciliation Stats</h3>
-          <div className="grid grid-cols-5 gap-3">
-             <div>
-               <label className="block text-gray-500 font-[10px] uppercase tracking-tighter mb-1">Loaded</label>
-               <input type="number" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.total_loaded} onChange={e => setFormData({...formData, total_loaded: e.target.value})} />
-             </div>
-             <div>
-               <label className="block text-gray-500 font-[10px] uppercase tracking-tighter mb-1">Unloaded</label>
-               <input type="number" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.total_unloaded} onChange={e => setFormData({...formData, total_unloaded: e.target.value})} />
-             </div>
-             <div>
-               <label className="block text-gray-500 font-[10px] uppercase tracking-tighter mb-1">Short</label>
-               <input type="number" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.total_short} onChange={e => setFormData({...formData, total_short: e.target.value})} />
-             </div>
-             <div>
-               <label className="block text-gray-500 font-[10px] uppercase tracking-tighter mb-1">Damaged</label>
-               <input type="number" className="w-full p-2 border border-gray-300 rounded text-xs" value={formData.total_damaged} onChange={e => setFormData({...formData, total_damaged: e.target.value})} />
-             </div>
-             <div>
-               <label className="block text-blue-600 font-[10px] uppercase tracking-tighter mb-1 font-black">Remaining</label>
-               <input type="number" className="w-full p-2 border border-blue-200 bg-blue-50 text-blue-700 rounded text-xs font-bold" value={formData.remaining_quantity} onChange={e => setFormData({...formData, remaining_quantity: e.target.value})} />
-             </div>
           </div>
         </div>
 
@@ -827,6 +951,21 @@ export function ViewCargoModal({ isOpen, onClose, item }) {
              <p className="text-xs font-black text-amber-700">{(item.total_short ?? 0) + (item.total_damaged ?? 0)}</p>
            </div>
         </div>
+
+        {Array.isArray(item.stop_quantities) && item.stop_quantities.length > 0 && (
+          <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-2">Planned Stop Quantities</p>
+            <div className="space-y-1">
+              {item.stop_quantities.map((row, idx) => (
+                <p key={`${row.stop_id}-${idx}`} className="text-xs text-gray-700">
+                  Stop {String(row.stop_id).slice(0, 8)}... :
+                  <span className="font-bold"> L {row.load_quantity ?? row.quantity ?? 0}</span>
+                  <span className="font-bold"> / U {row.unload_quantity ?? 0}</span>
+                </p>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-2">
             {item.is_fragile && <span className="px-2 py-1 bg-amber-50 text-amber-700 text-[10px] font-bold rounded border border-amber-100 uppercase">FRAGILE ⚠️</span>}

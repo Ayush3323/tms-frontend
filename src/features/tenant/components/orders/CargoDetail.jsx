@@ -264,7 +264,9 @@ export default function CargoDetail() {
                 movements.map((m) => (
                   <div key={m.id} className="p-3 border border-gray-100 rounded-xl">
                     <p className="text-xs font-bold text-[#172B4D]">{m.action} - Qty {m.quantity}</p>
-                    <p className="text-[11px] text-gray-500">Stop: {m.stop}</p>
+                    <p className="text-[11px] text-gray-500">
+                      Stop: #{m.stop_sequence || '-'} {m.stop_type || ''} {m.stop_address ? `- ${m.stop_address}` : m.stop}
+                    </p>
                     <p className="text-[11px] text-gray-500">Notes: {m.notes || '-'}</p>
                   </div>
                 ))
