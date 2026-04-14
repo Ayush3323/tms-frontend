@@ -31,6 +31,8 @@ export const EMPTY_FORM = {
   purchase_date: '',
   purchase_price: '',
   ownership_type: '',
+  owner_name: '',
+  owner_contact: '',
   current_odometer: '0',
   status: 'ACTIVE',
   assigned_driver: '',
@@ -151,6 +153,8 @@ export const VehicleFormModal = ({ initial, onClose, isView }) => {
       purchase_date: initial.purchase_date ?? '',
       purchase_price: initial.purchase_price != null ? String(parseFloat(initial.purchase_price)) : '',
       ownership_type: initial.ownership_type ?? '',
+      owner_name: initial.owner_name ?? '',
+      owner_contact: initial.owner_contact ?? '',
       current_odometer: initial.current_odometer != null ? String(parseFloat(initial.current_odometer)) : '0',
       status: initial.status ?? 'ACTIVE',
       assigned_driver: initial.assigned_driver?.id ?? initial.assigned_driver ?? '',
@@ -169,6 +173,18 @@ export const VehicleFormModal = ({ initial, onClose, isView }) => {
   const { data: allVehiclesData } = useVehicles({ page_size: 1000 });
 
   const handleSubmit = () => {
+    const nextErrors = {};
+    if (!form.registration_number) nextErrors.registration_number = 'Registration number is required.';
+    if (!form.make) nextErrors.make = 'Make is required.';
+    if (!form.model) nextErrors.model = 'Model is required.';
+    if (!form.fuel_type) nextErrors.fuel_type = 'Fuel type is required.';
+    if (!form.ownership_type) nextErrors.ownership_type = 'Ownership type is required.';
+    if (!form.vehicle_type) nextErrors.vehicle_type = 'Vehicle type is required.';
+    if (Object.keys(nextErrors).length) {
+      setErrors((p) => ({ ...p, ...nextErrors }));
+      return;
+    }
+
     // Check for duplicate driver assignment (redundant but safe)
     if (form.assigned_driver) {
       const allVehicles = allVehiclesData?.results ?? allVehiclesData ?? [];
@@ -179,8 +195,18 @@ export const VehicleFormModal = ({ initial, onClose, isView }) => {
       }
     }
 
+    const nullableFields = new Set([
+      'vehicle_identification_number',
+      'year',
+      'capacity_tonnage',
+      'capacity_volume',
+      'purchase_date',
+      'purchase_price',
+      'assigned_driver',
+      'color',
+    ]);
     const clean = Object.fromEntries(
-      Object.entries(form).map(([k, v]) => [k, v === '' ? null : v])
+      Object.entries(form).map(([k, v]) => [k, nullableFields.has(k) && v === '' ? null : v])
     );
 
     const onSuccess = () => {
@@ -201,7 +227,14 @@ export const VehicleFormModal = ({ initial, onClose, isView }) => {
     }
   };
 
-  const canSubmit = form.registration_number && form.make && form.model && form.fuel_type && form.ownership_type && !isPending;
+  const canSubmit =
+    form.registration_number &&
+    form.make &&
+    form.model &&
+    form.fuel_type &&
+    form.ownership_type &&
+    form.vehicle_type &&
+    !isPending;
 
   return (
     <Modal
@@ -254,7 +287,15 @@ export const VehicleFormModal = ({ initial, onClose, isView }) => {
               <div><Label>Capacity (Tonnage)</Label><Input type="number" placeholder="e.g. 15" value={form.capacity_tonnage} onChange={set('capacity_tonnage')} /></div>
               <div><Label>Capacity (Volume m³)</Label><Input type="number" placeholder="e.g. 30" value={form.capacity_volume} onChange={set('capacity_volume')} /></div>
               <div><Label>Current Odometer (km)</Label><Input type="number" placeholder="0" value={form.current_odometer} onChange={set('current_odometer')} /></div>
-              <div><Label>Vehicle Type</Label><VehicleTypeSelect value={form.vehicle_type} onChange={(id) => setForm(p => ({ ...p, vehicle_type: id }))} /></div>
+              <Field label="Vehicle Type" required error={errors.vehicle_type}>
+                <VehicleTypeSelect
+                  value={form.vehicle_type}
+                  onChange={(id) => {
+                    setForm((p) => ({ ...p, vehicle_type: id }));
+                    if (errors.vehicle_type) setErrors((p) => ({ ...p, vehicle_type: null }));
+                  }}
+                />
+              </Field>
             </div>
 
             <Section title="Purchase & Ownership" />
@@ -266,6 +307,8 @@ export const VehicleFormModal = ({ initial, onClose, isView }) => {
                   {['OWNED', 'LEASED'].map(o => <option key={o}>{o}</option>)}
                 </Sel>
               </div>
+              <div><Label>Owner Name</Label><Input placeholder="e.g. Self / Company Name" value={form.owner_name} onChange={set('owner_name')} /></div>
+              <div><Label>Owner Contact</Label><Input placeholder="e.g. +91xxxxxxxxxx" value={form.owner_contact} onChange={set('owner_contact')} /></div>
               <div>
                 <Label>Status</Label>
                 <Sel value={form.status} onChange={set('status')}>
