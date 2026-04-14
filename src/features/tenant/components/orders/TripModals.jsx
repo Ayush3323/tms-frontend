@@ -569,6 +569,9 @@ export function EditTripModal({ isOpen, onClose, trip }) {
     return '';
   };
 
+  const isPickupType = (t) => t === 'PICKUP' || t === 'PICKUP_AND_DELIVERY';
+  const isDeliveryType = (t) => t === 'DELIVERY' || t === 'PICKUP_AND_DELIVERY';
+
   const validateStops = (stops = plannedStops) => {
     // Collect all potential stops: Origin (PICKUP), then multi-stops, then Destination (DELIVERY)
     const allStops = [
@@ -577,12 +580,18 @@ export function EditTripModal({ isOpen, onClose, trip }) {
       ...(formData.destination_address?.trim() ? [{ stop_type: 'DELIVERY', location_address: formData.destination_address }] : [])
     ].map((s, idx) => ({ ...s, idx }));
 
-    const pickupIndices = allStops.filter((s) => s.stop_type === 'PICKUP').map((s) => s.idx);
-    const deliveryIndices = allStops.filter((s) => s.stop_type === 'DELIVERY').map((s) => s.idx);
+    const pickupIndices = allStops.filter((s) => isPickupType(s.stop_type)).map((s) => s.idx);
+    const deliveryIndices = allStops.filter((s) => isDeliveryType(s.stop_type)).map((s) => s.idx);
     
     const errors = [];
     if (!pickupIndices.length) errors.push('Need at least one pickup (Origin or stop).');
     if (!deliveryIndices.length) errors.push('Need at least one delivery (Destination or stop).');
+    if (allStops.length > 0 && allStops[0].stop_type !== 'PICKUP') {
+      errors.push('First stop must be PICKUP.');
+    }
+    if (allStops.length > 0 && allStops[allStops.length - 1].stop_type !== 'DELIVERY') {
+      errors.push('Last stop must be DELIVERY.');
+    }
     
     if (pickupIndices.length && deliveryIndices.length) {
       if (Math.max(...pickupIndices) > Math.min(...deliveryIndices)) {
@@ -597,12 +606,21 @@ export function EditTripModal({ isOpen, onClose, trip }) {
     validateStops(plannedStops);
   }, [formData.origin_address, formData.destination_address, plannedStops]);
 
+  const normalizeBoundaryStopTypes = (stops) => {
+    if (!Array.isArray(stops) || stops.length === 0) return stops;
+    return stops.map((s, i) => {
+      if (i === 0) return { ...s, stop_type: 'PICKUP' };
+      if (i === stops.length - 1) return { ...s, stop_type: 'DELIVERY' };
+      return s;
+    });
+  };
+
   const addStopRow = () => {
     setPlannedStops((prev) => {
-      const next = [
+      const next = normalizeBoundaryStopTypes([
         ...prev,
-        { stop_type: 'DELIVERY', location_address: '', instructions: '', scheduled_arrival: '', scheduled_departure: '' },
-      ];
+        { stop_type: 'PICKUP_AND_DELIVERY', location_address: '', instructions: '', scheduled_arrival: '', scheduled_departure: '' },
+      ]);
       validateStops(next);
       return next;
     });
@@ -610,7 +628,7 @@ export function EditTripModal({ isOpen, onClose, trip }) {
 
   const removeStopRow = (index) => {
     setPlannedStops((prev) => {
-      const next = prev.filter((_, i) => i !== index);
+      const next = normalizeBoundaryStopTypes(prev.filter((_, i) => i !== index));
       validateStops(next);
       return next;
     });
@@ -618,7 +636,7 @@ export function EditTripModal({ isOpen, onClose, trip }) {
 
   const updateStopRow = (index, key, value) => {
     setPlannedStops((prev) => {
-      const next = prev.map((s, i) => (i === index ? { ...s, [key]: value } : s));
+      let next = prev.map((s, i) => (i === index ? { ...s, [key]: value } : s));
       
       // Bi-directional sync back to formData if origin (0) or destination (last) is updated
       if (key === 'location_address') {
@@ -629,6 +647,7 @@ export function EditTripModal({ isOpen, onClose, trip }) {
         }
       }
       
+      next = normalizeBoundaryStopTypes(next);
       validateStops(next);
       return next;
     });
@@ -649,8 +668,9 @@ export function EditTripModal({ isOpen, onClose, trip }) {
       const next = [...prev];
       const [moved] = next.splice(dragIdx, 1);
       next.splice(index, 0, moved);
-      validateStops(next);
-      return next;
+      const normalized = normalizeBoundaryStopTypes(next);
+      validateStops(normalized);
+      return normalized;
     });
     setDragIdx(null);
     setDragOverIdx(null);
@@ -1085,9 +1105,15 @@ export function EditTripModal({ isOpen, onClose, trip }) {
                         </div>
                         <div className="col-span-2">
                           <label className="text-[10px] font-bold text-gray-500 uppercase">Type</label>
-                          <select className={inputClass} value={stop.stop_type} onChange={(e) => updateStopRow(idx, 'stop_type', e.target.value)}>
+                          <select
+                            className={inputClass}
+                            value={stop.stop_type}
+                            disabled={idx === 0 || idx === plannedStops.length - 1}
+                            onChange={(e) => updateStopRow(idx, 'stop_type', e.target.value)}
+                          >
                             <option value="PICKUP">PICKUP</option>
                             <option value="DELIVERY">DELIVERY</option>
+                            <option value="PICKUP_AND_DELIVERY">PICKUP_AND_DELIVERY</option>
                             <option value="TRANSIT">TRANSIT</option>
                             <option value="BREAK">BREAK</option>
                             <option value="FUEL">FUEL</option>
@@ -1663,11 +1689,12 @@ export function AddStopsModal({ isOpen, onClose, tripId, nextSequenceNumber, onS
                   </div>
                   <div className="col-span-2">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block ml-1">Type</label>
-                    <select className={inputClass} value={stop.stop_type} onChange={(e) => {
+                    <select className={inputClass} value={stop.stop_type} disabled={idx === 0 || idx === plannedStops.length - 1} onChange={(e) => {
                       updateStopRow(idx, 'stop_type', e.target.value);
                     }}>
                       <option value="PICKUP">PICKUP</option>
                       <option value="DELIVERY">DELIVERY</option>
+                      <option value="PICKUP_AND_DELIVERY">PICKUP_AND_DELIVERY</option>
                       <option value="TRANSIT">TRANSIT</option>
                       <option value="BREAK">BREAK</option>
                       <option value="FUEL">FUEL</option>
