@@ -147,28 +147,28 @@ const TRIP_TRANSITIONS = {
 const InfoCard = ({ label, value, icon: Icon, accent = false, isLoading = false }) => (
   <div className={`p-4 rounded-2xl border transition-all ${
     accent 
-      ? 'bg-blue-50/50 border-blue-100' 
-      : 'bg-white border-gray-100 shadow-sm'
+      ? 'bg-blue-50/50 border-blue-100 hover:border-blue-200' 
+      : 'bg-white border-gray-100 shadow-sm hover:border-gray-200'
   }`}>
     <div className="flex items-center gap-4">
       {Icon && (
         <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
           accent 
-            ? 'bg-blue-600 text-white' 
+            ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' 
             : 'bg-gray-50 text-gray-400'
         }`}>
           <Icon size={16} strokeWidth={2.5} />
         </div>
       )}
-      <div className="min-w-0 flex-1 text-left">
-        <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest leading-none mb-2">
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] leading-none mb-1.5">
           {LABEL_MAP[label] || label}
         </p>
         <div className="flex items-center gap-2">
           {isLoading ? (
             <div className="h-5 w-24 bg-gray-100 animate-pulse rounded-md" />
           ) : (
-            <p className={`text-sm font-black tracking-tight ${accent ? 'text-blue-700' : 'text-[#172B4D]'}`}>
+            <p className={`text-sm font-black tracking-tight truncate ${accent ? 'text-blue-700' : 'text-[#172B4D]'}`}>
               {value || '—'}
             </p>
           )}
@@ -178,25 +178,25 @@ const InfoCard = ({ label, value, icon: Icon, accent = false, isLoading = false 
   </div>
 );
 
-const DataRow = ({ label, value, icon: Icon, labelSize = "text-[10px]", accent = null, boxWidth = "w-full" }) => {
-  const accentStyles = {
-    blue: 'bg-blue-50/50 border-blue-100 text-blue-700',
-    green: 'bg-emerald-50/50 border-emerald-100 text-emerald-700',
-  };
-  const currentAccent = accent ? accentStyles[accent] : 'bg-white border-gray-100 text-[#172B4D]';
-
+const DataRow = ({ label, value, icon: Icon }) => {
   return (
-    <div className="flex items-center gap-10 py-3 border-b border-gray-100/30 last:border-0 px-1">
-      <div className="flex items-center gap-3 w-28 md:w-36 shrink-0">
+    <div className="group flex items-center justify-between py-3.5 border-b border-gray-50 last:border-0 hover:bg-gray-50/40 transition-all px-2 rounded-lg">
+      <div className="flex items-center gap-4 min-w-0">
         {Icon && (
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${accent ? (accent === 'blue' ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600') : 'bg-gray-50 text-gray-400'}`}>
-            <Icon size={14} strokeWidth={2.5} />
+          <div className="w-9 h-9 rounded-xl bg-gray-50/80 text-gray-400 flex items-center justify-center shrink-0 group-hover:bg-white group-hover:text-blue-600 transition-all border border-transparent group-hover:border-blue-100 shadow-sm">
+            <Icon size={15} strokeWidth={2.5} />
           </div>
         )}
-        <span className={`${labelSize} font-black text-gray-400 uppercase tracking-widest leading-none`}>{LABEL_MAP[label] || label}</span>
+        <div className="flex flex-col">
+          <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-0.5">
+            {LABEL_MAP[label] || label}
+          </span>
+        </div>
       </div>
-      <div className={`border rounded-xl px-5 py-3.5 shadow-sm min-w-0 ${currentAccent} ${boxWidth}`}>
-        <p className="text-[13px] font-black tracking-tight break-all md:break-words leading-tight">{value || '—'}</p>
+      <div className="text-right pl-6 flex-1 min-w-0">
+        <p className="text-sm font-black text-[#172B4D] break-words line-clamp-2 leading-tight tracking-tight uppercase">
+          {value || '—'}
+        </p>
       </div>
     </div>
   );
@@ -204,7 +204,7 @@ const DataRow = ({ label, value, icon: Icon, labelSize = "text-[10px]", accent =
 
 // --- Tabs ---
 const OverviewTab = ({ trip, driver, vehicle, order, isLoadingNames, navigate, originDisplay, destinationDisplay }) => (
-  <div className="space-y-6">
+  <div className="space-y-8">
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       <InfoCard label="status" value={trip.status} icon={Clock} accent />
       <InfoCard label="trip_number" value={trip.trip_number} icon={Hash} />
@@ -212,47 +212,37 @@ const OverviewTab = ({ trip, driver, vehicle, order, isLoadingNames, navigate, o
       <InfoCard label="trip_type" value={trip.trip_type} icon={Truck} />
     </div>
 
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm flex flex-col min-h-[320px]">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm flex flex-col h-full overflow-hidden">
         <SectionHeader icon={MapPin} title="Route Summary" />
-        <div className="space-y-4">
-          <DataRow label="origin_address" value={originDisplay} icon={MapPin} accent="blue" boxWidth="md:w-[480px]" />
-          <DataRow label="destination_address" value={destinationDisplay} icon={MapPin} accent="green" boxWidth="md:w-[480px]" />
+        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-1">
+          <DataRow label="origin_address" value={originDisplay} icon={MapPin} />
+          <DataRow label="destination_address" value={destinationDisplay} icon={MapPin} />
         </div>
-        <div className="mt-auto pt-6 border-t border-gray-50 flex items-center">
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">
-            Addresses are managed from Stops tab
+        <div className="mt-6 pt-6 border-t border-gray-50">
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50 px-3 py-2.5 rounded-xl border border-gray-100 inline-block">
+            Managed via Stops tab
           </p>
         </div>
       </div>
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm flex flex-col min-h-[320px]">
+
+      <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm flex flex-col h-full overflow-hidden">
         <SectionHeader icon={Calendar} title="Reference Details" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 flex-1">
-           <div className="space-y-0.5">
-              <DataRow label="lr_number" value={order?.lr_number || trip.lr_number} icon={FileText} />
-              <DataRow label="reference_number" value={trip.reference_number} icon={Hash} />
-              <DataRow label="created_date" value={formatDateTime(trip.created_date)} icon={Calendar} />
-           </div>
-           <div className="space-y-0.5">
-              <DataRow label="Pickup Date" value={order?.pickup_date || '—'} icon={Calendar} labelSize="text-[10px]" />
-              <DataRow label="Delivery Date" value={order?.delivery_date || '—'} icon={CheckCircle2} labelSize="text-[10px]" />
-           </div>
+        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-1">
+          <DataRow label="lr_number" value={order?.lr_number || trip.lr_number} icon={FileText} />
+          <DataRow label="reference_number" value={trip.reference_number} icon={Hash} />
+          <DataRow label="created_date" value={formatDateTime(trip.created_date)} icon={Calendar} />
+          <DataRow label="Pickup Date" value={order?.pickup_date || '—'} icon={Calendar} />
+          <DataRow label="Delivery Date" value={order?.delivery_date || '—'} icon={CheckCircle2} />
         </div>
         {trip.order_id && (
-          <div className="mt-auto pt-6 border-t border-gray-50 flex items-center justify-end gap-3">
+          <div className="mt-6 pt-6 border-t border-gray-50 flex items-center justify-end gap-3">
             <button
               type="button"
-              className="px-5 py-2.5 text-[11px] font-black text-[#0052CC] bg-blue-50 border border-blue-100 rounded-xl hover:bg-blue-100 transition-all uppercase tracking-widest shadow-sm"
+              className="px-6 py-3 text-[11px] font-black text-[#0052CC] bg-blue-50 border border-blue-100 rounded-xl hover:bg-blue-100 transition-all uppercase tracking-widest shadow-sm"
               onClick={() => navigate(`/tenant/dashboard/orders/${trip.order_id}`)}
             >
               View Order
-            </button>
-            <button
-              type="button"
-              className="px-5 py-2.5 text-[11px] font-black text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 uppercase tracking-widest"
-              onClick={() => navigate(`/tenant/dashboard/orders/${trip.order_id}`)}
-            >
-              Edit on Order
             </button>
           </div>
         )}
@@ -260,59 +250,59 @@ const OverviewTab = ({ trip, driver, vehicle, order, isLoadingNames, navigate, o
     </div>
 
     {trip.remarks && (
-        <div className="bg-amber-50/20 rounded-2xl border border-amber-100 p-6 shadow-sm">
-            <SectionHeader icon={FileText} title="Trip Remarks" />
-            <p className="text-sm text-gray-600 font-medium italic">"{trip.remarks}"</p>
-        </div>
+      <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm">
+        <SectionHeader icon={FileText} title="Trip Remarks" />
+        <p className="text-sm text-[#172B4D] font-bold italic leading-relaxed">"{trip.remarks}"</p>
+      </div>
     )}
 
-    <div className="bg-gray-50 rounded-2xl border border-gray-100 p-6">
+    <div className="bg-gray-50/50 rounded-3xl border border-gray-100 p-8">
       <SectionHeader icon={Shield} title="Technical Audit Information" />
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <InfoCard label="version" value={trip.version} icon={Hash} />
-        <InfoCard label="created_at" value={new Date(trip.created_at).toLocaleString()} icon={Clock} />
-        <InfoCard label="updated_at" value={new Date(trip.updated_at).toLocaleString()} icon={Clock} />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <DataRow label="version" value={trip.version} icon={Hash} />
+        <DataRow label="created_at" value={new Date(trip.created_at).toLocaleString()} icon={Clock} />
+        <DataRow label="updated_at" value={new Date(trip.updated_at).toLocaleString()} icon={Clock} />
       </div>
     </div>
   </div>
 );
 
 const JourneyTab = ({ trip, driver, vehicle, isLoadingNames, altDriver, altVehicle }) => (
-  <div className="space-y-6">
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+  <div className="space-y-8">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm flex flex-col h-full overflow-hidden">
         <SectionHeader icon={User} title="Fleet & Crew Allocation" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <InfoCard label="primary_driver_id" value={driver} icon={User} isLoading={isLoadingNames} accent />
-          <InfoCard label="primary_vehicle_id" value={vehicle} icon={Truck} isLoading={isLoadingNames} accent />
-          <InfoCard label="vehicle_owner_name" value={trip.vehicle_owner_name} icon={User} />
-          <InfoCard label="vehicle_type_code" value={trip.vehicle_type_code} icon={Truck} />
-          <InfoCard label="alternate_driver_id" value={altDriver} icon={User} />
-          <InfoCard label="alternate_vehicle_id" value={altVehicle} icon={Truck} />
+        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-1">
+          <DataRow label="primary_driver_id" value={driver} icon={User} />
+          <DataRow label="primary_vehicle_id" value={vehicle} icon={Truck} />
+          <DataRow label="vehicle_owner_name" value={trip.vehicle_owner_name} icon={User} />
+          <DataRow label="vehicle_type_code" value={trip.vehicle_type_code} icon={Truck} />
+          <DataRow label="alternate_driver_id" value={altDriver} icon={User} />
+          <DataRow label="alternate_vehicle_id" value={altVehicle} icon={Truck} />
         </div>
       </div>
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+      <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm flex flex-col h-full overflow-hidden">
         <SectionHeader icon={Clock} title="Schedule & Timing" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <InfoCard label="scheduled_pickup_date" value={formatDateTime(trip.scheduled_pickup_date)} icon={Calendar} />
-          <InfoCard label="scheduled_delivery_date" value={formatDateTime(trip.scheduled_delivery_date)} icon={CheckCircle2} />
-          <InfoCard label="actual_pickup_date" value={formatDateTime(trip.actual_pickup_date)} icon={Clock} />
-          <InfoCard label="actual_delivery_date" value={formatDateTime(trip.actual_delivery_date)} icon={CheckCircle2} />
-          <InfoCard label="start_time" value={formatDateTime(trip.start_time)} icon={Zap} />
-          <InfoCard label="end_time" value={formatDateTime(trip.end_time)} icon={Zap} />
+        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-1">
+          <DataRow label="scheduled_pickup_date" value={formatDateTime(trip.scheduled_pickup_date)} icon={Calendar} />
+          <DataRow label="scheduled_delivery_date" value={formatDateTime(trip.scheduled_delivery_date)} icon={CheckCircle2} />
+          <DataRow label="actual_pickup_date" value={formatDateTime(trip.actual_pickup_date)} icon={Clock} />
+          <DataRow label="actual_delivery_date" value={formatDateTime(trip.actual_delivery_date)} icon={CheckCircle2} />
+          <DataRow label="start_time" value={formatDateTime(trip.start_time)} icon={Zap} />
+          <DataRow label="end_time" value={formatDateTime(trip.end_time)} icon={Zap} />
         </div>
       </div>
     </div>
 
-    <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+    <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm">
       <SectionHeader icon={Gauge} title="Performance & Fuel Metrics" />
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        <InfoCard label="total_distance_km" value={trip.total_distance_km ? `${trip.total_distance_km} KM` : '—'} icon={MapIcon} accent />
-        <InfoCard label="start_odometer_km" value={trip.start_odometer_km ? `${trip.start_odometer_km} KM` : '—'} icon={Gauge} />
-        <InfoCard label="end_odometer_km" value={trip.end_odometer_km ? `${trip.end_odometer_km} KM` : '—'} icon={Gauge} />
-        <InfoCard label="estimated_fuel_liters" value={trip.estimated_fuel_liters ? `${trip.estimated_fuel_liters} L` : '—'} icon={Zap} />
-        <InfoCard label="actual_fuel_liters" value={trip.actual_fuel_liters ? `${trip.actual_fuel_liters} L` : '—'} icon={Zap} />
-        <InfoCard label="fuel_rate_per_liter" value={trip.fuel_rate_per_liter ? `${trip.fuel_rate_per_liter} / L` : '—'} icon={DollarSign} />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-2">
+        <DataRow label="total_distance_km" value={trip.total_distance_km ? `${trip.total_distance_km} KM` : '—'} icon={MapIcon} />
+        <DataRow label="start_odometer_km" value={trip.start_odometer_km ? `${trip.start_odometer_km} KM` : '—'} icon={Gauge} />
+        <DataRow label="end_odometer_km" value={trip.end_odometer_km ? `${trip.end_odometer_km} KM` : '—'} icon={Gauge} />
+        <DataRow label="estimated_fuel_liters" value={trip.estimated_fuel_liters ? `${trip.estimated_fuel_liters} L` : '—'} icon={Zap} />
+        <DataRow label="actual_fuel_liters" value={trip.actual_fuel_liters ? `${trip.actual_fuel_liters} L` : '—'} icon={Zap} />
+        <DataRow label="fuel_rate_per_liter" value={trip.fuel_rate_per_liter ? `${trip.fuel_rate_per_liter} / L` : '—'} icon={DollarSign} />
       </div>
     </div>
   </div>
@@ -568,61 +558,72 @@ const DeliveriesTab = ({ tripId, deliveries, createDelivery, isCreating }) => {
 };
 
 const FinanceTab = ({ trip, expenses, charges, isLoadingExp, isLoadingChg, onEditFinance, onDeleteFinance }) => (
-  <div className="space-y-6">
+  <div className="space-y-8">
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <InfoCard label="total_bill_amount" value={`${trip.total_bill_amount || '0.00'} INR`} icon={DollarSign} accent />
-        <InfoCard label="total_freight_charge" value={`${trip.total_freight_charge} INR`} icon={Receipt} />
-        <InfoCard label="total_accessorial_charge" value={`${trip.total_accessorial_charge} INR`} icon={Plus} />
-        <InfoCard label="total_tax" value={`${trip.total_tax} INR`} icon={Shield} />
-        <InfoCard label="is_paid" value={trip.is_paid ? 'True' : 'False'} icon={Shield} accent={trip.is_paid} />
-        <InfoCard label="is_billed" value={trip.is_billed ? 'True' : 'False'} icon={FileText} accent={trip.is_billed} />
+        <InfoCard label="total_bill_amount" value={`₹ ${trip.total_bill_amount || '0.00'}`} icon={DollarSign} accent />
+        <InfoCard label="total_freight_charge" value={`₹ ${trip.total_freight_charge}`} icon={Receipt} />
+        <InfoCard label="total_accessorial_charge" value={`₹ ${trip.total_accessorial_charge}`} icon={Plus} />
+        <InfoCard label="total_tax" value={`₹ ${trip.total_tax}`} icon={Shield} />
     </div>
 
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm flex flex-col h-full overflow-hidden">
         <SectionHeader icon={CreditCard} title="Commissions & Deductibles" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <InfoCard label="broker_commission" value={`${trip.broker_commission || '0.00'} INR`} icon={DollarSign} />
-          <InfoCard label="booked_price" value={`${trip.booked_price || '0.00'} INR`} icon={DollarSign} />
-          <InfoCard label="part_load_charge" value={`${trip.part_load_charge || '0.00'} INR`} icon={PackageIcon} />
-          <InfoCard label="tds_percentage" value={`${trip.tds_percentage || '0.00'} %`} icon={Activity} />
-          <InfoCard label="tds_amount" value={`${trip.tds_amount || '0.00'} INR`} icon={DollarSign} />
-          <InfoCard label="late_fee" value={`${trip.late_fee || '0.00'} INR`} icon={AlertCircle} />
-          <InfoCard label="damage_amount" value={`${trip.damage_amount || '0.00'} INR (${trip.damage_count || 0} items)`} icon={AlertCircle} />
-          <InfoCard label="incentive_amount" value={`${trip.incentive_amount || '0.00'} INR`} icon={Plus} />
+        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-1">
+          <DataRow label="broker_commission" value={`₹ ${trip.broker_commission || '0.00'}`} icon={DollarSign} />
+          <DataRow label="booked_price" value={`₹ ${trip.booked_price || '0.00'}`} icon={DollarSign} />
+          <DataRow label="part_load_charge" value={`₹ ${trip.part_load_charge || '0.00'}`} icon={PackageIcon} />
+          <DataRow label="tds_percentage" value={`${trip.tds_percentage || '0.00'} %`} icon={Activity} />
+          <DataRow label="tds_amount" value={`₹ ${trip.tds_amount || '0.00'}`} icon={DollarSign} />
+          <DataRow label="late_fee" value={`₹ ${trip.late_fee || '0.00'}`} icon={AlertCircle} />
+          <DataRow label="damage_amount" value={`₹ ${trip.damage_amount || '0.00'} (${trip.damage_count || 0} items)`} icon={AlertCircle} />
+          <DataRow label="incentive_amount" value={`₹ ${trip.incentive_amount || '0.00'}`} icon={Plus} />
         </div>
       </div>
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+      <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm flex flex-col h-full overflow-hidden">
         <SectionHeader icon={Clock} title="Payment Settlement" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <InfoCard label="payment_received_amount" value={`${trip.payment_received_amount || '0.00'} INR`} icon={DollarSign} accent />
-          <InfoCard label="payment_received_date" value={trip.payment_received_date} icon={Calendar} />
-          <InfoCard label="pod_received_date" value={trip.pod_received_date} icon={FileText} />
-          <InfoCard label="pod_turnaround_days" value={`${trip.pod_turnaround_days || '—'} Days`} icon={Clock} />
+        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-1">
+          <DataRow label="payment_received_amount" value={`₹ ${trip.payment_received_amount || '0.00'}`} icon={DollarSign} />
+          <DataRow label="payment_received_date" value={trip.payment_received_date} icon={Calendar} />
+          <DataRow label="pod_received_date" value={trip.pod_received_date} icon={FileText} />
+          <DataRow label="pod_turnaround_days" value={`${trip.pod_turnaround_days || '—'} Days`} icon={Clock} />
         </div>
       </div>
     </div>
-    <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+    <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm">
       <SectionHeader icon={Receipt} title="Expense & Charge Records" />
       {(isLoadingExp || isLoadingChg) ? (
         <div className="flex justify-center p-8"><Loader2 className="animate-spin text-blue-600" /></div>
       ) : (
-        <div className="space-y-3">
+        <div className="max-h-[400px] overflow-y-auto pr-2 custom-scrollbar space-y-3">
           {[...(expenses || []).map(e => ({ ...e, res_type: 'EXPENSE', label: e.expense_type })), ...(charges || []).map(c => ({ ...c, res_type: 'CHARGE', label: c.charge_type }))].map((item) => (
-            <div key={item.id} className="flex items-center justify-between p-3 rounded-xl border border-gray-100">
-              <div>
-                <p className="text-sm font-bold text-[#172B4D]">{item.label || item.res_type}</p>
-                <p className="text-xs text-gray-500">{item.res_type} • {item.status || 'PENDING'}</p>
+            <div key={item.id} className="flex items-center justify-between p-4 rounded-2xl border border-gray-50 hover:bg-gray-50 transition-all">
+              <div className="flex items-center gap-4">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${item.res_type === 'EXPENSE' ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'}`}>
+                   {item.res_type === 'EXPENSE' ? <Receipt size={18} /> : <Plus size={18} />}
+                </div>
+                <div>
+                  <p className="text-sm font-black text-[#172B4D] uppercase tracking-tight">{item.label || item.res_type}</p>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{item.res_type} • {item.status || 'PENDING'}</p>
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <p className="text-sm font-extrabold text-[#172B4D]">{item.amount || '0.00'} {item.currency || 'INR'}</p>
-                <button type="button" onClick={() => onEditFinance(item)} className="px-2 py-1 text-xs rounded bg-slate-100 text-slate-700">Edit</button>
-                <button type="button" onClick={() => onDeleteFinance(item)} className="px-2 py-1 text-xs rounded bg-red-100 text-red-700">Delete</button>
+              <div className="flex items-center gap-6">
+                <p className="text-lg font-black text-[#172B4D] tracking-tighter">₹ {item.amount || '0.00'}</p>
+                <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => onEditFinance(item)} className="p-2 rounded-lg bg-gray-50 text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-all">
+                        <Edit3 size={14} />
+                    </button>
+                    <button type="button" onClick={() => onDeleteFinance(item)} className="p-2 rounded-lg bg-gray-50 text-gray-500 hover:text-red-600 hover:bg-red-50 transition-all">
+                        <Trash2 size={14} />
+                    </button>
+                </div>
               </div>
             </div>
           ))}
           {((expenses || []).length + (charges || []).length) === 0 && (
-            <div className="text-center p-6 text-sm text-gray-400">No expense or charge records found.</div>
+            <div className="text-center p-12 text-sm text-gray-400 font-bold uppercase tracking-widest bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+                No expense or charge records found.
+            </div>
           )}
         </div>
       )}

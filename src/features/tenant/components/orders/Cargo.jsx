@@ -65,8 +65,8 @@ export default function CargoMainBody() {
   };
 
   return (
-    <div className="flex-1 min-h-0 overflow-hidden flex flex-col relative bg-[#F8FAFC]">
-      <div className="p-8">
+    <div className="flex-1 min-h-0 overflow-hidden bg-[#F8FAFC] flex flex-col relative">
+      <div className="p-8 flex-1 flex flex-col min-h-0">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
@@ -89,8 +89,8 @@ export default function CargoMainBody() {
           </div>
         </div>
 
-        {/* Main Table Container */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6 overflow-hidden mt-2">
+        {/* Table Container */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm flex-1 flex flex-col min-h-0 overflow-hidden mt-2">
           {/* Compact Stats Row */}
           <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
             {isLoading ? (
@@ -186,10 +186,9 @@ export default function CargoMainBody() {
               </button>
             </div>
           </div>
-        </div>
 
-          {/* Cargo Table */}
-          <div className="flex-1 min-h-0 overflow-auto bg-white rounded-xl shadow-sm border border-gray-100 mt-2">
+          {/* List Area */}
+          <div className="flex-1 overflow-auto min-h-0">
             {isLoading ? (
               <div className="flex justify-center items-center h-64">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4a6cf7]"></div>
@@ -304,12 +303,7 @@ export default function CargoMainBody() {
             )}
           </div>
 
-          {/* Pagination Footer */}
-          <div className="flex items-center justify-between mt-4 px-2">
-            <div className="text-sm text-gray-500">
-              Showing <span className="font-bold text-[#172B4D]">{cargoItems.length}</span> of <span className="font-bold text-[#172B4D]">{totalCount}</span> items
-            </div>
-          </div>
+        </div>
       </div>
 
       <CreateCargoModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
