@@ -198,7 +198,11 @@ export const CustomerFormModal = ({ initial, onClose, onSuccess }) => {
       if (!form.user.password) e['user.password'] = 'Password is required';
       if (form.user.password !== form.user.password_confirm) e['user.password_confirm'] = 'Passwords must match';
       if (!form.user.first_name) e['user.first_name'] = 'First name is required';
-      if (!form.user.phone) e['user.phone'] = 'Phone is required';
+      if (!form.user.phone) {
+        e['user.phone'] = 'Phone number is required';
+      } else if (!/^[6-9]\d{9}$/.test(form.user.phone)) {
+        e['user.phone'] = 'Enter a valid 10-digit Indian mobile number (starting with 6–9)';
+      }
     }
 
     if (!isEdit && !createPortalUser && !form.user_id) {
