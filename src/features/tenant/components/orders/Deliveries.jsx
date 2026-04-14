@@ -31,7 +31,6 @@ const formatDate = (dateStr) => {
 };
 
 
-
 const StatusBadge = ({ status }) => {
   const config = POD_STATUS_CONFIG[status] || POD_STATUS_CONFIG.DELIVERED;
   return (

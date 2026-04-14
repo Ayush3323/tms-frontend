@@ -82,7 +82,8 @@ export function CreateCargoModal({ isOpen, onClose, presetTripId }) {
     stop_quantities: [],
   });
   const { data: tripStopsData } = useTripStops(formData.trip || null);
-  const tripStops = Array.isArray(tripStopsData?.results) ? tripStopsData.results : (Array.isArray(tripStopsData) ? tripStopsData : []);
+  const tripStops = (Array.isArray(tripStopsData?.results) ? tripStopsData.results : (Array.isArray(tripStopsData) ? tripStopsData : []))
+    .filter(s => ['PICKUP', 'DELIVERY'].includes(s.stop_type));
   const [stopQuantities, setStopQuantities] = useState({});
   useEffect(() => {
     if (isOpen && presetTripId) {
@@ -463,7 +464,8 @@ export function EditCargoModal({ isOpen, onClose, item }) {
     stop_quantities: item?.stop_quantities || [],
   });
   const { data: tripStopsData } = useTripStops(formData.trip || null);
-  const tripStops = Array.isArray(tripStopsData?.results) ? tripStopsData.results : (Array.isArray(tripStopsData) ? tripStopsData : []);
+  const tripStops = (Array.isArray(tripStopsData?.results) ? tripStopsData.results : (Array.isArray(tripStopsData) ? tripStopsData : []))
+    .filter(s => ['PICKUP', 'DELIVERY'].includes(s.stop_type));
   const [stopQuantities, setStopQuantities] = useState({});
   const currentStatus = item?.status || 'PENDING';
   const nextStatuses = CARGO_TRANSITIONS[currentStatus] || [];
