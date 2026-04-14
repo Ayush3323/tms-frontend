@@ -20,6 +20,7 @@ const POD_STATUS_CONFIG = {
   RETURNED: { color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-100', icon: <FileCheck size={14} /> },
 };
 
+
 const formatDate = (dateStr) => {
   if (!dateStr) return "-";
   try {
@@ -29,6 +30,9 @@ const formatDate = (dateStr) => {
     return dateStr;
   }
 };
+
+
+
 
 const StatusBadge = ({ status }) => {
   const config = POD_STATUS_CONFIG[status] || POD_STATUS_CONFIG.DELIVERED;
@@ -248,6 +252,19 @@ export default function DeliveryMainBody() {
                           </button>
                           <button
                             onClick={() => {
+
+                              if (window.confirm('Delete this POD record?')) {
+                                deleteDeliveryMutation.mutate(pod.id);
+                              }
+                            }}
+                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                            title="Delete Record"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                          <button
+                            onClick={() => {
+
                               navigate(`/tenant/dashboard/orders/deliveries/${pod.id}`);
                             }}
                             className="p-2 text-gray-400 hover:text-[#0052CC] hover:bg-blue-50 rounded-lg transition-all"
@@ -305,3 +322,4 @@ export default function DeliveryMainBody() {
 
 
 // -----------------------------------------------------------------------------
+
