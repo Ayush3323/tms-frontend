@@ -1,8 +1,15 @@
 import React, { useMemo, useState } from 'react'
-import { CheckCircle2, Plus } from 'lucide-react'
+import { CheckCircle2, Edit2, Plus, Trash2 } from 'lucide-react'
 
 import FinanceListPage from '../Common/FinanceListPage'
-import { useApproveOwnerPayment, useCreateOwnerPayment, useMarkOwnerPaymentPaid, useOwnerPayments } from '../../../queries/finance/financeQuery'
+import {
+  useApproveOwnerPayment,
+  useCreateOwnerPayment,
+  useDeleteOwnerPayment,
+  useMarkOwnerPaymentPaid,
+  useOwnerPayments,
+  useUpdateOwnerPayment,
+} from '../../../queries/finance/financeQuery'
 import { useTripsLookup } from '../../../queries/finance/financeQuery'
 import { useVehicles } from '../../../queries/vehicles/vehicleQuery'
 
@@ -27,9 +34,12 @@ export default function OwnerPaymentsDashboard() {
     }, []).sort()
   }, [vehRows])
 
-  const [form, setForm] = useState({
+  const [editingId, setEditingId] = useState(null)
+  
+  const initialForm = {
     payment_number: `OP-${Date.now()}`,
     owner_name: '',
+    vehicle_id: '',
     trip_id: '',
     payment_date: new Date().toISOString().slice(0, 10),
     booked_price: '',
@@ -37,8 +47,14 @@ export default function OwnerPaymentsDashboard() {
     tds_amount: '0',
     advance_deduction: '0',
     net_payable: '',
+    amount_paid: '0',
     payment_mode: 'BANK_TRANSFER',
-  })
+    reference_number: '',
+    status: 'PENDING',
+    notes: '',
+  }
+
+  const [form, setForm] = useState(initialForm)
   const queryParams = useMemo(() => {
     const p = {}
     if (search) p.search = search
@@ -49,6 +65,8 @@ export default function OwnerPaymentsDashboard() {
   const approve = useApproveOwnerPayment()
   const markPaid = useMarkOwnerPaymentPaid()
   const createOwner = useCreateOwnerPayment()
+  const updateOwner = useUpdateOwnerPayment()
+  const deleteOwner = useDeleteOwnerPayment()
   const rows = asList(data)
   const stats = useMemo(() => ([
     { label: 'Total', value: data?.count || rows.length, className: 'text-blue-600' },
@@ -94,16 +112,44 @@ export default function OwnerPaymentsDashboard() {
           },
           { key: 'payment_date', title: 'Payment Date' },
           { key: 'net_payable', title: 'Net Payable', render: (v) => Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2 }) },
-          { key: 'tds_amount', title: 'TDS', render: (v) => Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2 }) },
+          { key: 'amount_paid', title: 'Paid', render: (v) => Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2 }) },
           { key: 'status', title: 'Status' },
         ]}
         actions={(
-          <button type="button" onClick={() => setShowCreate(true)} className="inline-flex items-center gap-1 px-4 py-2 rounded-xl bg-[#0052CC] text-white text-xs font-bold">
+          <button 
+            type="button" 
+            onClick={() => {
+              setForm(initialForm)
+              setEditingId(null)
+              setShowCreate(true)
+            }} 
+            className="inline-flex items-center gap-1 px-4 py-2 rounded-xl bg-gradient-to-r from-[#0052CC] to-[#0747A6] text-white text-xs font-bold shadow-lg shadow-blue-500/20 hover:scale-105 active:scale-95 transition-all"
+          >
             <Plus size={14} /> New owner payment
           </button>
         )}
         rowActions={(row) => (
           <>
+            <button 
+              type="button" 
+              onClick={() => {
+                setForm(row)
+                setEditingId(row.id)
+                setShowCreate(true)
+              }} 
+              className="p-2 text-gray-400 hover:text-[#0052CC] hover:bg-blue-50 rounded-lg transition-all"
+              title="Edit"
+            >
+              <Edit2 size={16} />
+            </button>
+            <button 
+              type="button" 
+              onClick={() => window.confirm('Delete this payment record?') && deleteOwner.mutate(row.id, { onSuccess: refetch })} 
+              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+              title="Delete"
+            >
+              <Trash2 size={16} />
+            </button>
             {row.status === 'PENDING' && (
               <button type="button" disabled={approve.isPending} onClick={() => approve.mutate(row.id)} className="p-2 text-gray-400 hover:text-indigo-600 rounded-lg disabled:opacity-50" title="Approve">
                 <CheckCircle2 size={16} />
@@ -118,67 +164,146 @@ export default function OwnerPaymentsDashboard() {
         )}
       />
       {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-xl p-6 max-w-lg w-full space-y-2 shadow-xl text-xs">
-            <h3 className="text-base font-bold text-[#172B4D]">Create owner payment</h3>
-            <input className="w-full border rounded px-2 py-1" placeholder="Payment #" value={form.payment_number} onChange={(e) => setForm({ ...form, payment_number: e.target.value })} />
-            <select
-              className="w-full border rounded px-2 py-1"
-              value={form.owner_name}
-              onChange={(e) => setForm({ ...form, owner_name: e.target.value })}
-            >
-              <option value="">Select Owner</option>
-              {ownerOptions.map(name => <option key={name} value={name}>{name}</option>)}
-            </select>
-            <select
-              className="w-full border rounded px-2 py-1"
-              value={form.trip_id}
-              onChange={(e) => setForm({ ...form, trip_id: e.target.value })}
-            >
-              <option value="">Link to Trip (Optional)</option>
-              {trips.map(t => {
-                const label = [t.trip_number || t.id.slice(-8).toUpperCase(), t.origin_address, t.destination_address].filter(Boolean).join(' | ')
-                return <option key={t.id} value={t.id}>{label}</option>
-              })}
-            </select>
-            <input type="date" className="w-full border rounded px-2 py-1" value={form.payment_date} onChange={(e) => setForm({ ...form, payment_date: e.target.value })} />
-            <input className="w-full border rounded px-2 py-1" placeholder="Booked price" value={form.booked_price} onChange={(e) => setForm({ ...form, booked_price: e.target.value })} />
-            <input className="w-full border rounded px-2 py-1" placeholder="TDS %" value={form.tds_percentage} onChange={(e) => setForm({ ...form, tds_percentage: e.target.value })} />
-            <input className="w-full border rounded px-2 py-1" placeholder="TDS amount" value={form.tds_amount} onChange={(e) => setForm({ ...form, tds_amount: e.target.value })} />
-            <input className="w-full border rounded px-2 py-1" placeholder="Advance deduction" value={form.advance_deduction} onChange={(e) => setForm({ ...form, advance_deduction: e.target.value })} />
-            <input className="w-full border rounded px-2 py-1" placeholder="Net payable" value={form.net_payable} onChange={(e) => setForm({ ...form, net_payable: e.target.value })} />
-            <select className="w-full border rounded px-2 py-1" value={form.payment_mode} onChange={(e) => setForm({ ...form, payment_mode: e.target.value })}>
-              <option value="BANK_TRANSFER">BANK_TRANSFER</option>
-              <option value="CASH">CASH</option>
-              <option value="UPI">UPI</option>
-              <option value="NEFT">NEFT</option>
-              <option value="RTGS">RTGS</option>
-              <option value="CHEQUE">CHEQUE</option>
-            </select>
-            <div className="flex justify-end gap-2 pt-2">
-              <button type="button" className="px-3 py-1" onClick={() => setShowCreate(false)}>Cancel</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#091E42]/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl p-6 max-w-2xl w-full space-y-4 shadow-2xl border border-white/20 animate-in zoom-in-95 duration-200">
+            <div className="flex flex-col gap-1">
+              <h3 className="text-xl font-black text-[#172B4D] tracking-tight">{editingId ? 'Edit owner payment' : 'Create owner payment'}</h3>
+              <p className="text-xs text-gray-500 font-medium">Record and manage payments to vehicle owners and external partners.</p>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Payment #</label>
+                <input className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 outline-none transition-all" placeholder="Enter payment number" value={form.payment_number} onChange={(e) => setForm({ ...form, payment_number: e.target.value })} />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Owner Name</label>
+                <select
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
+                  value={form.owner_name}
+                  onChange={(e) => setForm({ ...form, owner_name: e.target.value })}
+                >
+                  <option value="">Select an owner...</option>
+                  {ownerOptions.map(name => <option key={name} value={name}>{name}</option>)}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Vehicle (Optional)</label>
+                <select
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
+                  value={form.vehicle_id}
+                  onChange={(e) => setForm({ ...form, vehicle_id: e.target.value })}
+                >
+                  <option value="">Select a vehicle...</option>
+                  {vehRows.map(v => (
+                    <option key={v.id} value={v.id}>{v.plate_number} {v.owner_name ? `(${v.owner_name})` : ''}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Linked Trip (Optional)</label>
+                <select
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
+                  value={form.trip_id}
+                  onChange={(e) => setForm({ ...form, trip_id: e.target.value })}
+                >
+                  <option value="">Select a trip...</option>
+                  {trips.map(t => {
+                    const label = [t.trip_number || t.id.slice(-8).toUpperCase(), t.origin_address, t.destination_address].filter(Boolean).join(' | ')
+                    return <option key={t.id} value={t.id}>{label}</option>
+                  })}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Payment Date</label>
+                <input type="date" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 outline-none transition-all" value={form.payment_date} onChange={(e) => setForm({ ...form, payment_date: e.target.value })} />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Booked Price</label>
+                <input className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 outline-none transition-all" type="number" placeholder="0.00" value={form.booked_price} onChange={(e) => setForm({ ...form, booked_price: e.target.value })} />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">TDS %</label>
+                <input className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 outline-none transition-all" type="number" placeholder="0" value={form.tds_percentage} onChange={(e) => setForm({ ...form, tds_percentage: e.target.value })} />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">TDS Amount</label>
+                <input className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 outline-none transition-all" type="number" placeholder="0.00" value={form.tds_amount} onChange={(e) => setForm({ ...form, tds_amount: e.target.value })} />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Advance Deduction</label>
+                <input className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 outline-none transition-all" type="number" placeholder="0.00" value={form.advance_deduction} onChange={(e) => setForm({ ...form, advance_deduction: e.target.value })} />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Net Payable</label>
+                <input className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 outline-none transition-all" type="number" placeholder="0.00" value={form.net_payable} onChange={(e) => setForm({ ...form, net_payable: e.target.value })} />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Amount Paid</label>
+                <input className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 outline-none transition-all" type="number" placeholder="0.00" value={form.amount_paid} onChange={(e) => setForm({ ...form, amount_paid: e.target.value })} />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Payment Mode</label>
+                <select className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 outline-none transition-all" value={form.payment_mode} onChange={(e) => setForm({ ...form, payment_mode: e.target.value })}>
+                  <option value="BANK_TRANSFER">BANK TRANSFER</option>
+                  <option value="CASH">CASH</option>
+                  <option value="UPI">UPI</option>
+                  <option value="NEFT">NEFT</option>
+                  <option value="RTGS">RTGS</option>
+                  <option value="CHEQUE">CHEQUE</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Status</label>
+                <select className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 outline-none transition-all" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+                  <option value="PENDING">Pending</option>
+                  <option value="APPROVED">Approved</option>
+                  <option value="PAID">Paid</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Reference Number</label>
+                <input className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 outline-none transition-all" placeholder="TXN ID / Cheque #" value={form.reference_number} onChange={(e) => setForm({ ...form, reference_number: e.target.value })} />
+              </div>
+
+              <div className="col-span-2 space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Notes</label>
+                <textarea className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 outline-none transition-all min-h-[80px]" placeholder="Add any additional remarks..." value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+              <button type="button" className="px-5 py-2 text-sm font-bold text-gray-500 hover:text-gray-700 transition-colors" onClick={() => setShowCreate(false)}>Cancel</button>
               <button
                 type="button"
-                className="px-3 py-1 rounded-lg bg-[#0052CC] text-white font-bold"
-                disabled={createOwner.isPending}
+                className="px-8 py-2.5 rounded-xl bg-[#0052CC] text-white text-sm font-bold shadow-lg shadow-blue-500/20 active:scale-95 transition-all disabled:opacity-50"
+                disabled={createOwner.isPending || updateOwner.isPending}
                 onClick={() => {
-                  const payload = {
-                    payment_number: form.payment_number,
-                    owner_name: form.owner_name,
-                    payment_date: form.payment_date,
-                    booked_price: form.booked_price || '0',
-                    tds_percentage: form.tds_percentage || '0',
-                    tds_amount: form.tds_amount || '0',
-                    advance_deduction: form.advance_deduction || '0',
-                    net_payable: form.net_payable || '0',
-                    payment_mode: form.payment_mode,
-                    status: 'PENDING',
+                  const payload = { ...form }
+                  if (!payload.vehicle_id) delete payload.vehicle_id
+                  if (!payload.trip_id) delete payload.trip_id
+                  
+                  if (editingId) {
+                    updateOwner.mutate({ id: editingId, data: payload }, { onSuccess: () => { setShowCreate(false); refetch() } })
+                  } else {
+                    createOwner.mutate(payload, { onSuccess: () => { setShowCreate(false); refetch() } })
                   }
-                  if (form.trip_id) payload.trip_id = form.trip_id
-                  createOwner.mutate(payload, { onSuccess: () => { setShowCreate(false); refetch() } })
                 }}
               >
-                Create
+                {editingId ? 'Update Payment' : 'Confirm & Save'}
               </button>
             </div>
           </div>
