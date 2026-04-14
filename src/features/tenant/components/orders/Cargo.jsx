@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Package, Plus, Search, Eye, Edit2, Trash2,
+  Package, Plus, Search, Eye, Edit2,
   Scale, Maximize, Move, Hash, RefreshCcw
 } from 'lucide-react';
 import { 
-  useCargoItems, useDeleteCargo
+  useCargoItems
 } from '../../queries/orders/ordersQuery';
 import { 
   CreateCargoModal, 
@@ -44,7 +44,6 @@ export default function CargoMainBody() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedCargo, setSelectedCargo] = useState(null);
-  const deleteCargoMutation = useDeleteCargo();
 
   // Queries
   const queryParams = { page, ordering: '-created_at' };
@@ -273,17 +272,6 @@ export default function CargoMainBody() {
                               title="Edit Cargo"
                             >
                               <Edit2 size={16} />
-                            </button>
-                            <button 
-                              onClick={() => {
-                                if (window.confirm('Delete this cargo item?')) {
-                                  deleteCargoMutation.mutate(item.id);
-                                }
-                              }}
-                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg bg-gray-50 border border-gray-100"
-                              title="Delete Cargo"
-                            >
-                              <Trash2 size={16} />
                             </button>
                             <button 
                               onClick={() => {
