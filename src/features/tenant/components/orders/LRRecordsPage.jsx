@@ -3,8 +3,7 @@ import { useQueries } from '@tanstack/react-query'
 import { FileSpreadsheet, RefreshCw, Search } from 'lucide-react'
 
 import { settlementApi } from '../../api/finance/financeEndpoint'
-import { useTripsLookup } from '../../queries/finance/financeQuery'
-import { useOrders } from '../../queries/orders/ordersQuery'
+import { useTrips, useOrders } from '../../queries/orders/ordersQuery'
 import { useCustomers } from '../../queries/customers/customersQuery'
 
 const asList = (d) => d?.results || (Array.isArray(d) ? d : [])
@@ -93,7 +92,7 @@ export default function LRRecordsPage() {
   const [search, setSearch] = useState('')
   const [selectedTripId, setSelectedTripId] = useState('')
 
-  const { data: tripsData, isLoading: tripsLoading, refetch } = useTripsLookup({ page_size: 500 })
+  const { data: tripsData, isLoading: tripsLoading, refetch } = useTrips({ page_size: 200 })
   const trips = asList(tripsData)
 
   const settlementQueries = useQueries({
@@ -106,8 +105,8 @@ export default function LRRecordsPage() {
       : [],
   })
 
-  const { data: ordersData } = useOrders({ page_size: 500 })
-  const { data: customersData } = useCustomers({ page_size: 500 })
+  const { data: ordersData } = useOrders({ page_size: 200 })
+  const { data: customersData } = useCustomers({ page_size: 200 })
 
   const orders = asList(ordersData)
   const customers = asList(customersData)
