@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
+import {
   Plus, Search, Download, XCircle, Truck,
   Package, CheckCircle2, Clock, RefreshCcw, Eye
 } from 'lucide-react';
-import { 
+import {
   useOrders
 } from '../../queries/orders/ordersQuery';
 import { useCustomers } from '../../queries/customers/customersQuery';
-import { 
+import {
   CreateOrderModal
 } from './OrderModals';
 
@@ -45,7 +45,7 @@ const FILTER_SELECT_CLASS =
 
 export default function Orders() {
   const navigate = useNavigate();
-  
+
   // -- State --
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -99,10 +99,10 @@ export default function Orders() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] p-6 lg:p-8">
-      {/* Header section with high-density stats */}
-      <div className="max-w-[1600px] mx-auto space-y-8">
-        
+  <div className="flex-1 min-h-0 overflow-hidden bg-[#F8FAFC] flex flex-col  relative">
+      <div className="p-8 flex-1 flex flex-col min-h-0">
+        {/* Header section with high-density stats */}
+
         <div className="flex items-center">
           <div className="w-1/4">
             <h1 className="text-2xl font-bold text-[#172B4D]">Order Management</h1>
@@ -130,7 +130,7 @@ export default function Orders() {
             <button className="flex items-center gap-2 px-3 py-2 bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white rounded-xl transition-all font-bold text-xs shadow-sm">
               <Download size={14} /> Export
             </button>
-            <button 
+            <button
               onClick={() => setIsCreateOpen(true)}
               className="flex items-center gap-2 px-5 py-2.5 bg-[#0052CC] rounded-xl text-xs font-bold text-white hover:bg-[#0747A6] shadow-md shadow-blue-100 transition-all"
             >
@@ -139,248 +139,248 @@ export default function Orders() {
           </div>
         </div>
 
-        {/* Table */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden min-h-[600px] flex flex-col">
-          <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
-            <div className="flex items-center gap-2">
-              <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total:</span>
-              <span className="text-[18px] font-black text-blue-600">{stats.total}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Draft:</span>
-              <span className="text-[18px] font-black text-amber-600">{stats.draft}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">In Transit:</span>
-              <span className="text-[18px] font-black text-indigo-600">{stats.in_transit}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Delivered:</span>
-              <span className="text-[18px] font-black text-green-600">{stats.delivered}</span>
-            </div>
-          </div>
-          
-          <div className="p-4 border-b border-gray-50 flex flex-col lg:flex-row gap-4 items-center justify-between bg-gray-50/20">
-            <div className="w-full lg:w-auto flex flex-wrap items-center gap-3">
-              {/* Status Filter */}
-              <select
-                value={filterStatus}
-                onChange={(e) => {
-                  setFilterStatus(e.target.value)
-                  setPage(1)
-                }}
-                className={`${FILTER_SELECT_CLASS} min-w-[140px]`}
-              >
-                {STATUS_OPTIONS.map((status) => (
-                  <option key={status} value={status}>{status}</option>
-                ))}
-              </select>
-
-              {/* Billing Customer Filter */}
-              <select
-                value={filterCustomer}
-                onChange={(e) => {
-                  setFilterCustomer(e.target.value)
-                  setPage(1)
-                }}
-                className={`${FILTER_SELECT_CLASS} min-w-[220px] max-w-[300px]`}
-              >
-                <option value="">All Billing Customers</option>
-                {customers.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.legal_name || c.trading_name} {c.customer_code ? `(${c.customer_code})` : ''} - {c.customer_type || 'N/A'}
-                  </option>
-                ))}
-              </select>
-
-              {/* Order Type Filter */}
-              <select
-                value={filterOrderType}
-                onChange={(e) => {
-                  setFilterOrderType(e.target.value)
-                  setPage(1)
-                }}
-                className={`${FILTER_SELECT_CLASS} min-w-[130px]`}
-              >
-                {ORDER_TYPE_OPTIONS.map((type) => (
-                  <option key={type} value={type}>{type}</option>
-                ))}
-              </select>
-
-              {/* Pickup Date Filter */}
-              <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-sm">
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Pickup Date:</span>
-                <input
-                  type="date"
-                  value={filterPickupDate}
-                  onChange={(e) => {
-                    setFilterPickupDate(e.target.value)
-                    setPage(1)
-                  }}
-                  className="bg-transparent border-none outline-none text-[11px] font-semibold text-gray-600 focus:ring-0 p-0 h-auto"
-                  title="Filter by Pickup Date"
-                />
+        {/* Table Container */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm flex-1 flex flex-col min-h-0 overflow-hidden mt-2">
+            <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total:</span>
+                <span className="text-[18px] font-black text-blue-600">{stats.total}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Draft:</span>
+                <span className="text-[18px] font-black text-amber-600">{stats.draft}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">In Transit:</span>
+                <span className="text-[18px] font-black text-indigo-600">{stats.in_transit}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Delivered:</span>
+                <span className="text-[18px] font-black text-green-600">{stats.delivered}</span>
               </div>
             </div>
-            
-            <div className="hidden lg:block">
-               <button 
-                 onClick={() => {
-                   setFilterStatus('All Status');
-                   setFilterCustomer('');
-                   setFilterOrderType('All Types');
-                   setFilterPickupDate('');
-                   setOrdering('-created_at');
-                   setSearch('');
-                   setSearchInput('');
-                   setPage(1);
-                 }}
-                 className="text-[10px] font-black text-blue-600 hover:text-blue-700 uppercase tracking-widest px-3 py-1 hover:bg-blue-50 rounded-lg transition-all"
-               >
-                 Clear All
-               </button>
-            </div>
-          </div>
 
-          <div className="flex-1 overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50/50">
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">LR Details</th>
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Entities (F/T)</th>
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Billing Customer</th>
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Schedule</th>
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 text-center">Status</th>
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {isLoading ? (
-                  Array(5).fill(0).map((_, i) => (
-                    <tr key={i} className="animate-pulse">
-                      <td colSpan="7" className="px-6 py-5 underline-offset-1 h-20 bg-gray-50/10"></td>
-                    </tr>
-                  ))
-                ) : orders.length > 0 ? (
-                  orders.map((order) => {
-                    const st = STATUS_CONFIG[order.status] || STATUS_CONFIG.DRAFT;
-                    return (
-                    <tr key={order.id} className="hover:bg-blue-50/30 transition-colors group">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${st.bg} ${st.color} border ${st.border}`}>
-                            <Package size={16} />
-                          </div>
-                          <div>
-                            <p className="text-[13px] font-bold text-[#172B4D] leading-none mb-1 group-hover:text-[#0052CC] transition-colors">{order.lr_number}</p>
-                            <p className={`${order.status === 'CANCELLED' ? 'text-red-400' : 'text-gray-400'} text-[9px] font-mono mt-0.5 whitespace-nowrap`}>
-                              Ref Number: {order.reference_number || 'N/A'}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="text-[13px] font-bold text-gray-700 truncate w-32" title={`From: ${getCustomerName(order.consignor_id)}`}>
-                          <span className="text-[10px] text-gray-400 mr-1">F:</span>{getCustomerName(order.consignor_id)}
-                        </p>
-                        <p className="text-[13px] font-bold text-gray-700 truncate w-32 mt-0.5" title={`To: ${getCustomerName(order.consignee_id)}`}>
-                          <span className="text-[10px] text-gray-400 mr-1">T:</span>{getCustomerName(order.consignee_id)}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="text-[13px] font-bold text-[#172B4D] leading-none">{getCustomerName(order.billing_customer_id)}</p>
-                        <p className="text-[9px] text-gray-400 mt-1 font-bold uppercase">{order.order_type}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-1.5 grayscale opacity-60">
-                            <Clock size={12} className="text-blue-500" />
-                            <span className="text-[10px] font-bold text-gray-500">{order.pickup_date || 'TBD'}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <CheckCircle2 size={12} className="text-green-500" />
-                            <span className="text-[10px] font-bold text-gray-500">{order.delivery_date || 'TBD'}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <Clock size={12} className="text-gray-400" />
-                            <span className="text-[10px] font-bold text-gray-500">{order.lr_receiving_date || 'LR TBD'}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex justify-center">
-                          <div className="text-center">
-                            <span className={`px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 border shadow-sm ${st.color} ${st.bg} ${st.border}`}>
-                              <span className="relative flex h-1.5 w-1.5">
-                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${st.color.replace('text', 'bg')}`}></span>
-                                <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${st.color.replace('text', 'bg')}`}></span>
-                              </span>
-                              {order.status}
-                            </span>
-                            <p className="mt-1 text-[9px] font-semibold text-gray-400">Derived from trips</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-2">
-                          <button 
-                            onClick={() => handleView(order.id)}
-                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-white rounded-lg border border-transparent hover:border-blue-100 shadow-sm transition-all"
-                            title="Quick View Record"
-                          >
-                            <Eye size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                   );
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan="7" className="px-6 py-20 text-center">
-                      <div className="flex flex-col items-center justify-center opacity-20">
-                        <Package size={48} className="mb-4" />
-                        <p className="text-sm font-black uppercase tracking-[0.2em]">No Shipment Records found</p>
-                      </div>
-                    </td>
+            <div className="p-4 border-b border-gray-50 flex flex-col lg:flex-row gap-4 items-center justify-between bg-gray-50/20">
+              <div className="w-full lg:w-auto flex flex-wrap items-center gap-3">
+                {/* Status Filter */}
+                <select
+                  value={filterStatus}
+                  onChange={(e) => {
+                    setFilterStatus(e.target.value)
+                    setPage(1)
+                  }}
+                  className={`${FILTER_SELECT_CLASS} min-w-[140px]`}
+                >
+                  {STATUS_OPTIONS.map((status) => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
+
+                {/* Billing Customer Filter */}
+                <select
+                  value={filterCustomer}
+                  onChange={(e) => {
+                    setFilterCustomer(e.target.value)
+                    setPage(1)
+                  }}
+                  className={`${FILTER_SELECT_CLASS} min-w-[220px] max-w-[300px]`}
+                >
+                  <option value="">All Billing Customers</option>
+                  {customers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.legal_name || c.trading_name} {c.customer_code ? `(${c.customer_code})` : ''} - {c.customer_type || 'N/A'}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Order Type Filter */}
+                <select
+                  value={filterOrderType}
+                  onChange={(e) => {
+                    setFilterOrderType(e.target.value)
+                    setPage(1)
+                  }}
+                  className={`${FILTER_SELECT_CLASS} min-w-[130px]`}
+                >
+                  {ORDER_TYPE_OPTIONS.map((type) => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+
+                {/* Pickup Date Filter */}
+                <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-sm">
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Pickup Date:</span>
+                  <input
+                    type="date"
+                    value={filterPickupDate}
+                    onChange={(e) => {
+                      setFilterPickupDate(e.target.value)
+                      setPage(1)
+                    }}
+                    className="bg-transparent border-none outline-none text-[11px] font-semibold text-gray-600 focus:ring-0 p-0 h-auto"
+                    title="Filter by Pickup Date"
+                  />
+                </div>
+              </div>
+
+              <div className="hidden lg:block">
+                <button
+                  onClick={() => {
+                    setFilterStatus('All Status');
+                    setFilterCustomer('');
+                    setFilterOrderType('All Types');
+                    setFilterPickupDate('');
+                    setOrdering('-created_at');
+                    setSearch('');
+                    setSearchInput('');
+                    setPage(1);
+                  }}
+                  className="text-[10px] font-black text-blue-600 hover:text-blue-700 uppercase tracking-widest px-3 py-1 hover:bg-blue-50 rounded-lg transition-all"
+                >
+                  Clear All
+                </button>
+              </div>
+            </div>
+
+            {/* List Area */}
+            <div className="flex-1 overflow-auto min-h-0">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-[#F8FAFC] border-b border-gray-100 sticky top-0 z-10">
+                  <tr className="bg-gray-50/50">
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">LR Details</th>
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Entities (F/T)</th>
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Billing Customer</th>
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">Schedule</th>
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 text-center">Status</th>
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 text-right">Actions</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination Footer */}
-          <div className="px-6 py-4 border-t border-gray-50 flex items-center justify-between bg-gray-50/20">
-            <p className="text-xs font-semibold text-gray-500">
-              Showing <span className="text-[#172B4D]">{orders.length}</span> of <span className="text-[#172B4D]">{totalCount}</span> active shipments
-            </p>
-            <div className="flex items-center gap-2">
-              <button 
-                disabled={page === 1}
-                onClick={() => setPage(p => p - 1)}
-                className="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-all font-mono"
-              >
-                PREV
-              </button>
-              <span className="px-3 py-1 bg-[#0052CC] text-white rounded-lg text-xs font-black font-mono">{page}</span>
-              <button 
-                disabled={!ordersData?.next}
-                onClick={() => setPage(p => p + 1)}
-                className="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-all font-mono"
-              >
-                NEXT
-              </button>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {isLoading ? (
+                    Array(5).fill(0).map((_, i) => (
+                      <tr key={i} className="animate-pulse">
+                        <td colSpan="7" className="px-6 py-5 underline-offset-1 h-20 bg-gray-50/10"></td>
+                      </tr>
+                    ))
+                  ) : orders.length > 0 ? (
+                    orders.map((order) => {
+                      const st = STATUS_CONFIG[order.status] || STATUS_CONFIG.DRAFT;
+                      return (
+                        <tr key={order.id} className="hover:bg-blue-50/30 transition-colors group">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${st.bg} ${st.color} border ${st.border}`}>
+                                <Package size={16} />
+                              </div>
+                              <div>
+                                <p className="text-[13px] font-bold text-[#172B4D] leading-none mb-1 group-hover:text-[#0052CC] transition-colors">{order.lr_number}</p>
+                                <p className={`${order.status === 'CANCELLED' ? 'text-red-400' : 'text-gray-400'} text-[9px] font-mono mt-0.5 whitespace-nowrap`}>
+                                  Ref Number: {order.reference_number || 'N/A'}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <p className="text-[13px] font-bold text-gray-700 truncate w-32" title={`From: ${getCustomerName(order.consignor_id)}`}>
+                              <span className="text-[10px] text-gray-400 mr-1">F:</span>{getCustomerName(order.consignor_id)}
+                            </p>
+                            <p className="text-[13px] font-bold text-gray-700 truncate w-32 mt-0.5" title={`To: ${getCustomerName(order.consignee_id)}`}>
+                              <span className="text-[10px] text-gray-400 mr-1">T:</span>{getCustomerName(order.consignee_id)}
+                            </p>
+                          </td>
+                          <td className="px-6 py-4">
+                            <p className="text-[13px] font-bold text-[#172B4D] leading-none">{getCustomerName(order.billing_customer_id)}</p>
+                            <p className="text-[9px] text-gray-400 mt-1 font-bold uppercase">{order.order_type}</p>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-1.5 grayscale opacity-60">
+                                <Clock size={12} className="text-blue-500" />
+                                <span className="text-[10px] font-bold text-gray-500">{order.pickup_date || 'TBD'}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <CheckCircle2 size={12} className="text-green-500" />
+                                <span className="text-[10px] font-bold text-gray-500">{order.delivery_date || 'TBD'}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <Clock size={12} className="text-gray-400" />
+                                <span className="text-[10px] font-bold text-gray-500">{order.lr_receiving_date || 'LR TBD'}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex justify-center">
+                              <div className="text-center">
+                                <span className={`px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 border shadow-sm ${st.color} ${st.bg} ${st.border}`}>
+                                  <span className="relative flex h-1.5 w-1.5">
+                                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${st.color.replace('text', 'bg')}`}></span>
+                                    <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${st.color.replace('text', 'bg')}`}></span>
+                                  </span>
+                                  {order.status}
+                                </span>
+                                <p className="mt-1 text-[9px] font-semibold text-gray-400">Derived from trips</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => handleView(order.id)}
+                                className="p-2 text-gray-400 hover:text-blue-600 hover:bg-white rounded-lg border border-transparent hover:border-blue-100 shadow-sm transition-all"
+                                title="Quick View Record"
+                              >
+                                <Eye size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan="7" className="px-6 py-20 text-center">
+                        <div className="flex flex-col items-center justify-center opacity-20">
+                          <Package size={48} className="mb-4" />
+                          <p className="text-sm font-black uppercase tracking-[0.2em]">No Shipment Records found</p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
-          </div>
-        </div>
 
+            {/* Pagination Footer */}
+            <div className="px-6 py-4 border-t border-gray-50 flex items-center justify-between bg-gray-50/20">
+              <p className="text-xs font-semibold text-gray-500">
+                Showing <span className="text-[#172B4D]">{orders.length}</span> of <span className="text-[#172B4D]">{totalCount}</span> active shipments
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  disabled={page === 1}
+                  onClick={() => setPage(p => p - 1)}
+                  className="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-all font-mono"
+                >
+                  PREV
+                </button>
+                <span className="px-3 py-1 bg-[#0052CC] text-white rounded-lg text-xs font-black font-mono">{page}</span>
+                <button
+                  disabled={!ordersData?.next}
+                  onClick={() => setPage(p => p + 1)}
+                  className="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-all font-mono"
+                >
+                  NEXT
+                </button>
+              </div>
+            </div>
       </div>
-
-      {/* Modals */}
-      <CreateOrderModal 
-        isOpen={isCreateOpen} 
-        onClose={() => setIsCreateOpen(false)} 
-      />
     </div>
+
+    {/* Modals */}
+    <CreateOrderModal 
+      isOpen={isCreateOpen} 
+      onClose={() => setIsCreateOpen(false)} 
+    />
+  </div>
   );
 }

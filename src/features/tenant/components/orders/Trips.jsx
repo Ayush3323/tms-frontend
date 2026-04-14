@@ -148,8 +148,7 @@ export default function TripsMainBody() {
 
   return (
     <div className="flex-1 min-h-0 overflow-hidden bg-[#F8FAFC] flex flex-col relative">
-      <div className="p-6 lg:p-8 flex-1 flex flex-col min-h-0">
-        <div className="max-w-[1600px] mx-auto w-full space-y-8 flex-1 flex flex-col min-h-0">
+      <div className="p-8 flex-1 flex flex-col min-h-0">
           <div className="flex items-center">
             <div className="w-1/4">
               <h1 className="text-2xl font-bold text-[#172B4D]">Trip Management</h1>
@@ -191,10 +190,12 @@ export default function TripsMainBody() {
                 <Plus size={16} /> Plan New Trip
               </button>
             </div>
-          </div>
+        </div>
 
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden min-h-[600px] flex flex-col flex-1 min-h-0">
-            <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+        {/* Table Container */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm flex-1 flex flex-col min-h-0 overflow-hidden mt-2">
+          {/* Stats Row */}
+          <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
               {isLoading ? (
                 <div className="flex gap-6 animate-pulse">
                   <div className="h-5 bg-gray-200 rounded w-28" />
@@ -252,9 +253,10 @@ export default function TripsMainBody() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-x-auto min-h-0">
+            {/* Scrollable Table Area */}
+            <div className="flex-1 overflow-auto min-h-0">
               <table className="w-full text-left border-collapse min-w-[1100px]">
-                <thead>
+                <thead className="bg-[#F8FAFC] border-b border-gray-100 sticky top-0 z-10">
                   <tr className="bg-gray-50/50">
                     <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">
                       Trip
@@ -414,7 +416,7 @@ export default function TripsMainBody() {
             </div>
           </div>
         </div>
-      </div>
+      {/* </div> */}
 
       {selectedTrip && (
         <EditTripModal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} trip={selectedTrip} />
