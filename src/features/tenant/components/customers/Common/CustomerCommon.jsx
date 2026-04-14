@@ -165,12 +165,26 @@ export const CreatePortalUserSection = ({
               placeholder="Doe"
             />
           </Field>
-          <Field label="Phone Number" error={errors['user.phone']}>
-            <Input
-              value={form.user.phone}
-              onChange={e => setField('user.phone', e.target.value)}
-              placeholder="+91 ..."
-            />
+          <Field label="Phone Number" required error={errors['user.phone']}>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-bold select-none pointer-events-none">+91</span>
+              <Input
+                value={form.user.phone}
+                onChange={e => {
+                  const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                  setField('user.phone', val);
+                }}
+                placeholder="9876543210"
+                maxLength={10}
+                inputMode="numeric"
+                className="pl-12"
+              />
+            </div>
+            {form.user.phone && !/^[6-9]\d{9}$/.test(form.user.phone) && (
+              <p className="text-[11px] text-amber-600 mt-1 font-medium">
+                Must be 10 digits starting with 6, 7, 8, or 9
+              </p>
+            )}
           </Field>
         </div>
       )}
