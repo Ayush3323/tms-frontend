@@ -3,16 +3,16 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useQueries } from '@tanstack/react-query'
 import { ArrowLeft, Settings2 } from 'lucide-react'
 
-import { advanceApi } from '../../api/finance/financeEndpoint'
+import { advanceApi } from '../../../api/finance/financeEndpoint'
 import {
   useAdvanceApprovals,
   useAdvanceCategories,
   useAdvanceDetail,
   useAdvanceDisbursements,
   useTripsLookup,
-} from '../../queries/finance/financeQuery'
-import { useDrivers } from '../../queries/drivers/driverCoreQuery'
-import { getDriverName } from '../Drivers/common/utils'
+} from '../../../queries/finance/financeQuery'
+import { useDrivers } from '../../../queries/drivers/driverCoreQuery'
+import { getDriverName } from '../../Drivers/common/utils'
 import AdvanceCategoryModal from './AdvanceCategoryModal'
 
 const asList = (data) => data?.results || (Array.isArray(data) ? data : [])

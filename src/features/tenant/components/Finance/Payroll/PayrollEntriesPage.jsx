@@ -2,10 +2,10 @@ import React, { useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Coins } from 'lucide-react'
 
-import FinanceListPage from './FinanceListPage'
-import { useMarkPayrollEntryPaid, usePayrollEntries } from '../../queries/finance/financeQuery'
-import { useDrivers } from '../../queries/drivers/driverCoreQuery'
-import { getDriverName } from '../Drivers/common/utils'
+import FinanceListPage from '../Common/FinanceListPage'
+import { useMarkPayrollEntryPaid, usePayrollEntries } from '../../../queries/finance/financeQuery'
+import { useDrivers } from '../../../queries/drivers/driverCoreQuery'
+import { getDriverName } from '../../Drivers/common/utils'
 
 const asList = (data) => data?.results || (Array.isArray(data) ? data : [])
 

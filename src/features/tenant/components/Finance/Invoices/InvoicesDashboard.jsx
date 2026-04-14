@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { Eye } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
-import FinanceListPage from './FinanceListPage'
+import FinanceListPage from '../Common/FinanceListPage'
 import {
   useCreateInvoice,
   useCreateInvoiceLineItem,
@@ -11,8 +11,8 @@ import {
   useInvoiceEligibleTrips,
   useInvoices,
   useTripsLookup,
-} from '../../queries/finance/financeQuery'
-import { useCustomers } from '../../queries/customers/customersQuery'
+} from '../../../queries/finance/financeQuery'
+import { useCustomers } from '../../../queries/customers/customersQuery'
 
 const asList = (data) => data?.results || (Array.isArray(data) ? data : [])
 

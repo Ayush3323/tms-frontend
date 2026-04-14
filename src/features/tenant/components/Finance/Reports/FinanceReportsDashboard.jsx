@@ -6,7 +6,7 @@ import {
   useOwnerPayablesReport,
   useTDSRegisterReport,
   useTripProfitabilityReport,
-} from '../../queries/finance/financeQuery'
+} from '../../../queries/finance/financeQuery'
 
 const number = (value) => {
   const n = Number(value || 0)

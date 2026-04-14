@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { CheckCircle2, Coins, Plus, XCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
-import FinanceListPage from './FinanceListPage'
+import FinanceListPage from '../Common/FinanceListPage'
 import {
   useAdvanceCategories,
   useAdvances,
@@ -14,9 +14,9 @@ import {
   useSettleAdvance,
   useTripsLookup,
   useUpdateAdvanceCategory,
-} from '../../queries/finance/financeQuery'
-import { useDrivers } from '../../queries/drivers/driverCoreQuery'
-import { getDriverName } from '../Drivers/common/utils'
+} from '../../../queries/finance/financeQuery'
+import { useDrivers } from '../../../queries/drivers/driverCoreQuery'
+import { getDriverName } from '../../Drivers/common/utils'
 import AdvanceCategoryModal from './AdvanceCategoryModal'
 
 const asList = (data) => data?.results || (Array.isArray(data) ? data : [])

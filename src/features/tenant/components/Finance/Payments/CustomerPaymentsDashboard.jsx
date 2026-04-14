@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { CheckCircle2, GitMerge, Plus, XCircle } from 'lucide-react'
 
-import FinanceListPage from './FinanceListPage'
+import FinanceListPage from '../Common/FinanceListPage'
 import {
   useAutoReconcilePayment,
   useBounceCustomerPayment,
@@ -9,8 +9,8 @@ import {
   useCustomerPayments,
   useReconcilePayment,
   useVerifyCustomerPayment,
-} from '../../queries/finance/financeQuery'
-import { useCustomers } from '../../queries/customers/customersQuery'
+} from '../../../queries/finance/financeQuery'
+import { useCustomers } from '../../../queries/customers/customersQuery'
 
 const asList = (data) => data?.results || (Array.isArray(data) ? data : [])
 

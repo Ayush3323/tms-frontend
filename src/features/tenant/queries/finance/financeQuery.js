@@ -519,6 +519,32 @@ export const useReconcilePayment = () => {
     onError: onErr('Reconciliation failed'),
   })
 }
+export const useUpdateReconciliation = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => reconciliationApi.update(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'customerPayments'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'invoices'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'reconciliations'] })
+      toast.success('Reconciliation updated')
+    },
+    onError: onErr('Reconciliation update failed'),
+  })
+}
+export const useDeleteReconciliation = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: reconciliationApi.delete,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'customerPayments'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'invoices'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'reconciliations'] })
+      toast.success('Reconciliation deleted')
+    },
+    onError: onErr('Failed to delete reconciliation'),
+  })
+}
 export const useGeneratePayrollEntries = () => {
   const qc = useQueryClient()
   return useMutation({

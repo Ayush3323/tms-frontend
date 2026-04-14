@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react'
 
-import FinanceListPage from './FinanceListPage'
-import { useCloseFinancePeriod, useCreateFinancePeriod, useFinancePeriods } from '../../queries/finance/financeQuery'
+import FinanceListPage from '../Common/FinanceListPage'
+import { useCloseFinancePeriod, useCreateFinancePeriod, useFinancePeriods } from '../../../queries/finance/financeQuery'
 
 const asList = (data) => data?.results || (Array.isArray(data) ? data : [])
 

@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from 'react'
 import { CheckCircle2, Plus } from 'lucide-react'
 
-import FinanceListPage from './FinanceListPage'
-import { useApproveOwnerPayment, useCreateOwnerPayment, useMarkOwnerPaymentPaid, useOwnerPayments } from '../../queries/finance/financeQuery'
-import { useTripsLookup } from '../../queries/finance/financeQuery'
-import { useVehicles } from '../../queries/vehicles/vehicleQuery'
+import FinanceListPage from '../Common/FinanceListPage'
+import { useApproveOwnerPayment, useCreateOwnerPayment, useMarkOwnerPaymentPaid, useOwnerPayments } from '../../../queries/finance/financeQuery'
+import { useTripsLookup } from '../../../queries/finance/financeQuery'
+import { useVehicles } from '../../../queries/vehicles/vehicleQuery'
 
 const asList = (data) => data?.results || (Array.isArray(data) ? data : [])
 

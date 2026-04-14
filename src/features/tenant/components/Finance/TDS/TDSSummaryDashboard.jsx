@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { CheckCircle2, Coins } from 'lucide-react'
 
-import FinanceListPage from './FinanceListPage'
+import FinanceListPage from '../Common/FinanceListPage'
 import {
   useFileTDSReturn,
   useIssueTDSCertificate,
@@ -10,7 +10,7 @@ import {
   useTDSReturns,
   useTDSEntries,
   useTripsLookup,
-} from '../../queries/finance/financeQuery'
+} from '../../../queries/finance/financeQuery'
 
 const asList = (data) => data?.results || (Array.isArray(data) ? data : [])
 

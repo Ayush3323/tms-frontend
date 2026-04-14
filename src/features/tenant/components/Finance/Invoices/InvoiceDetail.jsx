@@ -12,7 +12,7 @@ import {
   useInvoiceLineItems,
   useMarkInvoiceOverdue,
   usePostInvoice,
-} from '../../queries/finance/financeQuery'
+} from '../../../queries/finance/financeQuery'
 
 const asList = (data) => data?.results || (Array.isArray(data) ? data : [])
 const money = (value) => Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })

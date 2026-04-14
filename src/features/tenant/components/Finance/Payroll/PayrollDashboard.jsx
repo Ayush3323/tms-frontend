@@ -2,14 +2,14 @@ import React, { useMemo, useState } from 'react'
 import { CheckCircle2, Coins, List, Plus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
-import FinanceListPage from './FinanceListPage'
+import FinanceListPage from '../Common/FinanceListPage'
 import {
   useClosePayrollPeriod,
   useCreatePayrollPeriod,
   useGeneratePayrollEntries,
   useMarkAllPayrollPaid,
   usePayrollPeriods,
-} from '../../queries/finance/financeQuery'
+} from '../../../queries/finance/financeQuery'
 
 const asList = (data) => data?.results || (Array.isArray(data) ? data : [])
 

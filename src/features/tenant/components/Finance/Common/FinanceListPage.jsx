@@ -28,6 +28,7 @@ export default function FinanceListPage({
   embedded = false,
   /** When false, search box is hidden (e.g. payroll entries drill-down). */
   showSearch = true,
+  onRowClick,
 }) {
   const shellClass = embedded ? 'space-y-8' : 'min-h-screen bg-[#F8FAFC] p-6 lg:p-8'
 
@@ -94,7 +95,11 @@ export default function FinanceListPage({
                   ))
                 ) : rows.length ? (
                   rows.map((row) => (
-                    <tr key={row[keyField]} className="hover:bg-blue-50/30 transition-colors group">
+                    <tr 
+                      key={row[keyField]} 
+                      onClick={() => onRowClick?.(row)}
+                      className={`hover:bg-blue-50/30 transition-colors group ${onRowClick ? 'cursor-pointer' : ''}`}
+                    >
                       {columns.map((c) => (
                         <td key={c.key} className="px-6 py-4 text-[13px] font-bold text-[#172B4D]">
                           {c.key === 'status' ? (
