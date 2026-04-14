@@ -179,6 +179,7 @@ export function CreateTripModal({ isOpen, onClose, orderId, orderNumber }) {
       ...prev,
       order_id: id,
       lr_number: order ? order.lr_number : "",
+      trip_type: order ? (order.order_type || prev.trip_type || "FTL") : prev.trip_type,
       status: order ? 'ASSIGNED' : (prev.status || 'CREATED'),
     }));
   };
@@ -910,6 +911,7 @@ export function EditTripModal({ isOpen, onClose, trip }) {
                       <option value="LTL">LTL</option>
                       <option value="CONTAINER">CONTAINER</option>
                       <option value="COURIER">COURIER</option>
+                      <option value="MULTI_DROP">MULTI DROP</option>
                     </select>
                   </FieldGroup>
                 </div>
