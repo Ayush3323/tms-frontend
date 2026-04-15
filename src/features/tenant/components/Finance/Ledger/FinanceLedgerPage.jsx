@@ -35,6 +35,11 @@ export default function FinanceLedgerPage() {
           <>
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div className="min-w-0">
+                <div className="flex items-center gap-2 text-xs font-bold mb-4 opacity-50 uppercase tracking-widest text-[#172B4D]">
+                  <span>Platform</span>
+                  <span className="text-gray-400">/</span>
+                  <span>Finance</span>
+                </div>
                 <h1 className="text-2xl font-bold text-[#172B4D]">Ledger</h1>
                 <p className="text-gray-500 text-sm mt-1">Manage Chart of Accounts and Journal Vouchers</p>
               </div>
@@ -98,8 +103,7 @@ export default function FinanceLedgerPage() {
               { key: 'entry_date', title: 'Date' },
               { key: 'reference_type', title: 'Ref Type' },
               { key: 'trip_id', title: 'Trip' },
-              { key: 'memo', title: 'Memo' },
-              { key: 'view', title: '', render: (_, row) => <span onClick={(e) => { e.stopPropagation(); setSelectedJournalId(row.id); }} className="text-blue-600 font-bold text-xs hover:underline cursor-pointer px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors">View Details</span> }
+              { key: 'view', title: 'Actions', render: (_, row) => <span onClick={(e) => { e.stopPropagation(); setSelectedJournalId(row.id); }} className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white border border-transparent transition-all cursor-pointer">View Details</span> }
             ]}
           />
         )}

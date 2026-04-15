@@ -1,7 +1,9 @@
 import React, { useState } from 'react'
 import { X, Plus, Trash2 } from 'lucide-react'
+import { useCreateJournalEntry } from '../../../queries/finance/financeQuery'
 
 export default function JournalEntryForm({ isOpen, onClose, accounts = [] }) {
+  const mutation = useCreateJournalEntry()
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [reference, setReference] = useState('')
   const [memo, setMemo] = useState('')
@@ -19,12 +21,29 @@ export default function JournalEntryForm({ isOpen, onClose, accounts = [] }) {
     setLines(lines.map(l => {
       if (l.id === id) {
         const updated = { ...l, [field]: value }
-        if (field === 'debit' && value) updated.credit = '' // Mutually exclusive
-        if (field === 'credit' && value) updated.debit = '' // Mutually exclusive
+        if (field === 'debit' && value) updated.credit = '' 
+        if (field === 'credit' && value) updated.debit = '' 
         return updated
       }
       return l
     }))
+  }
+
+  const handlePost = () => {
+    if (!isBalanced) return
+    mutation.mutate({
+      entry_date: date,
+      reference_type: reference,
+      memo,
+      lines: lines.map(l => ({
+        account: l.account_id,
+        debit: l.debit || "0.00",
+        credit: l.credit || "0.00",
+        memo: l.memo
+      }))
+    }, {
+      onSuccess: () => onClose()
+    })
   }
 
   const totalDebit = lines.reduce((sum, l) => sum + (parseFloat(l.debit) || 0), 0)
@@ -74,7 +93,7 @@ export default function JournalEntryForm({ isOpen, onClose, accounts = [] }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {lines.map((line, idx) => (
+                {lines.map((line) => (
                   <tr key={line.id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="p-3">
                       <select value={line.account_id} onChange={e => handleLineChange(line.id, 'account_id', e.target.value)} className="w-full px-3 py-2 bg-transparent border border-gray-200 focus:border-blue-500 rounded-lg text-sm outline-none transition-colors">
@@ -129,16 +148,27 @@ export default function JournalEntryForm({ isOpen, onClose, accounts = [] }) {
               </div>
             </div>
           )}
-        </div>
-
-        {/* Footer */}
-        <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 rounded-b-2xl">
-          <button onClick={onClose} className="px-6 py-2.5 text-sm font-bold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl transition-colors shadow-sm">
-            Cancel
-          </button>
-          <button disabled={!isBalanced} className={`px-8 py-2.5 text-sm font-bold rounded-xl transition-all shadow-sm ${isBalanced ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>
-            Post Entry
-          </button>
+          
+          {/* Footer */}
+          <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 rounded-b-2xl shrink-0">
+            <button
+              onClick={onClose}
+              className="px-6 py-2.5 text-sm font-bold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl transition-colors shadow-sm"
+            >
+              Cancel
+            </button>
+            <button
+              disabled={!isBalanced || mutation.isPending}
+              onClick={handlePost}
+              className={`px-8 py-2.5 text-sm font-bold rounded-xl transition-all shadow-sm ${
+                isBalanced && !mutation.isPending 
+                  ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md' 
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              {mutation.isPending ? 'Posting...' : 'Post Entry'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

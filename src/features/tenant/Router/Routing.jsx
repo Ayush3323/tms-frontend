@@ -63,20 +63,20 @@ import Session from '../components/user/Session'
 import AccessoriesDashboard from '../components/Vehicles/Features/Accessories';
 import VehicleTollTagsDashboard from '../components/Vehicles/Features/TollTags';
 import VehicleOwnershipDashboard from '../components/Vehicles/Features/Ownership';
-import InvoicesDashboard from '../components/Finance/InvoicesDashboard';
-import CustomerPaymentsDashboard from '../components/Finance/CustomerPaymentsDashboard';
-import OwnerPaymentsDashboard from '../components/Finance/OwnerPaymentsDashboard';
-import PayrollDashboard from '../components/Finance/PayrollDashboard';
-import TDSSummaryDashboard from '../components/Finance/TDSSummaryDashboard';
-import AdvancesDashboard from '../components/Finance/AdvancesDashboard';
-import InvoiceDetail from '../components/Finance/InvoiceDetail';
-import AdvanceDetail from '../components/Finance/AdvanceDetail';
-import FinanceReportsDashboard from '../components/Finance/FinanceReportsDashboard';
-import FinancePeriodsPage from '../components/Finance/FinancePeriodsPage';
+import InvoicesDashboard from '../components/Finance/Invoices/InvoicesDashboard';
+import CustomerPaymentsDashboard from '../components/Finance/Payments/CustomerPaymentsDashboard';
+import OwnerPaymentsDashboard from '../components/Finance/Payments/OwnerPaymentsDashboard';
+import PayrollDashboard from '../components/Finance/Payroll/PayrollDashboard';
+import TDSDashboard from '../components/Finance/TDS/TDSDashboard';
+import FinanceLedgerPage from '../components/Finance/Ledger/FinanceLedgerPage';
+import ReconciliationsPage from '../components/Finance/Reconciliations/ReconciliationsPage';
+import AdvancesDashboard from '../components/Finance/Advances/AdvancesDashboard';
+import InvoiceDetail from '../components/Finance/Invoices/InvoiceDetail';
+import AdvanceDetail from '../components/Finance/Advances/AdvanceDetail';
+import FinanceReportsDashboard from '../components/Finance/Reports/FinanceReportsDashboard';
+import FinancePeriodsPage from '../components/Finance/Periods/FinancePeriodsPage';
+import PayrollEntriesPage from '../components/Finance/Payroll/PayrollEntriesPage';
 import LRRecordsPage from '../components/orders/LRRecordsPage';
-import FinanceLedgerPage from '../components/Finance/FinanceLedgerPage';
-import ReconciliationsPage from '../components/Finance/ReconciliationsPage';
-import PayrollEntriesPage from '../components/Finance/PayrollEntriesPage';
 import GeographyDashboard from '../components/MasterData/GeographyDashboard';
 import RateCardsDashboard from '../components/MasterData/RateCardsDashboard';
 import VehicleTypesMasterDashboard from '../components/MasterData/VehicleTypesMasterDashboard';
@@ -174,7 +174,7 @@ const Routing = () => {
         <Route path="finance/owner-payments" element={<OwnerPaymentsDashboard />} />
         <Route path="finance/payroll/:periodId/entries" element={<PayrollEntriesPage />} />
         <Route path="finance/payroll" element={<PayrollDashboard />} />
-        <Route path="finance/tds" element={<TDSSummaryDashboard />} />
+        <Route path="finance/tds" element={<TDSDashboard />} />
         <Route path="finance/advances" element={<AdvancesDashboard />} />
         <Route path="finance/advances/:id" element={<AdvanceDetail />} />
         <Route path="finance/reports" element={<FinanceReportsDashboard />} />

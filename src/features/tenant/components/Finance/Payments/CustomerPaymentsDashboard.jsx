@@ -95,13 +95,27 @@ export default function CustomerPaymentsDashboard() {
         stats={stats}
         rows={rows}
         columns={[
-          { key: 'payment_number', title: 'Payment #' },
-          { key: 'customer_id', title: 'Customer ID' },
-          { key: 'invoice_id', title: 'Invoice ID' },
-          { key: 'payment_date', title: 'Payment Date' },
-          { key: 'amount', title: 'Amount' },
-          { key: 'payment_mode', title: 'Mode' },
-          { key: 'bank_name', title: 'Bank' },
+          { key: 'payment_number', title: 'Payment #', render: (val) => <span className="font-bold text-[#172B4D]">{val}</span> },
+          { 
+            key: 'customer_id', 
+            title: 'Customer', 
+            render: (cid) => {
+              const c = allCustomers.find(cust => cust.id === cid)
+              return <span className="font-medium text-gray-700">{c?.legal_name || cid?.split('-')[0]}</span>
+            }
+          },
+          { 
+            key: 'invoice_id', 
+            title: 'Applied Invoice',
+            render: (iid) => {
+              if (!iid) return <span className="text-gray-400">Unapplied</span>
+              const inv = allInvoices.find(i => i.id === iid)
+              return <span className="font-bold text-[#0052CC]">{inv?.invoice_number || iid?.split('-')[0]}</span>
+            }
+          },
+          { key: 'payment_date', title: 'Date', render: (d) => d ? new Date(d).toLocaleDateString() : '-' },
+          { key: 'amount', title: 'Amount', render: (v) => <span className="font-black text-emerald-600">₹{parseFloat(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span> },
+          { key: 'payment_mode', title: 'Mode', render: (v) => <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-600 uppercase">{v?.replace('_', ' ')}</span> },
           { key: 'status', title: 'Status' },
         ]}
         actions={(

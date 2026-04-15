@@ -69,7 +69,7 @@ const financeSubItems = [
   { name: 'Customer Payments', icon: <Banknote size={13} />, path: '/tenant/dashboard/finance/customer-payments', badge: null },
   { name: 'Owner Payables', icon: <Banknote size={13} />, path: '/tenant/dashboard/finance/owner-payments', badge: null },
   { name: 'Payroll', icon: <Users size={13} />, path: '/tenant/dashboard/finance/payroll', badge: null },
-  { name: 'TDS Summary', icon: <Shield size={13} />, path: '/tenant/dashboard/finance/tds', badge: null },
+  { name: 'TDS Management', icon: <Shield size={13} />, path: '/tenant/dashboard/finance/tds', badge: null },
   { name: 'Advances', icon: <Globe size={13} />, path: '/tenant/dashboard/finance/advances', badge: null },
   { name: 'Reports', icon: <BarChart2 size={13} />, path: '/tenant/dashboard/finance/reports', badge: null },
 ];

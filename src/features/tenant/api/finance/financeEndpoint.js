@@ -2,6 +2,9 @@ import axiosInstance from '../axiosInstance'
 
 const INV_BASE = '/api/v1/finance/invoices'
 const PAY_BASE = '/api/v1/finance/payments'
+const CPAY_BASE = `${PAY_BASE}/customer-payments`
+const OPAY_BASE = `${PAY_BASE}/owner-payments`
+const REC_BASE = `${PAY_BASE}/reconciliations`
 const PRL_BASE = '/api/v1/finance/payroll'
 const TDS_BASE = '/api/v1/finance/tds'
 const ADV_BASE = '/api/v1/finance/advances'
@@ -42,58 +45,75 @@ export const creditNoteApi = {
 }
 
 export const customerPaymentApi = {
-  list: (params) => axiosInstance.get(`${PAY_BASE}/customer-payments/`, { params }).then(r => r.data),
-  get: (id) => axiosInstance.get(`${PAY_BASE}/customer-payments/${id}/`).then(r => r.data),
-  create: (data) => axiosInstance.post(`${PAY_BASE}/customer-payments/`, data).then(r => r.data),
-  update: (id, data) => axiosInstance.patch(`${PAY_BASE}/customer-payments/${id}/`, data).then(r => r.data),
-  delete: (id) => axiosInstance.delete(`${PAY_BASE}/customer-payments/${id}/`).then(r => r.data),
-  verify: (id) => axiosInstance.post(`${PAY_BASE}/customer-payments/${id}/verify/`).then(r => r.data),
-  bounce: (id) => axiosInstance.post(`${PAY_BASE}/customer-payments/${id}/bounce/`).then(r => r.data),
-  autoReconcile: (id) => axiosInstance.post(`${PAY_BASE}/customer-payments/${id}/auto-reconcile/`).then(r => r.data),
+  list: (params) => axiosInstance.get(`${CPAY_BASE}/`, { params }).then(r => r.data),
+  get: (id) => axiosInstance.get(`${CPAY_BASE}/${id}/`).then(r => r.data),
+  create: (data) => axiosInstance.post(`${CPAY_BASE}/`, data).then(r => r.data),
+  update: (id, data) => axiosInstance.patch(`${CPAY_BASE}/${id}/`, data).then(r => r.data),
+  delete: (id) => axiosInstance.delete(`${CPAY_BASE}/${id}/`).then(r => r.data),
+  verify: (id) => axiosInstance.post(`${CPAY_BASE}/${id}/verify/`).then(r => r.data),
+  bounce: (id) => axiosInstance.post(`${CPAY_BASE}/${id}/bounce/`).then(r => r.data),
+  autoReconcile: (id) => axiosInstance.post(`${CPAY_BASE}/${id}/auto-reconcile/`).then(r => r.data),
 }
 
 export const ownerPaymentApi = {
-  list: (params) => axiosInstance.get(`${PAY_BASE}/owner-payments/`, { params }).then(r => r.data),
-  get: (id) => axiosInstance.get(`${PAY_BASE}/owner-payments/${id}/`).then(r => r.data),
-  create: (data) => axiosInstance.post(`${PAY_BASE}/owner-payments/`, data).then(r => r.data),
-  update: (id, data) => axiosInstance.patch(`${PAY_BASE}/owner-payments/${id}/`, data).then(r => r.data),
-  delete: (id) => axiosInstance.delete(`${PAY_BASE}/owner-payments/${id}/`).then(r => r.data),
-  approve: (id) => axiosInstance.post(`${PAY_BASE}/owner-payments/${id}/approve/`).then(r => r.data),
-  markPaid: (id) => axiosInstance.post(`${PAY_BASE}/owner-payments/${id}/mark-paid/`).then(r => r.data),
+  list: (params) => axiosInstance.get(`${OPAY_BASE}/`, { params }).then(r => r.data),
+  get: (id) => axiosInstance.get(`${OPAY_BASE}/${id}/`).then(r => r.data),
+  create: (data) => axiosInstance.post(`${OPAY_BASE}/`, data).then(r => r.data),
+  update: (id, data) => axiosInstance.patch(`${OPAY_BASE}/${id}/`, data).then(r => r.data),
+  delete: (id) => axiosInstance.delete(`${OPAY_BASE}/${id}/`).then(r => r.data),
+  approve: (id) => axiosInstance.post(`${OPAY_BASE}/${id}/approve/`).then(r => r.data),
+  markPaid: (id) => axiosInstance.post(`${OPAY_BASE}/${id}/mark-paid/`).then(r => r.data),
 }
 
 export const reconciliationApi = {
-  list: (params) => axiosInstance.get(`${PAY_BASE}/reconciliations/`, { params }).then(r => r.data),
-  get: (id) => axiosInstance.get(`${PAY_BASE}/reconciliations/${id}/`).then(r => r.data),
-  reconcile: (data) => axiosInstance.post(`${PAY_BASE}/reconciliations/reconcile/`, data).then(r => r.data),
-  delete: (id) => axiosInstance.delete(`${PAY_BASE}/reconciliations/${id}/`).then(r => r.data),
+  list: (params) => axiosInstance.get(`${REC_BASE}/`, { params }).then(r => r.data),
+  get: (id) => axiosInstance.get(`${REC_BASE}/${id}/`).then(r => r.data),
+  create: (data) => axiosInstance.post(`${REC_BASE}/`, data).then(r => r.data),
+  update: (id, data) => axiosInstance.patch(`${REC_BASE}/${id}/`, data).then(r => r.data),
+  delete: (id) => axiosInstance.delete(`${REC_BASE}/${id}/`).then(r => r.data),
+  reconcile: (data) => axiosInstance.post(`${REC_BASE}/reconcile/`, data).then(r => r.data),
 }
 
 export const payrollApi = {
+  // Periods
   listPeriods: (params) => axiosInstance.get(`${PRL_BASE}/periods/`, { params }).then(r => r.data),
   getPeriod: (id) => axiosInstance.get(`${PRL_BASE}/periods/${id}/`).then(r => r.data),
   createPeriod: (data) => axiosInstance.post(`${PRL_BASE}/periods/`, data).then(r => r.data),
   updatePeriod: (id, data) => axiosInstance.patch(`${PRL_BASE}/periods/${id}/`, data).then(r => r.data),
   deletePeriod: (id) => axiosInstance.delete(`${PRL_BASE}/periods/${id}/`).then(r => r.data),
   
-  listEntries: (params) => axiosInstance.get(`${PRL_BASE}/entries/`, { params }).then(r => r.data),
-  getEntry: (id) => axiosInstance.get(`${PRL_BASE}/entries/${id}/`).then(r => r.data),
-  updateEntry: (id, data) => axiosInstance.patch(`${PRL_BASE}/entries/${id}/`, data).then(r => r.data),
-  
   generateEntries: (id) => axiosInstance.post(`${PRL_BASE}/periods/${id}/generate-entries/`).then(r => r.data),
   closePeriod: (id) => axiosInstance.post(`${PRL_BASE}/periods/${id}/close-period/`).then(r => r.data),
   markAllPaid: (id) => axiosInstance.post(`${PRL_BASE}/periods/${id}/mark-all-paid/`).then(r => r.data),
+
+  // Entries
+  listEntries: (params) => axiosInstance.get(`${PRL_BASE}/entries/`, { params }).then(r => r.data),
+  getEntry: (id) => axiosInstance.get(`${PRL_BASE}/entries/${id}/`).then(r => r.data),
+  createEntry: (data) => axiosInstance.post(`${PRL_BASE}/entries/`, data).then(r => r.data),
+  updateEntry: (id, data) => axiosInstance.patch(`${PRL_BASE}/entries/${id}/`, data).then(r => r.data),
+  deleteEntry: (id) => axiosInstance.delete(`${PRL_BASE}/entries/${id}/`).then(r => r.data),
   markEntryPaid: (id) => axiosInstance.post(`${PRL_BASE}/entries/${id}/mark-paid/`).then(r => r.data),
+
+  // Deductions
+  listDeductions: (params) => axiosInstance.get(`${PRL_BASE}/deductions/`, { params }).then(r => r.data),
+  getDeduction: (id) => axiosInstance.get(`${PRL_BASE}/deductions/${id}/`).then(r => r.data),
+  createDeduction: (data) => axiosInstance.post(`${PRL_BASE}/deductions/`, data).then(r => r.data),
+  updateDeduction: (id, data) => axiosInstance.patch(`${PRL_BASE}/deductions/${id}/`, data).then(r => r.data),
+  deleteDeduction: (id) => axiosInstance.delete(`${PRL_BASE}/deductions/${id}/`).then(r => r.data),
 }
 
 export const tdsApi = {
   listEntries: (params) => axiosInstance.get(`${TDS_BASE}/entries/`, { params }).then(r => r.data),
   getEntry: (id) => axiosInstance.get(`${TDS_BASE}/entries/${id}/`).then(r => r.data),
+  createEntry: (data) => axiosInstance.post(`${TDS_BASE}/entries/`, data).then(r => r.data),
   updateEntry: (id, data) => axiosInstance.patch(`${TDS_BASE}/entries/${id}/`, data).then(r => r.data),
+  deleteEntry: (id) => axiosInstance.delete(`${TDS_BASE}/entries/${id}/`).then(r => r.data),
   
   listReturns: (params) => axiosInstance.get(`${TDS_BASE}/quarterly-returns/`, { params }).then(r => r.data),
   getReturn: (id) => axiosInstance.get(`${TDS_BASE}/quarterly-returns/${id}/`).then(r => r.data),
+  createReturn: (data) => axiosInstance.post(`${TDS_BASE}/quarterly-returns/`, data).then(r => r.data),
   updateReturn: (id, data) => axiosInstance.patch(`${TDS_BASE}/quarterly-returns/${id}/`, data).then(r => r.data),
+  deleteReturn: (id) => axiosInstance.delete(`${TDS_BASE}/quarterly-returns/${id}/`).then(r => r.data),
   
   issueCertificate: (id, tds_certificate_number) =>
     axiosInstance.post(`${TDS_BASE}/entries/${id}/issue-certificate/`, { tds_certificate_number }).then(r => r.data),
@@ -148,6 +168,8 @@ export const ledgerApi = {
   getAccount: (id) => axiosInstance.get(`${LED_BASE}/accounts/${id}/`).then(r => r.data),
   listJournalEntries: (params) => axiosInstance.get(`${LED_BASE}/journal-entries/`, { params }).then(r => r.data),
   getJournalEntry: (id) => axiosInstance.get(`${LED_BASE}/journal-entries/${id}/`).then(r => r.data),
+  createJournalEntry: (data) => axiosInstance.post(`${LED_BASE}/journal-entries/`, data).then(r => r.data),
+  deleteJournalEntry: (id) => axiosInstance.delete(`${LED_BASE}/journal-entries/${id}/`).then(r => r.data),
 }
 
 export const settlementApi = {
