@@ -30,11 +30,11 @@ export default function FinanceListPage({
   showSearch = true,
   onRowClick,
 }) {
-  const shellClass = embedded ? 'space-y-8' : 'min-h-screen bg-[#F8FAFC] p-6 lg:p-8'
+  const shellClass = embedded ? 'h-full flex flex-col min-h-0' : 'h-full flex flex-col bg-[#F8FAFC] p-6 lg:p-8 overflow-hidden'
 
   return (
     <div className={shellClass}>
-      <div className="max-w-[1600px] mx-auto space-y-8">
+      <div className="max-w-[1600px] mx-auto w-full flex-1 flex flex-col min-h-0 space-y-6">
         <div className="flex flex-wrap items-start gap-4">
           <div className="min-w-0 flex-1 basis-full sm:basis-[min(280px,100%)]">
             <h1 className="text-2xl font-bold text-[#172B4D]">{title}</h1>
@@ -64,8 +64,8 @@ export default function FinanceListPage({
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden min-h-[600px] flex flex-col">
-          <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden flex-1 flex flex-col min-h-0">
+          <div className="flex items-center gap-8 px-5 py-4 border-b border-gray-100 bg-gray-50/50 shrink-0">
             {stats.map((s) => (
               <div className="flex items-center gap-2" key={s.label}>
                 <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">{s.label}:</span>
@@ -74,16 +74,16 @@ export default function FinanceListPage({
             ))}
           </div>
 
-          <div className="flex-1 overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50/50">
+          <div className="flex-1 overflow-auto min-h-0">
+            <table className="w-full text-left border-separate border-spacing-0">
+              <thead className="sticky top-0 z-10 bg-white">
+                <tr>
                   {columns.map((c) => (
-                    <th key={c.key} className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">
+                    <th key={c.key} className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 bg-white">
                       {c.title}
                     </th>
                   ))}
-                  {rowActions && <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 text-right">Actions</th>}
+                  {rowActions && <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 text-right bg-white">Actions</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -95,8 +95,8 @@ export default function FinanceListPage({
                   ))
                 ) : rows.length ? (
                   rows.map((row) => (
-                    <tr 
-                      key={row[keyField]} 
+                    <tr
+                      key={row[keyField]}
                       onClick={() => onRowClick?.(row)}
                       className={`hover:bg-blue-50/30 transition-colors group ${onRowClick ? 'cursor-pointer' : ''}`}
                     >

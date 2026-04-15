@@ -187,21 +187,6 @@ export default function InvoicesDashboard() {
         subtitle="Manage invoice lifecycle, due amounts, and posting workflow."
         search={search}
         setSearch={setSearch}
-        secondaryFilters={(
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-700"
-          >
-            <option value="">All Statuses</option>
-            <option value="DRAFT">Draft</option>
-            <option value="SENT">Sent</option>
-            <option value="PARTIALLY_PAID">Partially Paid</option>
-            <option value="PAID">Paid</option>
-            <option value="OVERDUE">Overdue</option>
-            <option value="CANCELLED">Cancelled</option>
-          </select>
-        )}
         onRefresh={refetch}
         isLoading={isLoading}
         stats={stats}
@@ -216,35 +201,55 @@ export default function InvoicesDashboard() {
           { key: 'status', title: 'Status' },
         ]}
         actions={(
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={() => setShowCreate(true)}
-              className="px-4 py-2 rounded-xl border border-[#0052CC] text-[#0052CC] text-xs font-bold hover:bg-[#EBF3FF]"
-            >
-              Manual Invoice
-            </button>
+          <button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-[#0052CC] rounded-xl text-xs font-bold text-white hover:bg-[#0747A6] shadow-md shadow-blue-100 transition-all active:scale-95"
+          >
+            <Plus size={16} />
+            Manual Invoice
+          </button>
+        )}
+        secondaryFilters={(
+          <div className="flex items-center gap-3">
             <select
-              value={mode}
-              onChange={(e) => {
-                setMode(e.target.value)
-                setSelectedTripIds([])
-                setSelectedCustomerId('')
-              }}
-              className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-700"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-[12px] font-bold text-[#172B4D] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all hover:border-gray-200 cursor-pointer"
             >
-              <option value="trip">Trip Invoice</option>
-              <option value="consolidated">Consolidated Invoice</option>
+              <option value="">All Statuses</option>
+              <option value="DRAFT">Draft</option>
+              <option value="SENT">Sent</option>
+              <option value="PARTIALLY_PAID">Partially Paid</option>
+              <option value="PAID">Paid</option>
+              <option value="OVERDUE">Overdue</option>
+              <option value="CANCELLED">Cancelled</option>
             </select>
+
+            <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-lg border border-gray-100">
+              <select
+                value={mode}
+                onChange={(e) => {
+                  setMode(e.target.value)
+                  setSelectedTripIds([])
+                  setSelectedCustomerId('')
+                }}
+                className="bg-transparent px-2 py-0.5 text-[11px] font-bold text-[#0052CC] focus:outline-none cursor-pointer"
+              >
+                <option value="trip">Trip Mode</option>
+                <option value="consolidated">Bulk Mode</option>
+              </select>
+            </div>
+
             {mode === 'trip' ? (
-              <>
+              <div className="flex items-center gap-2">
                 <select
                   value={selectedTripId}
                   onChange={(e) => setSelectedTripId(e.target.value)}
-                  className="min-w-[280px] px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-700"
+                  className="min-w-[200px] px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-[12px] font-bold text-[#172B4D] focus:outline-none focus:ring-2 focus:ring-blue-100"
                   disabled={tripsLoading || generateFromTrip.isPending}
                 >
-                  <option value="">{tripsLoading ? 'Loading eligible trips...' : (tripOptions.length === 0 ? 'No eligible trips found' : 'Select Eligible Trip')}</option>
+                  <option value="">{tripsLoading ? 'Loading trips...' : (tripOptions.length === 0 ? 'No trips' : 'Select Trip')}</option>
                   {tripOptions.map((trip) => (
                     <option key={trip.id} value={trip.id}>{trip.label}</option>
                   ))}
@@ -253,42 +258,23 @@ export default function InvoicesDashboard() {
                   type="button"
                   onClick={() => selectedTripId && generateFromTrip.mutate(selectedTripId)}
                   disabled={!selectedTripId || generateFromTrip.isPending}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-[#0052CC] rounded-xl text-xs font-bold text-white hover:bg-[#0747A6] shadow-md shadow-blue-100 transition-all disabled:opacity-50"
+                  className="px-4 py-1.5 bg-blue-50 text-[#0052CC] border border-blue-100 rounded-lg text-[11px] font-bold hover:bg-[#0052CC] hover:text-white transition-all disabled:opacity-50"
                 >
-                  Generate from Trip
+                  Generate
                 </button>
-              </>
+              </div>
             ) : (
-              <>
+              <div className="flex items-center gap-2">
                 <select
                   value={selectedCustomerId}
                   onChange={(e) => setSelectedCustomerId(e.target.value)}
-                  className="min-w-[220px] px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-700"
+                  className="min-w-[180px] px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-[12px] font-bold text-[#172B4D] focus:outline-none focus:ring-2 focus:ring-blue-100"
                 >
-                  <option value="">Select Billing Customer</option>
+                  <option value="">Billing Customer</option>
                   {customerOptions.map((customer) => (
                     <option key={customer.id} value={customer.id}>{customer.label}</option>
                   ))}
                 </select>
-                <select
-                  multiple
-                  value={selectedTripIds}
-                  onChange={(e) => {
-                    const values = Array.from(e.target.selectedOptions).map((o) => o.value)
-                    setSelectedTripIds(values)
-                  }}
-                  className="min-w-[320px] h-20 px-2 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-700"
-                  disabled={!selectedCustomerId || customerTripsLoading}
-                >
-                  {customerTripRows.map((trip) => (
-                    <option key={trip.id} value={trip.id}>
-                      {(trip.trip_number || String(trip.id).slice(-8).toUpperCase())} - {trip.total_bill_amount || 0}
-                    </option>
-                  ))}
-                </select>
-                <div className="text-[11px] font-semibold text-gray-600 min-w-[120px]">
-                  Preview Total: {selectedTripPreviewTotal.toFixed(2)}
-                </div>
                 <button
                   type="button"
                   onClick={() => {
@@ -299,11 +285,11 @@ export default function InvoicesDashboard() {
                     })
                   }}
                   disabled={!selectedCustomerId || selectedTripIds.length === 0 || generateConsolidated.isPending}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-[#0052CC] rounded-xl text-xs font-bold text-white hover:bg-[#0747A6] shadow-md shadow-blue-100 transition-all disabled:opacity-50"
+                  className="px-4 py-1.5 bg-blue-50 text-[#0052CC] border border-blue-100 rounded-lg text-[11px] font-bold hover:bg-[#0052CC] hover:text-white transition-all disabled:opacity-50"
                 >
-                  Generate Consolidated
+                  Consolidate ({selectedTripIds.length})
                 </button>
-              </>
+              </div>
             )}
           </div>
         )}
@@ -311,7 +297,7 @@ export default function InvoicesDashboard() {
           <button
             type="button"
             onClick={() => navigate(`/tenant/dashboard/finance/invoices/${row.id}`)}
-            className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-[#EBF3FF] text-[#0052CC] hover:bg-[#0052CC] hover:text-white border border-transparent transition-all inline-flex items-center gap-1"
+            className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-[#F8FAFC] text-[#172B4D] hover:bg-[#0052CC] hover:text-white border border-gray-100 transition-all inline-flex items-center gap-1.5"
             title="View Invoice"
           >
             <Eye size={13} />
