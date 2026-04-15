@@ -20,6 +20,15 @@ const POD_STATUS_CONFIG = {
   RETURNED: { color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-100', icon: <FileCheck size={14} /> },
 };
 
+const formatDate = (dateStr) => {
+  if (!dateStr) return "-";
+  try {
+    const options = { year: 'numeric', month: 'short', day: 'numeric' };
+    return new Date(dateStr).toLocaleDateString('en-US', options);
+  } catch (e) {
+    return dateStr;
+  }
+};
 
 
 const StatusBadge = ({ status }) => {
@@ -215,7 +224,7 @@ export default function DeliveryMainBody() {
                       </td>
                       <td className="px-6 py-5">
                         <div className="flex items-center gap-2 text-sm font-semibold text-gray-600">
-                          <Calendar size={14} className="text-gray-400" /> {pod.delivery_date || '-'}
+                          <Calendar size={14} className="text-gray-400" /> {formatDate(pod.delivery_date)}
                         </div>
                       </td>
                       <td className="px-6 py-5">
@@ -239,17 +248,6 @@ export default function DeliveryMainBody() {
                             title="Edit Record"
                           >
                             <Edit2 size={16} />
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (window.confirm('Delete this POD record?')) {
-                                deleteDeliveryMutation.mutate(pod.id);
-                              }
-                            }}
-                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                            title="Delete Record"
-                          >
-                            <Trash2 size={16} />
                           </button>
                           <button
                             onClick={() => {

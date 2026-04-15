@@ -315,6 +315,27 @@ const ContactFormModal = ({ initial, onClose, onSubmit, submitting, portalUser }
     department: '', contact_type: 'PRIMARY', is_primary: false,
     status: 'ACTIVE'
   });
+  const [phoneErrors, setPhoneErrors] = useState({});
+
+  const PHONE_REGEX = /^[6-9]\d{9}$/;
+
+  const handlePhoneChange = (field, rawVal) => {
+    const digits = rawVal.replace(/\D/g, '').slice(0, 10);
+    setForm(prev => ({ ...prev, [field]: digits }));
+    if (digits && !PHONE_REGEX.test(digits)) {
+      setPhoneErrors(prev => ({ ...prev, [field]: 'Must be 10 digits starting with 6, 7, 8, or 9' }));
+    } else {
+      setPhoneErrors(prev => { const n = { ...prev }; delete n[field]; return n; });
+    }
+  };
+
+  const handleContactSubmit = () => {
+    const e = {};
+    if (form.mobile && !PHONE_REGEX.test(form.mobile)) e.mobile = 'Enter a valid 10-digit Indian mobile number (starting with 6–9)';
+    if (form.phone && !PHONE_REGEX.test(form.phone)) e.phone = 'Enter a valid 10-digit Indian mobile number (starting with 6–9)';
+    if (Object.keys(e).length > 0) { setPhoneErrors(e); return; }
+    onSubmit(form);
+  };
 
   // Auto-fill from portal user on create
   useEffect(() => {
@@ -329,7 +350,7 @@ const ContactFormModal = ({ initial, onClose, onSubmit, submitting, portalUser }
   }, [portalUser]);
 
   return (
-    <Modal title={initial ? 'Edit Contact' : 'Add New Contact'} onClose={onClose} onSubmit={() => onSubmit(form)} submitting={submitting}>
+    <Modal title={initial ? 'Edit Contact' : 'Add New Contact'} onClose={onClose} onSubmit={handleContactSubmit} submitting={submitting}>
       <div className="grid grid-cols-2 gap-4">
         <Field label="Salutation">
           <Input value={form.salutation} onChange={e => setForm({...form, salutation: e.target.value})} placeholder="Mr. / Ms. / Dr." />
@@ -343,11 +364,33 @@ const ContactFormModal = ({ initial, onClose, onSubmit, submitting, portalUser }
         <Field label="Email">
           <Input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
         </Field>
-        <Field label="Mobile Number" required>
-          <Input value={form.mobile} onChange={e => setForm({...form, mobile: e.target.value})} />
+        <Field label="Mobile Number" required error={phoneErrors.mobile}>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-bold select-none pointer-events-none">+91</span>
+            <Input
+              value={form.mobile}
+              onChange={e => handlePhoneChange('mobile', e.target.value)}
+              placeholder="9876543210"
+              maxLength={10}
+              inputMode="numeric"
+              className="pl-12"
+            />
+          </div>
+          {phoneErrors.mobile && <p className="text-[11px] text-red-500 mt-1 font-medium">{phoneErrors.mobile}</p>}
         </Field>
-        <Field label="Phone">
-          <Input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
+        <Field label="Phone (Alt)" error={phoneErrors.phone}>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-bold select-none pointer-events-none">+91</span>
+            <Input
+              value={form.phone}
+              onChange={e => handlePhoneChange('phone', e.target.value)}
+              placeholder="9876543210"
+              maxLength={10}
+              inputMode="numeric"
+              className="pl-12"
+            />
+          </div>
+          {phoneErrors.phone && <p className="text-[11px] text-red-500 mt-1 font-medium">{phoneErrors.phone}</p>}
         </Field>
         <Field label="Fax">
           <Input value={form.fax} onChange={e => setForm({...form, fax: e.target.value})} />

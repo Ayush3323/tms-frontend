@@ -4,7 +4,7 @@ import {
   ArrowLeft, Package, Truck, Layers, 
   ChevronRight, Loader2, AlertCircle, 
   Hash, Scale, Maximize, Shield, 
-  MapPin, Clock, Edit2, AlertTriangle, Thermometer
+  MapPin, Clock, Edit2, AlertTriangle, Thermometer, Trash2
 } from 'lucide-react';
 import {
   useCargoDetail,
@@ -14,6 +14,7 @@ import {
   useCargoMovements,
   useCreateCargoMovement,
   useTripStops,
+  useDeleteCargo,
 } from '../../queries/orders/ordersQuery';
 import { EditCargoModal } from './CargoModals';
 
@@ -60,6 +61,7 @@ export default function CargoDetail() {
   const { data: tripStopsData } = useTripStops(item?.trip || item?.trip_id);
   const transitionCargo = useTransitionCargoStatus();
   const createMovement = useCreateCargoMovement(id);
+  const deleteMutation = useDeleteCargo();
   const [movementForm, setMovementForm] = useState({ stop: '', action: 'LOADED', quantity: '', notes: '' });
 
   const handleBack = () => navigate('/tenant/dashboard/orders/cargo');
@@ -130,7 +132,21 @@ export default function CargoDetail() {
                     {item.insurance_required && <Badge className="bg-purple-50 text-purple-600 border-purple-100">Insured</Badge>}
                   </div>
                 </div>
-                 <div>
+                 <div className="flex items-center gap-3">
+                  <button 
+                    onClick={() => {
+                      if (window.confirm('Delete this cargo item? All linked data may be removed.')) {
+                        deleteMutation.mutate(id, {
+                          onSuccess: () => navigate('/tenant/dashboard/orders/cargo')
+                        });
+                      }
+                    }}
+                    disabled={deleteMutation.isPending}
+                    className="px-4 py-2 text-sm font-black text-red-600 bg-red-50 border border-red-100 rounded-xl hover:bg-red-100 transition-all shadow-sm disabled:opacity-50"
+                  >
+                    <Trash2 size={14} className="inline mr-2" /> 
+                    {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+                  </button>
                   <button 
                     onClick={() => setIsEditOpen(true)}
                     className="px-4 py-2 text-sm font-black text-[#0052CC] bg-blue-50 border border-blue-100 rounded-xl hover:bg-blue-100 transition-all shadow-sm"

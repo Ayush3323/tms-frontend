@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import { useQueries } from '@tanstack/react-query'
-import { FileSpreadsheet, RefreshCw, Search } from 'lucide-react'
+import { FileSpreadsheet, RefreshCw, Search, ChevronLeft, ChevronRight } from 'lucide-react'
 
 import { settlementApi } from '../../api/finance/financeEndpoint'
 import { useTrips, useOrders } from '../../queries/orders/ordersQuery'
@@ -38,39 +38,6 @@ const GROUPS = [
       { key: '_cargo_desc',      label: 'Cargo / LR',   w: 150 },
     ],
   },
-  {
-    label: 'VEHICLE ADVANCE', accent: '#78350f', light: '#fef3c7',
-    cols: [
-      { key: 'vehicle_owner_name',      label: 'Owner',    w: 140 },
-      { key: 'advance_total_disbursed', label: 'Advance',  w: 110, money: true, bold: true },
-    ],
-  },
-  {
-    label: 'WAY EXPENSE', accent: '#7c2d12', light: '#ffedd5',
-    cols: [
-      { key: 'actual_fuel_liters',  label: 'Fuel (L)',   w: 75 },
-      { key: 'total_diesel_amount', label: 'Diesel Amt', w: 105, money: true },
-      { key: 'late_fee',            label: 'Late Fee',   w: 90,  money: true },
-      { key: 'broker_commission',   label: 'Broker',     w: 90,  money: true },
-      { key: 'incentive_amount',    label: 'Incentive',  w: 90,  money: true },
-      { key: 'damage_amount',       label: 'Damage',     w: 90,  money: true },
-    ],
-  },
-  {
-    label: 'INVOICING & PAYMENT', accent: '#14532d', light: '#dcfce7',
-    cols: [
-      { key: 'total_bill_amount',                     label: 'Total Bill',   w: 115, money: true, bold: true },
-      { key: 'booked_price_trip',                     label: 'Booked Price', w: 110, money: true },
-      { key: 'tds_amount_trip',                       label: 'TDS',          w: 90,  money: true },
-      { key: 'balance_outstanding_for_trip_invoices', label: 'Outstanding',  w: 110, money: true, bold: true },
-      { key: 'payment_received_amount',               label: 'Paid',         w: 100, money: true },
-      { key: 'payment_received_date',                 label: 'Paid Date',    w: 95  },
-      { key: 'invoice_numbers',                       label: 'Invoice Nos.', w: 120, arr: true  },
-      { key: 'cargo_package_count',                   label: 'Pkgs',         w: 55  },
-      { key: 'detention_days',                        label: 'Detention',    w: 75  },
-      { key: 'pod_received_date',                     label: 'POD Date',     w: 95  },
-    ],
-  },
 ]
 
 const ALL_COLS       = GROUPS.flatMap(g => g.cols.map(c => ({ ...c, accent: g.accent, light: g.light })))
@@ -91,6 +58,8 @@ export default function LRRecordsPage() {
   const [loaded, setLoaded] = useState(false)
   const [search, setSearch] = useState('')
   const [selectedTripId, setSelectedTripId] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const rowsPerPage = 10
 
   const { data: tripsData, isLoading: tripsLoading, refetch } = useTrips({ page_size: 200 })
   const trips = asList(tripsData)
@@ -143,13 +112,6 @@ export default function LRRecordsPage() {
         vehicle_type_code:settlement.vehicle_type_code|| trip.vehicle_type   || trip.vehicle?.vehicle_type || null,
         vehicle_owner_name:settlement.vehicle_owner_name || trip.owner_name  || trip.vehicle?.owner_name || null,
         
-        // Additional Expense & Invoice field mapping
-        total_diesel_amount: settlement.total_diesel_amount || trip.total_diesel_amount || ((trip.actual_fuel_liters && trip.fuel_rate_per_liter) ? (trip.actual_fuel_liters * trip.fuel_rate_per_liter).toFixed(2) : null),
-        booked_price_trip: settlement.booked_price_trip || trip.booked_price || null,
-        tds_amount_trip: settlement.tds_amount_trip || trip.tds_amount || null,
-        cargo_package_count: settlement.cargo_package_count || trip.cargo_package_count || order?.total_packages || order?.total_pieces || null,
-        pod_received_date: settlement.pod_received_date || trip.pod_received_date || order?.pod_received_date || null,
-
         // Custom UI fields
         _customer_name:   _billing_name || null,
         _cargo_desc:      order?.cargo_description || order?.goods_description || null,
@@ -184,8 +146,35 @@ export default function LRRecordsPage() {
     return result
   }, [rows, search, selectedTripId])
 
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [search, selectedTripId, loaded])
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage))
+  const paginatedRows = useMemo(() => {
+    const start = (currentPage - 1) * rowsPerPage
+    return filtered.slice(start, start + rowsPerPage)
+  }, [filtered, currentPage])
+
   const pendingCount = rows.filter(r => r.pending).length
   const progress     = rows.length > 0 ? Math.round(((rows.length - pendingCount) / rows.length) * 100) : 0
+
+  const handleDownload = () => {
+    const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`
+    const header = ALL_COLS.map(c => esc(c.label)).join(',')
+    const body = filtered.map(row => 
+      ALL_COLS.map(col => esc(getCell(row, col) || '')).join(',')
+    ).join('\n')
+    
+    const csv = `${header}\n${body}`
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `LR_Report_${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <div className="bg-[#EEF2F7]" style={{ minHeight: '100vh' }}>
@@ -223,7 +212,7 @@ export default function LRRecordsPage() {
               <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 className="pl-8 pr-3 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-100 w-44"
-                placeholder="Search LR, vehicle, party…"
+                placeholder="Search LR, vehicle, part…"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
@@ -249,8 +238,19 @@ export default function LRRecordsPage() {
             <FileSpreadsheet size={13} /> Load All {tripsLoading ? '' : `(${trips.length})`}
           </button>
         ) : (
-          <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border ${pendingCount > 0 ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>
-            {pendingCount > 0 ? `${progress}% loaded` : '✓ All loaded'}
+          <div className="flex items-center gap-2">
+            <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border ${pendingCount > 0 ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>
+              {pendingCount > 0 ? `${progress}% loaded` : '✓ All loaded'}
+            </div>
+            {pendingCount === 0 && (
+              <button
+                type="button"
+                onClick={handleDownload}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 shadow-sm transition-colors"
+              >
+                <FileSpreadsheet size={13} /> Download
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -330,7 +330,7 @@ export default function LRRecordsPage() {
               </thead>
 
               <tbody>
-                {filtered.map((row, idx) => (
+                {paginatedRows.map((row, idx) => (
                   <tr
                     key={row.trip.id}
                     className={`border-b border-gray-100 hover:bg-blue-50/50 transition-colors ${idx % 2 === 1 ? 'bg-gray-50/60' : 'bg-white'}`}
@@ -340,7 +340,7 @@ export default function LRRecordsPage() {
                       className="sticky left-0 z-10 px-3 py-3 font-bold border-r-2 border-gray-200 whitespace-nowrap text-center"
                       style={{ background: 'inherit', color: '#64748b', minWidth: 36 }}
                     >
-                      {idx + 1}
+                      {(currentPage - 1) * rowsPerPage + idx + 1}
                     </td>
 
                     {ALL_COLS.map(col => {
@@ -384,12 +384,36 @@ export default function LRRecordsPage() {
             </table>
           </div>
 
-          <div className="flex items-center justify-between mt-2 px-1">
+          <div className="flex items-center justify-between mt-4 px-2">
             <p className="text-[11px] text-gray-400">
-              Showing <strong>{filtered.length}</strong> of <strong>{rows.length}</strong> LRs
+              Showing <strong>{filtered.length > 0 ? (currentPage - 1) * rowsPerPage + 1 : 0}</strong> to <strong>{Math.min(currentPage * rowsPerPage, filtered.length)}</strong> of <strong>{filtered.length}</strong> LRs (Total <strong>{rows.length}</strong>)
               {search && ` · filtered by "${search}"`}
             </p>
-            <p className="text-[11px] text-gray-400 italic">↔ Scroll horizontally to see all columns</p>
+            
+            <div className="flex items-center gap-4">
+              <p className="text-[11px] text-gray-400 italic mr-2">↔ Scroll horizontally to see all columns</p>
+              
+              {/* Pagination Controls */}
+              <div className="flex items-center gap-1.5">
+                <button 
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="p-1 rounded bg-white border border-gray-200 text-gray-600 disabled:opacity-50 hover:bg-gray-50 transition-colors cursor-pointer"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="text-xs font-medium text-gray-600 px-2 min-w-[80px] text-center">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button 
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-1 rounded bg-white border border-gray-200 text-gray-600 disabled:opacity-50 hover:bg-gray-50 transition-colors cursor-pointer"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

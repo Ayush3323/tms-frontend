@@ -65,7 +65,6 @@ export const ownerPaymentApi = {
 export const reconciliationApi = {
   list: (params) => axiosInstance.get(`${PAY_BASE}/reconciliations/`, { params }).then(r => r.data),
   get: (id) => axiosInstance.get(`${PAY_BASE}/reconciliations/${id}/`).then(r => r.data),
-  update: (id, data) => axiosInstance.patch(`${PAY_BASE}/reconciliations/${id}/`, data).then(r => r.data),
   reconcile: (data) => axiosInstance.post(`${PAY_BASE}/reconciliations/reconcile/`, data).then(r => r.data),
   delete: (id) => axiosInstance.delete(`${PAY_BASE}/reconciliations/${id}/`).then(r => r.data),
 }

@@ -390,7 +390,7 @@ export const VehicleTypeSelect = ({ value, onChange }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
-  const { data: vtData, isLoading } = useVehicleTypes({}, { enabled: open });
+  const { data: vtData, isLoading } = useVehicleTypes({ is_active: true, page_size: 200 }, { enabled: true });
   const allTypes = vtData?.results ?? vtData ?? [];
   const types = query
     ? allTypes.filter(t => (t.type_name ?? t.name)?.toLowerCase().includes(query.toLowerCase()))
@@ -402,7 +402,7 @@ export const VehicleTypeSelect = ({ value, onChange }) => {
     return () => document.removeEventListener('mousedown', fn);
   }, []);
 
-  const selected = allTypes.find(t => t.id === value);
+  const selected = allTypes.find(t => String(t.id) === String(value));
 
   return (
     <div className="relative" ref={ref}>
@@ -430,9 +430,9 @@ export const VehicleTypeSelect = ({ value, onChange }) => {
             {!isLoading && types.length === 0 && <li className="px-4 py-3 text-xs text-gray-400 text-center">No types found</li>}
             {types.map(t => (
               <li key={t.id}
-                onClick={() => { onChange(t.id); setOpen(false); setQuery(''); }}
+                onClick={() => { onChange(String(t.id)); setOpen(false); setQuery(''); }}
                 className={`px-4 py-2.5 cursor-pointer hover:bg-blue-50 transition-colors
-                  flex items-center justify-between gap-2 ${t.id === value ? 'bg-blue-50' : ''}`}>
+                  flex items-center justify-between gap-2 ${String(t.id) === String(value) ? 'bg-blue-50' : ''}`}>
                 <span className="font-semibold text-[#172B4D] text-sm">{t.type_name ?? t.name}</span>
                 {t.category && <span className="text-[10px] text-gray-400 uppercase tracking-widest">{t.category}</span>}
               </li>
