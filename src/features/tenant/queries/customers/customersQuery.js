@@ -420,9 +420,24 @@ export const useCreateConsignee = () => {
 export const useUpdateConsignee = () => {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, data }) => consigneesApi.update(id, data),
-    onSuccess: () => {
+    // List UI reads `customer.status`; profile PATCH alone doesn't persist customer status.
+    mutationFn: async ({ id, customerId, data }) => {
+      const { status, ...consigneePayload } = data
+      const result = await consigneesApi.update(id, consigneePayload)
+      const cid = customerId ?? data?.customer_id ?? id
+      if (status !== undefined && cid != null && cid !== '') {
+        await customersApi.update(cid, { status })
+      }
+      return result
+    },
+    onSuccess: (_, { id, customerId, data }) => {
       queryClient.invalidateQueries({ queryKey: customerKeys.consignees() })
+      queryClient.invalidateQueries({ queryKey: customerKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: customerKeys.stats() })
+      const cid = customerId ?? data?.customer_id ?? id
+      if (cid != null && cid !== '') {
+        queryClient.invalidateQueries({ queryKey: customerKeys.detail(cid) })
+      }
       toast.success('Consignee profile updated')
     },
     onError: (err) => handleApiError(err, 'Failed to update consignee'),
@@ -473,9 +488,24 @@ export const useCreateBroker = () => {
 export const useUpdateBroker = () => {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, data }) => brokersApi.update(id, data),
-    onSuccess: () => {
+    // Broker status is stored on the linked customer record, not just the broker profile.
+    mutationFn: async ({ id, customerId, data }) => {
+      const { status, ...brokerPayload } = data
+      const result = await brokersApi.update(id, brokerPayload)
+      const cid = customerId ?? data?.customer_id ?? id
+      if (status !== undefined && cid != null && cid !== '') {
+        await customersApi.update(cid, { status })
+      }
+      return result
+    },
+    onSuccess: (_, { id, customerId, data }) => {
       queryClient.invalidateQueries({ queryKey: customerKeys.brokers() })
+      queryClient.invalidateQueries({ queryKey: customerKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: customerKeys.stats() })
+      const cid = customerId ?? data?.customer_id ?? id
+      if (cid != null && cid !== '') {
+        queryClient.invalidateQueries({ queryKey: customerKeys.detail(cid) })
+      }
       toast.success('Broker profile updated')
     },
     onError: (err) => handleApiError(err, 'Failed to update broker'),
@@ -526,9 +556,24 @@ export const useCreateAgent = () => {
 export const useUpdateAgent = () => {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, data }) => agentsApi.update(id, data),
-    onSuccess: () => {
+    // Agent status is displayed from the linked customer record.
+    mutationFn: async ({ id, customerId, data }) => {
+      const { status, ...agentPayload } = data
+      const result = await agentsApi.update(id, agentPayload)
+      const cid = customerId ?? data?.customer_id ?? id
+      if (status !== undefined && cid != null && cid !== '') {
+        await customersApi.update(cid, { status })
+      }
+      return result
+    },
+    onSuccess: (_, { id, customerId, data }) => {
       queryClient.invalidateQueries({ queryKey: customerKeys.agents() })
+      queryClient.invalidateQueries({ queryKey: customerKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: customerKeys.stats() })
+      const cid = customerId ?? data?.customer_id ?? id
+      if (cid != null && cid !== '') {
+        queryClient.invalidateQueries({ queryKey: customerKeys.detail(cid) })
+      }
       toast.success('Agent profile updated')
     },
     onError: (err) => handleApiError(err, 'Failed to update agent'),
