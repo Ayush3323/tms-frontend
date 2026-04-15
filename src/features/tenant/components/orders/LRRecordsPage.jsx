@@ -4,12 +4,13 @@ import { FileSpreadsheet, RefreshCw, Search, ChevronLeft, ChevronRight } from 'l
 
 import { settlementApi } from '../../api/finance/financeEndpoint'
 import { useTrips, useOrders } from '../../queries/orders/ordersQuery'
+import { useTripsLookup } from '../../queries/finance/financeQuery'
 import { useCustomers } from '../../queries/customers/customersQuery'
 
 const asList = (d) => d?.results || (Array.isArray(d) ? d : [])
-const rupee  = (v) => (v != null && v !== '' && Number(v) !== 0)
+const rupee = (v) => (v != null && v !== '' && Number(v) !== 0)
   ? `₹${Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : null
-const txt    = (v) => (v != null && v !== '') ? String(v) : null
+const txt = (v) => (v != null && v !== '') ? String(v) : null
 const arrVal = (v) => Array.isArray(v) ? (v.join(', ') || null) : txt(v)
 
 // ── Column groups (mirrors the Excel sheet) ──────────────────
@@ -17,38 +18,71 @@ const GROUPS = [
   {
     label: 'LR RECORDS', accent: '#1e3a5f', light: '#dbeafe',
     cols: [
-      { key: 'lr_number',               label: 'LR No.',        w: 110, bold: true },
-      { key: 'vehicle_number',          label: 'Vehicle',       w: 110 },
-      { key: 'vehicle_type_code',       label: 'Type',          w: 120 },
-      { key: 'from_location',           label: 'From',          w: 160 },
-      { key: 'to_location',             label: 'To',            w: 160 },
-      { key: 'scheduled_pickup_date',   label: 'Pickup Date',   w: 105 },
-      { key: 'scheduled_delivery_date', label: 'Del. Date',     w: 100 },
-      { key: 'loading_date',            label: 'Loading',       w: 95  },
-      { key: 'unloading_date',          label: 'Unloading',     w: 95  },
+      { key: 'lr_number', label: 'LR No.', w: 110, bold: true },
+      { key: 'vehicle_number', label: 'Vehicle', w: 110 },
+      { key: 'vehicle_type_code', label: 'Type', w: 120 },
+      { key: 'from_location', label: 'From', w: 160 },
+      { key: 'to_location', label: 'To', w: 160 },
+      { key: 'scheduled_pickup_date', label: 'Pickup Date', w: 105 },
+      { key: 'scheduled_delivery_date', label: 'Del. Date', w: 100 },
+      { key: 'loading_date', label: 'Loading', w: 95 },
+      { key: 'unloading_date', label: 'Unloading', w: 95 },
     ],
   },
   {
     label: 'CONSIGNEE DETAILS', accent: '#4c1d95', light: '#ede9fe',
     cols: [
-      { key: 'billing_company',  label: 'Billing Co.',  w: 160, bold: true },
-      { key: '_customer_name',   label: 'Customer',     w: 150 },
-      { key: 'consignor_name',   label: 'Consignor',    w: 150 },
-      { key: 'consignee_name',   label: 'Consignee',    w: 150 },
-      { key: '_cargo_desc',      label: 'Cargo / LR',   w: 150 },
+      { key: 'billing_company', label: 'Billing Co.', w: 160, bold: true },
+      { key: '_customer_name', label: 'Customer', w: 150 },
+      { key: 'consignor_name', label: 'Consignor', w: 150 },
+      { key: 'consignee_name', label: 'Consignee', w: 150 },
+      { key: '_cargo_desc', label: 'Cargo / LR', w: 150 },
+    ],
+  },
+  {
+    label: 'VEHICLE ADVANCE', accent: '#78350f', light: '#fef3c7',
+    cols: [
+      { key: 'vehicle_owner_name', label: 'Owner', w: 140 },
+      { key: 'advance_total_disbursed', label: 'Advance', w: 110, money: true, bold: true },
+    ],
+  },
+  {
+    label: 'WAY EXPENSE', accent: '#7c2d12', light: '#ffedd5',
+    cols: [
+      { key: 'actual_fuel_liters', label: 'Fuel (L)', w: 75 },
+      { key: 'total_diesel_amount', label: 'Diesel Amt', w: 105, money: true },
+      { key: 'late_fee', label: 'Late Fee', w: 90, money: true },
+      { key: 'broker_commission', label: 'Broker', w: 90, money: true },
+      { key: 'incentive_amount', label: 'Incentive', w: 90, money: true },
+      { key: 'damage_amount', label: 'Damage', w: 90, money: true },
+    ],
+  },
+  {
+    label: 'INVOICING & PAYMENT', accent: '#14532d', light: '#dcfce7',
+    cols: [
+      { key: 'total_bill_amount', label: 'Total Bill', w: 115, money: true, bold: true },
+      { key: 'booked_price_trip', label: 'Booked Price', w: 110, money: true },
+      { key: 'tds_amount_trip', label: 'TDS', w: 90, money: true },
+      { key: 'balance_outstanding_for_trip_invoices', label: 'Outstanding', w: 110, money: true, bold: true },
+      { key: 'payment_received_amount', label: 'Paid', w: 100, money: true },
+      { key: 'payment_received_date', label: 'Paid Date', w: 95 },
+      { key: 'invoice_numbers', label: 'Invoice Nos.', w: 120, arr: true },
+      { key: 'cargo_package_count', label: 'Pkgs', w: 55 },
+      { key: 'detention_days', label: 'Detention', w: 75 },
+      { key: 'pod_received_date', label: 'POD Date', w: 95 },
     ],
   },
 ]
 
-const ALL_COLS       = GROUPS.flatMap(g => g.cols.map(c => ({ ...c, accent: g.accent, light: g.light })))
-const LAST_IN_GROUP  = new Set(GROUPS.map(g => g.cols[g.cols.length - 1].key))
+const ALL_COLS = GROUPS.flatMap(g => g.cols.map(c => ({ ...c, accent: g.accent, light: g.light })))
+const LAST_IN_GROUP = new Set(GROUPS.map(g => g.cols[g.cols.length - 1].key))
 
 function getCell(row, col) {
   if (row.pending) return undefined          // skeleton
   const d = row.merged
   if (!d) return null
   const raw = d[col.key]
-  if (col.arr)   return arrVal(raw)
+  if (col.arr) return arrVal(raw)
   if (col.money) return rupee(raw)
   return txt(raw)
 }
@@ -61,21 +95,21 @@ export default function LRRecordsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const rowsPerPage = 10
 
-  const { data: tripsData, isLoading: tripsLoading, refetch } = useTrips({ page_size: 200 })
+  const { data: tripsData, isLoading: tripsLoading, refetch } = useTripsLookup({ page_size: 500 })
   const trips = asList(tripsData)
 
   const settlementQueries = useQueries({
     queries: loaded
       ? trips.map(t => ({
-          queryKey: ['settlement', 'lr', t.id],
-          queryFn:  () => settlementApi.getLrSettlement(t.id),
-          retry: false, staleTime: 5 * 60 * 1000,
-        }))
+        queryKey: ['settlement', 'lr', t.id],
+        queryFn: () => settlementApi.getLrSettlement(t.id),
+        retry: false, staleTime: 5 * 60 * 1000,
+      }))
       : [],
   })
 
-  const { data: ordersData } = useOrders({ page_size: 200 })
-  const { data: customersData } = useCustomers({ page_size: 200 })
+  const { data: ordersData } = useOrders({ page_size: 500 })
+  const { data: customersData } = useCustomers({ page_size: 500 })
 
   const orders = asList(ordersData)
   const customers = asList(customersData)
@@ -90,39 +124,45 @@ export default function LRRecordsPage() {
     if (!loaded) return []
     return trips.map((trip, i) => {
       const settlement = settlementQueries[i]?.data ?? null
-      
+
       // Find associated order
       const order = orders.find(o => o.id === trip.order_id || o.trip_id === trip.id) || null
 
       const _billing_name = getCustName(order?.billing_customer_id)
-      const _consignor    = getCustName(order?.consignor_id)
-      const _consignee    = getCustName(order?.consignee_id)
+      const _consignor = getCustName(order?.consignor_id)
+      const _consignee = getCustName(order?.consignee_id)
 
       const merged = settlement ? {
         ...trip,          // Fallback to trip base fields first
         ...settlement,    // Settlement fields take precedence
-        
+
         // Complex customer fallbacks
-        billing_company:  settlement.billing_company  || _billing_name || null,
-        consignor_name:   settlement.consignor_name   || _consignor || null,
-        consignee_name:   settlement.consignee_name   || _consignee || null,
-        
+        billing_company: settlement.billing_company || _billing_name || null,
+        consignor_name: settlement.consignor_name || _consignor || null,
+        consignee_name: settlement.consignee_name || _consignee || null,
+
         // Vehicle fallbacks
-        vehicle_number:   settlement.vehicle_number   || trip.vehicle_number || trip.vehicle?.registration_number || null,
-        vehicle_type_code:settlement.vehicle_type_code|| trip.vehicle_type   || trip.vehicle?.vehicle_type || null,
-        vehicle_owner_name:settlement.vehicle_owner_name || trip.owner_name  || trip.vehicle?.owner_name || null,
-        
+        vehicle_number: settlement.vehicle_number || trip.vehicle_number || trip.vehicle?.registration_number || null,
+        vehicle_type_code: settlement.vehicle_type_code || trip.vehicle_type || trip.vehicle?.vehicle_type || null,
+        vehicle_owner_name: settlement.vehicle_owner_name || trip.owner_name || trip.vehicle?.owner_name || null,
+
+        // Additional Expense & Invoice field mapping
+        total_diesel_amount: settlement.total_diesel_amount || trip.total_diesel_amount || ((trip.actual_fuel_liters && trip.fuel_rate_per_liter) ? (trip.actual_fuel_liters * trip.fuel_rate_per_liter).toFixed(2) : null),
+        booked_price_trip: settlement.booked_price_trip || trip.booked_price || null,
+        tds_amount_trip: settlement.tds_amount_trip || trip.tds_amount || null,
+        cargo_package_count: settlement.cargo_package_count || trip.cargo_package_count || order?.total_packages || order?.total_pieces || null,
+        pod_received_date: settlement.pod_received_date || trip.pod_received_date || order?.pod_received_date || null,
         // Custom UI fields
-        _customer_name:   _billing_name || null,
-        _cargo_desc:      order?.cargo_description || order?.goods_description || null,
+        _customer_name: _billing_name || null,
+        _cargo_desc: order?.cargo_description || order?.goods_description || null,
       } : null
 
       return {
         trip,
-        data:    settlement,
+        data: settlement,
         merged,
         pending: settlementQueries[i]?.isLoading ?? false,
-        failed:  settlementQueries[i]?.isError ?? false,
+        failed: settlementQueries[i]?.isError ?? false,
       }
     })
   }, [loaded, trips, settlementQueries, orders, customers])
@@ -157,7 +197,7 @@ export default function LRRecordsPage() {
   }, [filtered, currentPage])
 
   const pendingCount = rows.filter(r => r.pending).length
-  const progress     = rows.length > 0 ? Math.round(((rows.length - pendingCount) / rows.length) * 100) : 0
+  const progress = rows.length > 0 ? Math.round(((rows.length - pendingCount) / rows.length) * 100) : 0
 
   const handleDownload = () => {
     const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`

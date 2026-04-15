@@ -346,11 +346,11 @@ export default function InvoicesDashboard() {
                     let customerUpdates = {};
                     const custId = selectedT.billing_customer_id || selectedT.customer_id || selectedT.customer;
                     if (custId) {
-                       const cust = allCustomers.find(c => String(c.id) === String(custId));
-                       customerUpdates = {
-                          billing_customer_id: custId,
-                          billing_company_name: cust?.legal_name || cust?.customer_code || selectedT.billing_company_name || selectedT.customer_name || ''
-                       }
+                      const cust = allCustomers.find(c => String(c.id) === String(custId));
+                      customerUpdates = {
+                        billing_customer_id: custId,
+                        billing_company_name: cust?.legal_name || cust?.customer_code || selectedT.billing_company_name || selectedT.customer_name || ''
+                      }
                     }
 
                     let itemsUpdates = [...manualForm.line_items];
@@ -483,11 +483,11 @@ export default function InvoicesDashboard() {
                             let customerUpdates = {};
                             const custId = selectedT?.billing_customer_id || selectedT?.customer_id || selectedT?.customer;
                             if (selectedT && custId && !manualForm.billing_customer_id) {
-                               const cust = allCustomers.find(c => String(c.id) === String(custId));
-                               customerUpdates = {
-                                  billing_customer_id: custId,
-                                  billing_company_name: cust?.legal_name || cust?.customer_code || selectedT.billing_company_name || selectedT.customer_name || ''
-                               }
+                              const cust = allCustomers.find(c => String(c.id) === String(custId));
+                              customerUpdates = {
+                                billing_customer_id: custId,
+                                billing_company_name: cust?.legal_name || cust?.customer_code || selectedT.billing_company_name || selectedT.customer_name || ''
+                              }
                             }
 
                             const newItems = [...manualForm.line_items]

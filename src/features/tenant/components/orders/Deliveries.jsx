@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import {
   CheckCircle2, Clock, AlertCircle,
   Search, Plus, MapPin, User, FileCheck, Image as ImageIcon,
-  Edit2, Eye, Calendar, Hash, RefreshCcw, Trash2
+  Edit2, Eye, Calendar, Hash, RefreshCcw
 } from 'lucide-react';
-import { useDeliveries, useDeleteDelivery } from '../../queries/orders/ordersQuery';
+import { useDeliveries } from '../../queries/orders/ordersQuery';
 import {
   CreatePODModal,
   EditDeliveryModal
@@ -30,7 +30,6 @@ const formatDate = (dateStr) => {
   }
 };
 
-
 const StatusBadge = ({ status }) => {
   const config = POD_STATUS_CONFIG[status] || POD_STATUS_CONFIG.DELIVERED;
   return (
@@ -52,8 +51,6 @@ export default function DeliveryMainBody() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedPod, setSelectedPod] = useState(null);
-  const deleteDeliveryMutation = useDeleteDelivery();
-
   const queryParams = { page, ordering: '-delivery_date' };
   if (search) queryParams.search = search;
   if (filterStatus !== 'All Status') queryParams.delivery_status = filterStatus;
@@ -305,5 +302,6 @@ export default function DeliveryMainBody() {
     </div>
   );
 }
+
 
 // -----------------------------------------------------------------------------
