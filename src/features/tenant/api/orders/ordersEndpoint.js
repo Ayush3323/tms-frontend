@@ -34,6 +34,9 @@ export const ordersApi = {
   delete: (id) =>
     axiosInstance.delete(`${BASE_ORDERS}/${id}/`).then(r => r.data),
 
+  invoicePdf: (id) =>
+    axiosInstance.get(`${BASE_ORDERS}/${id}/invoice-pdf/`, { responseType: 'blob' }),
+
   assignTrip: (id, data) => {
     const payload = { ...(data || {}) }
     delete payload.trip_number // backend always auto-generates unique trip_number

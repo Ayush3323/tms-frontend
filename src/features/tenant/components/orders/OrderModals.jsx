@@ -1,845 +1,341 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { X } from 'lucide-react';
-import {
-  useCreateOrder,
-  useUpdateOrder,
-  useAssignTrip
-} from '../../queries/orders/ordersQuery';
-import { 
-  useCustomers, 
-  useConsignors, 
-  useConsignees, 
-  useBrokers 
-} from '../../queries/customers/customersQuery';
-import { useDrivers } from '../../queries/drivers/driverCoreQuery';
-import { useVehicles } from '../../queries/vehicles/vehicleQuery';
+import { useCreateOrder, useUpdateOrder } from '../../queries/orders/ordersQuery';
+import { useCustomers, useCustomerAddresses } from '../../queries/customers/customersQuery';
+import { useVehicleTypes } from '../../queries/vehicles/vehicletypeQuery';
 
-const REFERENCE_REGEX = /^[A-Za-z0-9/_-]+$/;
+const ORDER_TYPES = ['FTL', 'LTL', 'CONTAINER', 'COURIER', 'MULTI_DROP'];
 
-const normalizeOrderPayload = (source) => {
-  const payload = { ...source };
-  const nullableFields = ['consignor_id', 'consignee_id', 'broker_id', 'pickup_date', 'delivery_date', 'lr_receiving_date'];
-  nullableFields.forEach((field) => {
-    if (!payload[field]) payload[field] = null;
-  });
-  if (typeof payload.reference_number === 'string') payload.reference_number = payload.reference_number.trim();
-  if (typeof payload.billing_company_name === 'string') payload.billing_company_name = payload.billing_company_name.trim();
-  if (typeof payload.notes === 'string') payload.notes = payload.notes.trim();
-  return payload;
+const EMPTY_FORM = {
+  reference_number: '',
+  order_type: 'FTL',
+  billing_customer_id: '',
+  consignor_id: '',
+  consignee_id: '',
+  broker_id: '',
+  pickup_date: '',
+  delivery_date: '',
+  lr_receiving_date: '',
+  booking_date: '',
+  vehicle_type_preference: '',
+  vehicle_size: '',
+  seal_number: '',
+  consignor_address: '',
+  consignee_address: '',
+  consignor_invoice_no: '',
+  e_way_bill_no: '',
+  road_permit_no: '',
+  to_be_billed_at: '',
+  freight_charges: '0',
+  consignment_value: '',
+  advance_received: '0',
+  notes: '',
 };
 
-const validateOrderForm = (formData, { requireBillingCustomer = true } = {}) => {
-  const errors = {};
-  const reference = (formData.reference_number || '').trim();
-  const billingName = (formData.billing_company_name || '').trim();
-  const notes = (formData.notes || '').trim();
-  const pickup = formData.pickup_date || '';
-  const delivery = formData.delivery_date || '';
-  const receiving = formData.lr_receiving_date || '';
-
-  if (requireBillingCustomer && !formData.billing_customer_id) {
-    errors.billing_customer_id = 'Please select a billing customer.';
-  }
-  if (reference.length > 100) {
-    errors.reference_number = 'Reference number cannot exceed 100 characters.';
-  } else if (reference && !REFERENCE_REGEX.test(reference)) {
-    errors.reference_number = 'Use only letters, numbers, slash (/), underscore (_), or hyphen (-).';
-  }
-  if (billingName.length > 255) {
-    errors.billing_company_name = 'Billing company name cannot exceed 255 characters.';
-  }
-  if (notes.length > 1000) {
-    errors.notes = 'Notes cannot exceed 1000 characters.';
-  }
-  if (pickup && delivery && delivery < pickup) {
-    errors.delivery_date = 'Delivery date cannot be before pickup date.';
-  }
-  if (receiving && pickup && receiving > pickup) {
-    errors.lr_receiving_date = 'LR receiving date cannot be after pickup date.';
-  }
-
-  return errors;
-};
-
-// --- Base Modal Component ---
-export const Modal = ({ isOpen, onClose, title, children }) => {
+function ModalShell({ isOpen, title, onClose, children }) {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-5xl rounded-2xl bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
           <h2 className="text-lg font-bold text-gray-800">{title}</h2>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+          >
             <X size={18} />
           </button>
         </div>
-        <div className="p-6 overflow-y-auto">
-          {children}
-        </div>
+        <div className="max-h-[80vh] overflow-y-auto p-5">{children}</div>
       </div>
     </div>
   );
-};
+}
 
-export function CreateOrderModal({ isOpen, onClose }) {
-  const createOrderMutation = useCreateOrder();
+function Field({ label, required = false, children }) {
+  return (
+    <div className="space-y-1">
+      <label className="text-xs font-semibold text-gray-600">
+        {label}
+        {required ? <span className="ml-0.5 text-red-500">*</span> : null}
+      </label>
+      {children}
+    </div>
+  );
+}
 
-  // Separate APIs for different roles
-  const { data: customersData } = useCustomers({ page_size: 100 });
+const INPUT_CLASS =
+  'w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100';
+
+function getCustomerName(customer) {
+  return customer?.legal_name || customer?.trading_name || customer?.customer_code || customer?.id || 'Unknown';
+}
+
+function normalizeAddress(address) {
+  if (!address || typeof address !== 'object') return '';
+  const segments = [
+    address.address_line_1,
+    address.address_line_2,
+    address.city,
+    address.state,
+    address.postal_code,
+    address.country,
+  ].filter(Boolean);
+  return segments.join(', ');
+}
+
+function OrderForm({ mode, initialData = null, onClose }) {
+  const createOrder = useCreateOrder();
+  const updateOrder = useUpdateOrder();
+  const [form, setForm] = useState(EMPTY_FORM);
+
+  const { data: customersData } = useCustomers({ page_size: 200, is_active: true });
   const customers = customersData?.results || (Array.isArray(customersData) ? customersData : []);
+  const { data: vehicleTypesData } = useVehicleTypes({ page_size: 200, is_active: true });
+  const vehicleTypes = vehicleTypesData?.results || [];
 
-  const { data: consignorsData } = useConsignors({ page_size: 100 });
-  const consignors = consignorsData?.results || [];
+  const { data: consignorAddressesData } = useCustomerAddresses(form.consignor_id || null);
+  const { data: consigneeAddressesData } = useCustomerAddresses(form.consignee_id || null);
+  const consignorAddresses = consignorAddressesData?.results || (Array.isArray(consignorAddressesData) ? consignorAddressesData : []);
+  const consigneeAddresses = consigneeAddressesData?.results || (Array.isArray(consigneeAddressesData) ? consigneeAddressesData : []);
 
-  const { data: consigneesData } = useConsignees({ page_size: 100 });
-  const consignees = consigneesData?.results || [];
-
-  const { data: brokersData } = useBrokers({ page_size: 100 });
-  const brokers = brokersData?.results || [];
-
-  const [formData, setFormData] = useState({
-    billing_customer_id: "",
-    consignor_id: "",
-    consignee_id: "",
-    broker_id: "",
-    order_type: "FTL",
-    reference_number: "",
-    pickup_date: "",
-    delivery_date: "",
-    notes: "",
-    created_at: new Date().toISOString(),
-    lr_receiving_date: "",
-    billing_company_name: ""
-  });
-  const [formErrors, setFormErrors] = useState({});
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const errors = validateOrderForm(formData, { requireBillingCustomer: true });
-    setFormErrors(errors);
-    if (Object.keys(errors).length > 0) return;
-
-    const payload = normalizeOrderPayload(formData);
-
-    createOrderMutation.mutate(payload, {
-      onSuccess: () => {
-        setFormData({
-          billing_customer_id: "", consignor_id: "", consignee_id: "", broker_id: "",
-          order_type: "FTL", reference_number: "", pickup_date: "", delivery_date: "", notes: "",
-          created_at: new Date().toISOString(),
-          lr_receiving_date: "",
-          billing_company_name: ""
-        });
-        setFormErrors({});
-        onClose();
-      }
+  useEffect(() => {
+    if (!initialData) {
+      setForm(EMPTY_FORM);
+      return;
+    }
+    setForm({
+      ...EMPTY_FORM,
+      ...initialData,
+      freight_charges: initialData.freight_charges != null ? String(initialData.freight_charges) : '0',
+      consignment_value: initialData.consignment_value != null ? String(initialData.consignment_value) : '',
+      advance_received: initialData.advance_received != null ? String(initialData.advance_received) : '0',
     });
+  }, [initialData]);
+
+  const billingOptions = useMemo(() => customers, [customers]);
+
+  const onChange = (key) => (e) => {
+    const value = e?.target?.value ?? '';
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleAutoAddressFill = (role, customerId) => {
+    if (!customerId) return;
+    const list = role === 'consignor' ? consignorAddresses : consigneeAddresses;
+    const firstAddress = list?.[0];
+    if (!firstAddress) return;
+    const nextValue = normalizeAddress(firstAddress);
+    if (!nextValue) return;
+    if (role === 'consignor') {
+      setForm((prev) => ({ ...prev, consignor_address: prev.consignor_address || nextValue }));
+    } else {
+      setForm((prev) => ({ ...prev, consignee_address: prev.consignee_address || nextValue }));
+    }
+  };
+
+  useEffect(() => {
+    handleAutoAddressFill('consignor', form.consignor_id);
+  }, [form.consignor_id, consignorAddressesData]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    handleAutoAddressFill('consignee', form.consignee_id);
+  }, [form.consignee_id, consigneeAddressesData]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const buildPayload = () => {
+    const nullable = new Set([
+      'consignor_id',
+      'consignee_id',
+      'broker_id',
+      'pickup_date',
+      'delivery_date',
+      'lr_receiving_date',
+      'booking_date',
+      'consignment_value',
+      'vehicle_type_preference',
+    ]);
+    const payload = Object.fromEntries(
+      Object.entries(form).map(([key, value]) => [key, nullable.has(key) && value === '' ? null : value])
+    );
+    payload.freight_charges = payload.freight_charges === '' ? '0' : payload.freight_charges;
+    payload.advance_received = payload.advance_received === '' ? '0' : payload.advance_received;
+    return payload;
+  };
+
+  const isSaving = createOrder.isPending || updateOrder.isPending;
+
+  const submit = (e) => {
+    e.preventDefault();
+    const payload = buildPayload();
+    if (mode === 'edit' && initialData?.id) {
+      updateOrder.mutate(
+        { id: initialData.id, data: payload },
+        { onSuccess: () => onClose?.() }
+      );
+      return;
+    }
+    createOrder.mutate(payload, { onSuccess: () => onClose?.() });
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Create New Order (LR)">
-      <form onSubmit={handleSubmit} className="space-y-4 text-sm">
-        <div className="pt-1 pb-1">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-[#4a6cf7]">Billing</p>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-gray-700 font-medium mb-1">
-              Billing Customer <span className="text-red-500">*</span>
-            </label>
+    <form onSubmit={submit} className="space-y-6">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <Field label="Reference Number">
+          <input className={INPUT_CLASS} value={form.reference_number} onChange={onChange('reference_number')} />
+        </Field>
+        <Field label="Order Type" required>
+          <select className={INPUT_CLASS} value={form.order_type} onChange={onChange('order_type')}>
+            {ORDER_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Booking Date">
+          <input type="date" className={INPUT_CLASS} value={form.booking_date || ''} onChange={onChange('booking_date')} />
+        </Field>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <Field label="Billing Customer" required>
+          <select className={INPUT_CLASS} value={form.billing_customer_id} onChange={onChange('billing_customer_id')}>
+            <option value="">Select billing customer</option>
+            {billingOptions.map((customer) => (
+              <option key={customer.id} value={customer.id}>
+                {getCustomerName(customer)}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Consignor">
+          <select className={INPUT_CLASS} value={form.consignor_id || ''} onChange={onChange('consignor_id')}>
+            <option value="">Select consignor</option>
+            {customers.map((customer) => (
+              <option key={customer.id} value={customer.id}>
+                {getCustomerName(customer)}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Consignee">
+          <select className={INPUT_CLASS} value={form.consignee_id || ''} onChange={onChange('consignee_id')}>
+            <option value="">Select consignee</option>
+            {customers.map((customer) => (
+              <option key={customer.id} value={customer.id}>
+                {getCustomerName(customer)}
+              </option>
+            ))}
+          </select>
+        </Field>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <Field label="Consignor Address">
+          <textarea rows={2} className={INPUT_CLASS} value={form.consignor_address} onChange={onChange('consignor_address')} />
+        </Field>
+        <Field label="Consignee Address">
+          <textarea rows={2} className={INPUT_CLASS} value={form.consignee_address} onChange={onChange('consignee_address')} />
+        </Field>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <Field label="Pickup Date">
+          <input type="date" className={INPUT_CLASS} value={form.pickup_date || ''} onChange={onChange('pickup_date')} />
+        </Field>
+        <Field label="Delivery Date">
+          <input type="date" className={INPUT_CLASS} value={form.delivery_date || ''} onChange={onChange('delivery_date')} />
+        </Field>
+        <Field label="LR Receiving Date">
+          <input type="date" className={INPUT_CLASS} value={form.lr_receiving_date || ''} onChange={onChange('lr_receiving_date')} />
+        </Field>
+      </div>
+
+      <div className="rounded-xl border border-gray-200 p-4">
+        <h3 className="mb-3 text-sm font-bold text-gray-700">Invoice Details</h3>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <Field label="Vehicle Type">
             <select
-              className={`w-full p-2 border rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none ${formErrors.billing_customer_id ? 'border-red-400' : 'border-gray-300'}`}
-              value={formData.billing_customer_id}
-              onChange={e => {
-                const selectedCust = customers.find(c => c.id === e.target.value);
-                setFormData({ 
-                  ...formData, 
-                  billing_customer_id: e.target.value,
-                  billing_company_name: selectedCust ? (selectedCust.trading_name || "") : "",
-                  broker_id: selectedCust?.customer_type === 'BROKER' ? e.target.value : formData.broker_id
-                });
-                if (formErrors.billing_customer_id) setFormErrors((prev) => ({ ...prev, billing_customer_id: undefined }));
-              }}
+              className={INPUT_CLASS}
+              value={form.vehicle_type_preference || ''}
+              onChange={onChange('vehicle_type_preference')}
             >
-              <option value="">Select Customer</option>
-              {customers.map((c, idx) => (
-                <option key={`${c.id}-${idx}`} value={c.id}>
-                  {c.legal_name || c.trading_name} {c.customer_code ? `(${c.customer_code})` : ''} - {c.customer_type || 'N/A'}
+              <option value="">Select vehicle type</option>
+              {vehicleTypes.map((vehicleType) => (
+                <option key={vehicleType.id} value={vehicleType.type_code}>
+                  {vehicleType.type_code} - {vehicleType.type_name}
                 </option>
               ))}
             </select>
-            {formErrors.billing_customer_id && <p className="mt-1 text-xs text-red-600">{formErrors.billing_customer_id}</p>}
-          </div>
-          <div>
-            <label className="block text-gray-700 font-medium mb-1">Order Type (Contract)</label>
-            <select
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
-              value={formData.order_type}
-              onChange={e => setFormData({ ...formData, order_type: e.target.value })}
-            >
-              <option value="FTL">FTL</option>
-              <option value="LTL">LTL</option>
-              <option value="CONTAINER">CONTAINER</option>
-              <option value="COURIER">COURIER</option>
-              <option value="MULTI_DROP">MULTI_DROP</option>
-            </select>
-          </div>
+          </Field>
+          <Field label="Vehicle Size">
+            <input className={INPUT_CLASS} value={form.vehicle_size} onChange={onChange('vehicle_size')} />
+          </Field>
+          <Field label="Seal Number">
+            <input className={INPUT_CLASS} value={form.seal_number} onChange={onChange('seal_number')} />
+          </Field>
+          <Field label="Consignor Invoice No.">
+            <input className={INPUT_CLASS} value={form.consignor_invoice_no} onChange={onChange('consignor_invoice_no')} />
+          </Field>
+          <Field label="E-Way Bill No.">
+            <input className={INPUT_CLASS} value={form.e_way_bill_no} onChange={onChange('e_way_bill_no')} />
+          </Field>
+          <Field label="Road Permit No.">
+            <input className={INPUT_CLASS} value={form.road_permit_no} onChange={onChange('road_permit_no')} />
+          </Field>
+          <Field label="To Be Billed At">
+            <input className={INPUT_CLASS} value={form.to_be_billed_at} onChange={onChange('to_be_billed_at')} />
+          </Field>
+          <Field label="Freight Charges">
+            <input type="number" min="0" step="0.01" className={INPUT_CLASS} value={form.freight_charges} onChange={onChange('freight_charges')} />
+          </Field>
+          <Field label="Consignment Value">
+            <input type="number" min="0" step="0.01" className={INPUT_CLASS} value={form.consignment_value} onChange={onChange('consignment_value')} />
+          </Field>
+          <Field label="Advance Received">
+            <input type="number" min="0" step="0.01" className={INPUT_CLASS} value={form.advance_received} onChange={onChange('advance_received')} />
+          </Field>
         </div>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-gray-700 font-medium mb-1">Billing Company Name</label>
-            <input
-              type="text"
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
-              placeholder="e.g. KCM PVT LTD"
-              value={formData.billing_company_name}
-              onChange={e => setFormData({ ...formData, billing_company_name: e.target.value })}
-            />
-          </div>
-        </div>
+      </div>
 
-        <div className="pt-1 pb-1">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-[#4a6cf7]">Schedule</p>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-gray-700 font-medium mb-1">Pickup Date</label>
-            <input
-              type="date"
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
-              value={formData.pickup_date}
-              onChange={e => setFormData({ ...formData, pickup_date: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="block text-gray-700 font-medium mb-1">Delivery Date</label>
-            <input
-              type="date"
-              min={formData.pickup_date || undefined}
-              className={`w-full p-2 border rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none ${formErrors.delivery_date ? 'border-red-400' : 'border-gray-300'}`}
-              value={formData.delivery_date}
-              onChange={e => {
-                setFormData({ ...formData, delivery_date: e.target.value });
-                if (formErrors.delivery_date) setFormErrors((prev) => ({ ...prev, delivery_date: undefined }));
-              }}
-            />
-            {formErrors.delivery_date && <p className="mt-1 text-xs text-red-600">{formErrors.delivery_date}</p>}
-          </div>
-        </div>
+      <Field label="Notes">
+        <textarea rows={3} className={INPUT_CLASS} value={form.notes} onChange={onChange('notes')} />
+      </Field>
 
-        <details className="rounded-lg border border-gray-200 bg-gray-50/70 p-3" open>
-          <summary className="cursor-pointer text-xs font-bold uppercase tracking-widest text-gray-700">Optional Details</summary>
-          <div className="mt-3 space-y-4">
-        <div className="pt-1 pb-1">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-[#4a6cf7]">Parties</p>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-gray-700 font-medium mb-1">Consignor (Shipper)</label>
-            <select
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
-              value={formData.consignor_id}
-              onChange={e => setFormData({ ...formData, consignor_id: e.target.value })}
-            >
-              <option value="">Select Consignor</option>
-              {consignors.map((c, idx) => (
-                <option key={`${c.id}-${idx}`} value={c.customer?.id || c.id}>
-                  {c.customer?.legal_name || c.customer?.trading_name || c.legal_name || c.trading_name || (c.id ? c.id.slice(-6) : 'N/A')}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-gray-700 font-medium mb-1">Consignee (Receiver)</label>
-            <select
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
-              value={formData.consignee_id}
-              onChange={e => setFormData({ ...formData, consignee_id: e.target.value })}
-            >
-              <option value="">Select Consignee</option>
-              {consignees.map((c, idx) => (
-                <option key={`${c.id}-${idx}`} value={c.customer?.id || c.id}>
-                  {c.customer?.legal_name || c.customer?.trading_name || c.legal_name || c.trading_name || (c.id ? c.id.slice(-6) : 'N/A')}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+      <div className="flex items-center justify-end gap-2 border-t border-gray-100 pt-4">
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={isSaving}
+          className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+        >
+          {isSaving ? 'Saving...' : mode === 'edit' ? 'Update Order' : 'Create Order'}
+        </button>
+      </div>
+    </form>
+  );
+}
 
-        <div className="pt-1 pb-1">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-[#4a6cf7]">Optional Meta</p>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-gray-700 font-medium mb-1">Broker (Optional)</label>
-            <select
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
-              value={formData.broker_id}
-              onChange={e => setFormData({ ...formData, broker_id: e.target.value })}
-            >
-              <option value="">Select Broker</option>
-              {brokers.map((b, idx) => (
-                <option key={`${b.id}-${idx}`} value={b.customer?.id || b.id}>
-                  {b.customer?.legal_name || b.customer?.trading_name || b.legal_name || b.trading_name || (b.id ? b.id.slice(-6) : 'N/A')}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-gray-700 font-medium mb-1">Reference Number</label>
-            <input
-              type="text"
-              maxLength={100}
-              pattern="[A-Za-z0-9/_-]+"
-              className={`w-full p-2 border rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none ${formErrors.reference_number ? 'border-red-400' : 'border-gray-300'}`}
-              placeholder="PO-001..."
-              value={formData.reference_number}
-              onChange={e => {
-                setFormData({ ...formData, reference_number: e.target.value });
-                if (formErrors.reference_number) setFormErrors((prev) => ({ ...prev, reference_number: undefined }));
-              }}
-            />
-            {formErrors.reference_number && <p className="mt-1 text-xs text-red-600">{formErrors.reference_number}</p>}
-          </div>
-          <div />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-gray-700 font-medium mb-1">Created At</label>
-            <input
-              type="text"
-              readOnly
-              className="w-full p-2 border border-gray-200 bg-gray-50 rounded text-gray-500 cursor-not-allowed outline-none"
-              value={new Date(formData.created_at).toLocaleString()}
-            />
-          </div>
-          <div>
-            <label className="block text-gray-700 font-medium mb-1">LR Receiving Date</label>
-            <input
-              type="date"
-              max={formData.pickup_date || undefined}
-              className={`w-full p-2 border rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none ${formErrors.lr_receiving_date ? 'border-red-400' : 'border-gray-300'}`}
-              value={formData.lr_receiving_date}
-              onChange={e => {
-                setFormData({ ...formData, lr_receiving_date: e.target.value });
-                if (formErrors.lr_receiving_date) setFormErrors((prev) => ({ ...prev, lr_receiving_date: undefined }));
-              }}
-            />
-            {formErrors.lr_receiving_date && <p className="mt-1 text-xs text-red-600">{formErrors.lr_receiving_date}</p>}
-          </div>
-        </div>
-
-        <div className="pt-1 pb-1">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-[#4a6cf7]">Notes</p>
-        </div>
-        <div>
-          <label className="block text-gray-700 font-medium mb-1">Notes</label>
-          <textarea
-            maxLength={1000}
-            className={`w-full p-2 border rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none ${formErrors.notes ? 'border-red-400' : 'border-gray-300'}`}
-            rows="3"
-            placeholder="Additional instructions..."
-            value={formData.notes}
-            onChange={e => {
-              setFormData({ ...formData, notes: e.target.value });
-              if (formErrors.notes) setFormErrors((prev) => ({ ...prev, notes: undefined }));
-            }}
-          />
-          {formErrors.notes && <p className="mt-1 text-xs text-red-600">{formErrors.notes}</p>}
-        </div>
-          </div>
-        </details>
-
-        <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
-          <button
-            type="submit"
-            disabled={createOrderMutation.isPending}
-            className="px-4 py-2 text-white bg-[#4a6cf7] rounded-lg hover:bg-[#3b59d9] disabled:opacity-50"
-          >
-            {createOrderMutation.isPending ? 'Creating...' : 'Create Order'}
-          </button>
-        </div>
-      </form>
-    </Modal>
+export function CreateOrderModal({ isOpen, onClose }) {
+  return (
+    <ModalShell isOpen={isOpen} onClose={onClose} title="Create Order">
+      <OrderForm mode="create" onClose={onClose} />
+    </ModalShell>
   );
 }
 
 export function EditOrderModal({ isOpen, onClose, order }) {
-  const updateOrderMutation = useUpdateOrder();
-  
-  const { data: customersData } = useCustomers({ page_size: 100 });
-  const customers = customersData?.results || (Array.isArray(customersData) ? customersData : []);
-
-  const { data: consignorsData } = useConsignors({ page_size: 100 });
-  const consignors = consignorsData?.results || [];
-
-  const { data: consigneesData } = useConsignees({ page_size: 100 });
-  const consignees = consigneesData?.results || [];
-
-  const { data: brokersData } = useBrokers({ page_size: 100 });
-  const brokers = brokersData?.results || [];
-
-  const [formData, setFormData] = useState({
-    billing_customer_id: order?.billing_customer_id || "",
-    order_type: order?.order_type || "FTL",
-    consignor_id: order?.consignor_id || "",
-    consignee_id: order?.consignee_id || "",
-    broker_id: order?.broker_id || "",
-    reference_number: order?.reference_number || "",
-    pickup_date: order?.pickup_date || "",
-    delivery_date: order?.delivery_date || "",
-    notes: order?.notes || "",
-    created_at: order?.created_at || "",
-    lr_receiving_date: order?.lr_receiving_date || "",
-    billing_company_name: order?.billing_company_name || ""
-  });
-  const [formErrors, setFormErrors] = useState({});
-
-  useEffect(() => {
-    if (order && isOpen) {
-      setFormData({
-        billing_customer_id: order.billing_customer_id || "",
-        order_type: order.order_type || "FTL",
-        consignor_id: order.consignor_id || "",
-        consignee_id: order.consignee_id || "",
-        broker_id: order.broker_id || "",
-        reference_number: order.reference_number || "",
-        pickup_date: order.pickup_date || "",
-        delivery_date: order.delivery_date || "",
-        notes: order.notes || "",
-        created_at: order.created_at || "",
-        lr_receiving_date: order.lr_receiving_date || "",
-        billing_company_name: order.billing_company_name || ""
-      });
-    }
-  }, [order, isOpen]);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const errors = validateOrderForm(formData, { requireBillingCustomer: false });
-    setFormErrors(errors);
-    if (Object.keys(errors).length > 0) return;
-    const payload = normalizeOrderPayload(formData);
-
-    updateOrderMutation.mutate({ id: order.id, data: payload, fullReplace: true }, {
-      onSuccess: () => onClose()
-    });
-  };
-
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Edit Order: ${order?.lr_number}`}>
-      <form onSubmit={handleSubmit} className="space-y-4 text-sm">
-        {Object.keys(formErrors).length > 0 && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-700 text-xs">
-            Please fix highlighted fields before saving.
-          </div>
-        )}
-        <div className="pt-1 pb-1">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-[#4a6cf7]">Billing</p>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-gray-700 font-medium mb-1">Billing Customer</label>
-            <select
-              disabled
-              className="w-full p-2 border border-gray-200 bg-gray-50 rounded text-gray-500 cursor-not-allowed outline-none appearance-none"
-              value={formData.billing_customer_id}
-            >
-              <option value="">Select Customer</option>
-              {customers.map((c, idx) => (
-                <option key={`${c.id}-${idx}`} value={c.id}>
-                  {c.legal_name || c.trading_name} {c.customer_code ? `(${c.customer_code})` : ''} - {c.customer_type || 'N/A'}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-gray-700 font-medium mb-1">Order Type</label>
-            <select
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
-              value={formData.order_type}
-              onChange={e => setFormData({ ...formData, order_type: e.target.value })}
-            >
-              <option value="FTL">FTL</option>
-              <option value="LTL">LTL</option>
-              <option value="CONTAINER">CONTAINER</option>
-              <option value="COURIER">COURIER</option>
-              <option value="MULTI_DROP">MULTI_DROP</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-gray-700 font-medium mb-1">Billing Company Name</label>
-            <input
-              type="text"
-              disabled
-              className="w-full p-2 border border-gray-200 bg-gray-50 rounded text-gray-500 cursor-not-allowed outline-none"
-              placeholder="e.g. KCM PVT LTD"
-              value={formData.billing_company_name}
-              onChange={e => setFormData({ ...formData, billing_company_name: e.target.value })}
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-gray-700 font-medium mb-1">Reference Number</label>
-            <input
-              type="text"
-              maxLength={100}
-              pattern="[A-Za-z0-9/_-]+"
-              className={`w-full p-2 border rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none ${formErrors.reference_number ? 'border-red-400' : 'border-gray-300'}`}
-              value={formData.reference_number}
-              onChange={e => {
-                setFormData({ ...formData, reference_number: e.target.value });
-                if (formErrors.reference_number) setFormErrors((prev) => ({ ...prev, reference_number: undefined }));
-              }}
-            />
-            {formErrors.reference_number && <p className="mt-1 text-xs text-red-600">{formErrors.reference_number}</p>}
-          </div>
-          <div />
-        </div>
-
-        <details className="rounded-lg border border-gray-200 bg-gray-50/70 p-3" open>
-          <summary className="cursor-pointer text-xs font-bold uppercase tracking-widest text-gray-700">Optional Details</summary>
-          <div className="mt-3 space-y-4">
-        <div className="pt-1 pb-1">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-[#4a6cf7]">Parties</p>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-gray-700 font-medium mb-1">Consignor (Shipper)</label>
-            <select
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
-              value={formData.consignor_id}
-              onChange={e => setFormData({ ...formData, consignor_id: e.target.value })}
-            >
-              <option value="">Select Consignor</option>
-              {consignors.map((c, idx) => (
-                <option key={`${c.id}-${idx}`} value={c.customer?.id || c.id}>
-                  {c.customer?.legal_name || c.customer?.trading_name || c.legal_name || c.trading_name || (c.id ? c.id.slice(-6) : 'N/A')}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-gray-700 font-medium mb-1">Consignee (Receiver)</label>
-            <select
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
-              value={formData.consignee_id}
-              onChange={e => setFormData({ ...formData, consignee_id: e.target.value })}
-            >
-              <option value="">Select Consignee</option>
-              {consignees.map((c, idx) => (
-                <option key={`${c.id}-${idx}`} value={c.customer?.id || c.id}>
-                  {c.customer?.legal_name || c.customer?.trading_name || c.legal_name || c.trading_name || (c.id ? c.id.slice(-6) : 'N/A')}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="pt-1 pb-1">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-[#4a6cf7]">Schedule</p>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-gray-700 font-medium mb-1">Broker (Optional)</label>
-            <select
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
-              value={formData.broker_id}
-              onChange={e => setFormData({ ...formData, broker_id: e.target.value })}
-            >
-              <option value="">Select Broker</option>
-              {brokers.map((b, idx) => (
-                <option key={`${b.id}-${idx}`} value={b.customer?.id || b.id}>
-                  {b.customer?.legal_name || b.customer?.trading_name || b.legal_name || b.trading_name || (b.id ? b.id.slice(-6) : 'N/A')}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-gray-700 font-medium mb-1">Created At</label>
-            <input
-              type="text"
-              readOnly
-              className="w-full p-2 border border-gray-200 bg-gray-50 rounded text-gray-500 cursor-not-allowed outline-none"
-              value={formData.created_at ? new Date(formData.created_at).toLocaleString() : 'N/A'}
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-gray-700 font-medium mb-1">LR Receiving Date</label>
-            <input
-              type="date"
-              max={formData.pickup_date || undefined}
-              className={`w-full p-2 border rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none ${formErrors.lr_receiving_date ? 'border-red-400' : 'border-gray-300'}`}
-              value={formData.lr_receiving_date}
-              onChange={e => {
-                setFormData({ ...formData, lr_receiving_date: e.target.value });
-                if (formErrors.lr_receiving_date) setFormErrors((prev) => ({ ...prev, lr_receiving_date: undefined }));
-              }}
-            />
-            {formErrors.lr_receiving_date && <p className="mt-1 text-xs text-red-600">{formErrors.lr_receiving_date}</p>}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-gray-700 font-medium mb-1">Pickup Date</label>
-            <input
-              type="date"
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none"
-              value={formData.pickup_date}
-              onChange={e => setFormData({ ...formData, pickup_date: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="block text-gray-700 font-medium mb-1">Delivery Date</label>
-            <input
-              type="date"
-              min={formData.pickup_date || undefined}
-              className={`w-full p-2 border rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none ${formErrors.delivery_date ? 'border-red-400' : 'border-gray-300'}`}
-              value={formData.delivery_date}
-              onChange={e => {
-                setFormData({ ...formData, delivery_date: e.target.value });
-                if (formErrors.delivery_date) setFormErrors((prev) => ({ ...prev, delivery_date: undefined }));
-              }}
-            />
-            {formErrors.delivery_date && <p className="mt-1 text-xs text-red-600">{formErrors.delivery_date}</p>}
-          </div>
-        </div>
-
-        <div className="pt-1 pb-1">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-[#4a6cf7]">Notes</p>
-        </div>
-        <div>
-          <label className="block text-gray-700 font-medium mb-1">Notes</label>
-          <textarea
-            maxLength={1000}
-            className={`w-full p-2 border rounded focus:ring-2 focus:ring-[#4a6cf7] outline-none ${formErrors.notes ? 'border-red-400' : 'border-gray-300'}`}
-            rows="3"
-            value={formData.notes}
-            onChange={e => {
-              setFormData({ ...formData, notes: e.target.value });
-              if (formErrors.notes) setFormErrors((prev) => ({ ...prev, notes: undefined }));
-            }}
-          />
-          {formErrors.notes && <p className="mt-1 text-xs text-red-600">{formErrors.notes}</p>}
-        </div>
-          </div>
-        </details>
-
-        <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
-          <button
-            type="submit"
-            disabled={updateOrderMutation.isPending}
-            className="px-4 py-2 text-white bg-[#4a6cf7] rounded-lg hover:bg-[#3b59d9] disabled:opacity-50"
-          >
-            {updateOrderMutation.isPending ? 'Saving...' : 'Save Changes'}
-          </button>
-        </div>
-      </form>
-    </Modal>
+    <ModalShell isOpen={isOpen} onClose={onClose} title="Edit Order">
+      <OrderForm mode="edit" initialData={order} onClose={onClose} />
+    </ModalShell>
   );
 }
 
-export function AssignTripModal({ isOpen, onClose, order, consignor, consignee }) {
-  const assignTripMutation = useAssignTrip();
-
-  const { data: driversData } = useDrivers({ page_size: 100 });
-  const drivers = driversData?.results || [];
-
-  const { data: vehiclesData } = useVehicles({ page_size: 100 });
-  const vehicles = vehiclesData?.results || [];
-
-  const [formData, setFormData] = useState({
-    driver_id: "",
-    vehicle_id: "",
-    trip_type: "FTL",
-    origin_address: "",
-    destination_address: "",
-    scheduled_pickup_date: "",
-    scheduled_delivery_date: "",
-    remarks: ""
-  });
-
-  useEffect(() => {
-    if (isOpen && order) {
-      const getAddress = (customer) => {
-        if (!customer) return ""; // Still loading
-        return customer.legal_name || customer.trading_name || "No address available";
-      };
-
-      setFormData({
-        driver_id: "",
-        vehicle_id: "",
-        trip_type: order.order_type || "FTL",
-        origin_address: getAddress(consignor),
-        destination_address: getAddress(consignee),
-        scheduled_pickup_date: order.pickup_date || "",
-        scheduled_delivery_date: order.delivery_date || "",
-        remarks: order.notes || ""
-      });
-    }
-  }, [isOpen, order, consignor, consignee]);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    assignTripMutation.mutate({ id: order.id, data: formData }, {
-      onSuccess: () => onClose()
-    });
-  };
-
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Assign Trip for: ${order?.lr_number}`}>
-      <div className="mb-4 p-3 bg-indigo-50 text-indigo-800 rounded-lg border border-indigo-200 text-[11px] font-bold uppercase tracking-wider">
-        Defining operational leg for this shipment
-      </div>
-      <form onSubmit={handleSubmit} className="space-y-4 text-sm">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-gray-700 font-bold mb-1 uppercase text-[10px] tracking-widest">Driver *</label>
-            <select
-              required
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
-              value={formData.driver_id}
-              onChange={e => setFormData({ ...formData, driver_id: e.target.value })}
-            >
-              <option value="">Select Driver</option>
-              {drivers.map((d, idx) => (
-                <option key={`${d.id}-${idx}`} value={d.id}>
-                  {d.user?.first_name || 'Driver'} {d.user?.last_name || ''} ({d.employee_id || (d.id ? d.id.slice(-6) : 'N/A')})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-gray-700 font-bold mb-1 uppercase text-[10px] tracking-widest">Vehicle *</label>
-            <select
-              required
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
-              value={formData.vehicle_id}
-              onChange={e => setFormData({ ...formData, vehicle_id: e.target.value })}
-            >
-              <option value="">Select Vehicle</option>
-              {vehicles.map((v, idx) => (
-                <option key={`${v.id}-${idx}`} value={v.id}>
-                  {v.registration_number || v.registration || (v.id ? v.id.slice(-6) : 'N/A')}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-gray-700 font-bold mb-1 uppercase text-[10px] tracking-widest">Trip Origin (editable on Trip)</label>
-            <input
-              type="text"
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
-              placeholder="e.g. Warehouse A"
-              value={formData.origin_address}
-              onChange={e => setFormData({ ...formData, origin_address: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="block text-gray-700 font-bold mb-1 uppercase text-[10px] tracking-widest">Trip Destination (editable on Trip)</label>
-            <input
-              type="text"
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
-              placeholder="e.g. Hub Center"
-              value={formData.destination_address}
-              onChange={e => setFormData({ ...formData, destination_address: e.target.value })}
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-gray-700 font-bold mb-1 uppercase text-[10px] tracking-widest">Scheduled Pickup (pre-filled from order)</label>
-            <input
-              type="date"
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
-              value={formData.scheduled_pickup_date}
-              onChange={e => setFormData({ ...formData, scheduled_pickup_date: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="block text-gray-700 font-bold mb-1 uppercase text-[10px] tracking-widest">Scheduled Delivery (pre-filled from order)</label>
-            <input
-              type="date"
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
-              value={formData.scheduled_delivery_date}
-              onChange={e => setFormData({ ...formData, scheduled_delivery_date: e.target.value })}
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-gray-700 font-bold mb-1 uppercase text-[10px] tracking-widest">Trip Type (Operational)</label>
-            <p className="mb-1 text-[10px] text-gray-500">Defaulted from order type; change only if this trip uses a different load type.</p>
-            <select
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
-              value={formData.trip_type}
-              onChange={e => setFormData({ ...formData, trip_type: e.target.value })}
-            >
-              <option value="FTL">FTL (Full Truck Load)</option>
-              <option value="LTL">LTL (Less than Truck Load)</option>
-              <option value="CONTAINER">CONTAINER</option>
-              <option value="COURIER">COURIER</option>
-              <option value="MULTI_DROP">MULTI DROP</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-gray-700 font-bold mb-1 uppercase text-[10px] tracking-widest">Trip Number</label>
-            <input
-              type="text"
-              readOnly
-              className="w-full p-2 border border-gray-200 bg-gray-50 rounded text-gray-500 cursor-not-allowed outline-none"
-              value="Auto-generated"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-gray-700 font-bold mb-1 uppercase text-[10px] tracking-widest">Trip Remarks / Notes</label>
-            <textarea
-              rows="2"
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0052CC] outline-none"
-              placeholder="Special instructions for this trip leg..."
-              value={formData.remarks}
-              onChange={e => setFormData({ ...formData, remarks: e.target.value })}
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-          <button type="button" onClick={onClose} className="px-4 py-2 font-bold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all">Cancel</button>
-          <button
-            type="submit"
-            disabled={assignTripMutation.isPending}
-            className="px-6 py-2 font-black text-white bg-[#0052CC] rounded-xl hover:bg-[#0747A6] shadow-md shadow-blue-100 transition-all disabled:opacity-50"
-          >
-            {assignTripMutation.isPending ? 'Processing...' : 'Confirm Assignment'}
-          </button>
-        </div>
-      </form>
-    </Modal>
-  );
-}
