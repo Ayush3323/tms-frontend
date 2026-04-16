@@ -547,7 +547,7 @@ const RecordModal = ({ initial, onClose, isView, vehicleId, onDeleteRequest }) =
                 <Input type="date" value={form.next_service_due} onChange={set('next_service_due')} />
               </Field>
               <Field label="Odometer (km)">
-                <Input type="number" placeholder="e.g. 18000" value={form.odometer_reading} onChange={set('odometer_reading')} />
+                <Input type="number" placeholder="e.g. 18000" value={form.odometer_reading} onChange={set('odometer_reading')} readOnly={isEdit} disabled={isEdit} />
               </Field>
               <Field label="Labor Hours">
                 <Input type="number" placeholder="e.g. 3" value={form.labor_hours} onChange={set('labor_hours')} />
@@ -896,6 +896,11 @@ const RecordsTab = ({ onEdit, onDelete, onView, onAdd, vehicleId, isTab }) => {
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <span className="flex items-center gap-1 text-gray-600 text-[12px]"><Calendar size={11} className="text-gray-300" />{fmtDate(r.next_service_due)}</span>
+                    {r.next_service_due && daysUntil(r.next_service_due) < 0 && (
+                      <span className="text-[10px] font-black text-red-500 uppercase tracking-tighter animate-pulse flex items-center gap-1 mt-0.5">
+                        <AlertTriangle size={10} /> Service Required
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center gap-2">
@@ -963,6 +968,7 @@ const MaintenanceSchedules = ({ vehicleId, tab: initialTab = 'schedules', isTab 
   const schedCount = schedules.length;
   const overdue = schedules.filter(s => s.status === 'OVERDUE').length;
   const upcoming = schedules.filter(s => s.status === 'SCHEDULED' && daysUntil(s.next_due_date) <= 7).length;
+  const overdueRecs = records.filter(r => r.next_service_due && daysUntil(r.next_service_due) < 0).length;
   const totalCost = records.reduce((acc, r) => acc + parseFloat(r.total_cost || 0), 0);
 
   const content = (
@@ -1073,6 +1079,10 @@ const MaintenanceSchedules = ({ vehicleId, tab: initialTab = 'schedules', isTab 
                 <span className="text-[18px] font-black text-orange-500">{upcoming}</span>
               </div>
               <div className="flex items-center gap-2">
+                <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Overdue Service:</span>
+                <span className={`text-[18px] font-black ${overdueRecs > 0 ? 'text-red-600 animate-pulse' : 'text-[#172B4D]'}`}>{overdueRecs}</span>
+              </div>
+              <div className="flex items-center gap-2">
                 <span className="text-[13px] font-bold text-gray-500 uppercase tracking-wider">Total Cost:</span>
                 <span className="text-[18px] font-black text-green-600">{fmtINR(totalCost)}</span>
               </div>
@@ -1103,9 +1113,10 @@ const MaintenanceSchedules = ({ vehicleId, tab: initialTab = 'schedules', isTab 
             <button onClick={() => setActiveTab('records')}
               className={`flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-lg transition-all
                 ${activeTab === 'records' ? 'bg-white text-[#0052CC] shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>
-              <ClipboardList size={14} /> Service Records
+              <ClipboardList size={14} className={overdueRecs > 0 ? 'text-red-500 animate-bounce' : ''} />
+              <span className={overdueRecs > 0 ? 'text-red-600' : ''}>Service Records</span>
               <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full
-                ${activeTab === 'records' ? 'bg-[#0052CC] text-white' : 'bg-gray-200 text-gray-500'}`}>
+                ${overdueRecs > 0 ? 'bg-red-500 text-white animate-pulse shadow-lg shadow-red-200' : activeTab === 'records' ? 'bg-[#0052CC] text-white' : 'bg-gray-200 text-gray-500'}`}>
                 {records.length}
               </span>
             </button>
