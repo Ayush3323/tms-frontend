@@ -3,6 +3,7 @@ import { useQueries } from '@tanstack/react-query'
 import { FileSpreadsheet, RefreshCw, Search, ChevronDown } from 'lucide-react'
 
 import { settlementApi } from '../../api/finance/financeEndpoint'
+
 import { useTrips, useOrders } from '../../queries/orders/ordersQuery'
 import { useTripsLookup } from '../../queries/finance/financeQuery'
 import { useCustomers } from '../../queries/customers/customersQuery'
@@ -203,10 +204,10 @@ export default function LRRecordsPage() {
   const handleDownload = () => {
     const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`
     const header = ALL_COLS.map(c => esc(c.label)).join(',')
-    const body = filtered.map(row => 
+    const body = filtered.map(row =>
       ALL_COLS.map(col => esc(getCell(row, col) || '')).join(',')
     ).join('\n')
-    
+
     const csv = `${header}\n${body}`
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
@@ -438,23 +439,26 @@ export default function LRRecordsPage() {
               {search && ` · filtered by "${search}"`}
             </p>
 
-            <div className="flex items-center gap-2">
-              {hasPrev && (
-                <button
-                  onClick={() => setVisibleCount(c => Math.max(rowsPerPage, c - rowsPerPage))}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-700 text-xs font-semibold hover:bg-gray-50 transition-colors cursor-pointer"
-                >
-                  <ChevronDown size={14} className="rotate-90" /> Previous 10
-                </button>
-              )}
-              {hasMore && (
-                <button
-                  onClick={() => setVisibleCount(c => c + rowsPerPage)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-700 text-xs font-semibold hover:bg-gray-50 transition-colors cursor-pointer"
-                >
-                  <ChevronDown size={14} className="-rotate-90" /> Next {Math.min(rowsPerPage, filtered.length - visibleCount)}
-                </button>
-              )}
+            <div className="flex items-center gap-4">
+              <p className="text-[11px] text-gray-400 italic mr-2">↔ Scroll horizontally to see all columns</p>
+              <div className="flex items-center gap-2">
+                {hasPrev && (
+                  <button
+                    onClick={() => setVisibleCount(c => Math.max(rowsPerPage, c - rowsPerPage))}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-700 text-xs font-semibold hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
+                    <ChevronDown size={14} className="rotate-90" /> Previous 10
+                  </button>
+                )}
+                {hasMore && (
+                  <button
+                    onClick={() => setVisibleCount(c => c + rowsPerPage)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-700 text-xs font-semibold hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
+                    <ChevronDown size={14} className="-rotate-90" /> Next {Math.min(rowsPerPage, filtered.length - visibleCount)}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
