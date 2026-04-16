@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react'
 import { useQueries } from '@tanstack/react-query'
-import { FileSpreadsheet, RefreshCw, Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import { FileSpreadsheet, RefreshCw, Search, ChevronDown } from 'lucide-react'
 
 import { settlementApi } from '../../api/finance/financeEndpoint'
 import { useTrips, useOrders } from '../../queries/orders/ordersQuery'
@@ -92,7 +92,7 @@ export default function LRRecordsPage() {
   const [loaded, setLoaded] = useState(false)
   const [search, setSearch] = useState('')
   const [selectedTripId, setSelectedTripId] = useState('')
-  const [currentPage, setCurrentPage] = useState(1)
+  const [visibleCount, setVisibleCount] = useState(10)
   const rowsPerPage = 10
 
   const { data: tripsData, isLoading: tripsLoading, refetch } = useTripsLookup({ page_size: 500 })
@@ -187,14 +187,15 @@ export default function LRRecordsPage() {
   }, [rows, search, selectedTripId])
 
   useEffect(() => {
-    setCurrentPage(1)
+    setVisibleCount(10)
   }, [search, selectedTripId, loaded])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage))
   const paginatedRows = useMemo(() => {
-    const start = (currentPage - 1) * rowsPerPage
-    return filtered.slice(start, start + rowsPerPage)
-  }, [filtered, currentPage])
+    return filtered.slice(0, visibleCount)
+  }, [filtered, visibleCount])
+
+  const hasPrev = visibleCount > rowsPerPage
+  const hasMore = visibleCount < filtered.length
 
   const pendingCount = rows.filter(r => r.pending).length
   const progress = rows.length > 0 ? Math.round(((rows.length - pendingCount) / rows.length) * 100) : 0
@@ -218,6 +219,13 @@ export default function LRRecordsPage() {
 
   return (
     <div className="bg-[#EEF2F7]" style={{ minHeight: '100vh' }}>
+      <style>{`
+        .lr-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
+        .lr-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        .lr-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .lr-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .lr-scroll { scrollbar-width: thin; scrollbar-color: #cbd5e1 #f1f5f9; }
+      `}</style>
 
       {/* ── Top bar ────────────────────────────────────────── */}
       <div className="bg-white border-b border-gray-200 px-5 py-3.5 flex flex-wrap items-center gap-3 shadow-sm">
@@ -327,7 +335,7 @@ export default function LRRecordsPage() {
       {/* ── Table ──────────────────────────────────────────── */}
       {loaded && (
         <div className="p-4" style={{ overflowX: 'auto', overflowY: 'hidden' }}>
-          <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 'calc(100vh - 160px)', borderRadius: 12, border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+          <div className="lr-scroll" style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 'calc(100vh - 160px)', borderRadius: 12, border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
             <table className="min-w-max text-[13px] border-collapse">
               <thead className="sticky top-0 z-20">
                 {/* Group header row */}
@@ -380,7 +388,7 @@ export default function LRRecordsPage() {
                       className="sticky left-0 z-10 px-3 py-3 font-bold border-r-2 border-gray-200 whitespace-nowrap text-center"
                       style={{ background: 'inherit', color: '#64748b', minWidth: 36 }}
                     >
-                      {(currentPage - 1) * rowsPerPage + idx + 1}
+                      {idx + 1}
                     </td>
 
                     {ALL_COLS.map(col => {
@@ -426,33 +434,27 @@ export default function LRRecordsPage() {
 
           <div className="flex items-center justify-between mt-4 px-2">
             <p className="text-[11px] text-gray-400">
-              Showing <strong>{filtered.length > 0 ? (currentPage - 1) * rowsPerPage + 1 : 0}</strong> to <strong>{Math.min(currentPage * rowsPerPage, filtered.length)}</strong> of <strong>{filtered.length}</strong> LRs (Total <strong>{rows.length}</strong>)
+              Showing <strong>{paginatedRows.length}</strong> of <strong>{filtered.length}</strong> LRs
               {search && ` · filtered by "${search}"`}
             </p>
-            
-            <div className="flex items-center gap-4">
-              <p className="text-[11px] text-gray-400 italic mr-2">↔ Scroll horizontally to see all columns</p>
-              
-              {/* Pagination Controls */}
-              <div className="flex items-center gap-1.5">
-                <button 
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="p-1 rounded bg-white border border-gray-200 text-gray-600 disabled:opacity-50 hover:bg-gray-50 transition-colors cursor-pointer"
+
+            <div className="flex items-center gap-2">
+              {hasPrev && (
+                <button
+                  onClick={() => setVisibleCount(c => Math.max(rowsPerPage, c - rowsPerPage))}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-700 text-xs font-semibold hover:bg-gray-50 transition-colors cursor-pointer"
                 >
-                  <ChevronLeft size={16} />
+                  <ChevronDown size={14} className="rotate-90" /> Previous 10
                 </button>
-                <span className="text-xs font-medium text-gray-600 px-2 min-w-[80px] text-center">
-                  Page {currentPage} of {totalPages}
-                </span>
-                <button 
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="p-1 rounded bg-white border border-gray-200 text-gray-600 disabled:opacity-50 hover:bg-gray-50 transition-colors cursor-pointer"
+              )}
+              {hasMore && (
+                <button
+                  onClick={() => setVisibleCount(c => c + rowsPerPage)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-700 text-xs font-semibold hover:bg-gray-50 transition-colors cursor-pointer"
                 >
-                  <ChevronRight size={16} />
+                  <ChevronDown size={14} className="-rotate-90" /> Next {Math.min(rowsPerPage, filtered.length - visibleCount)}
                 </button>
-              </div>
+              )}
             </div>
           </div>
         </div>
