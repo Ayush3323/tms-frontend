@@ -179,8 +179,12 @@ export function CreateTripModal({ isOpen, onClose, orderId, orderNumber }) {
       ...prev,
       order_id: id,
       lr_number: order ? order.lr_number : "",
+      reference_number: order ? (order.reference_number || prev.reference_number || '') : prev.reference_number,
       trip_type: order ? (order.order_type || prev.trip_type || "FTL") : prev.trip_type,
       status: order ? 'ASSIGNED' : (prev.status || 'CREATED'),
+      origin_address: order ? (order.consignor_address || prev.origin_address || '') : prev.origin_address,
+      destination_address: order ? (order.consignee_address || prev.destination_address || '') : prev.destination_address,
+      vehicle_type_code: order ? (order.vehicle_type_preference || prev.vehicle_type_code || '') : prev.vehicle_type_code,
     }));
   };
 
@@ -752,7 +756,13 @@ export function EditTripModal({ isOpen, onClose, trip }) {
     setFormData(prev => ({
       ...prev,
       order_id: id,
-      lr_number: order ? order.lr_number : ""
+      lr_number: order ? order.lr_number : "",
+      reference_number: order ? (order.reference_number || prev.reference_number || '') : prev.reference_number,
+      trip_type: order ? (order.order_type || prev.trip_type || "FTL") : prev.trip_type,
+      status: order ? 'ASSIGNED' : (prev.status || 'CREATED'),
+      origin_address: order ? (order.consignor_address || prev.origin_address || '') : prev.origin_address,
+      destination_address: order ? (order.consignee_address || prev.destination_address || '') : prev.destination_address,
+      vehicle_type_code: order ? (order.vehicle_type_preference || prev.vehicle_type_code || '') : prev.vehicle_type_code,
     }));
   };
 

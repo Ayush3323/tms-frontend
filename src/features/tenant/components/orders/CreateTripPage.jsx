@@ -285,15 +285,17 @@ export default function CreateTripPage() {
 
   const handleOrderChange = (id) => {
     const order = orders.find(o => String(o.id) === String(id));
-    const newOrigin = order?.origin_address || "";
-    const newDest = order?.destination_address || "";
+    const newOrigin = order?.consignor_address || "";
+    const newDest = order?.consignee_address || "";
     
     setFormData(prev => ({
       ...prev,
       order_id: id,
+      lr_number: order ? (order.lr_number || '') : '',
       reference_number: order ? (order.reference_number || "") : "",
       trip_type: order ? (order.order_type || prev.trip_type || "FTL") : prev.trip_type,
       status: order ? 'ASSIGNED' : (prev.status || 'CREATED'),
+      vehicle_type_code: order ? (order.vehicle_type_preference || prev.vehicle_type_code || '') : prev.vehicle_type_code,
       origin_address: newOrigin,
       destination_address: newDest,
     }));
