@@ -27,6 +27,7 @@ export const financeKeys = {
   ownerPayments: (params) => ['finance', 'ownerPayments', params],
   payrollPeriods: (params) => ['finance', 'payrollPeriods', params],
   payrollEntries: (params) => ['finance', 'payrollEntries', params],
+  payrollDeductions: (params) => ['finance', 'payrollDeductions', params],
   tdsEntries: (params) => ['finance', 'tdsEntries', params],
   tdsReturns: (params) => ['finance', 'tdsReturns', params],
   advances: (params) => ['finance', 'advances', params],
@@ -60,6 +61,7 @@ export const useCustomerPayments = (params) => useQuery({ queryKey: financeKeys.
 export const useOwnerPayments = (params) => useQuery({ queryKey: financeKeys.ownerPayments(params), queryFn: () => ownerPaymentApi.list(params) })
 export const usePayrollPeriods = (params) => useQuery({ queryKey: financeKeys.payrollPeriods(params), queryFn: () => payrollApi.listPeriods(params) })
 export const usePayrollEntries = (params) => useQuery({ queryKey: financeKeys.payrollEntries(params), queryFn: () => payrollApi.listEntries(params) })
+export const usePayrollDeductions = (params) => useQuery({ queryKey: financeKeys.payrollDeductions(params), queryFn: () => payrollApi.listDeductions(params) })
 export const useTDSEntries = (params) => useQuery({ queryKey: financeKeys.tdsEntries(params), queryFn: () => tdsApi.listEntries(params) })
 export const useTDSReturns = (params) => useQuery({ queryKey: financeKeys.tdsReturns(params), queryFn: () => tdsApi.listReturns(params) })
 export const useAdvances = (params) => useQuery({ queryKey: financeKeys.advances(params), queryFn: () => advanceApi.list(params) })
@@ -101,6 +103,18 @@ export const useJournalEntryDetail = (id) =>
     queryFn: () => ledgerApi.getJournalEntry(id),
     enabled: !!id,
   })
+export const useCreateJournalEntry = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ledgerApi.createJournalEntry,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'journalEntries'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'ledgerAccounts'] })
+      toast.success('Journal entry posted')
+    },
+    onError: onErr('Could not post journal entry'),
+  })
+}
 export const useLRSettlement = (tripId) =>
   useQuery({
     queryKey: financeKeys.lrSettlement(tripId),
@@ -519,6 +533,32 @@ export const useReconcilePayment = () => {
     onError: onErr('Reconciliation failed'),
   })
 }
+export const useUpdateReconciliation = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => reconciliationApi.update(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'reconciliations'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'customerPayments'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'invoices'] })
+      toast.success('Reconciliation updated')
+    },
+    onError: onErr('Update failed'),
+  })
+}
+export const useDeleteReconciliation = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: reconciliationApi.delete,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'reconciliations'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'customerPayments'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'invoices'] })
+      toast.success('Reconciliation deleted')
+    },
+    onError: onErr('Delete failed'),
+  })
+}
 export const useGeneratePayrollEntries = () => {
   const qc = useQueryClient()
   return useMutation({
@@ -563,6 +603,77 @@ export const useMarkPayrollEntryPaid = () => {
       toast.success('Payroll entry marked paid')
     },
     onError: onErr('Could not mark entry paid'),
+  })
+}
+export const usePayrollEntryDetail = (id) => useQuery({
+  queryKey: ['finance', 'payrollEntryDetail', id],
+  queryFn: () => payrollApi.getEntry(id),
+  enabled: !!id,
+})
+export const useUpdatePayrollEntry = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => payrollApi.updateEntry(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'payrollEntries'] })
+      toast.success('Payroll entry updated')
+    },
+    onError: onErr('Could not update entry'),
+  })
+}
+export const useDeletePayrollEntry = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: payrollApi.deleteEntry,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'payrollEntries'] })
+      toast.success('Payroll entry deleted')
+    },
+    onError: onErr('Could not delete entry'),
+  })
+}
+export const useCreatePayrollEntry = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: payrollApi.createEntry,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'payrollEntries'] })
+      toast.success('Payroll entry created')
+    },
+    onError: onErr('Could not create entry'),
+  })
+}
+export const useCreatePayrollDeduction = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: payrollApi.createDeduction,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'payrollDeductions'] })
+      toast.success('Deduction created')
+    },
+    onError: onErr('Could not create deduction'),
+  })
+}
+export const useUpdatePayrollDeduction = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => payrollApi.updateDeduction(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'payrollDeductions'] })
+      toast.success('Deduction updated')
+    },
+    onError: onErr('Could not update deduction'),
+  })
+}
+export const useDeletePayrollDeduction = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: payrollApi.deleteDeduction,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'payrollDeductions'] })
+      toast.success('Deduction deleted')
+    },
+    onError: onErr('Could not delete deduction'),
   })
 }
 export const useCreatePayrollPeriod = () => {
@@ -618,6 +729,78 @@ export const useMarkTDSReturnPaid = () => {
       toast.success('TDS return marked paid')
     },
     onError: onErr('Could not mark TDS return paid'),
+  })
+}
+
+export const useCreateTDSEntry = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: tdsApi.createEntry,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'tdsEntries'] })
+      toast.success('TDS Entry created')
+    },
+    onError: onErr('Could not create TDS entry'),
+  })
+}
+
+export const useUpdateTDSEntry = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => tdsApi.updateEntry(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'tdsEntries'] })
+      toast.success('TDS Entry updated')
+    },
+    onError: onErr('Could not update TDS entry'),
+  })
+}
+
+export const useDeleteTDSEntry = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: tdsApi.deleteEntry,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'tdsEntries'] })
+      toast.success('TDS Entry deleted')
+    },
+    onError: onErr('Could not delete TDS entry'),
+  })
+}
+
+export const useCreateTDSReturn = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: tdsApi.createReturn,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'tdsReturns'] })
+      toast.success('Quarterly return created')
+    },
+    onError: onErr('Could not create quarterly return'),
+  })
+}
+
+export const useUpdateTDSReturn = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => tdsApi.updateReturn(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'tdsReturns'] })
+      toast.success('Quarterly return updated')
+    },
+    onError: onErr('Could not update quarterly return'),
+  })
+}
+
+export const useDeleteTDSReturn = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: tdsApi.deleteReturn,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'tdsReturns'] })
+      toast.success('Quarterly return deleted')
+    },
+    onError: onErr('Could not delete quarterly return'),
   })
 }
 export const useApproveAdvance = () => {

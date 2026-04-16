@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, Edit2, Trash2 } from 'lucide-react'
 
 import FinanceListPage from '../Common/FinanceListPage'
 import ReconcileModal from './ReconcileModal'
-import { useReconciliations, useInvoices, useCustomerPayments } from '../../../queries/finance/financeQuery'
+import { useReconciliations, useInvoices, useCustomerPayments, useDeleteReconciliation } from '../../../queries/finance/financeQuery'
 
 const asList = (data) => data?.results || (Array.isArray(data) ? data : [])
 
@@ -14,6 +14,7 @@ export default function ReconciliationsPage() {
   
   const params = useMemo(() => (search ? { search } : {}), [search])
   const { data, isLoading, refetch } = useReconciliations(params)
+  const { mutate: deleteRecon } = useDeleteReconciliation()
   
   // Fetch lists to map UUIDs into readable names
   const { data: invData } = useInvoices({ limit: 500 })
@@ -91,16 +92,31 @@ export default function ReconciliationsPage() {
         }
         rows={rows}
         rowActions={(row) => (
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              setEditData(row)
-              setIsModalOpen(true)
-            }}
-            className="text-[11px] font-bold text-[#0052CC] hover:bg-blue-50 px-3 py-1.5 rounded-lg border border-transparent hover:border-blue-100 transition-colors uppercase tracking-wider"
-          >
-            Edit
-          </button>
+          <div className="flex items-center justify-end gap-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setEditData(row)
+                setIsModalOpen(true)
+              }}
+              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              title="Edit"
+            >
+              <Edit2 size={16} />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                if (window.confirm('Delete this reconciliation?')) {
+                  deleteRecon(row.id)
+                }
+              }}
+              className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+              title="Delete"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
         )}
         columns={[
           { key: 'id', title: 'Recon ID', render: (val) => <span className="font-mono text-xs text-gray-500 uppercase">{val?.split('-')[0]}</span> },
