@@ -303,11 +303,14 @@ export default function TripsMainBody() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex flex-col">
-                            {trip.lr_number && (
-                              <span className="text-[10px] font-bold text-[#0052CC] bg-[#EBF3FF] px-2 py-1 rounded w-fit border border-blue-100/50">
-                                {trip.lr_number}
+                            {(trip.linked_orders?.length
+                              ? trip.linked_orders.map((o) => o.lr_number).filter(Boolean)
+                              : [trip.lr_number].filter(Boolean)
+                            ).map((lr) => (
+                              <span key={lr} className="text-[10px] font-bold text-[#0052CC] bg-[#EBF3FF] px-2 py-1 rounded w-fit border border-blue-100/50 mb-1">
+                                {lr}
                               </span>
-                            )}
+                            ))}
                           </div>
                         </td>
                         <td className="px-6 py-4">

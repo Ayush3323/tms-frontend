@@ -204,12 +204,17 @@ export const useCreateTrip = () => {
   return useMutation({
     mutationFn: (data) => tripsApi.create(data),
     onSuccess: (trip, variables) => {
-      const orderId = trip?.order_id || variables?.order_id;
+      const orderIds = [
+        ...(trip?.order_ids || []),
+        ...(variables?.order_ids || []),
+        ...(trip?.order_id ? [trip.order_id] : []),
+        ...(variables?.order_id ? [variables.order_id] : []),
+      ].filter(Boolean);
       queryClient.invalidateQueries({ queryKey: orderKeys.trips() })
       queryClient.invalidateQueries({ queryKey: orderKeys.all })
-      if (orderId) {
+      Array.from(new Set(orderIds)).forEach((orderId) => {
         queryClient.invalidateQueries({ queryKey: orderKeys.detail(orderId) })
-      }
+      })
       toast.success('Trip created successfully')
     },
     onError: (err) => handleApiError(err, 'Trip creation failed'),
@@ -223,13 +228,18 @@ export const useUpdateTrip = () => {
       return fullReplace ? tripsApi.replace(id, data) : tripsApi.update(id, data)
     },
     onSuccess: (trip, { id, data }) => {
-      const orderId = trip?.order_id || data?.order_id
+      const orderIds = [
+        ...(trip?.order_ids || []),
+        ...(data?.order_ids || []),
+        ...(trip?.order_id ? [trip.order_id] : []),
+        ...(data?.order_id ? [data.order_id] : []),
+      ].filter(Boolean)
       queryClient.invalidateQueries({ queryKey: orderKeys.trips() })
       queryClient.invalidateQueries({ queryKey: orderKeys.tripDetail(id) })
       queryClient.invalidateQueries({ queryKey: orderKeys.all })
-      if (orderId) {
+      Array.from(new Set(orderIds)).forEach((orderId) => {
         queryClient.invalidateQueries({ queryKey: orderKeys.detail(orderId) })
-      }
+      })
       toast.success('Trip updated successfully')
     },
     onError: (err) => handleApiError(err, 'Update failed'),
@@ -266,7 +276,7 @@ export const useTripStops = (tripId) => {
 export const useCreateTripStop = (tripId) => {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (data) => tripsApi.createStop(tripId, data),
+    mutationFn: (data) => tripsApi.createStop(tripId, { ...data, order_id: data?.order_id || null }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: orderKeys.tripStops(tripId) })
       toast.success('Trip stop added')

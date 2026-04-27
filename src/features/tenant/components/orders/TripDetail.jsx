@@ -203,7 +203,19 @@ const DataRow = ({ label, value, icon: Icon }) => {
 };
 
 // --- Tabs ---
-const OverviewTab = ({ trip, driver, vehicle, order, isLoadingNames, navigate, originDisplay, destinationDisplay }) => (
+const OverviewTab = ({
+  trip,
+  order,
+  navigate,
+  originDisplay,
+  destinationDisplay,
+  linkedOrders,
+  stops,
+  activeOrderTab,
+  setActiveOrderTab,
+}) => {
+  const routeStops = (stops || []).filter((s) => String(s.order_id || '') === String(activeOrderTab || ''));
+  return (
   <div className="space-y-8">
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       <InfoCard label="status" value={trip.status} icon={Clock} accent />
@@ -215,9 +227,33 @@ const OverviewTab = ({ trip, driver, vehicle, order, isLoadingNames, navigate, o
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
       <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm flex flex-col h-full overflow-hidden">
         <SectionHeader icon={MapPin} title="Route Summary" />
+        <div className="mb-4 flex flex-wrap gap-2">
+          {linkedOrders.map((o) => (
+            <button
+              key={o.order_id}
+              type="button"
+              onClick={() => setActiveOrderTab(o.order_id)}
+              className={`px-3 py-1 rounded-lg text-[11px] font-bold border ${
+                String(activeOrderTab) === String(o.order_id)
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-gray-600 border-gray-200'
+              }`}
+            >
+              {o.lr_number || 'LR'}
+            </button>
+          ))}
+        </div>
         <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-1">
           <DataRow label="origin_address" value={originDisplay} icon={MapPin} />
           <DataRow label="destination_address" value={destinationDisplay} icon={MapPin} />
+          {routeStops.map((stop) => (
+            <DataRow
+              key={stop.id}
+              label={`Stop #${stop.stop_sequence} (${stop.stop_type})`}
+              value={stop.location_address}
+              icon={MapPin}
+            />
+          ))}
         </div>
         <div className="mt-6 pt-6 border-t border-gray-50">
           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50 px-3 py-2.5 rounded-xl border border-gray-100 inline-block">
@@ -234,6 +270,11 @@ const OverviewTab = ({ trip, driver, vehicle, order, isLoadingNames, navigate, o
           <DataRow label="created_date" value={formatDateTime(trip.created_date)} icon={Calendar} />
           <DataRow label="Pickup Date" value={order?.pickup_date || '—'} icon={Calendar} />
           <DataRow label="Delivery Date" value={order?.delivery_date || '—'} icon={CheckCircle2} />
+          <DataRow
+            label="Linked LRs"
+            value={linkedOrders.map((o) => o.lr_number).filter(Boolean).join(', ') || '—'}
+            icon={FileText}
+          />
         </div>
         {trip.order_id && (
           <div className="mt-6 pt-6 border-t border-gray-50 flex items-center justify-end gap-3">
@@ -265,7 +306,8 @@ const OverviewTab = ({ trip, driver, vehicle, order, isLoadingNames, navigate, o
       </div>
     </div>
   </div>
-);
+  );
+};
 
 const JourneyTab = ({ trip, driver, vehicle, isLoadingNames, altDriver, altVehicle }) => (
   <div className="space-y-8">
@@ -476,8 +518,10 @@ const StopsTab = ({ tripId, stops, isLoading, onCreateStop, onUpdateStopStatus, 
   );
 };
 
-const DeliveriesTab = ({ tripId, deliveries, createDelivery, isCreating }) => {
+const DeliveriesTab = ({ tripId, deliveries, stops, createDelivery, isCreating }) => {
+  const deliveryStops = (stops || []).filter((s) => s.stop_type === 'DELIVERY');
   const [form, setForm] = useState({
+    trip_stop: '',
     delivery_date: '',
     received_by_name: '',
     received_by_relation: '',
@@ -488,8 +532,12 @@ const DeliveriesTab = ({ tripId, deliveries, createDelivery, isCreating }) => {
 
   const onSubmit = (e) => {
     e.preventDefault();
+    if (!form.trip_stop && deliveryStops.length > 1) {
+      return;
+    }
     createDelivery({
       trip_id: tripId,
+      trip_stop: form.trip_stop || undefined,
       ...form,
     });
   };
@@ -499,6 +547,22 @@ const DeliveriesTab = ({ tripId, deliveries, createDelivery, isCreating }) => {
       <SectionHeader icon={FileText} title="Deliveries / POD" />
       <form onSubmit={onSubmit} className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm space-y-3">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div>
+            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Delivery Stop</label>
+            <select
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm"
+              value={form.trip_stop}
+              onChange={(e) => setForm((p) => ({ ...p, trip_stop: e.target.value }))}
+              required={deliveryStops.length > 1}
+            >
+              <option value="">Select delivery stop</option>
+              {deliveryStops.map((stop) => (
+                <option key={stop.id} value={stop.id}>
+                  #{stop.stop_sequence} - {stop.location_address || 'Delivery Stop'}
+                </option>
+              ))}
+            </select>
+          </div>
           <div>
             <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Delivery Date</label>
             <input type="date" className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" value={form.delivery_date} onChange={(e) => setForm((p) => ({ ...p, delivery_date: e.target.value }))} required />
@@ -760,6 +824,7 @@ export default function TripDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
+  const [activeOrderTab, setActiveOrderTab] = useState(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isCreateCargoOpen, setIsCreateCargoOpen] = useState(false);
   const [editFinanceItem, setEditFinanceItem] = useState(null);
@@ -784,6 +849,15 @@ export default function TripDetail() {
   const { data: docs } = useTripDocuments(id);
   const { data: history, isLoading: loadingHistory } = useTripStatusHistory(id);
   const { data: tripDeliveries } = useTripDeliveries(id);
+  const linkedOrders = trip?.linked_orders?.length
+    ? trip.linked_orders
+    : (trip?.order_id ? [{ order_id: trip.order_id, lr_number: trip.lr_number, reference_number: trip.reference_number }] : []);
+
+  useEffect(() => {
+    if (!activeOrderTab && linkedOrders.length) {
+      setActiveOrderTab(linkedOrders[0].order_id);
+    }
+  }, [activeOrderTab, linkedOrders]);
 
   const createStopMutation = useCreateTripStop(id);
   const updateStopMutation = useUpdateTripStop(id);
@@ -958,10 +1032,22 @@ export default function TripDetail() {
               <div className="px-3 py-1.5 text-blue-600 text-[10px] font-black uppercase tracking-widest">
                   {trip.trip_type || 'FTL'}
               </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-xl text-[10px] font-bold text-gray-500">
+              {linkedOrders.length ? linkedOrders.map((linked) => (
+                <button
+                  key={linked.order_id}
+                  type="button"
+                  onClick={() => navigate(`/tenant/dashboard/orders/${linked.order_id}`)}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-xl text-[10px] font-bold text-gray-500 hover:bg-blue-50 hover:text-blue-700"
+                >
+                  <Hash size={10} className="text-gray-200" />
+                  {linked.lr_number || 'LR-PENDING'}
+                </button>
+              )) : (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-xl text-[10px] font-bold text-gray-500">
                   <Hash size={10} className="text-gray-200" />
                   {order?.lr_number || trip.lr_number || 'LR-PENDING'}
-              </div>
+                </div>
+              )}
               {nextStatuses.map((status) => (
                 <button
                   key={status}
@@ -1043,7 +1129,19 @@ export default function TripDetail() {
             ))}
           </div>
           <div className="p-8 lg:p-10 bg-gradient-to-b from-white to-gray-50/30 min-h-[500px]">
-            {activeTab === 'overview' && <OverviewTab trip={trip} driver={getDriverDisplay(driver, driverId, trip?.primary_driver_name)} vehicle={getVehicleDisplay(vehicle, vehicleId, trip?.vehicle_number)} order={order} isLoadingNames={loadingDriver || loadingVehicle} navigate={navigate} originDisplay={originDisplay} destinationDisplay={destinationDisplay} />}
+            {activeTab === 'overview' && (
+              <OverviewTab
+                trip={trip}
+                order={order}
+                navigate={navigate}
+                originDisplay={originDisplay}
+                destinationDisplay={destinationDisplay}
+                linkedOrders={linkedOrders}
+                stops={sortedStops}
+                activeOrderTab={activeOrderTab}
+                setActiveOrderTab={setActiveOrderTab}
+              />
+            )}
             {activeTab === 'journey' && (
                 <JourneyTab 
                     trip={trip} 
@@ -1076,6 +1174,7 @@ export default function TripDetail() {
               <DeliveriesTab
                 tripId={id}
                 deliveries={Array.isArray(tripDeliveries) ? tripDeliveries : tripDeliveries?.results}
+                stops={sortedStops}
                 isCreating={createPODMutation.isPending}
                 createDelivery={(payload) => createPODMutation.mutate(payload)}
               />

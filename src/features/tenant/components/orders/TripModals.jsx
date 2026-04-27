@@ -163,7 +163,7 @@ export function CreateTripModal({ isOpen, onClose, orderId, orderNumber }) {
   }, [activeTrips]);
 
   const [formData, setFormData] = useState({
-    order_id: orderId || "", primary_driver_id: null, primary_vehicle_id: null, 
+    order_ids: orderId ? [orderId] : [], primary_driver_id: null, primary_vehicle_id: null, 
     alternate_driver_id: null, alternate_vehicle_id: null,
     lr_number: "", reference_number: "", trip_type: "FTL", status: "CREATED",
     origin_address: "", destination_address: "", 
@@ -173,40 +173,44 @@ export function CreateTripModal({ isOpen, onClose, orderId, orderNumber }) {
   });
 
   // Auto-fill logic for LR Number
-  const handleOrderChange = (id) => {
-    const order = orders.find(o => o.id === id);
+  const handleOrdersChange = (selectedIds) => {
+    const selected = orders.filter(o => selectedIds.includes(o.id));
+    const firstOrder = selected[0];
+    const lastOrder = selected[selected.length - 1] || firstOrder;
+    const lrList = selected.map(o => o.lr_number).filter(Boolean).join(', ');
     setFormData(prev => ({
       ...prev,
-      order_id: id,
-      lr_number: order ? order.lr_number : "",
-      reference_number: order ? (order.reference_number || prev.reference_number || '') : prev.reference_number,
-      trip_type: order ? (order.order_type || prev.trip_type || "FTL") : prev.trip_type,
-      status: order ? 'ASSIGNED' : (prev.status || 'CREATED'),
-      origin_address: order ? (order.consignor_address || prev.origin_address || '') : prev.origin_address,
-      destination_address: order ? (order.consignee_address || prev.destination_address || '') : prev.destination_address,
-      vehicle_type_code: order ? (order.vehicle_type_preference || prev.vehicle_type_code || '') : prev.vehicle_type_code,
+      order_ids: selectedIds,
+      lr_number: lrList,
+      reference_number: firstOrder ? (firstOrder.reference_number || prev.reference_number || '') : prev.reference_number,
+      trip_type: firstOrder ? (firstOrder.order_type || prev.trip_type || "FTL") : prev.trip_type,
+      status: firstOrder ? 'ASSIGNED' : (prev.status || 'CREATED'),
+      origin_address: firstOrder ? (firstOrder.consignor_address || prev.origin_address || '') : prev.origin_address,
+      destination_address: lastOrder ? (lastOrder.consignee_address || prev.destination_address || '') : prev.destination_address,
+      vehicle_type_code: firstOrder ? (firstOrder.vehicle_type_preference || prev.vehicle_type_code || '') : prev.vehicle_type_code,
     }));
   };
 
-  const selectedOrder = useMemo(() => {
-    return orders.find(o => o.id === formData.order_id);
-  }, [orders, formData.order_id]);
+  const selectedOrders = useMemo(() => {
+    return orders.filter(o => formData.order_ids?.includes(o.id));
+  }, [orders, formData.order_ids]);
 
-  const displaySubtitle = selectedOrder 
-    ? `Order: ${selectedOrder.lr_number} · ${selectedOrder.order_type || 'FTL'} · ${selectedOrder.status}` 
+  const displaySubtitle = selectedOrders.length
+    ? `Orders: ${selectedOrders.map(o => o.lr_number).join(', ')}` 
     : (orderNumber ? `Order: ${orderNumber} · FTL · Assigned` : "Standalone Trip Planning");
 
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    if (!formData.order_id) {
-       alert("Please link an order to this trip.");
+    if (!formData.order_ids?.length) {
+       alert("Please link at least one order to this trip.");
        return;
     }
     // Clean payload: UUIDs and Dates must be null if empty to pass backend validation
     const cleanData = {
       ...formData,
-      order_id: formData.order_id || null,
+      order_ids: formData.order_ids || [],
+      order_id: formData.order_ids?.[0] || null,
       primary_driver_id: formData.primary_driver_id || null,
       primary_vehicle_id: formData.primary_vehicle_id || null,
       alternate_driver_id: formData.alternate_driver_id || null,
@@ -235,8 +239,15 @@ export function CreateTripModal({ isOpen, onClose, orderId, orderNumber }) {
            <SectionHeader icon={FileText} title="Basic information" />
            <div className="grid grid-cols-1 gap-4">
               <FieldGroup label="Link to order" required>
-                 <select className={inputClass} value={formData.order_id} onChange={e => handleOrderChange(e.target.value)}>
-                    <option value="">No Order Linked</option>
+                 <select
+                   multiple
+                   className={inputClass}
+                   value={formData.order_ids || []}
+                   onChange={e => {
+                     const values = Array.from(e.target.selectedOptions).map(option => option.value);
+                     handleOrdersChange(values);
+                   }}
+                 >
                     {orders.map(o => <option key={o.id} value={o.id}>{o.lr_number} ({o.status})</option>)}
                  </select>
               </FieldGroup>
@@ -398,11 +409,12 @@ export function EditTripModal({ isOpen, onClose, trip }) {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [isDirty, setIsDirty] = useState(false);
+  const [activeRouteOrderId, setActiveRouteOrderId] = useState(null);
   const updateTripMutation = useUpdateTrip();
   const createStopMutation = useCreateTripStop(trip?.id);
 
   const [formData, setFormData] = useState({
-    order_id: "", trip_number: "", lr_number: "", reference_number: "", trip_type: "FTL", status: "CREATED",
+    order_id: "", order_ids: [], trip_number: "", lr_number: "", reference_number: "", trip_type: "FTL", status: "CREATED",
     primary_vehicle_id: null, vehicle_number: "", vehicle_type_code: "", vehicle_owner_name: "",
     primary_driver_id: null, alternate_vehicle_id: null, alternate_driver_id: null,
     origin_address: "", destination_address: "",
@@ -458,6 +470,12 @@ export function EditTripModal({ isOpen, onClose, trip }) {
   );
   const cargoItems = cargoData?.results || [];
   const { data: tripStops, isLoading: stopsLoading } = useTripStops(trip?.id);
+  const linkedOrdersForTrip = useMemo(() => {
+    const ids = formData.order_ids?.length ? formData.order_ids : (formData.order_id ? [formData.order_id] : []);
+    return ids
+      .map(id => orders.find(o => String(o.id) === String(id)) || { id, lr_number: 'Unknown LR', order_type: 'NA' })
+      .filter(Boolean);
+  }, [orders, formData.order_ids, formData.order_id]);
 
   // Availability tracking for drivers and vehicles
   const { data: allTripsData } = useTrips({ page_size: 1000 });
@@ -492,6 +510,7 @@ export function EditTripModal({ isOpen, onClose, trip }) {
       const data = {
         ...formData,
         ...trip,
+        order_ids: trip.order_ids?.length ? trip.order_ids : (trip.order_id ? [trip.order_id] : []),
         // Ensure dates are formatted for input[type="date"]
         created_date: trip.created_date || new Date().toISOString().split('T')[0],
         scheduled_pickup_date: trip.scheduled_pickup_date || null,
@@ -510,6 +529,9 @@ export function EditTripModal({ isOpen, onClose, trip }) {
       setInitialPlannedStops([]);
       setCurrentStep(1);
       setIsDirty(false);
+      setActiveRouteOrderId(
+        (trip.order_ids && trip.order_ids.length ? trip.order_ids[0] : trip.order_id) || null
+      );
     }
   }, [trip, isOpen, tripStops]); 
 
@@ -624,7 +646,14 @@ export function EditTripModal({ isOpen, onClose, trip }) {
     setPlannedStops((prev) => {
       const next = normalizeBoundaryStopTypes([
         ...prev,
-        { stop_type: 'PICKUP_AND_DELIVERY', location_address: '', instructions: '', scheduled_arrival: '', scheduled_departure: '' },
+        {
+          stop_type: 'PICKUP_AND_DELIVERY',
+          location_address: '',
+          instructions: '',
+          scheduled_arrival: '',
+          scheduled_departure: '',
+          order_id: activeRouteOrderId || formData.order_id || null,
+        },
       ]);
       validateStops(next);
       return next;
@@ -794,6 +823,7 @@ export function EditTripModal({ isOpen, onClose, trip }) {
           plannedStops.forEach((stop, idx) => {
             const stopData = {
               ...stop,
+              order_id: stop.order_id || activeRouteOrderId || null,
               stop_sequence: currentStopsCount + idx + 1,
               trip_id: trip.id
             };
@@ -877,11 +907,19 @@ export function EditTripModal({ isOpen, onClose, trip }) {
                   <h2 className="text-xl font-bold text-gray-800 tracking-tight">General Information</h2>
                 </div>
                 <div className="grid grid-cols-1 gap-6">
-                  <FieldGroup label="order">
-                    <select name="order_id" className={inputClass} value={formData.order_id || ""} onChange={e => handleOrderChange(e.target.value)} disabled>
-                      <option value="">Standalone Trip (No Order)</option>
-                      {orders.map(o => <option key={o.id} value={o.id}>{o.lr_number} — {o.status}</option>)}
-                    </select>
+                  <FieldGroup label="linked orders">
+                    <div className="flex flex-wrap gap-2">
+                      {linkedOrdersForTrip.map(order => (
+                        <button
+                          key={order.id}
+                          type="button"
+                          className="px-3 py-1 rounded-lg bg-blue-50 text-blue-700 text-[11px] font-bold border border-blue-100"
+                          onClick={() => navigate(`/tenant/dashboard/orders/${order.id}`)}
+                        >
+                          {order.lr_number} ({order.order_type || 'NA'})
+                        </button>
+                      ))}
+                    </div>
                   </FieldGroup>
                 </div>
                 <div className="grid grid-cols-3 gap-6">
@@ -1081,6 +1119,22 @@ export function EditTripModal({ isOpen, onClose, trip }) {
                 </div>
 
                 <div className="border border-gray-200 rounded-xl p-4 bg-gray-50/40 mt-6">
+                  <div className="mb-4 flex flex-wrap gap-2">
+                    {linkedOrdersForTrip.map(order => (
+                      <button
+                        key={order.id}
+                        type="button"
+                        onClick={() => setActiveRouteOrderId(order.id)}
+                        className={`px-3 py-1 rounded-lg text-[11px] font-bold border ${
+                          String(activeRouteOrderId) === String(order.id)
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'bg-white text-gray-600 border-gray-200'
+                        }`}
+                      >
+                        {order.lr_number}
+                      </button>
+                    ))}
+                  </div>
                   <div className={`mb-4 rounded-lg border px-3 py-2 text-xs font-semibold transition-all ${
                     stopErrors.length
                       ? 'border-red-200 bg-red-50 text-red-700 animate-pulse'
@@ -1115,7 +1169,7 @@ export function EditTripModal({ isOpen, onClose, trip }) {
                         >
                           <GripVertical size={16} />
                         </div>
-                        <div className="col-span-2">
+                        <div className="col-span-1">
                           <label className="text-[10px] font-bold text-gray-500 uppercase">Type</label>
                           <select
                             className={inputClass}
@@ -1130,6 +1184,19 @@ export function EditTripModal({ isOpen, onClose, trip }) {
                             <option value="BREAK">BREAK</option>
                             <option value="FUEL">FUEL</option>
                             <option value="OTHER">OTHER</option>
+                          </select>
+                        </div>
+                        <div className="col-span-1">
+                          <label className="text-[10px] font-bold text-gray-500 uppercase">Order</label>
+                          <select
+                            className={inputClass}
+                            value={stop.order_id || ""}
+                            onChange={(e) => updateStopRow(idx, 'order_id', e.target.value)}
+                          >
+                            <option value="">Unassigned</option>
+                            {linkedOrdersForTrip.map(order => (
+                              <option key={order.id} value={order.id}>{order.lr_number}</option>
+                            ))}
                           </select>
                         </div>
                         <div className="col-span-3">

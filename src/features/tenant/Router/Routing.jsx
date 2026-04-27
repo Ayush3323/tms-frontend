@@ -31,19 +31,12 @@ import TripsDashboard from '../components/orders/Trips';
 import TripDetail from '../components/orders/TripDetail';
 import TripNestedSubResource from '../components/orders/TripNestedSub-Resource';
 import CreateTripPage from '../components/orders/CreateTripPage';
-import TripManagerOperationsBoard from '../components/orders/TripManagerPlaceholder';
 
 import CargoDashboard from '../components/orders/Cargo';
 import CargoDetail from '../components/orders/CargoDetail';
 import DeliveriesDashboard from '../components/orders/Deliveries';
 import DeliveryDetail from '../components/orders/DeliveryDetail';
 import ErrorBoundary from '../components/orders/ErrorBoundary';
-
-
-
-
-
-
 
 // Global Driver Views
 import AllDocuments from '../components/Drivers/all/AllDocuments';
@@ -161,8 +154,7 @@ const Routing = () => {
 
         <Route path="orders/:id" element={<ErrorBoundary><OrderDetail /></ErrorBoundary>} />
         <Route path="orders/:id/trips" element={<ErrorBoundary><TripNestedSubResource /></ErrorBoundary>} />
-        <Route path="orders/trip-manager" element={<ErrorBoundary><TripManagerOperationsBoard /></ErrorBoundary>} />
-
+        <Route path="orders/trip-manager" element={<Navigate to="/tenant/dashboard/orders/trips" replace />} />
         {/* Finance */}
         <Route path="finance/invoices" element={<InvoicesDashboard />} />
         <Route path="finance/invoices/:id" element={<InvoiceDetail />} />

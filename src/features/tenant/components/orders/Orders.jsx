@@ -105,8 +105,8 @@ export default function Orders() {
 
         <div className="flex items-center">
           <div className="w-1/4">
-            <h1 className="text-2xl font-bold text-[#172B4D]">Order Management</h1>
-            <p className="text-gray-500 text-sm tracking-tight">Manage all shipment orders and LR records</p>
+            <h1 className="text-2xl font-bold text-[#172B4D]">LR Booking Management</h1>
+            <p className="text-gray-500 text-sm tracking-tight">Create and manage LR bookings used for trip planning</p>
           </div>
           <div className="flex-1 max-w-2xl px-8">
             <form onSubmit={handleSearchSubmit} className="relative group/search">

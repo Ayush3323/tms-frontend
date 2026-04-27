@@ -51,11 +51,10 @@ const customerSubItems = [
 ];
 
 const ORDERS_ROOT = '/tenant/dashboard/orders';
-const ORDER_MODULE_RESERVED = new Set(['trips', 'cargo', 'deliveries', 'trip-manager', 'lr-records']);
+const ORDER_MODULE_RESERVED = new Set(['trips', 'cargo', 'deliveries', 'lr-records']);
 const orderSubItems = [
-  { name: 'Orders', icon: <FileText size={13} />, path: '/tenant/dashboard/orders', badge: null },
+  { name: 'LR Bookings', icon: <FileText size={13} />, path: '/tenant/dashboard/orders', badge: null },
   { name: 'Trips', icon: <MapPinned size={13} />, path: '/tenant/dashboard/orders/trips', badge: null },
-  { name: 'Trip Ops', icon: <MapPinned size={13} />, path: '/tenant/dashboard/orders/trip-manager', badge: null },
   { name: 'Cargo', icon: <Package size={13} />, path: '/tenant/dashboard/orders/cargo', badge: null },
   { name: 'Deliveries', icon: <ClipboardCheck size={13} />, path: '/tenant/dashboard/orders/deliveries', badge: null },
   { name: 'LR Records', icon: <FileText size={13} />, path: '/tenant/dashboard/orders/lr-records', badge: null },
@@ -184,7 +183,6 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const isFinancePath = location.pathname.startsWith('/tenant/dashboard/finance');
   const ordersNavActive = isOrdersNavActive(location.pathname);
   const isTripsPath = location.pathname.startsWith(`${ORDERS_ROOT}/trips`);
-  const isTripManagerPath = location.pathname.startsWith(`${ORDERS_ROOT}/trip-manager`);
   const isCargoPath = location.pathname.startsWith(`${ORDERS_ROOT}/cargo`);
   const isDeliveriesPath = location.pathname.startsWith(`${ORDERS_ROOT}/deliveries`);
   const isOrderPath = location.pathname.startsWith(ORDERS_ROOT);
@@ -290,12 +288,12 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
               />
               <NavItem
                 icon={<FileText />}
-                label="Orders"
+                label="LR Operations"
                 isOpen={ordersOpen}
                 setIsOpen={setOrdersOpen}
                 isActive={ordersNavActive}
                 subItems={orderSubItems}
-                title="Orders & Operations"
+                title="LR & Trip Operations"
                 isCollapsed={isCollapsed}
                 setIsCollapsed={setIsCollapsed}
               />

@@ -51,6 +51,21 @@ const MetricsRow = ({ label, children, suffix, helpText }) => (
 );
 
 const inputClass = "w-full p-2.5 border border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-50 focus:border-[#4a6cf7] outline-none transition-all text-sm font-bold text-slate-600 placeholder:text-gray-300 shadow-sm";
+const buildRouteState = (orderId = null, origin = "", destination = "") => ({
+  order_id: orderId,
+  origin_address: origin,
+  destination_address: destination,
+  scheduled_pickup_date: null,
+  scheduled_delivery_date: null,
+  actual_pickup_date: null,
+  actual_delivery_date: null,
+  start_time: null,
+  end_time: null,
+  stops: [
+    { stop_type: 'PICKUP', location_address: origin, order_id: orderId, instructions: '', scheduled_arrival: '', scheduled_departure: '' },
+    { stop_type: 'DELIVERY', location_address: destination, order_id: orderId, instructions: '', scheduled_arrival: '', scheduled_departure: '' },
+  ],
+});
 const TRIP_STATUS_OPTIONS = [
   { value: 'CREATED', label: 'Created' },
   { value: 'ASSIGNED', label: 'Assigned' },
@@ -108,7 +123,7 @@ export default function CreateTripPage() {
   }, [activeTrips]);
 
   const [formData, setFormData] = useState({
-    order_id: "", reference_number: "", trip_type: "FTL", status: "CREATED",
+    order_id: "", order_ids: [], reference_number: "", trip_type: "FTL", status: "CREATED",
     primary_vehicle_id: null, vehicle_number: "", vehicle_type_code: "", vehicle_owner_name: "",
     primary_driver_id: null, alternate_vehicle_id: null, alternate_driver_id: null,
     origin_address: "", destination_address: "",
@@ -127,10 +142,13 @@ export default function CreateTripPage() {
     remarks: "", version: 1
   });
   const [fieldErrors, setFieldErrors] = useState({});
-  const selectedOrder = useMemo(
-    () => orders.find((o) => String(o.id) === String(formData.order_id)),
-    [orders, formData.order_id]
+  const [activeRouteOrderId, setActiveRouteOrderId] = useState(null);
+  const [routesByOrder, setRoutesByOrder] = useState({});
+  const selectedOrders = useMemo(
+    () => orders.filter((o) => (formData.order_ids || []).includes(String(o.id))),
+    [orders, formData.order_ids]
   );
+  const selectedOrder = selectedOrders[0] || null;
 
   const hasErrors = Object.values(fieldErrors).some(err => err && err !== '');
   const [stopErrors, setStopErrors] = useState([]);
@@ -139,16 +157,16 @@ export default function CreateTripPage() {
 
   useEffect(() => {
     if (orderIdFromUrl && orders.length > 0) {
-      handleOrderChange(orderIdFromUrl);
+      handleOrdersChange([orderIdFromUrl]);
     }
   }, [orderIdFromUrl, orders]);
 
   const [dragIdx, setDragIdx] = useState(null);
   const [dragOverIdx, setDragOverIdx] = useState(null);
-  const [plannedStops, setPlannedStops] = useState([
-    { stop_type: 'PICKUP', location_address: '', instructions: '', scheduled_arrival: '', scheduled_departure: '' },
-    { stop_type: 'DELIVERY', location_address: '', instructions: '', scheduled_arrival: '', scheduled_departure: '' },
-  ]);
+  const activeRoute = useMemo(
+    () => routesByOrder[activeRouteOrderId] || buildRouteState(activeRouteOrderId),
+    [routesByOrder, activeRouteOrderId]
+  );
 
   const steps = [
     { id: 1, name: 'General Info', icon: FileText },
@@ -222,32 +240,6 @@ export default function CreateTripPage() {
         [name]: type === 'checkbox' ? checked : value
       };
 
-      // Sync with plannedStops
-      if (name === 'origin_address') {
-        setPlannedStops(stops => {
-          const nextStops = [...stops];
-          if (nextStops.length > 0) {
-            nextStops[0] = { ...nextStops[0], location_address: value, stop_type: 'PICKUP' };
-          } else {
-            nextStops.push({ stop_type: 'PICKUP', location_address: value, instructions: '', scheduled_arrival: '', scheduled_departure: '' });
-          }
-          return nextStops;
-        });
-      } else if (name === 'destination_address') {
-        setPlannedStops(stops => {
-          const nextStops = [...stops];
-          if (nextStops.length > 1) {
-            nextStops[nextStops.length - 1] = { ...nextStops[nextStops.length - 1], location_address: value, stop_type: 'DELIVERY' };
-          } else if (nextStops.length === 1) {
-            nextStops.push({ stop_type: 'DELIVERY', location_address: value, instructions: '', scheduled_arrival: '', scheduled_departure: '' });
-          } else {
-            nextStops.push({ stop_type: 'PICKUP', location_address: prev.origin_address || '', instructions: '', scheduled_arrival: '', scheduled_departure: '' });
-            nextStops.push({ stop_type: 'DELIVERY', location_address: value, instructions: '', scheduled_arrival: '', scheduled_departure: '' });
-          }
-          return nextStops;
-        });
-      }
-
       // Auto-fill vehicle details when primary_vehicle_id changes
       if (name === 'primary_vehicle_id' && value) {
         const selectedVehicle = vehicles.find(v => String(v.id) === String(value));
@@ -283,38 +275,40 @@ export default function CreateTripPage() {
     });
   };
 
-  const handleOrderChange = (id) => {
-    const order = orders.find(o => String(o.id) === String(id));
-    const newOrigin = order?.consignor_address || "";
-    const newDest = order?.consignee_address || "";
-    
+  const handleOrdersChange = (ids) => {
+    const selected = orders.filter(o => ids.includes(String(o.id)));
+    const firstOrder = selected[0];
+    const lastOrder = selected[selected.length - 1] || firstOrder;
+    const newOrigin = firstOrder?.consignor_address || "";
+    const newDest = lastOrder?.consignee_address || "";
+
     setFormData(prev => ({
       ...prev,
-      order_id: id,
-      lr_number: order ? (order.lr_number || '') : '',
-      reference_number: order ? (order.reference_number || "") : "",
-      trip_type: order ? (order.order_type || prev.trip_type || "FTL") : prev.trip_type,
-      status: order ? 'ASSIGNED' : (prev.status || 'CREATED'),
-      vehicle_type_code: order ? (order.vehicle_type_preference || prev.vehicle_type_code || '') : prev.vehicle_type_code,
+      order_ids: ids,
+      order_id: ids[0] || "",
+      lr_number: selected.map(o => o.lr_number).filter(Boolean).join(', '),
+      reference_number: firstOrder ? (firstOrder.reference_number || "") : "",
+      trip_type: firstOrder ? (firstOrder.order_type || prev.trip_type || "FTL") : prev.trip_type,
+      status: firstOrder ? 'ASSIGNED' : (prev.status || 'CREATED'),
+      vehicle_type_code: firstOrder ? (firstOrder.vehicle_type_preference || prev.vehicle_type_code || '') : prev.vehicle_type_code,
       origin_address: newOrigin,
       destination_address: newDest,
     }));
-
-    if (newOrigin || newDest) {
-      setPlannedStops([
-        { stop_type: 'PICKUP', location_address: newOrigin, instructions: '', scheduled_arrival: '', scheduled_departure: '' },
-        { stop_type: 'DELIVERY', location_address: newDest, instructions: '', scheduled_arrival: '', scheduled_departure: '' },
-      ]);
-    }
+    setRoutesByOrder(prev => {
+      const next = {};
+      ids.forEach((id, index) => {
+        const order = selected.find(o => String(o.id) === String(id));
+        const fallbackOrigin = order?.consignor_address || "";
+        const fallbackDestination = order?.consignee_address || "";
+        next[id] = prev[id] || buildRouteState(id, fallbackOrigin, fallbackDestination);
+      });
+      return next;
+    });
+    setActiveRouteOrderId(ids[0] || null);
   };
 
-  const validateStops = (stops = plannedStops) => {
-    // Collect all potential stops: Origin (PICKUP), then multi-stops, then Destination (DELIVERY)
-    const allStops = [
-      ...(formData.origin_address?.trim() ? [{ stop_type: 'PICKUP', location_address: formData.origin_address }] : []),
-      ...stops.filter(s => s.location_address?.trim()),
-      ...(formData.destination_address?.trim() ? [{ stop_type: 'DELIVERY', location_address: formData.destination_address }] : [])
-    ].map((s, idx) => ({ ...s, idx }));
+  const validateStops = (stops = []) => {
+    const allStops = [...(stops || []).filter(s => s.location_address?.trim())].map((s, idx) => ({ ...s, idx }));
 
     const pickupIndices = allStops.filter((s) => s.stop_type === 'PICKUP').map((s) => s.idx);
     const deliveryIndices = allStops.filter((s) => s.stop_type === 'DELIVERY').map((s) => s.idx);
@@ -332,13 +326,50 @@ export default function CreateTripPage() {
     return errors.length === 0;
   };
 
+  const updateActiveRoute = (updater) => {
+    if (!activeRouteOrderId) return;
+    setRoutesByOrder(prev => {
+      const current = prev[activeRouteOrderId] || buildRouteState(activeRouteOrderId);
+      const nextRoute = typeof updater === 'function' ? updater(current) : updater;
+      return { ...prev, [activeRouteOrderId]: nextRoute };
+    });
+  };
+
+  const handleRouteFieldChange = (name, value) => {
+    updateActiveRoute((route) => {
+      const next = { ...route, [name]: value };
+      if (name === 'origin_address' || name === 'destination_address') {
+        const stops = [...(route.stops || [])];
+        if (stops.length > 0) {
+          stops[0] = {
+            ...stops[0],
+            stop_type: 'PICKUP',
+            order_id: route.order_id || activeRouteOrderId || null,
+            location_address: name === 'origin_address' ? value : (stops[0].location_address || ''),
+          };
+        }
+        if (stops.length > 1) {
+          const lastIdx = stops.length - 1;
+          stops[lastIdx] = {
+            ...stops[lastIdx],
+            stop_type: 'DELIVERY',
+            order_id: route.order_id || activeRouteOrderId || null,
+            location_address: name === 'destination_address' ? value : (stops[lastIdx].location_address || ''),
+          };
+        }
+        next.stops = stops;
+      }
+      return next;
+    });
+  };
+
   useEffect(() => {
-    validateStops(plannedStops);
-  }, [formData.origin_address, formData.destination_address, plannedStops]);
+    validateStops(activeRoute.stops || []);
+  }, [activeRouteOrderId, routesByOrder]);
 
   const handleNext = () => {
     if (hasErrors) return;
-    if (currentStep === 3 && !validateStops()) return;
+    if (currentStep === 3 && !validateStops(activeRoute.stops || [])) return;
     setCurrentStep(prev => Math.min(prev + 1, steps.length));
   };
   const handlePrev = () => setCurrentStep(prev => Math.max(prev - 1, 1));
@@ -368,19 +399,54 @@ export default function CreateTripPage() {
       }));
       return;
     }
-    if (!validateStops()) return;
+    for (const orderId of (formData.order_ids || [])) {
+      const route = routesByOrder[orderId];
+      if (!route || !validateStops(route.stops || [])) {
+        setActiveRouteOrderId(orderId);
+        return;
+      }
+    }
     if (currentStep < steps.length) {
       handleNext();
       return;
     }
+    const primaryOrderId = formData.order_ids?.[0] || null;
+    const fallbackRoute = Object.values(routesByOrder || {}).find(Boolean) || null;
+    const primaryRoute = routesByOrder[primaryOrderId] || fallbackRoute || buildRouteState(primaryOrderId);
+    const scheduledPickupDate = primaryRoute.scheduled_pickup_date || formData.scheduled_pickup_date || null;
+    const scheduledDeliveryDate = primaryRoute.scheduled_delivery_date || formData.scheduled_delivery_date || null;
+
+    if (!scheduledPickupDate || !scheduledDeliveryDate) {
+      setFieldErrors((p) => ({
+        ...p,
+        scheduled_pickup_date: !scheduledPickupDate ? 'Scheduled pickup date is required' : '',
+        scheduled_delivery_date: !scheduledDeliveryDate ? 'Scheduled delivery date is required' : '',
+      }));
+      setCurrentStep(3);
+      return;
+    }
+
+    const todayLocal = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
+    const normalizedActualPickupDate =
+      primaryRoute.actual_pickup_date && primaryRoute.actual_pickup_date <= todayLocal
+        ? primaryRoute.actual_pickup_date
+        : null;
+    const normalizedActualDeliveryDate =
+      primaryRoute.actual_delivery_date && primaryRoute.actual_delivery_date <= todayLocal
+        ? primaryRoute.actual_delivery_date
+        : null;
     const payload = {
       ...formData,
-      scheduled_pickup_date: formData.scheduled_pickup_date || null,
-      scheduled_delivery_date: formData.scheduled_delivery_date || null,
-      actual_pickup_date: formData.actual_pickup_date || null,
-      actual_delivery_date: formData.actual_delivery_date || null,
-      start_time: formData.start_time || null,
-      end_time: formData.end_time || null,
+      order_ids: formData.order_ids || [],
+      order_id: formData.order_ids?.[0] || formData.order_id || null,
+      origin_address: primaryRoute.origin_address || null,
+      destination_address: primaryRoute.destination_address || null,
+      scheduled_pickup_date: scheduledPickupDate,
+      scheduled_delivery_date: scheduledDeliveryDate,
+      actual_pickup_date: normalizedActualPickupDate,
+      actual_delivery_date: normalizedActualDeliveryDate,
+      start_time: primaryRoute.start_time || null,
+      end_time: primaryRoute.end_time || null,
       pod_turnaround_days: formData.pod_turnaround_days === '' ? null : formData.pod_turnaround_days,
       total_distance_km: formData.total_distance_km === '' ? null : formData.total_distance_km,
       start_odometer_km: formData.start_odometer_km === '' ? null : formData.start_odometer_km,
@@ -400,12 +466,19 @@ export default function CreateTripPage() {
       const createdTrip = await createTripMutation.mutateAsync(payload);
       const tripId = createdTrip?.id;
 
-      if (tripId && plannedStops.length > 0) {
-        const stopPayloads = plannedStops
+      if (tripId) {
+        const stopPayloads = (formData.order_ids || []).flatMap((orderId) => {
+          const route = routesByOrder[orderId];
+          return (route?.stops || []).map((s) => ({
+            ...s,
+            order_id: s.order_id || orderId,
+          }));
+        })
           .map((s, idx) => ({
             stop_sequence: idx + 1,
             stop_type: s.stop_type,
             location_address: s.location_address || '',
+            order_id: s.order_id || null,
             instructions: s.instructions || '',
             scheduled_arrival: s.scheduled_arrival || null,
             scheduled_departure: s.scheduled_departure || null,
@@ -425,39 +498,41 @@ export default function CreateTripPage() {
   };
 
   const addStopRow = () => {
-    setPlannedStops((prev) => {
+    updateActiveRoute((route) => {
+      const prev = route.stops || [];
       const next = [...prev];
       // Insert before the last element (the terminal delivery stop)
       const lastIdx = Math.max(0, next.length - 1);
-      next.splice(lastIdx, 0, { stop_type: 'PICKUP', location_address: '', instructions: '', scheduled_arrival: '', scheduled_departure: '' });
+      next.splice(lastIdx, 0, {
+        stop_type: 'PICKUP',
+        location_address: '',
+        order_id: activeRouteOrderId || formData.order_ids?.[0] || null,
+        instructions: '',
+        scheduled_arrival: '',
+        scheduled_departure: '',
+      });
       validateStops(next);
-      return next;
+      return { ...route, stops: next };
     });
   };
 
   const removeStopRow = (index) => {
-    setPlannedStops((prev) => {
+    updateActiveRoute((route) => {
+      const prev = route.stops || [];
       const next = prev.filter((_, i) => i !== index);
       validateStops(next);
-      return next;
+      return { ...route, stops: next };
     });
   };
 
   const updateStopRow = (index, key, value) => {
-    setPlannedStops((prev) => {
-      const next = prev.map((s, i) => (i === index ? { ...s, [key]: value } : s));
-
-      // Bi-directional sync back to formData if origin (0) or destination (last) is updated
-      if (key === 'location_address') {
-        if (index === 0) {
-          setFormData(f => ({ ...f, origin_address: value }));
-        } else if (index === next.length - 1) {
-          setFormData(f => ({ ...f, destination_address: value }));
-        }
-      }
-
+    updateActiveRoute((route) => {
+      const prev = route.stops || [];
+      const next = prev.map((s, i) => (
+        i === index ? { ...s, [key]: value, order_id: route.order_id || activeRouteOrderId || s.order_id || null } : s
+      ));
       validateStops(next);
-      return next;
+      return { ...route, stops: next };
     });
   };
 
@@ -472,16 +547,19 @@ export default function CreateTripPage() {
       setDragOverIdx(null);
       return;
     }
-    setPlannedStops((prev) => {
+    updateActiveRoute((route) => {
+      const prev = route.stops || [];
       const next = [...prev];
       const [moved] = next.splice(dragIdx, 1);
       next.splice(index, 0, moved);
       validateStops(next);
-      return next;
+      return { ...route, stops: next };
     });
     setDragIdx(null);
     setDragOverIdx(null);
   };
+
+  const primaryRoutePreview = routesByOrder[formData.order_ids?.[0]] || buildRouteState(formData.order_ids?.[0] || null);
 
   return (
     <div className="flex-1 bg-[#F8FAFC] min-h-0 overflow-y-auto p-8">
@@ -539,11 +617,27 @@ export default function CreateTripPage() {
                     <h2 className="text-lg font-bold text-gray-800 tracking-tight">General Information</h2>
                   </div>
                   <div className="grid grid-cols-1 gap-8">
-                    <FieldGroup label="order">
-                      <select name="order_id" className={inputClass} value={formData.order_id} onChange={e => handleOrderChange(e.target.value)}>
-                        <option value="">Standalone Trip (No Order)</option>
-                        {orders.map(o => <option key={o.id} value={o.id}>{o.lr_number} — {o.status}</option>)}
-                      </select>
+                    <FieldGroup label="orders">
+                      <div className="border border-gray-200 rounded-xl p-3 max-h-56 overflow-y-auto space-y-2">
+                        {orders.map((o) => {
+                          const checked = (formData.order_ids || []).includes(String(o.id));
+                          return (
+                            <label key={o.id} className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={(e) => {
+                                  const current = new Set(formData.order_ids || []);
+                                  if (e.target.checked) current.add(String(o.id));
+                                  else current.delete(String(o.id));
+                                  handleOrdersChange(Array.from(current));
+                                }}
+                              />
+                              <span>{o.lr_number} - {o.status}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
                     </FieldGroup>
                   </div>
                   <div className="grid grid-cols-3 gap-8">
@@ -551,7 +645,7 @@ export default function CreateTripPage() {
                       <input
                         type="text"
                         className={inputClass}
-                        value={selectedOrder?.lr_number || ""}
+                        value={selectedOrders.map(o => o.lr_number).filter(Boolean).join(', ')}
                         placeholder="Auto-filled from selected order"
                         disabled
                         readOnly
@@ -565,8 +659,8 @@ export default function CreateTripPage() {
                         value={formData.reference_number}
                         onChange={handleInputChange}
                         placeholder="PO-12345"
-                        disabled={Boolean(formData.order_id)}
-                        readOnly={Boolean(formData.order_id)}
+                        disabled={Boolean(formData.order_ids?.length)}
+                        readOnly={Boolean(formData.order_ids?.length)}
                       />
                     </FieldGroup>
                     <FieldGroup label="trip_type (operational)">
@@ -681,6 +775,24 @@ export default function CreateTripPage() {
                     <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg"><MapPin size={20} /></div>
                     <h2 className="text-lg font-bold text-gray-800 tracking-tight">Route & Schedule</h2>
                   </div>
+                  {(formData.order_ids || []).length > 0 && (
+                    <div className="mb-2 flex flex-wrap gap-2">
+                      {selectedOrders.map((order) => (
+                        <button
+                          key={order.id}
+                          type="button"
+                          onClick={() => setActiveRouteOrderId(order.id)}
+                          className={`px-3 py-1 rounded-lg text-[11px] font-bold border ${
+                            String(activeRouteOrderId) === String(order.id)
+                              ? 'bg-blue-600 text-white border-blue-600'
+                              : 'bg-white text-gray-600 border-gray-200'
+                          }`}
+                        >
+                          {order.lr_number}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   <div className="bg-gray-50/50 rounded-2xl p-6 border border-gray-100 flex gap-6 relative overflow-hidden group mb-8">
                     {/* Visual Journey Line */}
                     <div className="flex flex-col items-center gap-1.5 relative z-10 w-6 pt-7">
@@ -699,8 +811,8 @@ export default function CreateTripPage() {
                           name="origin_address" 
                           rows="2" 
                           className={`${inputClass} !bg-white focus:shadow-lg focus:shadow-blue-50/50 transition-all !resize-none`} 
-                          value={formData.origin_address} 
-                          onChange={handleInputChange} 
+                          value={activeRoute.origin_address || ""} 
+                          onChange={(e) => handleRouteFieldChange('origin_address', e.target.value)} 
                           placeholder="Enter starting point..." 
                         />
                       </div>
@@ -712,8 +824,8 @@ export default function CreateTripPage() {
                           name="destination_address" 
                           rows="2" 
                           className={`${inputClass} !bg-white focus:shadow-lg focus:shadow-emerald-50/50 transition-all !resize-none`} 
-                          value={formData.destination_address} 
-                          onChange={handleInputChange} 
+                          value={activeRoute.destination_address || ""} 
+                          onChange={(e) => handleRouteFieldChange('destination_address', e.target.value)} 
                           placeholder="Enter drop-off point..." 
                         />
                       </div>
@@ -734,7 +846,7 @@ export default function CreateTripPage() {
                       <button type="button" onClick={addStopRow} className="text-xs font-bold text-[#4a6cf7]">+ Add Stop</button>
                     </div>
                     <div className="space-y-3">
-                      {plannedStops.map((stop, idx) => (
+                      {(activeRoute.stops || []).map((stop, idx) => (
                         <div
                           key={`stop-${idx}`}
                           className={`grid grid-cols-12 gap-2 items-end bg-white border rounded-lg p-3 transition-all duration-200 ${
@@ -754,7 +866,7 @@ export default function CreateTripPage() {
                           >
                             <GripVertical size={16} />
                           </div>
-                          <div className="col-span-2">
+                          <div className="col-span-1">
                             <label className="text-[10px] font-bold text-gray-500 uppercase">Type</label>
                             <select className={inputClass} value={stop.stop_type} onChange={(e) => updateStopRow(idx, 'stop_type', e.target.value)}>
                               <option value="PICKUP">PICKUP</option>
@@ -765,7 +877,15 @@ export default function CreateTripPage() {
                               <option value="OTHER">OTHER</option>
                             </select>
                           </div>
-                          <div className="col-span-3">
+                          <div className="col-span-2">
+                            <label className="text-[10px] font-bold text-gray-500 uppercase">Order LR</label>
+                            <input
+                              className={`${inputClass} bg-gray-50`}
+                              value={selectedOrders.find((o) => String(o.id) === String(activeRouteOrderId))?.lr_number || 'Unassigned'}
+                              readOnly
+                            />
+                          </div>
+                          <div className="col-span-2">
                             <label className="text-[10px] font-bold text-gray-500 uppercase">Location Address</label>
                             <input className={inputClass} value={stop.location_address} onChange={(e) => updateStopRow(idx, 'location_address', e.target.value)} placeholder="Stop address" />
                           </div>
@@ -785,9 +905,9 @@ export default function CreateTripPage() {
                             <button 
                               type="button" 
                               onClick={() => removeStopRow(idx)} 
-                              disabled={idx === 0 || idx === plannedStops.length - 1}
+                              disabled={idx === 0 || idx === (activeRoute.stops || []).length - 1}
                               className={`w-full text-xs font-bold rounded-lg py-2 border transition-all ${
-                                (idx === 0 || idx === plannedStops.length - 1)
+                                (idx === 0 || idx === (activeRoute.stops || []).length - 1)
                                   ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed'
                                   : 'text-red-600 border-red-200 hover:bg-red-50'
                               }`}
@@ -805,25 +925,25 @@ export default function CreateTripPage() {
                   <div className="grid grid-cols-2 gap-8 border-t border-gray-50 pt-8 mt-8">
                     <div className="grid grid-cols-2 gap-4">
                       <FieldGroup label="scheduled_pickup_date" error={fieldErrors.scheduled_pickup_date}>
-                        <input type="date" name="scheduled_pickup_date" className={inputClass} value={formData.scheduled_pickup_date || ""} onChange={handleInputChange} />
+                        <input type="date" name="scheduled_pickup_date" className={inputClass} value={activeRoute.scheduled_pickup_date || ""} onChange={(e) => handleRouteFieldChange('scheduled_pickup_date', e.target.value)} />
                       </FieldGroup>
                       <FieldGroup label="scheduled_delivery_date" error={fieldErrors.scheduled_delivery_date}>
-                        <input type="date" name="scheduled_delivery_date" className={inputClass} value={formData.scheduled_delivery_date || ""} onChange={handleInputChange} />
+                        <input type="date" name="scheduled_delivery_date" className={inputClass} value={activeRoute.scheduled_delivery_date || ""} onChange={(e) => handleRouteFieldChange('scheduled_delivery_date', e.target.value)} />
                       </FieldGroup>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <FieldGroup label="actual_pickup_date" error={fieldErrors.actual_pickup_date}>
-                        <input type="date" name="actual_pickup_date" className={inputClass} value={formData.actual_pickup_date || ""} onChange={handleInputChange} />
+                        <input type="date" name="actual_pickup_date" className={inputClass} value={activeRoute.actual_pickup_date || ""} onChange={(e) => handleRouteFieldChange('actual_pickup_date', e.target.value)} />
                       </FieldGroup>
                       <FieldGroup label="actual_delivery_date" error={fieldErrors.actual_delivery_date}>
-                        <input type="date" name="actual_delivery_date" className={inputClass} value={formData.actual_delivery_date || ""} onChange={handleInputChange} />
+                        <input type="date" name="actual_delivery_date" className={inputClass} value={activeRoute.actual_delivery_date || ""} onChange={(e) => handleRouteFieldChange('actual_delivery_date', e.target.value)} />
                       </FieldGroup>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-8">
-                      <FieldGroup label="start_time" error={fieldErrors.start_time}><input type="datetime-local" name="start_time" className={inputClass} value={formData.start_time || ""} onChange={handleInputChange} /></FieldGroup>
+                      <FieldGroup label="start_time" error={fieldErrors.start_time}><input type="datetime-local" name="start_time" className={inputClass} value={activeRoute.start_time || ""} onChange={(e) => handleRouteFieldChange('start_time', e.target.value)} /></FieldGroup>
                       <FieldGroup label="end_time" error={fieldErrors.end_time}>
-                        <input type="datetime-local" name="end_time" className={inputClass} value={formData.end_time || ""} onChange={handleInputChange} />
+                        <input type="datetime-local" name="end_time" className={inputClass} value={activeRoute.end_time || ""} onChange={(e) => handleRouteFieldChange('end_time', e.target.value)} />
                       </FieldGroup>
                   </div>
                   <FieldGroup label="created_date"><input type="date" name="created_date" className={inputClass} value={formData.created_date} onChange={handleInputChange} /></FieldGroup>
@@ -982,7 +1102,7 @@ export default function CreateTripPage() {
                     <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Save size={16} /> Summary</h3>
                     <div className="grid grid-cols-2 gap-y-4 text-sm">
                       <div className="flex flex-col"><span className="text-gray-400 text-xs font-bold uppercase">trip_number</span><span className="font-bold text-gray-700">Auto-generated on create</span></div>
-                      <div className="flex flex-col"><span className="text-gray-400 text-xs font-bold uppercase">Route</span><span className="font-bold text-gray-700">{formData.origin_address && formData.destination_address ? `${formData.origin_address} → ${formData.destination_address}` : 'Not fully specified'}</span></div>
+                      <div className="flex flex-col"><span className="text-gray-400 text-xs font-bold uppercase">Route</span><span className="font-bold text-gray-700">{primaryRoutePreview.origin_address && primaryRoutePreview.destination_address ? `${primaryRoutePreview.origin_address} → ${primaryRoutePreview.destination_address}` : 'Not fully specified'}</span></div>
                       <div className="flex flex-col"><span className="text-gray-400 text-xs font-bold uppercase">trip_type</span><span className="font-bold text-gray-700">{formData.trip_type}</span></div>
                       <div className="flex flex-col"><span className="text-gray-400 text-xs font-bold uppercase">status</span><span className="font-bold text-blue-600">{formData.status}</span></div>
                     </div>

@@ -85,6 +85,7 @@ export function CreatePODModal({ isOpen, onClose }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!formData.trip_stop) return;
     const payload = { ...formData };
     if (payload.delivery_date) {
       payload.delivery_date = new Date(payload.delivery_date).toISOString();
@@ -155,6 +156,11 @@ export function CreatePODModal({ isOpen, onClose }) {
                   </option>
                 ))}
               </select>
+              {!!selectedTripId && deliveryStops.length > 1 && !formData.trip_stop && (
+                <p className="mt-1 text-[10px] font-semibold text-amber-600">
+                  Multiple delivery stops found. Select the correct stop before submitting POD.
+                </p>
+              )}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -224,7 +230,11 @@ export function CreatePODModal({ isOpen, onClose }) {
         </div>
         <div className="flex justify-end gap-3 pt-6 border-t">
           <button type="button" onClick={onClose} className="px-5 py-2.5 text-gray-600 bg-gray-100 rounded-lg">Cancel</button>
-          <button type="submit" disabled={createPODMutation.isPending} className="px-6 py-2.5 text-white bg-[#0052CC] rounded-lg shadow-md disabled:opacity-50">
+          <button
+            type="submit"
+            disabled={createPODMutation.isPending || !selectedTripId || !formData.trip_stop}
+            className="px-6 py-2.5 text-white bg-[#0052CC] rounded-lg shadow-md disabled:opacity-50"
+          >
             {createPODMutation.isPending ? 'Saving...' : 'Confirm POD'}
           </button>
         </div>

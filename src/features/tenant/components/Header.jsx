@@ -51,7 +51,7 @@ const Header = ({ toggleSidebar, isCollapsed }) => {
       if (feature === 'vehicles') return 'Vehicles';
       if (feature === 'drivers') return 'Drivers';
       if (feature === 'customers') return 'Customers';
-      if (feature === 'orders') return 'Orders';
+      if (feature === 'orders') return 'LR Bookings';
 
       return feature.charAt(0).toUpperCase() + feature.slice(1);
     }
